@@ -1,0 +1,26 @@
+{
+  "name": "p0-foundation",
+  "goal": "让 ERP 的呈现层、语言层、判断层由 Agent 承担，让系统形态由每家企业自己长出来——且每一次生长都是可 diff、可回滚、可迁移的产物。P0 是这条路的地基：把「可验证」做出来，本阶段不引入任何 LLM。每个工作项以 tests/gates/ 下先红着的门禁测试为判据，测试转绿才算关闭。",
+  "flowName": "mission-driver",
+  "driver": "claude",
+  "model": "opus",
+  "parseModel": "haiku",
+  "roadmapPath": "docs/backlog/p0-foundation-roadmap.md",
+  "plansDir": "docs/plans/p0-foundation",
+  "planGuide": "docs/plans/00-plan-authoring-and-execution-guide.md",
+  "auditsDir": "docs/audits",
+  "contextDir": "docs/context",
+  "commands": {
+    "test": "python3 tools/gates/check_expected_red.py"
+  },
+  "scripts": {
+    "gate-verify": "tools/gates/gate-verify.mjs"
+  },
+  "commitFormat": "<type>(<scope>): <description>",
+  "_notes": {
+    "commands": "只列现在真跑得起来的。本机 ruff / mypy / docker 都还没有，写进去等于每个 plan 一开局就 fail —— 它们是 P0 的交付物，装上了再往这里加 lint / typecheck / build。",
+    "test": "这条不是 `pytest tests/gates`。门禁按 TDD 故意全红，直接跑 pytest 必然非 0。check_expected_red.py 比对的是「实际结果 vs 预期红名单」：名单内红=正常，名单内绿=名单过期，名单外红=真坏了，出现 skip=有人放松裁判。",
+    "scripts": "gate-verify 由引擎自身 spawn 子进程复跑上面的 commands，以退出码判定，AI 不参与。需要 fork 的补丁 P1（SCRIPT_REGISTRY 可扩展），见 tools/mission-driver/VENDOR.md。",
+    "driver_model": "driver/model 必须写在 mission 里。base.json 自称是 shared defaults，但实测主运行路径上 config.js 的 loadBaseAndInjectEnv() 只做 env 注入、返回值被丢弃 —— base.model / base.driver 只在 draft/analyze 两条路径生效。写在 base.json 里会安静地不起作用。"
+  }
+}

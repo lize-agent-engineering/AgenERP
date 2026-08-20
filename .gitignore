@@ -3,3 +3,5 @@ _tmp/
 tmp/
 .pytest_cache/
 __pycache__/
+_tmp/
+.pytest-gates.xml

@@ -44,12 +44,12 @@
 | W0.6 | 手写 P0 的 4 个红测试🔴 | W0.2 | `pytest tests/gates -q` **全红**（这一步的正确结果是失败） | 人 | **done** 2026-08-20T14:54Z · 13 断言 0 通过；L1 5 条 / L2 8 条；红因为实现不存在，非测试缺陷 |
 | W0.7 | 配 GitHub Actions CI（最终裁判）+ **预期红名单棘轮** | W0.6 | 一次 push 触发 CI，结果可见 | `CI:gates` | **done** 2026-08-20T15:09Z · 私有仓已建并 push，CI 实跑；首轮 4/5 绿，修掉「注定红」的 link job 后全绿 |
 | W0.8 | fork mission-driver，打 P1/P2/P3 三个补丁；同步提上游 PR | — | `node tools/mission-driver/src/main.js --help` 可跑；`GATE_VERIFY` 出现在 flow 定义里 | 人 | **done** 2026-08-20T15:05Z · 三补丁端到端验证；引擎测试与上游同基线（621/2）；上游 PR 待建远程仓后提 |
-| **W0.8b** | 实现 `--driver claude`（含 HOME/cwd 沙箱，见 [01](./01-EXECUTION-MODEL.md) §5） | W0.8, W0.0 | 一次 `--driver claude` 干跑产出非空回复，且**上下文里不含本仓 CLAUDE.md / skills**（token 数与空目录基线相差 < 5%） | 人 | **新增（D-3）** |
-| W0.9 | 写 `missions/p0-foundation.json` **+ `docs/backlog/p0-foundation-roadmap.md`**（引擎回写的那份） | W0.4, W0.8 | `node ... --mission missions/p0-foundation.json --dry-run` 退 0；`goal` 字段含北极星原文；`roadmapPath` 指向 P0 自己的 roadmap **而非全局索引** | 人 | §6-9 |
+| **W0.8b** ✅ | 实现 `--driver claude`（含 hooks 泄漏对策） | W0.8 | 一次 `--driver claude` 干跑产出非空回复，红线在上下文里 | 人 | **done** 2026-08-20T15:16Z · 实测 AGENTS.md 不会自动加载 → 红线改为 `--append-system-prompt` 显式下发 |
+| W0.9 | 写 `missions/p0-foundation.json` **+ `docs/backlog/p0-foundation-roadmap.md`**（引擎回写的那份） | W0.4, W0.8 | dry-run 退 0；`goal` 含北极星原文；`roadmapPath` 指向 P0 自己的 roadmap | 人 | **done** 2026-08-20T15:19Z · dry-run exit 0 / status completed；8 工作项逐项绑门禁测试 |
 | W0.10 | 重写 `prompts/build-verify.md`（去 Maven/Jira 特化，改 Python/Frappe 语境） | W0.8 | `grep -ciE 'maven\|jira\|-pl ' prompts/build-verify.md` == 0 | 人 | §6-10 |
 | W0.11 | 装技能（mattpocock / grill-me / tospec），**尽力而为** | — | 每项一条证据行；装不上则标注「走 03 §A_n 内置清单」 | 人 | **done** · 目录中不存在（搜索返回空结果），走 03 内置等效清单，不再重试 |
 | **W0.12** | LoopX 集成，**2 小时硬上限** | W-1.3 | 闭环跑通：建 goal → 建 todo → `loopx quota should-run` 给出决策 → 门禁退出码由脚本写回证据。**超时未通即按 D-6 退回 STATE.md 手工纪律** | 人 | **新增（D-6）** |
-| **W0.13** | **锚点重映射 + T2 复跑**（W0.3/W0.4 会把主计划的引用全部打断） | W0.3, W0.4 | 改 [README.md](./README.md) §5 引用登记表后 `tools/check-masterplan-links.sh` 退 0 | 人 | **新增（本主计划）** |
+| **W0.13** ✅ | **锚点重映射 + T2 复跑**（W0.3/W0.4 会把主计划的引用全部打断） | W0.3, W0.4 | `tools/check-masterplan-links.sh` exit 0 | 人 | **done** 2026-08-20T15:16Z · 分三批：W0.3 重指向 6 条、W0.4 重指向 9 条、W0.7 又揪出 14 条 M 类从未迁移的（方案 C 文档 + 验证报告）并迁入 `docs/analysis/` |
 | **W0.14** | 空转一次 mission（不产出业务代码，只验证循环与门禁联动） | W0.9, W0.8b, W0.13 | 人为让 `pytest` 失败 → `GATE_VERIFY` 判 fail → 循环 retry；人为改 `tests/gates/**` → **立即停机** | 人 | **新增（本主计划）** |
 
 **Day 0 出口门禁**：W0.0、W0.7、W0.13、W0.14 四项全绿，才允许 `./mission-driver.sh p0-foundation` 接管。少一项都不许开 7×24。

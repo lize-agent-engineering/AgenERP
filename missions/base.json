@@ -1,7 +1,6 @@
 {
-  "_comment": "Shared defaults for all missions. Fill commands.* for YOUR stack.",
-  "model": "zhipuai-coding-plan/glm-5.2",
-  "parseModel": "zhipuai-coding-plan/glm-4.7-flash",
+  "_comment": "所有 mission 的共享默认值 —— 但**没有名字听起来那么共享**：主运行路径上 config.js 只用它注入 env，model / driver / agent 等字段仅在 draft / analyze 路径生效。真实运行要的 driver / model / commands，一律写在各 mission 自己里。",
+  "_commands_warning": "这里**不放** commands 占位符。上游模板原本放了 REPLACE_WITH_YOUR_TEST_COMMAND 之类，一旦某个 mission 写了 extends 又忘了覆盖，GATE_VERIFY 就会去执行这条字符串然后必然失败 —— 每个 plan 一开局就红。commands 一律由各 mission 自己写全。",
   "agent": "build",
   "maxCycles": 8,
   "maxInnerCycles": 6,
@@ -10,11 +9,5 @@
   "planGuide": "docs/plans/00-plan-authoring-and-execution-guide.md",
   "auditsDir": "docs/audits",
   "contextDir": "docs/context",
-  "commands": {
-    "test": "REPLACE_WITH_YOUR_TEST_COMMAND",
-    "build": "REPLACE_WITH_YOUR_BUILD_COMMAND",
-    "lint": "REPLACE_WITH_YOUR_LINT_COMMAND",
-    "typecheck": "REPLACE_WITH_YOUR_TYPECHECK_COMMAND"
-  },
   "commitFormat": "<type>(<scope>): <description>"
 }

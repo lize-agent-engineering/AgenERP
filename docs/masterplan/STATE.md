@@ -12,7 +12,7 @@
 |---|---|
 | 阶段 | **Day -1**（主计划自身制作） |
 | 当前 mission | 无（mission-driver 尚未接管，Day 0 之后才有） |
-| **下一个未阻塞工作项** | **W0.9 · 写 mission 配置 + P0 roadmap**（此字段**只填一个 ID**，不写「但实际前置是…」这类歧义——T1 实测：会让接手会话先做一次推理才敢动手） |
+| **下一个未阻塞工作项** | **W0.10 · 重写 build-verify.md**（此字段**只填一个 ID**，不写「但实际前置是…」这类歧义——T1 实测：会让接手会话先做一次推理才敢动手） |
 | 该项验收命令 | `--driver claude` 能跑通一次最小 prompt 往返，且**不泄漏本仓 CLAUDE.md / hooks / skills**（对策见 `REF:SPIKE02-MODELS`） |
 | 阻塞 | 无。**T1–T4 四条全过**（2026-08-20） |
 | 成本 | 未开始计量（阈值待 `W0.0` 定出） |
@@ -102,6 +102,11 @@
 - 2026-08-20T15:16Z · W0.8b · 验收：用 `_buildDriverArgs` 拼出的**真实 argv** 跑一次 → 两问都答对（「不得修改 tests/gates/**」「由 GATE_VERIFY 退出码裁定，我无权自报通过」）· sha `864fa5d`
 - 2026-08-20T15:16Z · W0.8b · token 实测：基线（不带 settings）**25,605** / 带 loop settings **21,709** / 带 settings+人格 **22,765**。净省约 2,800/轮。⚠️ 注意此处泄漏量远小于 spike/02 记录的 ~37K —— 那是在装了 SessionStart hook 的 XM 仓测的，泄漏量取决于本机装了什么，**不是常数**
 - 2026-08-20T15:16Z · W0.0 · 成本基线第一个数据点：单轮最小往返（opus，22,765 输入 token）CLI 报 **\$0.231**。⚠️ 这是 API 计价口径的换算，订阅下不直接扣款，但可作 burn 代理指标。单 mission 阈值待 W0.9 跑通后按真实步数测算
+
+- 2026-08-20T15:19Z · W0.9 · `missions/p0-foundation.json` + `docs/backlog/p0-foundation-roadmap.md`（8 个工作项，逐项绑定门禁测试）· 引擎校验器 `mission-check.mjs` → `valid: true`；`parseRoadmapMarkdown` 解析出 **8 项，第一个 todo = 定制包规范化器** · sha `fa0ce94`
+- 2026-08-20T15:19Z · W0.9 · `node ... p0-foundation --dry-run` → **exit 0，run-state.status = completed**，Model 显示 `opus`。验收通过
+- 2026-08-20T15:19Z · W0.9 · `commands` 只放**现在真跑得起来的那一条**（`check_expected_red.py`）。本机 ruff/mypy/docker 都没有，写进去等于每个 plan 一开局就 fail —— 它们本身就是 P0 的交付物，装上再加
+- 2026-08-20T15:19Z · W0.9 · **上游两处坑，均实测确认**：① `base.json` 自称 shared defaults，但主运行路径上 `loadBaseAndInjectEnv()` 只注入 env、返回值被丢弃 → `base.model`/`base.driver` **安静地不生效**，必须写进各 mission；② 上游 base.json 预置了 `REPLACE_WITH_YOUR_TEST_COMMAND` 之类占位符，一旦某 mission 写了 `extends` 又忘覆盖，GATE_VERIFY 会去执行这条字符串 → 已清空并写明原因
 
 ---
 
