@@ -18,6 +18,7 @@
 |---|---|---|---|
 | P1 | `src/flow-loader.js` | `SCRIPT_REGISTRY` 可从 mission.json 的 `scripts` 字段扩展 | **是**（通用改动） |
 | P3 | `flows/plan-execution.json` | `BUILD_VERIFY` 之后插入 `GATE_VERIFY` 独立判定步 | 否（项目侧策略） |
+| P4 | `src/config.js` · `src/runner.js` · `agents/build.claude.md` · `agents/claude-loop.settings.json` | 新增 `--driver claude`（D-3）：settings 关 hooks/自带技能，persona 经 `--append-system-prompt` 显式下发 | 可考虑（driver 层通用） |
 
 （P2 是项目侧新增文件 `tools/gates/gate-verify.mjs`，不改上游。）
 

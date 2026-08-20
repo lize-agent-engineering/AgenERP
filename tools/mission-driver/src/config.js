@@ -34,6 +34,30 @@ const CLINE_DEFAULTS = Object.freeze({
   agentFile: "agents/build.cline.md",
 });
 
+// --- 补丁 P4（AgenERP fork）------------------------------------------------
+// claude driver：D-3 裁决执行器改用 Claude Code 订阅（方案 C §2.2 的翻案条款）。
+//
+// 两个非显然之处，改之前先读：
+//  1. **不下发 persona 文件**。claude 在项目 cwd 里会自动加载 AGENTS.md，
+//     红线就在那里面 —— 再塞一份 persona 只会制造第二个真相源。
+//  2. **必须带 --settings 关掉 hooks 与自带技能**。spike/02 实测：在装了插件的
+//     仓库目录下跑 `claude -p`，SessionStart hook 会往每一轮多塞约 37,000 token
+//     的无关上下文，且干扰模型对协议的遵守。7×24 下这是成本灾难。
+//     settings 文件走 {agentFile} 槽位下发（该槽位保证解析成 TOOL_ROOT 绝对路径）—— 
+//     名字叫 agentFile 但这里装的是 settings，属于复用既有机制，勿改名。
+//  3. promptMode 用 stdin：prompt 含换行与引号，位置参数会被 shell 切碎。
+const CLAUDE_DEFAULTS = Object.freeze({
+  driverArgs: "-p --model {model} --permission-mode bypassPermissions --settings {agentFile}",
+  promptMode: "stdin",
+  agentFile: "agents/claude-loop.settings.json",
+  // 实测（2026-08-20）：`claude -p` **不会**把项目根的 AGENTS.md 带进上下文 ——
+  // 问它「红线第 1 条是什么」，回答「上下文里没有」。所以红线必须显式下发，
+  // 由 runner.js 读这个文件的内容注入 --append-system-prompt。
+  // 别指望隐式加载：一个不知道红线的执行器，第一件事就可能是去改门禁。
+  personaFile: "agents/build.claude.md",
+});
+// --- 补丁 P4 结束 -----------------------------------------------------------
+
 // Apply driver defaults to driverArgs/promptMode/agentFile. `driverArgs` and
 // `promptMode` are the values after args/env/mission fallback (may be undefined).
 // promptMode is ALWAYS returned concrete (never undefined) so runner.js's
@@ -43,16 +67,16 @@ const CLINE_DEFAULTS = Object.freeze({
 function resolveDriverFields(driver, driverArgs, promptMode) {
   const isPi = driver === "pi";
   const isCline = driver === "cline";
+  const isClaude = driver === "claude"; // 补丁 P4
+  const defaults = isPi ? PI_DEFAULTS : (isCline ? CLINE_DEFAULTS : (isClaude ? CLAUDE_DEFAULTS : null));
   return {
-    driverArgs: driverArgs !== undefined
-      ? driverArgs
-      : (isPi ? PI_DEFAULTS.driverArgs : (isCline ? CLINE_DEFAULTS.driverArgs : undefined)),
+    driverArgs: driverArgs !== undefined ? driverArgs : (defaults ? defaults.driverArgs : undefined),
     promptMode: promptMode !== undefined
       ? promptMode
-      : (isPi ? PI_DEFAULTS.promptMode : (isCline ? CLINE_DEFAULTS.promptMode : "arg")),
-    agentFile: isPi
-      ? resolve(TOOL_ROOT, PI_DEFAULTS.agentFile)
-      : (isCline ? resolve(TOOL_ROOT, CLINE_DEFAULTS.agentFile) : undefined),
+      : (defaults ? defaults.promptMode : "arg"),
+    agentFile: defaults ? resolve(TOOL_ROOT, defaults.agentFile) : undefined,
+    // 补丁 P4：claude 专用，persona 与 settings 是两个文件，各走各的槽位
+    personaFile: defaults && defaults.personaFile ? resolve(TOOL_ROOT, defaults.personaFile) : undefined,
   };
 }
 
@@ -569,6 +593,7 @@ export function resolveConfig(args = {}) {
       driverArgs: drvFieldsDraft.driverArgs,
       promptMode: drvFieldsDraft.promptMode,
       agentFile: drvFieldsDraft.agentFile,
+      personaFile: drvFieldsDraft.personaFile,
       model: args.model || process.env.OPENCODE_MODEL || base.model || "zhipuai-coding-plan/glm-5.2",
       dryRun, testMode,
       devMode,
@@ -613,6 +638,7 @@ export function resolveConfig(args = {}) {
       driverArgs: drvFieldsAnalyze.driverArgs,
       promptMode: drvFieldsAnalyze.promptMode,
       agentFile: drvFieldsAnalyze.agentFile,
+      personaFile: drvFieldsAnalyze.personaFile,
       model: args.model || process.env.OPENCODE_MODEL || baseA.model || "zhipuai-coding-plan/glm-5.2",
       dryRun, testMode,
       devMode,
@@ -757,6 +783,7 @@ export function resolveConfig(args = {}) {
     driverArgs: drvFields.driverArgs,
     promptMode: drvFields.promptMode,
     agentFile: drvFields.agentFile,
+    personaFile: drvFields.personaFile,
     autonomyMode: resolvedAutonomyMode,
     agent: resolvedAgent,
     model: resolvedModel,

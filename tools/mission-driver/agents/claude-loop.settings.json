@@ -1,0 +1,14 @@
+{
+  "_comment": "AgenERP fork · --driver claude 专用设置。见 tools/mission-driver/VENDOR.md 补丁 P4。loop 侧执行器要的是确定性环境：每轮输入只由 mission prompt + 项目 AGENTS.md 决定，不受本机装了什么插件影响。",
+  "disableAllHooks": true,
+  "disableBundledSkills": true,
+  "disableClaudeAiConnectors": true,
+  "syncClaudeAiSkills": false,
+  "includeGitInstructions": true,
+  "autoCompactEnabled": true,
+  "todoFeatureEnabled": false,
+  "spinnerTipsEnabled": false,
+  "attribution": {
+    "commit": "Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
+  }
+}

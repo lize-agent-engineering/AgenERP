@@ -60,6 +60,12 @@ function buildDriverArgs(config, sessionId, prompt) {
   if (config.driver === "cline" && config.agentFile) {
     args.push("-s", readFileSync(config.agentFile, "utf8").trim());
   }
+  // 补丁 P4（AgenERP fork）：claude 的红线人格同理 —— 多行内容无法塞进按空白切分的
+  // 模板，只能在切分后作为独立 argv 对注入。实测 `claude -p` 不会自动带上 AGENTS.md，
+  // 所以这一步不是锦上添花，是红线进入执行器上下文的唯一通道。
+  if (config.driver === "claude" && config.personaFile) {
+    args.push("--append-system-prompt", readFileSync(config.personaFile, "utf8").trim());
+  }
   if (promptMode === "arg" && prompt) args.push(prompt);
 
   return {
@@ -93,6 +99,10 @@ async function killTree(pid) {
 let _mockRoadmapCount = 0;
 let _mockClosureCount = 0;
 let _mockMultiAuditCount = 0;
+
+// 补丁 P4：把 argv 构建暴露为测试接缝，好让门禁能验「红线确实进了 argv」
+// 而不是靠人手抄一条命令去试。命名沿用上游 _ 前缀的测试接缝惯例。
+export { buildDriverArgs as _buildDriverArgs };
 
 export function resetMockState() {
   _mockRoadmapCount = 0;

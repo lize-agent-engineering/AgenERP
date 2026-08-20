@@ -815,7 +815,7 @@ program
   .version("1.0.0")
   .addHelpText("after", `
 环境变量:
-  MISSION_DRIVER_EXEC=<exe>           执行器驱动: opencode (默认) | pi | cline
+  MISSION_DRIVER_EXEC=<exe>           执行器驱动: opencode (默认) | pi | cline | claude
   MISSION_DRIVER_ARGS=<args>          执行器参数模板（pi 时自动填充 -p/--model/--append-system-prompt/--tools；cline 时自动填充 -m/--json/--yolo/-s）
   MISSION_PROMPT_MODE=<mode>          prompt 传递方式: arg | stdin（pi 默认 stdin；cline 默认 arg）
   OPENCODE_AGENT=<agent>              子 agent（默认 build）
@@ -917,7 +917,7 @@ program.command("run")
   .option("--dir <path>", "指定项目根目录")
   .option("--missions-dir <path>", "指定 missions 目录")
   .option("--run-dir <path>", "指定运行目录（相对 _tmp/ 的 basename，由 monitor 注入）")
-  .option("--driver <exe>", "执行器驱动: opencode (默认) | pi | cline")
+  .option("--driver <exe>", "执行器驱动: opencode (默认) | pi | cline | claude")
   .action(async (mission, opts) => {
     await cmdRunMission(mission, opts);
   });
@@ -945,7 +945,7 @@ program
   .option("--dir <path>", "指定项目根目录")
   .option("--missions-dir <path>", "指定 missions 目录")
   .option("--run-dir <path>", "指定运行目录（相对 _tmp/ 的 basename，由 monitor 注入）")
-  .option("--driver <exe>", "执行器驱动: opencode (默认) | pi | cline")
+  .option("--driver <exe>", "执行器驱动: opencode (默认) | pi | cline | claude")
   .action(async (mission, opts) => {
     if (!mission) {
       program.outputHelp();
