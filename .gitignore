@@ -7,3 +7,5 @@ _tmp/
 .pytest-gates.xml
 .mission-halt.json
 _smoke/
+.loopx/
+.codex/

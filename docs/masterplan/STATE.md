@@ -12,13 +12,13 @@
 |---|---|
 | 阶段 | **Day -1**（主计划自身制作） |
 | 当前 mission | 无（mission-driver 尚未接管，Day 0 之后才有） |
-| **下一个未阻塞工作项** | **W0.12 · LoopX 集成（2 小时硬上限）**（此字段**只填一个 ID**，不写「但实际前置是…」这类歧义——T1 实测：会让接手会话先做一次推理才敢动手） |
+| **下一个未阻塞工作项** | **P0.1 · 定制包规范化器**（Day 0 出口门禁四项已全绿）（此字段**只填一个 ID**，不写「但实际前置是…」这类歧义——T1 实测：会让接手会话先做一次推理才敢动手） |
 | 该项验收命令 | `--driver claude` 能跑通一次最小 prompt 往返，且**不泄漏本仓 CLAUDE.md / hooks / skills**（对策见 `REF:SPIKE02-MODELS`） |
 | 阻塞 | 无。**T1–T4 四条全过**（2026-08-20） |
 | 成本 | 未开始计量（阈值待 `W0.0` 定出） |
 | CI | 未配置（`W0.7`） |
 | 证据仓 | `XM_SHA=1c622c8119755b36992c54ba98fbf6840cd22ed4` @ `validation/pre-build`（见 `evidence-repo.env`） |
-| LoopX | 已装 0.5.0，`doctor ok:True`；**尚未接管状态**（`W0.12`，2 小时上限） |
+| LoopX | 已装 0.5.0；**已接管 WBS 项级状态**（goal `agenerp-goal`，agent `supervisor-a`）；写回经 `tools/loopx-writeback.sh` 单向搬运退出码 |
 
 ---
 
@@ -121,6 +121,11 @@
 - 2026-08-20T15:34Z · W0.0 · **成本基线（驱动方式：claude driver / Opus 5 订阅）**：一个完整循环 = 4 个无头会话 / 56 条助手消息 / **输入 1,599,358 token、输出 22,978**、墙钟 **3 分 36 秒**，按 Opus API 价换算 **≈ \$2.31**。测法：读 `~/.claude/projects/-Users-lize-Documents-claude-AgenERP/*.jsonl` 逐条加总 usage，**排除监督会话自身**（第一次没排除，读出 1,994 万 token 的假数，其中 1,844 万是我自己的）
 - 2026-08-20T15:34Z · W0.0 · 据此定阈值：`missions/p0-foundation.json` 设 `maxTotalSteps: 120`（≈15–20 个循环 ≈2,500 万输入 token ≈\$35 当量），上游默认 500 步对 7×24 太松。⚠️ 外推：3.6 分钟/循环 → 约 400 循环/日 → 日当量近千美元级 —— **订阅下不是钱的问题，是必然撞限流窗口**，这正是 D-6 采用 LoopX 配额调度的实测依据
 - 2026-08-20T15:34Z · W0.0 · ⚠️ 已知缺口：「单 mission 累计成本超阈值 → 停机」目前**由步数上限代理**，没有真正的 token 计量器。真要按 token 停机，需要一个读 transcript 的预算检查器 —— 记在此，P0 复盘时决定要不要做
+
+- 2026-08-20T15:38Z · W0.12 · LoopX 闭环跑通（用时约 25 分钟，远在 2 小时上限内）：`bootstrap` → `register-agent supervisor-a` → `todo add`（WBS 项级）→ `refresh-state` → `quota should-run --goal-id --agent-id` → **`decision=run, should_run=True`** · sha `f90eae4`
+- 2026-08-20T15:38Z · W0.12 · **决定性实验**：给工作项 1 的 todo 挂上 `--validation-command "pytest tests/gates/test_normalizer_idempotent.py"`（现在是红的），然后**谎报完成**（evidence 写「我做完了，测试应该能过」）→ LoopX **自己复跑校验命令**，`exit_code:1 passed:false`，**拒收，todo 仍为 open**。反面：校验命令退 0 的那条 → `ok:true` 接受，状态转 `done`
+- 2026-08-20T15:38Z · W0.12 · 写回闸 `tools/loopx-writeback.sh`：配额闸 → 跑 mission → **按退出码单向写回**（0 → 请求完成；2 → 标 blocked 并说明撞停机；其他 → 保持 open）。端到端实测：mission 退 0，但工作项**仍未被接受**，因为它自己的校验命令没过 —— 「mission 成功 ≠ 工作项完成」这条分层契约在实现层成立，不只是文档说法
+- 2026-08-20T15:38Z · W0.12 · 两处工程细节：① `loopx` 是 `pip --user` 装的，**不在非登录 shell 的 PATH 上** → 脚本用 `LOOPX_BIN` 兜底；② `.loopx/` 与 `.codex/` 已进 `.gitignore`（LoopX 自己也警告 registry 应当 gitignore）
 
 ---
 
