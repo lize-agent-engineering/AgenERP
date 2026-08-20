@@ -41,7 +41,7 @@
 | W0.3 | 拆分 `ARCHITECTURE.md`（69KB/1159 行）→ `docs/architecture/` + `docs/design/` | W0.2 | `find docs -name '*.md' -size +30k` 输出为空 | 人 | **done** 2026-08-20T14:48Z · 拆 8 份，零行遗失；REF 表 6 条 M 行已重指向，T2 复跑 exit 0 |
 | W0.4 | 迁入并改写 ROADMAP → `docs/backlog/implementation-roadmap.md`：原则 4 换成 mission、P0 交付表那一格换成「AGE 骨架安装 + mission 配置」 | W0.2 | ① `grep -c OpenSpec` == 0；② **引擎自己的解析器**读得出 6 个阶段（`parseRoadmapMarkdown` / `roadmap-check.mjs`） | 人 | **done** 2026-08-20T14:51Z · 两条判据均实测通过 |
 | W0.5 | 写 `AGENTS.md`，含红线「loop 不得修改 `tests/gates/`」 | W0.2 | `grep -q 'tests/gates' AGENTS.md` | 人 | **done** 2026-08-20T14:52Z · 红线 7 条 + 裁判规则 5 条，置于文件最前并声明优先级 |
-| W0.6 | 手写 P0 的 4 个红测试🔴 | W0.2 | `pytest tests/gates -q` **全红**（这一步的正确结果是失败） | 人 | §6-6 |
+| W0.6 | 手写 P0 的 4 个红测试🔴 | W0.2 | `pytest tests/gates -q` **全红**（这一步的正确结果是失败） | 人 | **done** 2026-08-20T14:54Z · 13 断言 0 通过；L1 5 条 / L2 8 条；红因为实现不存在，非测试缺陷 |
 | W0.7 | 配 GitHub Actions CI（最终裁判） | W0.6 | 一次 push 触发 CI，结果可见 | `CI:gates` | §6-7 |
 | W0.8 | fork mission-driver，打 P1/P2/P3 三个补丁；同步提上游 PR | — | `node tools/mission-driver/src/engine.js --help` 可跑；`GATE_VERIFY` 出现在 `flows/plan-execution.json` | 人 | §6-8 |
 | **W0.8b** | 实现 `--driver claude`（含 HOME/cwd 沙箱，见 [01](./01-EXECUTION-MODEL.md) §5） | W0.8, W0.0 | 一次 `--driver claude` 干跑产出非空回复，且**上下文里不含本仓 CLAUDE.md / skills**（token 数与空目录基线相差 < 5%） | 人 | **新增（D-3）** |

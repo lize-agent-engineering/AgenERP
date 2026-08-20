@@ -1,0 +1,11 @@
+[project]
+name = "agenerp"
+version = "0.0.0"
+description = "Agent-driven ERP on Frappe/ERPNext"
+requires-python = ">=3.11"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+  "live: 需要活站点 / docker 的慢门禁（L2）。L1 快门禁跑 `-m 'not live'`",
+]

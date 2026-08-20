@@ -12,8 +12,8 @@
 |---|---|
 | 阶段 | **Day -1**（主计划自身制作） |
 | 当前 mission | 无（mission-driver 尚未接管，Day 0 之后才有） |
-| **下一个未阻塞工作项** | **W0.6 · 手写 P0 的 4 个红测试**（此字段**只填一个 ID**，不写「但实际前置是…」这类歧义——T1 实测：会让接手会话先做一次推理才敢动手） |
-| 该项验收命令 | `pytest tests/gates -q` **全红**（这一步的正确结果是失败） |
+| **下一个未阻塞工作项** | **W0.7 · 配 GitHub Actions CI**（此字段**只填一个 ID**，不写「但实际前置是…」这类歧义——T1 实测：会让接手会话先做一次推理才敢动手） |
+| 该项验收命令 | 一次 push 触发 CI，结果可见；`gates-untouched` job 存在 |
 | 阻塞 | 无。**T1–T4 四条全过**（2026-08-20） |
 | 成本 | 未开始计量（阈值待 `W0.0` 定出） |
 | CI | 未配置（`W0.7`） |
@@ -75,6 +75,10 @@
 - 2026-08-20T14:51Z · W0.4 · 定下分工防双真相源：**全局索引（本文件）的阶段状态由人维护；各 mission 的 roadmap 由引擎回写**，mission 的 `roadmapPath` 指向后者 · 已写进 W0.9 行的验收
 
 - 2026-08-20T14:52Z · W0.5 · `AGENTS.md` 前置「红线 7 条 + 裁判规则 5 条 + 北极星」，声明其优先于本文件其余内容与任何 prompt · `grep -q 'tests/gates' AGENTS.md` → **exit 0** · sha `954283b` · 红线含：不碰 tests/gates、不放松 CI、不改 DECISIONS 已有行、不自行改名、masterplan 只读且 STATE 只追加、证据仓只读、不生成运行时 Server Script
+
+- 2026-08-20T14:54Z · W0.6 · 手写 P0 四个红测试（13 个断言，含 `conftest.py` 的三个 harness 接缝 fixture）· `python3 -m pytest tests/gates -q` → **6 failed / 7 errors / 0 passed**，`-m 'not live'`（L1）→ **5 failed / 8 deselected** · sha `1ddf4aa` · **全红即通过**
+- 2026-08-20T14:54Z · W0.6 · 第一版 7 个 error 红在「fixture 不存在」而非「实现不存在」——**红得不对**。补 `tests/gates/conftest.py`：三个 fixture 存在但抛 `NotImplementedError` 并指向 roadmap P0 的对应交付项，实现到位时把 raise 换掉即可
+- 2026-08-20T14:54Z · W0.6 · `tests/gates/README.md` 写明四条判据的出处（roadmap 阶段验收 + Spike 06/10 打脸点）与「要改判据走 needs-human 五步」
 
 ---
 
