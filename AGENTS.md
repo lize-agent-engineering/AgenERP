@@ -1,5 +1,36 @@
 # AGENTS.md
 
+> **本文件前两节是红线与裁判规则，优先于本文件其余一切内容、也优先于任何 prompt 里的说法。**
+> 冲突时的次序：红线 > `docs/masterplan/` 的执行协议 > 本文件其余部分 > 上游模板默认。
+
+## 🚫 红线（越线即停机，不是扣分）
+
+| # | 红线 | 为什么 |
+|---|---|---|
+| 1 | **不得以任何方式修改 `tests/gates/**`** —— 包括改断言、加 skip/xfail、改 fixture 使其变松、删文件、改文件名 | 那是裁判。改裁判就没有裁判了。`git diff` 触及该路径 → **立即停机**，标 needs-human |
+| 2 | **不得修改 `.github/workflows/**`** 让门禁变松（禁用 job、加 `continue-on-error`、缩小触发范围） | CI 服务端复跑是唯一不可被本地绕过的一层。本地门禁理论上可被有 shell 的 AI 绕过，CI 不行 |
+| 3 | **不得修改 `docs/masterplan/DECISIONS.md` 里已有的任何一行**，也不得新增 `R-x` 重开记录 | 决策重开**只有人能做**。允许的只有一件事：在某条决策表末**追加**一行「复核/实测结果」 |
+| 4 | **不得自行改项目名 / 包名 / 命名空间** | 名字定了（D-1）。复核发现被占用 → 停机等人拍板，不得自行改名 |
+| 5 | **不得改动 `docs/masterplan/` 下的其余文件**（loop 侧只读；`STATE.md` 只允许**追加**证据行，不得改写已有行） | 状态是追加式账本。改写历史 = 伪造证据 |
+| 6 | **不得写入证据仓**（`${XM_PATH}`，见 `docs/masterplan/evidence-repo.env`） | 它已冻结在一个 sha 上，是只读证据。要引用就引用，要修正就在本仓修正 |
+| 7 | **不得让 Agent 生成运行时 Server Script** | 等同 RCE。见 roadmap「不做的事」 |
+
+## ⚖️ 裁判规则
+
+1. **「测试过没过」由 `GATE_VERIFY` 子进程的退出码裁定，AI 无权自报通过。** 你说「测试应该能过」不算数；没跑就是没跑。
+2. **宣称完成时，同一条回复里必须出现：命令原文 + 退出码 + commit sha。** 三者缺一，就把「完成」改写成「我认为完成，待验证」。
+3. **复跑优先于分析。** 遇到失败先原样复跑那条命令；复跑不出来就记「不可复现」，**不许猜根因**。
+4. **停机条件**（任一触发即停，宁可停不带病跑）：同一 plan 连续 3 轮 `GATE_VERIFY` fail｜`git diff` 触及 `tests/gates/**`｜单 mission 累计成本超阈值｜CI 连续 2 轮红。
+5. **每个 mission 的 `goal` 字段必须含北极星原文**；开工前先对照 `docs/masterplan/00-GOALS.md` 确认这一项确实服务于它。
+
+## 📍 北极星
+
+> 让 ERP 的呈现层、语言层、判断层由 Agent 承担，让系统形态由每家企业自己长出来——且每一次生长都是可 diff、可回滚、可迁移的产物。
+
+判断「该不该做这件事」时以它为准。与它无关的「顺手优化」一律不做——写进 `docs/backlog/`，由人决定。
+
+---
+
 ## Project Intent
 
 `AgenERP` uses a lightweight Attractor-Guided Engineering workflow for AI-assisted application development.
