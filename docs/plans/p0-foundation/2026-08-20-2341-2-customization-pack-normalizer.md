@@ -1,6 +1,6 @@
 # 2026-08-20-2341-2 定制包规范化器（剥易变字段 + 稳定排序）
 
-> Plan Status: active
+> Plan Status: deferred
 > Mission: p0-foundation
 > Work Item: 1. 定制包规范化器（剥易变字段 + 稳定排序）
 > Last Reviewed: 2026-08-20
@@ -130,25 +130,25 @@ Exit Criteria:
 
 ### Phase 3 — 收尾、留证据、交接
 
-Status: planned
+Status: completed
 Targets: `docs/logs/2026/08-20.md`、`docs/masterplan/STATE.md`（**只追加**）、本 plan 文件自身（末步改 `Plan Status`）
 Skill: `none`
 
 - Item Types: `Proof | Add`
 - Prereqs: Phase 1, Phase 2
 
-- [ ] `Add` 写 `docs/logs/2026/08-20.md` 条目：交付内容 + 每条验证命令原文 + 退出码 + commit sha。
+- [x] `Add` 写 `docs/logs/2026/08-20.md` 条目：交付内容 + 每条验证命令原文 + 退出码 + commit sha。
       - Skill: `none`
-- [ ] `Proof` 复跑 `python3 tools/gates/check_expected_red.py` 并**如实记录退出码**。
+- [x] `Proof` 复跑 `python3 tools/gates/check_expected_red.py` 并**如实记录退出码**。
       - 预期：**exit 1**，输出含「名单内的门禁却绿了」并列出本工作项三条。
       - **这一条 exit 1 是本 plan 成功的证据，不是失败。** 判定器唯一能退 0 的走法是划掉 `EXPECTED_RED.txt` 三行，而那是红线 1 内的文件。
       - **禁止**：改 `EXPECTED_RED.txt`、改 `tools/gates/check_expected_red.py`、给门禁加 skip/xfail、把实现改回不可用。任一条都是改裁判。
       - Skill: `none`
-- [ ] `Add` 向 `docs/masterplan/STATE.md` §3 needs-human 队列**追加一行**（只追加，不改写、不删除任何已有行）。
+- [x] `Add` 向 `docs/masterplan/STATE.md` §3 needs-human 队列**追加一行**（只追加，不改写、不删除任何已有行）。
       - **授权链（必须在 log 里一并写明，因为有两处产物说反）**：`AGENTS.md` 红线 5 明文「`STATE.md` 只允许**追加**证据行」；执行器人格 `tools/mission-driver/agents/build.claude.md` 直接指示「拿不准就停下来写进 `STATE.md` 的 needs-human 队列」。二者按 `AGENTS.md` 开头声明的次序高于 `docs/masterplan/01-EXECUTION-MODEL.md` §1 表里「角色 B 不得手写 STATE」以及 `gate-verify.mjs` 注释里「loop 不写 masterplan/STATE.md」的说法。**这处矛盾已登记进 plan 1 的交接文档冲突 1/2，本 plan 只按更高优先级的那条执行，不擅自消解矛盾。**
       - 行格式照 §3 表头，**四个字段一个不能少**，WBS 行 ID 用 **P0.4**（`02-WBS.md` 里规范化器是 P0.4；roadmap 的「工作项 1」是 mission 内编号，不是 WBS ID，别混用）：触发条件 = 「工作项 1 实现到位，`check_expected_red.py` 报名单过期，划名单需 `Gates-Change-Approved-By:` trailer」+ 最后一条命令原文 + 退出码 + commit sha，处置栏留 `open` 等人。
       - Skill: `none`
-- [ ] `Add` **末步**：把本 plan 文件头的 `> Plan Status:` 由 `active` 改为 `deferred`，并在 `## Human Handoff` 一节写明重开条件。
+- [x] `Add` **末步**：把本 plan 文件头的 `> Plan Status:` 由 `active` 改为 `deferred`，并在 `## Human Handoff` 一节写明重开条件。
       - 理由见 `## Current Baseline` 的后果链第 4 条：留在 `active` 会被 `activePlans()` 每轮重新选中并重跑已完成的活。`deferred` 不在 `ACTIVE_STATUSES` 也不在 `DRAFT_STATUSES`，plan 就此停住等人。
       - 这一步**必须在所有执行项与 Exit Criteria 打勾之后**做。
       - ⚠️ **不要为了让 `CLOSURE_SCRIPT_CHECK` 变绿而去勾 `## Closure Gates`。** 那 9 个框里包含「closure audit was independent」「closure evidence exists in files」——本 plan 走到这里时它们是**假的**（`## Closure` 还是 `<未关闭>`）。勾上就是自证关闭，违反 `AGENTS.md` 裁判规则 1/2 与计划指南规则 13。`closureScriptCheck` 确实会因这些未勾的框判 fail，**这是预期**：子流程本来就会因 `GATE_VERIFY` 终局为 `failed`，追一个绿的 script check 什么也换不来；真正止住反复重选、保住预算的是自置 `deferred`，不是绿的 script check。
@@ -156,12 +156,12 @@ Skill: `none`
 
 Exit Criteria:
 
-- [ ] `docs/logs/2026/08-20.md` 已更新，含命令原文 + 退出码 + sha
-- [ ] `STATE.md` §3 多出一行 `[open]`，且 `git diff` 显示**只有新增行**
-- [ ] 红线 1 自查用**区间** diff，不用 `git diff HEAD`：`git diff --name-only <本 plan 开工时的 sha>..HEAD -- tests/gates/` → **输出为空**。（`git diff --name-only HEAD` 只看未提交改动——`gate-verify.mjs` 的写保护也是这个盲区：一旦把红线改动提交掉，本地就静音了，只有 CI 的 `gates-untouched` 还拦得住。自查不能沿用同一个盲区。）
-- [ ] 无 owner-doc 更新需要：本 plan 只实现既有签名的行为，未改公共契约形状——`No owner-doc update required`（`agenerp/pack.py` 的签名在 plan 1 已定稿并已记入 `project-context.md`）
-- [ ] Phase 1–3 的**执行项与 Exit Criteria** 全部 `[x]`；`## Closure Gates` 的 9 个框**保持未勾**，等独立关闭审计
-- [ ] 本 plan 文件头为 `> Plan Status: deferred`
+- [x] `docs/logs/2026/08-20.md` 已更新，含命令原文 + 退出码 + sha
+- [x] `STATE.md` §3 多出一行 `[open]`，且 `git diff` 显示**只有新增行**
+- [x] 红线 1 自查用**区间** diff，不用 `git diff HEAD`：`git diff --name-only <本 plan 开工时的 sha>..HEAD -- tests/gates/` → **输出为空**。（`git diff --name-only HEAD` 只看未提交改动——`gate-verify.mjs` 的写保护也是这个盲区：一旦把红线改动提交掉，本地就静音了，只有 CI 的 `gates-untouched` 还拦得住。自查不能沿用同一个盲区。）
+- [x] 无 owner-doc 更新需要：本 plan 只实现既有签名的行为，未改公共契约形状——`No owner-doc update required`（`agenerp/pack.py` 的签名在 plan 1 已定稿并已记入 `project-context.md`）
+- [x] Phase 1–3 的**执行项与 Exit Criteria** 全部 `[x]`；`## Closure Gates` 的 9 个框**保持未勾**，等独立关闭审计
+- [x] 本 plan 文件头为 `> Plan Status: deferred`
 
 ## 收尾协议（给执行本 plan 的会话）
 

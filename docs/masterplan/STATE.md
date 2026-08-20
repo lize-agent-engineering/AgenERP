@@ -139,3 +139,4 @@
 - [resolved] 2026-08-20 · 触发：同一 plan 连续 3 轮 GATE_VERIFY fail · P0.4 · 最后失败命令 `pytest tests/gates/test_normalizer_idempotent.py -q` → 记录为 exit 1，**复跑得 exit 4（file not found）**；`git cat-file -t deadbee` → exit 128 · sha `deadbee`（不存在） · 处置：**不可复现 → 关单**。这是 T4 演习的模拟桩，由演习会话按 01 §2 五步正确识破并处置
 
 
+- [open] 2026-08-21 · 触发：工作项 1（定制包规范化器）实现到位，三条门禁转绿，`check_expected_red.py` 报名单过期；划掉 `tests/gates/EXPECTED_RED.txt` 三行属红线 1，需带 `Gates-Change-Approved-By:` trailer 的人工提交 · P0.4 · 最后一条命令 `python3 tools/gates/check_expected_red.py` → **exit 1**（「门禁 13 项：预期红 10，绿 3，跳过 0 / ❌ 名单内的门禁却绿了」，列出 `test_normalize_is_stable_across_reexport` / `test_normalize_orders_deterministically` / `test_normalize_strips_volatile_fields`） · sha `37ffc5d` · 处置：open —— 等人提交划名单，验收 `python3 tools/gates/check_expected_red.py` → exit 0；plan 已自置 `deferred`，详见 `docs/plans/p0-foundation/2026-08-20-2341-2-customization-pack-normalizer.md` 的 `## Human Handoff`
