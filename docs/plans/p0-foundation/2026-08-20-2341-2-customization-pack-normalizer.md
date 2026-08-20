@@ -65,49 +65,49 @@
 
 ### Phase 1 — 实现 `normalize`
 
-Status: planned
+Status: completed
 Targets: `agenerp/pack.py`
 Skill: `none`
 
 - Item Types: `Proof | Decision | Add`
 - Prereqs: plan 1 全部关闭
 
-- [ ] `Proof` **开工前置检查（第一步，不做完不许写代码）**：确认 `docs/plans/p0-foundation/2026-08-20-2341-1-agenerp-package-skeleton.md` 的 `Plan Status` 是 `completed`，且 `agenerp/pack.py` 里 `normalize` 的签名已定稿、`tests/unit/test_contract_surface.py` 存在。
+- [x] `Proof` **开工前置检查（第一步，不做完不许写代码）**：确认 `docs/plans/p0-foundation/2026-08-20-2341-1-agenerp-package-skeleton.md` 的 `Plan Status` 是 `completed`，且 `agenerp/pack.py` 里 `normalize` 的签名已定稿、`tests/unit/test_contract_surface.py` 存在。
       - 任一条不成立：**立即停手**，不实现、不提交代码，按 Phase 3 的方式向 STATE §3 追加一行说明前置未就绪，并把本 plan 置为 `Plan Status: deferred`（**不要置回 `draft`**——`draft` 会被 `draftPlans()` 重新捡起走 `REVIEW_PLANS` → `EXEC_PLANS`，来回弹；`deferred` 才是停住等人的那个值，与成功路径一致）。
       - 为什么需要这条：`EXEC_PLANS` 的 `forEach: activePlans()` 会把所有 active plan 一并取出跑子流程，**不检查 plan 1 是否成功**。顺序在本批里是靠文件名排序表达的，不是引擎保证的。
       - Skill: `none`
-- [ ] `Decision` 定下「易变」的判定口径：**按键名黑名单递归剥离**，而不是按值猜。
+- [x] `Decision` 定下「易变」的判定口径：**按键名黑名单递归剥离**，而不是按值猜。
       - 黑名单至少含判据点名的四个：`modified`、`creation`、`owner`、`_comments`；并**扩展到含这四个词作为子串的键**（如 `modified_by`），因为断言 2 做的是 `repr` 子串检查——只剥四个精确键名会在真实 Frappe 导出上红。
       - 备选：按「两次导出值不同」自动推断易变字段。否决理由：需要两份样本才能规范化一份，调用方拿不到；且会把真实业务变更误判为噪声。
       - 残余风险：黑名单是白名单的反面，未来出现新的易变键要补。缓解：把黑名单定义为模块级常量并在 `tests/unit/` 断言其内容，新增时有一处唯一落点。
       - 翻案条件：真实导出中出现「必须保留但键名含 `owner`」的业务字段。
       - Skill: `none`
-- [ ] `Add` 递归剥离：对 `dict` 逐键判断并递归其值，对 `list` / `tuple` 逐元素递归，标量原样返回。**返回全新对象，不就地修改入参。**
+- [x] `Add` 递归剥离：对 `dict` 逐键判断并递归其值，对 `list` / `tuple` 逐元素递归，标量原样返回。**返回全新对象，不就地修改入参。**
       - Skill: `none`
-- [ ] `Add` 确定性排序，两个层面都要：
+- [x] `Add` 确定性排序，两个层面都要：
       - **字典键序**：递归重建为按键名排序的 `dict`（Python 3.7+ 保序，`==` 不看顺序但 `repr` 看，且 git diff 看）。
       - **列表元素序**：对「元素是 dict 的列表」按稳定身份键排序——优先 `fieldname`，退化时按剥离后条目的规范化表示排序，保证无 `fieldname` 的条目也不会因输入顺序抖动。
       - Skill: `none`
-- [ ] `Add` 幂等保证：`normalize(normalize(x)) == normalize(x)`。这是「稳定排序」的必要条件，也是后继 GitOps 反复导出不产生噪声的前提。
+- [x] `Add` 幂等保证：`normalize(normalize(x)) == normalize(x)`。这是「稳定排序」的必要条件，也是后继 GitOps 反复导出不产生噪声的前提。
       - Skill: `none`
 
 Exit Criteria:
 
-- [ ] `python3 -m pytest tests/gates/test_normalizer_idempotent.py -q` → **exit 0，3 passed**
-- [ ] `python3 -m pytest tests/gates -q --tb=line` → 其余 10 条仍红（本 plan 不得让别的门禁意外变绿或变红）
-- [ ] `ruff check agenerp tests/unit` → exit 0
-- [ ] 无 owner-doc 更新（归 Phase 3）
+- [x] `python3 -m pytest tests/gates/test_normalizer_idempotent.py -q` → **exit 0，3 passed**
+- [x] `python3 -m pytest tests/gates -q --tb=line` → 其余 10 条仍红（本 plan 不得让别的门禁意外变绿或变红）
+- [x] `ruff check agenerp tests/unit` → exit 0
+- [x] 无 owner-doc 更新（归 Phase 3）
 
 ### Phase 2 — 非门禁回归覆盖
 
-Status: planned
+Status: completed
 Targets: `tests/unit/test_pack_normalize.py`、`tests/unit/test_contract_surface.py`
 Skill: `none`
 
 - Item Types: `Proof`（全部）
 - Prereqs: Phase 1
 
-- [ ] `Proof` 覆盖门禁没覆盖的形状，每条都写明失败意味着什么：
+- [x] `Proof` 覆盖门禁没覆盖的形状，每条都写明失败意味着什么：
       - 嵌套 dict / 列表套列表里的易变键被剥掉（门禁样本只有一层）
       - 含 `modified_by` 之类**子串命中**的键被剥掉（断言 2 的真实杀伤面）
       - 无 `fieldname` 的条目不导致异常，且顺序稳定
@@ -116,17 +116,17 @@ Skill: `none`
       - 幂等律 `normalize(normalize(x)) == normalize(x)`
       - 黑名单的**行为**覆盖：合成导出里的 `modified_by` / `creation_date` / `owner_id` 被剥掉（Decision 里承诺的缓解措施；不写常量自比对）
       - Skill: `none`
-- [ ] `Fix` 更新 `tests/unit/test_contract_surface.py`：把 `normalize` 从 `NOT_YET_IMPLEMENTED` 清单**移到** `IMPLEMENTED` 清单。
+- [x] `Fix` 更新 `tests/unit/test_contract_surface.py`：把 `normalize` 从 `NOT_YET_IMPLEMENTED` 清单**移到** `IMPLEMENTED` 清单。
       - 不做这一步，`python3 -m pytest tests/unit -q` 必红——plan 1 那条测试断言 `NOT_YET_IMPLEMENTED` 里的每个名字调用后抛 `NotImplementedError`，而本 plan 刚把 `normalize` 实现掉。这是本 plan 造成的、必须由本 plan 修的连带影响，故记 `Fix`。
       - Skill: `none`
-- [ ] `Proof` 复跑该文件，确认 `export_customizations` / `apply_pack` / `capture` / `diff` / `schema_drift` **仍在 `NOT_YET_IMPLEMENTED` 里且仍抛 `NotImplementedError`**——本 plan 没有顺手把别的工作项做掉，也没有把它们改成静默返回。
+- [x] `Proof` 复跑该文件，确认 `export_customizations` / `apply_pack` / `capture` / `diff` / `schema_drift` **仍在 `NOT_YET_IMPLEMENTED` 里且仍抛 `NotImplementedError`**——本 plan 没有顺手把别的工作项做掉，也没有把它们改成静默返回。
       - Skill: `none`
 
 Exit Criteria:
 
-- [ ] `python3 -m pytest tests/unit -q` → exit 0
-- [ ] `python3 -m pytest tests/gates/test_normalizer_idempotent.py -q` → exit 0（复跑确认 Phase 2 没弄坏 Phase 1）
-- [ ] 无 owner-doc 更新（归 Phase 3）
+- [x] `python3 -m pytest tests/unit -q` → exit 0
+- [x] `python3 -m pytest tests/gates/test_normalizer_idempotent.py -q` → exit 0（复跑确认 Phase 2 没弄坏 Phase 1）
+- [x] 无 owner-doc 更新（归 Phase 3）
 
 ### Phase 3 — 收尾、留证据、交接
 
