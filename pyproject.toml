@@ -1,11 +1,29 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "agenerp"
 version = "0.0.0"
 description = "Agent-driven ERP on Frappe/ERPNext"
 requires-python = ">=3.11"
 
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["agenerp*"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# 扁平布局：让裸 `pytest` 与 `python3 -m pytest` 两种跑法都能 import agenerp。
+# （`-m` 形式本来就把 CWD 插进 sys.path，裸 pytest 不会。）
+pythonpath = ["."]
 markers = [
   "live: 需要活站点 / docker 的慢门禁（L2）。L1 快门禁跑 `-m 'not live'`",
 ]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+# tests/gates/** 在红线内，loop 不得修改；把它排除在 lint 作用域外，
+# 免得 lint 逼着去改裁判。门禁判定器是 tools/gates/check_expected_red.py，与 ruff 无关。
+exclude = ["tests/gates"]
