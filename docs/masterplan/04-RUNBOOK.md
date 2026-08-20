@@ -17,6 +17,7 @@
 | `gh` 已登录 | 看 CI 颜色 | `gh auth status` |
 | `loopx` 在 PATH 上 | 配额决策（启用 LoopX 时） | `export PATH="$HOME/Library/Python/3.12/bin:$PATH"; loopx doctor` |
 | `python3` ≥ 3.11 | spike 复跑、LoopX | `python3 --version`（本机 3.12.9 ✅） |
+| **模型路由指向你以为的那个模型** | **一切**（监督会话、子代理、`--driver claude`） | `claude -p "ping"`。⚠️ 2026-08-20 本机实测失败：`~/.claude/settings.json` 把 `ANTHROPIC_BASE_URL`/`ANTHROPIC_MODEL`/`CLAUDE_CODE_SUBAGENT_MODEL` 全指向本地 `deepseek.local`。见 `W0.0b` |
 
 **缺 `ollama`/`qwen3:14b` 只影响 `P1.0` 一行**，不影响其他工作项——按 [02-WBS.md](./02-WBS.md) 把该行标 `blocked` 并写明缺什么，先做别的，不要停在这里。
 

@@ -37,6 +37,7 @@
 | 依据 | 方案 C §2.2 自带翻案条款：「若订阅不可复用，本条裁决翻案，改为新增 `--driver claude`」（`REF:REVOKE-DRIVER`）；D-5 已明确执行者是 Claude Code Opus 5 |
 | ⚠️ **前提尚未核实** | 方案 C 的原文是「**开跑前必须核实** opencode 走 Anthropic 的计费口径与 Claude Code 订阅是否同一条管道」。本台账登记的是**结论先行**：按 D-5 走订阅。核实动作单列为 `W0.0`，**不做完不得进入 7×24** |
 | 实现参照 | `REF:SPIKE02-MODELS` 的 `claude -p` 用法。**必须复用其 HOME/cwd 隔离对策**：在本仓目录直接跑 `claude -p` 会加载 CLAUDE.md / SessionStart hook / skills，单轮多出约 37,000 token 的无关上下文并干扰协议遵守（`spike/02-constrained-agent/models.py:78` 注释）。详见 [01-EXECUTION-MODEL.md](./01-EXECUTION-MODEL.md) §5 |
+| ⚠️ **本机实测（2026-08-20）** | `claude -p` 与子代理**当前都跑不起来**：`~/.claude/settings.json` 的 `ANTHROPIC_BASE_URL=http://127.0.0.1:3002` + `ANTHROPIC_MODEL=deepseek.local`（含 `CLAUDE_CODE_SUBAGENT_MODEL`）把调用全部路由到一个不可用的本地模型。**loop 会原样继承这份配置** → 新增 `W0.0b`，且 §5 沙箱规范里「隔离 HOME/环境」从优化项升为前置项 |
 | 翻案条件 | W0.0 实测出现下列任一：① 订阅额度在 7×24 下不足以支撑一个 mission 走完 P0；② headless 调用被判定为违反订阅使用条款。届时改回 opencode + API 计费，并把成本阈值写进停机条件 |
 
 ### D-4 · 技能：Day -1 尽力安装 + 映射到固定关口 + 每个关口内置等效清单

@@ -21,10 +21,10 @@
 | W-1.1 | 提交 XM 未提交的 81 行 diff，冻结为只读证据仓 | — | `git -C $XM_PATH log -1 --format=%H` == `evidence-repo.env` 的 `XM_SHA` | 人 | done |
 | W-1.2 | 新仓 `git init` + `docs/masterplan/` 九件套落盘 | W-1.1 | `ls docs/masterplan/*.md \| wc -l` == 8 且每份 `wc -c` < 30720 | 人 | doing |
 | W-1.3 | 外部件安装（LoopX / 技能），**尽力而为，失败不阻塞** | — | 每项装机结果（成功／失败＋替代方案生效）在 STATE §2 各有一条证据行 | 人 | doing |
-| W-1.4 | 质询关 CP1：拷问整套主计划并按结果修订 | W-1.2 | [03-SKILL-GATE-MAP.md](./03-SKILL-GATE-MAP.md) §A1 十问逐条有书面回答 | 人 | todo |
-| W-1.5 | 交付物四测 T1–T4 | W-1.2 | 见 [README.md](./README.md) §8，四条全过 | 人 | todo |
-| W-1.6 | `plan.html` + 发布 Artifact | W-1.5 | 页面可打开，甘特/矩阵/关口图三块齐全 | 人 | todo |
-| W-1.7 | 提交 + 打 tag `masterplan-v1` | W-1.5 | `git tag -l masterplan-v1` 非空 | 人 | todo |
+| W-1.4 | 质询关 CP1：拷问整套主计划并按结果修订 | W-1.2 | [03-SKILL-GATE-MAP.md](./03-SKILL-GATE-MAP.md) §A1 十问逐条有书面回答 | 人 | **done** |
+| W-1.5 | 交付物四测 T1–T4 | W-1.2 | 见 [README.md](./README.md) §8，四条全过 | 人 | **blocked** · T2 已过（`check-masterplan-links.sh` exit 0）；T1 机械部分已过（`check-state-consistency.sh` exit 0）；**T1 行为部分 / T3 / T4 被环境阻塞**，见 STATE §3 |
+| W-1.6 | `plan.html` + 发布 Artifact | W-1.2 | 页面可打开，阶段阶梯/关口图/技能矩阵/速查卡齐全 | 人 | **done**（Artifact 发布被 `essential-traffic-only` 拦截，改本地交付；甘特改为阶段阶梯——无真实日期，画甘特等于造数） |
+| W-1.7 | 提交 + 打 tag `masterplan-v1` | W-1.6 | `git tag -l masterplan-v1` 非空 | 人 | **done** |
 
 ---
 
@@ -35,6 +35,7 @@
 | ID | 工作项 | 前置 | 验收 | 状态源 | 来源 |
 |---|---|---|---|---|---|
 | **W0.0** | **计费口径核实 + 成本基线**：确认 loop 驱动走的是订阅还是 API；实测一个最小 mission 的真实 token / 墙钟消耗 | W-1.7 | 一条 STATE 证据行，含：驱动方式、单 plan 平均 token、据此定出的**单 mission 成本阈值数字**（写进停机条件） | 人 | **新增（D-3 前提）** |
+| **W0.0b** | **打通订阅路径**：当前 `~/.claude/settings.json` 把 `ANTHROPIC_BASE_URL` 指向本地代理、模型全设为 `deepseek.local`，headless `claude -p` 与子代理**均起不来**。loop 会继承同一份配置 | W0.0 | `claude -p "ping"` 退 0 且返回非空；`env \| grep ANTHROPIC` 的取值与所选驱动一致 | 人 | **新增（2026-08-20 实测）** |
 | W0.1 | 拍定项目名：复核 GitHub org / PyPI / 域名可得性 | — | 三项复核各留一条证据行；结论写回 [DECISIONS.md](./DECISIONS.md) D-1 | 人 | §6-1 |
 | W0.2 | 建仓库骨架：`install-age.sh` 安装 AGE 骨架 | W0.1 | `ls docs/{architecture,design,backlog,context,testing,archive,plans}` 全部存在 | 人 | §6-2 |
 | W0.3 | 拆分 `ARCHITECTURE.md`（69KB/1159 行）→ `docs/architecture/` + `docs/design/` | W0.2 | `find docs -name '*.md' -size +30k` 输出为空 | 人 | §6-3 |

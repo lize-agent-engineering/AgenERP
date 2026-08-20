@@ -1,0 +1,369 @@
+<title>AgenERP 主计划</title>
+<style>
+:root{
+  --paper:#ECEDE8; --panel:#F5F6F2; --ink:#15191A; --ink-2:#4C5352; --ink-3:#7C8380;
+  --rule:#C8CCC5; --rule-2:#AAB0A8; --invert-bg:#15191A; --invert-ink:#ECEDE8;
+  --pass:#0F6B48; --halt:#B62D19; --wait:#9A6B00; --live:#1F5FA8; --idle:#9AA09C;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"PingFang SC","Noto Sans SC",monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --paper:#0F1312; --panel:#161B1A; --ink:#E3E7E1; --ink-2:#A2AAA6; --ink-3:#6E7773;
+  --rule:#252B29; --rule-2:#39413E; --invert-bg:#000; --invert-ink:#E3E7E1;
+  --pass:#3FBF8C; --halt:#F0684E; --wait:#D9A441; --live:#5C9BE0; --idle:#5A625E;
+}}
+:root[data-theme="dark"]{
+  --paper:#0F1312; --panel:#161B1A; --ink:#E3E7E1; --ink-2:#A2AAA6; --ink-3:#6E7773;
+  --rule:#252B29; --rule-2:#39413E; --invert-bg:#000; --invert-ink:#E3E7E1;
+  --pass:#3FBF8C; --halt:#F0684E; --wait:#D9A441; --live:#5C9BE0; --idle:#5A625E;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--mono);
+  font-size:14px;line-height:1.72;-webkit-font-smoothing:antialiased;font-variant-ligatures:none}
+.wrap{max-width:1000px;margin:0 auto;padding:0 20px 88px}
+a{color:inherit}
+
+/* ── 顶部：仪表条 ── */
+.strip{border-bottom:1px solid var(--rule);padding:22px 0 0}
+.brand{display:flex;flex-wrap:wrap;align-items:baseline;gap:12px;justify-content:space-between}
+h1{font-size:clamp(22px,4.4vw,32px);font-weight:600;letter-spacing:-.03em;margin:0}
+h1 .dim{color:var(--ink-3);font-weight:400}
+.meta{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3)}
+.lamps{display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:1px;
+  background:var(--rule);border:1px solid var(--rule);margin:18px 0 0}
+.lamp{background:var(--panel);padding:10px 12px;display:flex;gap:9px;align-items:flex-start;
+  opacity:0;animation:settle .5s ease forwards}
+.lamp:nth-child(1){animation-delay:.05s}.lamp:nth-child(2){animation-delay:.13s}
+.lamp:nth-child(3){animation-delay:.21s}.lamp:nth-child(4){animation-delay:.29s}
+.lamp:nth-child(5){animation-delay:.37s}
+@keyframes settle{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.lamp{animation:none;opacity:1}}
+.dot{width:8px;height:8px;border-radius:50%;flex:0 0 8px;margin-top:7px;background:var(--idle);
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--idle) 18%,transparent)}
+.dot.on-pass{background:var(--pass);box-shadow:0 0 0 3px color-mix(in srgb,var(--pass) 20%,transparent)}
+.dot.on-halt{background:var(--halt);box-shadow:0 0 0 3px color-mix(in srgb,var(--halt) 20%,transparent)}
+.dot.on-wait{background:var(--wait);box-shadow:0 0 0 3px color-mix(in srgb,var(--wait) 20%,transparent)}
+.dot.on-live{background:var(--live);box-shadow:0 0 0 3px color-mix(in srgb,var(--live) 20%,transparent)}
+.lamp .k{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);display:block}
+.lamp .v{font-size:12.5px;line-height:1.45;display:block}
+
+section{margin-top:52px}
+h2{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-3);
+  margin:0 0 16px;padding-bottom:7px;border-bottom:1px solid var(--rule);
+  display:flex;justify-content:space-between;gap:12px;align-items:baseline}
+h2 em{font-style:normal;color:var(--ink-3);text-transform:none;letter-spacing:0;font-size:11.5px}
+
+/* ── 北极星 ── */
+.star{border:1px solid var(--rule-2);background:var(--panel);padding:22px 24px;position:relative}
+.star::before{content:"NORTH STAR";position:absolute;top:-7px;left:16px;background:var(--paper);
+  padding:0 7px;font-size:10px;letter-spacing:.18em;color:var(--ink-3)}
+.star p{margin:0;font-size:clamp(15px,2.3vw,18px);line-height:1.8;font-weight:500;letter-spacing:-.01em}
+.star .after{margin-top:12px;font-size:12.5px;color:var(--ink-2);font-weight:400;line-height:1.7}
+
+/* ── S 卡 ── */
+.s-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:1px;
+  background:var(--rule);border:1px solid var(--rule)}
+.s{background:var(--panel);padding:13px 15px}
+.s .id{font-size:10.5px;letter-spacing:.14em;color:var(--ink-3)}
+.s .t{font-size:14.5px;font-weight:600;margin:2px 0 4px}
+.s .d{font-size:12px;color:var(--ink-2);line-height:1.62}
+.note{font-size:12px;color:var(--ink-3);margin:12px 0 0;line-height:1.7}
+</style>
+
+<div class="wrap">
+<div class="strip">
+  <div class="brand">
+    <h1>AgenERP <span class="dim">主计划</span></h1>
+    <div class="meta">v1 · 2026-08-20 · docs/masterplan</div>
+  </div>
+  <div class="lamps">
+    <div class="lamp"><span class="dot on-live"></span><span><span class="k">当前阶段</span><span class="v">Day -1 · 主计划自身</span></span></div>
+    <div class="lamp"><span class="dot on-pass"></span><span><span class="k">T2 断链</span><span class="v">exit 0 · 35 条引用</span></span></div>
+    <div class="lamp"><span class="dot on-halt"></span><span><span class="k">T1/T3/T4</span><span class="v">环境阻塞 · 见 needs-human</span></span></div>
+    <div class="lamp"><span class="dot"></span><span><span class="k">CI</span><span class="v">未配置 · W0.7</span></span></div>
+    <div class="lamp"><span class="dot"></span><span><span class="k">成本阈值</span><span class="v">空数 · 待 W0.0</span></span></div>
+  </div>
+</div>
+
+<section>
+  <h2>目标 <em>删掉最后一段，它就变成低代码平台了</em></h2>
+  <div class="star">
+    <p>让 ERP 的呈现层、语言层、判断层由 Agent 承担，让系统形态由每家企业自己长出来——且每一次生长都是可 diff、可回滚、可迁移的产物。</p>
+    <div class="after">每个监督会话的第一条回复必须逐字复述这句；每个 mission.json 的 goal 字段必须含这句原文。这是背诵条款，不是口号。</div>
+  </div>
+
+  <div class="s-grid" style="margin-top:26px">
+    <div class="s"><div class="id">S1 · P0</div><div class="t">一键起得来</div><div class="d">空环境变量下 docker compose up 成功，首页显示「AI 能力未配置」</div></div>
+    <div class="s"><div class="id">S2 · P1</div><div class="t">答得对且付得起</div><div class="d">答对 990 米之谜，且单次解释成本有上限</div></div>
+    <div class="s"><div class="id">S3 · P2</div><div class="t">改得动且撤得回</div><div class="d">一句话改老板首页 → diff 看得见 → revert 撤得回 → 迁站点生效</div></div>
+    <div class="s"><div class="id">S4 · P3</div><div class="t">写得进且回滚干净</div><div class="d">不绕过 4 道 before_submit；失败时单据/SLE/GL/单号计数器全退</div></div>
+    <div class="s"><div class="id">S5 · P4</div><div class="t">形态改得了</div><div class="d">一条指令正确处理五层权限；定制落 git 可 revert</div></div>
+    <div class="s"><div class="id">S6 · P5</div><div class="t">可回归</div><div class="d">前四阶段能力进评测集，补上重复实验与统计显著性</div></div>
+  </div>
+  <p class="note">判据正文不在本页，也不在主计划里——在路线图与门禁测试里。主计划只负责指过去。</p>
+</section>
+<style>
+.figwrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--rule);background:var(--panel)}
+.figwrap svg{display:block;min-width:900px;width:100%;height:auto}
+.legend{display:flex;flex-wrap:wrap;gap:18px;font-size:11.5px;color:var(--ink-3);margin-top:10px}
+.legend b{font-weight:400;color:var(--ink-2)}
+.sw{display:inline-block;width:11px;height:11px;vertical-align:-1px;margin-right:5px;border:1px solid var(--rule-2)}
+.sw.fill{background:var(--ink-2);border-color:var(--ink-2)}
+.sw.dia{transform:rotate(45deg);border-color:var(--halt)}
+</style>
+
+<section>
+  <h2>阶段阶梯 <em>没有日期——工期由门禁决定，不由日历决定</em></h2>
+  <div class="figwrap">
+  <svg viewBox="0 0 1000 250" role="img" aria-label="从 Day -1 到 P5 的阶段阶梯，含四个阶段入口关口实验与各阶段红测试数量">
+    <g font-family="ui-monospace,SFMono-Regular,Menlo,monospace">
+      <!-- 主轨 -->
+      <line x1="30" y1="150" x2="985" y2="150" stroke="var(--rule-2)" stroke-width="1"/>
+      <!-- 证据仓带 -->
+      <line x1="330" y1="205" x2="810" y2="205" stroke="var(--ink-3)" stroke-width="1" stroke-dasharray="3 4"/>
+      <text x="570" y="224" text-anchor="middle" font-size="10" fill="var(--ink-3)" letter-spacing="1.5">四个关口都跑在 XM 证据仓的 ERPNext 演示栈上</text>
+
+      <!-- Day -1 -->
+      <rect x="35" y="122" width="52" height="28" fill="none" stroke="var(--ink-2)" stroke-width="1"/>
+      <text x="61" y="141" text-anchor="middle" font-size="11" fill="var(--ink-2)">人工</text>
+      <text x="61" y="168" text-anchor="middle" font-size="11.5" fill="var(--ink)">Day -1</text>
+      <text x="61" y="183" text-anchor="middle" font-size="9.5" fill="var(--ink-3)">主计划</text>
+
+      <!-- Day 0 -->
+      <rect x="118" y="108" width="60" height="42" fill="none" stroke="var(--ink-2)" stroke-width="1"/>
+      <text x="148" y="134" text-anchor="middle" font-size="11" fill="var(--ink-2)">人工 15 项</text>
+      <text x="148" y="168" text-anchor="middle" font-size="11.5" fill="var(--ink)">Day 0</text>
+      <text x="148" y="183" text-anchor="middle" font-size="9.5" fill="var(--ink-3)">不可外包</text>
+      <text x="148" y="199" text-anchor="middle" font-size="9.5" fill="var(--halt)">出口门禁 ×4</text>
+
+      <!-- P0 -->
+      <rect x="215" y="72" width="58" height="78" fill="var(--ink-2)" opacity=".14" stroke="var(--ink-2)"/>
+      <text x="244" y="64" text-anchor="middle" font-size="12" fill="var(--halt)">🔴 4</text>
+      <text x="244" y="168" text-anchor="middle" font-size="11.5" fill="var(--ink)">P0</text>
+      <text x="244" y="183" text-anchor="middle" font-size="9.5" fill="var(--ink-3)">地基 · 无 Agent</text>
+
+      <!-- 关口 1 -->
+      <g><path d="M330 136 L344 150 L330 164 L316 150 Z" fill="var(--paper)" stroke="var(--halt)" stroke-width="1.4"/>
+      <line x1="330" y1="164" x2="330" y2="205" stroke="var(--ink-3)" stroke-width="1" stroke-dasharray="2 3"/>
+      <text x="330" y="128" text-anchor="middle" font-size="9.5" fill="var(--halt)">P1.0</text>
+      <text x="330" y="182" text-anchor="middle" font-size="9" fill="var(--ink-3)">L3 门禁重跑</text></g>
+
+      <!-- P1 -->
+      <rect x="382" y="88" width="58" height="62" fill="var(--ink-2)" opacity=".14" stroke="var(--ink-2)"/>
+      <text x="411" y="80" text-anchor="middle" font-size="12" fill="var(--halt)">🔴 3</text>
+      <text x="411" y="168" text-anchor="middle" font-size="11.5" fill="var(--ink)">P1</text>
+      <text x="411" y="183" text-anchor="middle" font-size="9.5" fill="var(--ink-3)">解释与洞察</text>
+
+      <!-- 关口 2 -->
+      <g><path d="M490 136 L504 150 L490 164 L476 150 Z" fill="var(--paper)" stroke="var(--halt)" stroke-width="1.4"/>
+      <line x1="490" y1="164" x2="490" y2="205" stroke="var(--ink-3)" stroke-width="1" stroke-dasharray="2 3"/>
+      <text x="490" y="128" text-anchor="middle" font-size="9.5" fill="var(--halt)">P2.0</text>
+      <text x="490" y="182" text-anchor="middle" font-size="9" fill="var(--ink-3)">Spike 11</text></g>
+
+      <!-- P2 -->
+      <rect x="542" y="120" width="58" height="30" fill="var(--ink-2)" opacity=".14" stroke="var(--ink-2)"/>
+      <text x="571" y="112" text-anchor="middle" font-size="12" fill="var(--halt)">🔴 1</text>
+      <text x="571" y="168" text-anchor="middle" font-size="11.5" fill="var(--ink)">P2</text>
+      <text x="571" y="183" text-anchor="middle" font-size="9.5" fill="var(--ink-3)">视图与前端</text>
+
+      <!-- 关口 3 -->
+      <g><path d="M650 136 L664 150 L650 164 L636 150 Z" fill="var(--paper)" stroke="var(--halt)" stroke-width="1.4"/>
+      <line x1="650" y1="164" x2="650" y2="205" stroke="var(--ink-3)" stroke-width="1" stroke-dasharray="2 3"/>
+      <text x="650" y="128" text-anchor="middle" font-size="9.5" fill="var(--halt)">P3.0</text>
+      <text x="650" y="182" text-anchor="middle" font-size="9" fill="var(--ink-3)">写权限注入复测</text></g>
+
+      <!-- P3 -->
+      <rect x="702" y="104" width="58" height="46" fill="var(--ink-2)" opacity=".14" stroke="var(--ink-2)"/>
+      <text x="731" y="96" text-anchor="middle" font-size="12" fill="var(--halt)">🔴 2</text>
+      <text x="731" y="168" text-anchor="middle" font-size="11.5" fill="var(--ink)">P3</text>
+      <text x="731" y="183" text-anchor="middle" font-size="9.5" fill="var(--ink-3)">操作 · 写入</text>
+
+      <!-- 关口 4 -->
+      <g><path d="M810 136 L824 150 L810 164 L796 150 Z" fill="var(--paper)" stroke="var(--halt)" stroke-width="1.4"/>
+      <line x1="810" y1="164" x2="810" y2="205" stroke="var(--ink-3)" stroke-width="1" stroke-dasharray="2 3"/>
+      <text x="810" y="128" text-anchor="middle" font-size="9.5" fill="var(--halt)">P4.0</text>
+      <text x="810" y="182" text-anchor="middle" font-size="9" fill="var(--ink-3)">Spike 12</text></g>
+
+      <!-- P4 -->
+      <rect x="858" y="120" width="52" height="30" fill="var(--ink-2)" opacity=".14" stroke="var(--ink-2)"/>
+      <text x="884" y="112" text-anchor="middle" font-size="12" fill="var(--halt)">🔴 1</text>
+      <text x="884" y="168" text-anchor="middle" font-size="11.5" fill="var(--ink)">P4</text>
+      <text x="884" y="183" text-anchor="middle" font-size="9.5" fill="var(--ink-3)">形态</text>
+
+      <!-- P5 -->
+      <rect x="930" y="136" width="52" height="14" fill="var(--ink-2)" opacity=".14" stroke="var(--ink-2)"/>
+      <text x="956" y="168" text-anchor="middle" font-size="11.5" fill="var(--ink)">P5</text>
+      <text x="956" y="183" text-anchor="middle" font-size="9.5" fill="var(--ink-3)">评测</text>
+      <text x="956" y="128" text-anchor="middle" font-size="9.5" fill="var(--ink-3)">n≥5</text>
+    </g>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><span class="sw"></span><b>空心</b> = 人工，不由循环推</span>
+    <span><span class="sw fill"></span><b>实心</b> = 循环推进，高度 = 该阶段先红着的门禁测试数</span>
+    <span><span class="sw dia"></span><b>菱形</b> = 阶段入口关口实验，不过不许进下一阶段</span>
+  </div>
+  <p class="note">故意没画甘特：这套计划里没有任何一条日期是真的，工期取决于门禁什么时候转绿。画出日期条等于凭空造数。</p>
+</section>
+<style>
+.tbl{overflow-x:auto;border:1px solid var(--rule);background:var(--panel)}
+table{border-collapse:collapse;width:100%;min-width:660px;font-size:12.5px}
+th,td{text-align:left;padding:9px 13px;border-bottom:1px solid var(--rule);vertical-align:top;line-height:1.6}
+th{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);background:var(--paper);
+  white-space:nowrap;position:sticky;top:0}
+tbody tr:last-child td{border-bottom:none}
+td.k{white-space:nowrap;color:var(--ink-2)}
+.tag{font-size:10.5px;letter-spacing:.08em;padding:1px 6px;border:1px solid currentColor;border-radius:2px;white-space:nowrap}
+.t-pass{color:var(--pass)} .t-halt{color:var(--halt)} .t-idle{color:var(--ink-3)}
+</style>
+
+<section>
+  <h2>循环 <em>唯一一处上色的地方，就是判定权所在的地方</em></h2>
+  <div class="figwrap">
+  <svg viewBox="0 0 1000 260" role="img" aria-label="plan-execution 循环示意：EXECUTE 到 BUILD_VERIFY 由 AI 自审，最终由 GATE_VERIFY 独立复跑退出码裁决">
+    <defs>
+      <marker id="ah" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto">
+        <path d="M0,0 L8,3 L0,6 Z" fill="var(--ink-2)"/></marker>
+      <marker id="ah-r" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto">
+        <path d="M0,0 L8,3 L0,6 Z" fill="var(--halt)"/></marker>
+    </defs>
+    <g font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="11.5">
+      <text x="30" y="34" font-size="10" letter-spacing="1.6" fill="var(--ink-3)">AI 自审区 —— 有价值，但没有最终判定权</text>
+
+      <rect x="30" y="48" width="140" height="42" fill="none" stroke="var(--rule-2)"/>
+      <text x="100" y="74" text-anchor="middle" fill="var(--ink)">EXECUTE</text>
+      <line x1="170" y1="69" x2="205" y2="69" stroke="var(--ink-2)" marker-end="url(#ah)"/>
+
+      <rect x="208" y="48" width="176" height="42" fill="none" stroke="var(--rule-2)"/>
+      <text x="296" y="66" text-anchor="middle" fill="var(--ink)">CLOSURE_SCRIPT_CHECK</text>
+      <text x="296" y="81" text-anchor="middle" font-size="9.5" fill="var(--ink-3)">数 bullet，不验证证据为真</text>
+      <line x1="384" y1="69" x2="419" y2="69" stroke="var(--ink-2)" marker-end="url(#ah)"/>
+
+      <rect x="422" y="48" width="150" height="42" fill="none" stroke="var(--rule-2)"/>
+      <text x="497" y="66" text-anchor="middle" fill="var(--ink)">BUILD_VERIFY</text>
+      <text x="497" y="81" text-anchor="middle" font-size="9.5" fill="var(--ink-3)">AI 自己跑、自己判 pass</text>
+      <line x1="572" y1="69" x2="612" y2="69" stroke="var(--ink-2)" marker-end="url(#ah)"/>
+
+      <!-- 签名元素：GATE_VERIFY -->
+      <rect x="615" y="40" width="200" height="58" fill="none" stroke="var(--halt)" stroke-width="2"/>
+      <text x="715" y="63" text-anchor="middle" font-size="13" fill="var(--halt)" letter-spacing="1">GATE_VERIFY</text>
+      <text x="715" y="79" text-anchor="middle" font-size="9.5" fill="var(--ink-2)">engine 自己 spawn 子进程复跑</text>
+      <text x="715" y="92" text-anchor="middle" font-size="9.5" fill="var(--ink-2)">以退出码判定 · AI 不参与</text>
+
+      <line x1="815" y1="69" x2="855" y2="69" stroke="var(--ink-2)" marker-end="url(#ah)"/>
+      <text x="905" y="66" text-anchor="middle" font-size="11.5" fill="var(--pass)">exit 0 → 关闭</text>
+      <text x="905" y="82" text-anchor="middle" font-size="9.5" fill="var(--ink-3)">plan 完成</text>
+
+      <!-- 失败回程 -->
+      <path d="M715 98 L715 132 L100 132 L100 92" fill="none" stroke="var(--halt)" stroke-width="1.4" marker-end="url(#ah-r)"/>
+      <rect x="330" y="120" width="230" height="24" fill="var(--panel)"/>
+      <text x="445" y="137" text-anchor="middle" font-size="10.5" fill="var(--halt)">exit≠0 → 真实失败输出拼进下一轮 prompt</text>
+
+      <!-- 停机 -->
+      <line x1="240" y1="132" x2="240" y2="176" stroke="var(--halt)" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#ah-r)"/>
+      <rect x="120" y="178" width="240" height="52" fill="none" stroke="var(--halt)"/>
+      <text x="240" y="197" text-anchor="middle" font-size="11.5" fill="var(--halt)">停机 · needs-human</text>
+      <text x="240" y="212" text-anchor="middle" font-size="9.5" fill="var(--ink-2)">同一 plan 连败 3 轮 · 触碰 tests/gates</text>
+      <text x="240" y="224" text-anchor="middle" font-size="9.5" fill="var(--ink-2)">成本超阈值 · CI 连红 2 轮</text>
+
+      <!-- CI -->
+      <rect x="615" y="178" width="200" height="52" fill="none" stroke="var(--rule-2)"/>
+      <text x="715" y="197" text-anchor="middle" font-size="11.5" fill="var(--ink)">GitHub Actions</text>
+      <text x="715" y="212" text-anchor="middle" font-size="9.5" fill="var(--ink-2)">服务端复跑 L1+L2</text>
+      <text x="715" y="224" text-anchor="middle" font-size="9.5" fill="var(--ink-3)">本地 AI 篡改不了的唯一一层</text>
+      <line x1="715" y1="98" x2="715" y2="174" stroke="var(--rule-2)" stroke-dasharray="3 3" marker-end="url(#ah)"/>
+    </g>
+  </svg>
+  </div>
+  <p class="note">上游那套循环里，「测试过了没有」自始至终由被考核者自我汇报。本项目补的就是最右边那个框——它谎报 pass，下一步立刻被独立复跑打脸。</p>
+</section>
+
+<section>
+  <h2>技能 × 关口 <em>技能装不上，走内置清单，不阻塞</em></h2>
+  <div class="tbl">
+    <table>
+      <thead><tr><th>CP</th><th>何时</th><th>首选技能</th><th>本机</th><th>无技能时</th></tr></thead>
+      <tbody>
+        <tr><td class="k">CP1</td><td>阶段入口质询</td><td class="k">grill-me</td><td><span class="tag t-halt">未装</span></td><td>§A1 十问</td></tr>
+        <tr><td class="k">CP2</td><td>工作项 → 规格</td><td class="k">tospec</td><td><span class="tag t-halt">未装</span></td><td>§A2 规格清单</td></tr>
+        <tr><td class="k">CP3</td><td>写 plan</td><td class="k">superpowers:writing-plans</td><td><span class="tag t-pass">已装</span></td><td>§A3</td></tr>
+        <tr><td class="k">CP4</td><td>红测试起草</td><td class="k">superpowers:test-driven-development</td><td><span class="tag t-pass">已装</span></td><td>§A4 · <b>人终审</b></td></tr>
+        <tr><td class="k">CP5</td><td>合并前评审</td><td class="k">/code-review</td><td><span class="tag t-pass">内置</span></td><td>§A5</td></tr>
+        <tr><td class="k">CP6</td><td>三连败诊断</td><td class="k">superpowers:systematic-debugging</td><td><span class="tag t-pass">已装</span></td><td>§A6 先复现再假设</td></tr>
+        <tr><td class="k">CP7</td><td>P2 的 UI/UX</td><td class="k">frontend-design · design:*</td><td><span class="tag t-pass">已装</span></td><td>§A7</td></tr>
+        <tr><td class="k">CP8</td><td>数据呈现</td><td class="k">dataviz · artifact-design</td><td><span class="tag t-idle">受限</span></td><td>§A8</td></tr>
+        <tr><td class="k">CP9</td><td>周/阶段复盘</td><td class="k">内置模板</td><td><span class="tag t-pass">—</span></td><td>§A9 含 AGE/LoopX 续用复评</td></tr>
+        <tr><td class="k">CP10</td><td>宣称完成之前</td><td class="k">superpowers:verification-before-completion</td><td><span class="tag t-pass">已装</span></td><td>§A10 命令+退出码+sha</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="note">技能只在监督侧触发。循环内部一律走 fork 的 prompts/，零外部技能依赖——无头环境里外部技能既不稳定，又会把不可控的上下文塞进执行器。</p>
+</section>
+<style>
+.dec{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule)}
+.dec .d{background:var(--panel);padding:13px 15px}
+.dec .n{font-size:10.5px;letter-spacing:.14em;color:var(--ink-3)}
+.dec .h{font-size:13.5px;font-weight:600;margin:2px 0 5px}
+.dec .b{font-size:12px;color:var(--ink-2);line-height:1.62}
+.dec .r{font-size:11.5px;color:var(--halt);margin-top:7px;line-height:1.55}
+.cheat{background:var(--invert-bg);color:var(--invert-ink);padding:22px 24px;font-size:12.5px;line-height:2.05;
+  overflow-x:auto;white-space:pre;border:1px solid var(--invert-bg)}
+.cheat u{text-decoration:none;color:var(--wait)}
+code{font-size:12px;background:color-mix(in srgb,var(--ink) 8%,transparent);padding:1px 5px;border-radius:2px}
+@media (max-width:560px){.wrap{padding:0 14px 64px}.star{padding:18px 16px}}
+footer{margin-top:60px;padding-top:14px;border-top:1px solid var(--rule);font-size:11.5px;color:var(--ink-3);line-height:1.9}
+</style>
+
+<section>
+  <h2>已锁定的决策 <em>只有触发自带的翻案条件才允许重开</em></h2>
+  <div class="dec">
+    <div class="d"><div class="n">D-1</div><div class="h">项目名 = AgenERP</div>
+      <div class="b">用户拍板沿用。台账里显式记着「已知晓拼写风险并接受」——这是主动选择，不是默认继承。</div>
+      <div class="r">翻案：仅当建仓当天复核发现 GitHub org / PyPI 已被占用。</div></div>
+    <div class="d"><div class="n">D-2</div><div class="h">OpenSpec 维持裁掉</div>
+      <div class="b">单一状态机。proposal→apply→archive 的纪律吸收为 plan front-matter 三态，不丢。</div>
+      <div class="r">翻案：一个阶段被迫拆出 &gt;8 个互相引用的 plan。</div></div>
+    <div class="d"><div class="n">D-3</div><div class="h">mission-driver + --driver claude</div>
+      <div class="b">触发了方案 C 自带的翻案条款。实现须复用 spike 02 的 HOME/cwd 隔离对策——否则单轮多 37K token 无关上下文。</div>
+      <div class="r">前提未核实：计费口径与订阅路径 → W0.0 / W0.0b。</div></div>
+    <div class="d"><div class="n">D-6</div><div class="h">LoopX 试点，严格分层</div>
+      <div class="b">补配额感知续跑 + 监督态确定性维护。LoopX 管 WBS 项级跨会话状态，mission-driver 管 mission 内执行状态，写回单向且不经 AI。</div>
+      <div class="r">退出判据事先写死：Day 0 内 2 小时跑不通闭环，当场退回 STATE.md 手工纪律。</div></div>
+  </div>
+</section>
+
+<section>
+  <h2>停机 <em>宁可停，不带病狂奔</em></h2>
+  <div class="tbl">
+    <table>
+      <thead><tr><th>触发</th><th>第一反应</th><th>禁止的反应</th></tr></thead>
+      <tbody>
+        <tr><td class="k">同一 plan 连败 3 轮</td><td>走 CP6：先原样复跑那条命令</td><td class="k" style="color:var(--halt)">直接改测试让它过</td></tr>
+        <tr><td class="k">diff 触及 tests/gates/**</td><td>立即停机，查是谁改的</td><td class="k" style="color:var(--halt)">「这次是善意修改」</td></tr>
+        <tr><td class="k">成本超阈值</td><td>停机，算清钱花在哪</td><td class="k" style="color:var(--halt)">提高阈值继续跑</td></tr>
+        <tr><td class="k">CI 连红 2 轮</td><td>停机</td><td class="k" style="color:var(--halt)">本地绿就当过了</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="note">处置走五步：停机保留现场 → 写 needs-human → <b>先原样复跑失败命令</b> → 修 WBS 行 / 修实现 / 重开决策（须人拍板）→ 标 resolved 并重启。第三步是关键：不复现就分析，等于让模型在想象的失败上工作。</p>
+</section>
+
+<section>
+  <h2>速查</h2>
+<div class="cheat">恢复监督会话   claude "按 docs/masterplan/README.md §2 恢复监督会话"
+启动循环       ./mission-driver.sh p0-foundation        <u># Day 0 完成后可用</u>
+断链自检       tools/check-masterplan-links.sh          <u># 期望 exit 0</u>
+状态自检       tools/check-state-consistency.sh         <u># RESUME 四要素可解析</u>
+
+每天 15 分钟   STATE §1 快照 → :9300 面板 → gh run list → 成本 → <u>抽查一条昨天的证据行，原样重跑</u>
+收工必写       时间 · WBS行ID · 命令→退出码 · sha · 下一项
+</div>
+  <p class="note">抽查那一步是整套仪式里最有价值的：它是让「只认退出码」这条规矩真正生效的唯一手段。</p>
+</section>
+
+<footer>
+  AgenERP 主计划 v1 · 2026-08-20 · 本页是 <code>docs/masterplan/</code> 的静态快照。<br>
+  真相源：LoopX 状态（启用时）+ git + 门禁退出码。本页与仓库冲突时，以仓库为准。<br>
+  引用的所有实测结论 n=1，无统计显著性；补齐重复实验属 P5 工作项。
+</footer>
+</div>
