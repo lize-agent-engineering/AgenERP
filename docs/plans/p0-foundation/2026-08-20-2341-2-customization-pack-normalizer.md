@@ -3,7 +3,7 @@
 > Plan Status: deferred
 > Mission: p0-foundation
 > Work Item: 1. 定制包规范化器（剥易变字段 + 稳定排序）
-> Last Reviewed: 2026-08-20
+> Last Reviewed: 2026-08-21
 > Source: `docs/backlog/p0-foundation-roadmap.md` Work Item Status 第 1 项（`todo`，引擎取的第一个）
 > Related: `2026-08-20-2341-1-agenerp-package-skeleton.md`（**硬前置**）·`2026-08-20-2341-3-snapshot-structured-diff.md`（后继）
 > Audit: required
@@ -221,13 +221,42 @@ Phase 3 完成后，`GATE_VERIFY` 会判 fail。**这是预期终局。**
 
 ## Closure
 
-Status Note: <未关闭>
+Status Note: **未关闭 —— 不是因为活没干完，是因为最后一步只有人能做。**
+独立关闭审计（2026-08-21）已逐条对着 live repo 复跑判据：Phase 1–3 的执行项与 Exit Criteria **全部为真**，
+实现非空壳（`normalize` 有真实递归行为，门禁与 `tests/unit` 双向调用得到）。
+但 `## Human Handoff` 那件事仍未发生：`tests/gates/EXPECTED_RED.txt` 里本工作项的三行还在，
+`check_expected_red.py` 仍 exit 1。且 `docs/backlog/needs-human-expected-red-handoff.md` **冲突 3 仍为 `open`**——
+选项 (d)（关闭与划名单解耦）是留给人的选项，本批 plan 明文「未采用」。
+审计员**不代人选 (d)**，因此 `## Closure Gates` 九个框**保持未勾**，`Plan Status` 维持 `deferred`。
 
 Closure Audit Evidence:
 
-- Auditor / Agent: <pending>
-- Evidence: <pending>
+- Auditor / Agent: 独立关闭审计子代理（mission-driver `2026-08-20-234105-mission-driver`，fresh session，未参与本 plan 实现）
+- 审计结论: **not closable —— blocked on human**（实现侧无缺陷，无需回 EXECUTE 改代码）
+- 复跑证据（2026-08-21，HEAD `9889194`，命令原文 + 退出码）:
+  - `python3 -m pytest tests/gates/test_normalizer_idempotent.py -q` → **exit 0**（3 passed）
+  - `python3 -m pytest tests/unit -q` → **exit 0**（22 passed）
+  - `python3 -m pytest tests/gates -q --tb=no` → 3 passed / 3 failed / 7 errors，即**其余 10 条仍红**，本 plan 未让别的门禁意外变绿或变红
+  - `ruff check agenerp tests/unit` → **exit 0**（All checks passed!）
+  - `python3 tools/gates/check_expected_red.py` → **exit 1**（「名单内的门禁却绿了」列出本工作项三条）——按 Phase 3 约定，**这条 exit 1 是成功的证据**
+  - `git diff --name-only f180b40..HEAD -- tests/gates/` → **输出为空**（红线 1 区间自查通过，未沿用 `git diff HEAD` 的盲区）
+- 反空壳抽查: `agenerp/pack.py` 的 `_normalize_value` / `_is_volatile_key` / `_entry_sort_key` 均有实体行为；
+  `export_customizations` / `apply_pack` 仍 `raise NotImplementedError`，且 `tests/unit/test_contract_surface.py`
+  的 `NOT_YET_IMPLEMENTED` 仍断言它们连同 `capture` / `diff` / `schema_drift` 抛错——本 plan 没有顺手把别的工作项做掉，
+  也没有把它们改成静默返回
+- 文档同步核对: `docs/logs/2026/08-20.md` 有 plan 2 条目（命令原文 + 退出码 + sha）；
+  `docs/masterplan/STATE.md` §3 有 `[open] 2026-08-21 · … · P0.4 · … · sha 37ffc5d` 一行，`git` 显示只有新增行
+- 五点一致性: `Plan Status: deferred` / 三个 Phase 均 `completed` 且执行项与 Exit Criteria 全 `[x]` /
+  `## Closure Gates` 九框未勾 / 本节记「未关闭」——**四者互洽**，没有「顶上说完成、里面还 draft」的情形
+- `closureScriptCheck` 判 fail（`9 unchecked items`）: **预期之内**，Phase 3 末步已写明理由。
+  止住反复重选、保住预算的是 `deferred` 状态，不是一个绿的 script check；为让它变绿而去勾那九个框
+  等于自证关闭，违反 `AGENTS.md` 裁判规则 1/2 与计划指南规则 13
 
 Follow-up:
 
-- <none yet>
+- **（阻塞关闭，只有人能做）** 提交一次带 `Gates-Change-Approved-By: <姓名>` trailer 的提交，
+  划掉 `tests/gates/EXPECTED_RED.txt` 中 `test_normalizer_idempotent.py` 的三行；
+  验收 `python3 tools/gates/check_expected_red.py` → exit 0。之后把本 plan 由 `deferred` 改回 `active` 走关闭审计。
+  —— 或者人按 `docs/backlog/needs-human-expected-red-handoff.md` 冲突 3 选定选项 (d)，则可直接走关闭审计。
+  已登记在 `docs/masterplan/STATE.md` §3 的 `[open]` 行。
+- 无非阻塞后继项；本 plan 范围内没有被降级为 follow-up 的确认缺陷。
