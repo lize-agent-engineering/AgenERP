@@ -106,15 +106,15 @@ Day 0 会拆分 `ARCHITECTURE.md`、改写 `ROADMAP.md`——那时**只改这�
 | `REF:ANTI-SPIRAL` | M | `docs/architecture/module-boundaries.md` | `### 11.2 为什么这是防死亡螺旋的关键` |
 | `REF:LICENSE` | M | `docs/architecture/project-vision.md` | `## 16. 许可与商业化` |
 | `REF:PENDING` | M | `docs/architecture/open-questions.md` | `## 15. 待定项` |
-| `REF:ROADMAP-PRINCIPLES` | M | `${XM}/docs/next/ROADMAP.md` | `## 原则` |
-| `REF:ROADMAP-DONT` | M | `${XM}/docs/next/ROADMAP.md` | `## 不做的事（避免踩已知的坑）` |
-| `REF:ROADMAP-SPIKE1112` | M | `${XM}/docs/next/ROADMAP.md` | `## 待补 Spike（阻塞对应阶段）` |
-| `REF:ROADMAP-P0` | M | `${XM}/docs/next/ROADMAP.md` | `## P0 · 地基（无 Agent）` |
-| `REF:ROADMAP-P1` | M | `${XM}/docs/next/ROADMAP.md` | `## P1 · 解释与洞察（②端只读）` |
-| `REF:ROADMAP-P2` | M | `${XM}/docs/next/ROADMAP.md` | `## P2 · 视图生成与新前端（②③端）` |
-| `REF:ROADMAP-P3` | M | `${XM}/docs/next/ROADMAP.md` | `## P3 · 操作 Agent（③端写入）` |
-| `REF:ROADMAP-P4` | M | `${XM}/docs/next/ROADMAP.md` | `## P4 · 形态 Agent（①端）` |
-| `REF:ROADMAP-P5` | M | `${XM}/docs/next/ROADMAP.md` | `## P5 · 评测与编排` |
+| `REF:ROADMAP-PRINCIPLES` | M | `docs/backlog/implementation-roadmap.md` | `## 原则` |
+| `REF:ROADMAP-DONT` | M | `docs/backlog/implementation-roadmap.md` | `## 不做的事（避免踩已知的坑）` |
+| `REF:ROADMAP-SPIKE1112` | M | `docs/backlog/implementation-roadmap.md` | `## 待补 Spike（阻塞对应阶段）` |
+| `REF:ROADMAP-P0` | M | `docs/backlog/implementation-roadmap.md` | `## P0 · 地基（无 Agent）` |
+| `REF:ROADMAP-P1` | M | `docs/backlog/implementation-roadmap.md` | `## P1 · 解释与洞察（②端只读）` |
+| `REF:ROADMAP-P2` | M | `docs/backlog/implementation-roadmap.md` | `## P2 · 视图生成与新前端（②③端）` |
+| `REF:ROADMAP-P3` | M | `docs/backlog/implementation-roadmap.md` | `## P3 · 操作 Agent（③端写入）` |
+| `REF:ROADMAP-P4` | M | `docs/backlog/implementation-roadmap.md` | `## P4 · 形态 Agent（①端）` |
+| `REF:ROADMAP-P5` | M | `docs/backlog/implementation-roadmap.md` | `## P5 · 评测与编排` |
 | `REF:REVOKE-DRIVER` | M | `${XM}/docs/superpowers/specs/2026-08-20-mission-driver-adoption-design.md` | `### 2.2 执行器起步用 opencode，暂不加 claude driver` |
 | `REF:CUT-OPENSPEC` | M | `${XM}/docs/superpowers/specs/2026-08-20-mission-driver-adoption-design.md` | `### 2.3 裁掉 OpenSpec，统一到 mission-driver` |
 | `REF:GATE-INDEP` | M | `${XM}/docs/superpowers/specs/2026-08-20-mission-driver-adoption-design.md` | `### 4.1 让门禁从「自报」变为「独立判定」` |
