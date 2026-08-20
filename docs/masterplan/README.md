@@ -115,20 +115,20 @@ Day 0 会拆分 `ARCHITECTURE.md`、改写 `ROADMAP.md`——那时**只改这�
 | `REF:ROADMAP-P3` | M | `docs/backlog/implementation-roadmap.md` | `## P3 · 操作 Agent（③端写入）` |
 | `REF:ROADMAP-P4` | M | `docs/backlog/implementation-roadmap.md` | `## P4 · 形态 Agent（①端）` |
 | `REF:ROADMAP-P5` | M | `docs/backlog/implementation-roadmap.md` | `## P5 · 评测与编排` |
-| `REF:REVOKE-DRIVER` | M | `${XM}/docs/superpowers/specs/2026-08-20-mission-driver-adoption-design.md` | `### 2.2 执行器起步用 opencode，暂不加 claude driver` |
-| `REF:CUT-OPENSPEC` | M | `${XM}/docs/superpowers/specs/2026-08-20-mission-driver-adoption-design.md` | `### 2.3 裁掉 OpenSpec，统一到 mission-driver` |
-| `REF:GATE-INDEP` | M | `${XM}/docs/superpowers/specs/2026-08-20-mission-driver-adoption-design.md` | `### 4.1 让门禁从「自报」变为「独立判定」` |
-| `REF:GATE-PROTECT` | M | `${XM}/docs/superpowers/specs/2026-08-20-mission-driver-adoption-design.md` | `### 4.2 门禁测试的写保护` |
-| `REF:DOCLAYER` | M | `${XM}/docs/superpowers/specs/2026-08-20-mission-driver-adoption-design.md` | `### 4.3 文档三分层（心因子）` |
-| `REF:REDTESTS` | M | `${XM}/docs/superpowers/specs/2026-08-20-mission-driver-adoption-design.md` | `### 4.4 验收先行：先写红测试` |
-| `REF:GATE-TIER` | M | `${XM}/docs/superpowers/specs/2026-08-20-mission-driver-adoption-design.md` | `### 4.5 门禁分层` |
-| `REF:MISSION-CFG` | M | `${XM}/docs/superpowers/specs/2026-08-20-mission-driver-adoption-design.md` | `### 4.6 mission 配置` |
-| `REF:PROMPTS` | M | `${XM}/docs/superpowers/specs/2026-08-20-mission-driver-adoption-design.md` | `### 4.7 prompt 覆盖` |
-| `REF:HALT` | M | `${XM}/docs/superpowers/specs/2026-08-20-mission-driver-adoption-design.md` | `## 5. 停机条件` |
-| `REF:DAY0` | M | `${XM}/docs/superpowers/specs/2026-08-20-mission-driver-adoption-design.md` | `## 6. Day 0 人工清单` |
-| `REF:RISK` | M | `${XM}/docs/superpowers/specs/2026-08-20-mission-driver-adoption-design.md` | `## 7. 风险与未验证假设` |
-| `REF:PBV-SUMMARY` | M | `${XM}/docs/next/PRE_BUILD_VALIDATION.md` | `## 一、结论摘要` |
-| `REF:PBV-RESIDUAL` | M | `${XM}/docs/next/PRE_BUILD_VALIDATION.md` | `## 五、未排除的残余风险` |
+| `REF:REVOKE-DRIVER` | M | `docs/analysis/2026-08-20-mission-driver-adoption-design.md` | `### 2.2 执行器起步用 opencode，暂不加 claude driver` |
+| `REF:CUT-OPENSPEC` | M | `docs/analysis/2026-08-20-mission-driver-adoption-design.md` | `### 2.3 裁掉 OpenSpec，统一到 mission-driver` |
+| `REF:GATE-INDEP` | M | `docs/analysis/2026-08-20-mission-driver-adoption-design.md` | `### 4.1 让门禁从「自报」变为「独立判定」` |
+| `REF:GATE-PROTECT` | M | `docs/analysis/2026-08-20-mission-driver-adoption-design.md` | `### 4.2 门禁测试的写保护` |
+| `REF:DOCLAYER` | M | `docs/analysis/2026-08-20-mission-driver-adoption-design.md` | `### 4.3 文档三分层（心因子）` |
+| `REF:REDTESTS` | M | `docs/analysis/2026-08-20-mission-driver-adoption-design.md` | `### 4.4 验收先行：先写红测试` |
+| `REF:GATE-TIER` | M | `docs/analysis/2026-08-20-mission-driver-adoption-design.md` | `### 4.5 门禁分层` |
+| `REF:MISSION-CFG` | M | `docs/analysis/2026-08-20-mission-driver-adoption-design.md` | `### 4.6 mission 配置` |
+| `REF:PROMPTS` | M | `docs/analysis/2026-08-20-mission-driver-adoption-design.md` | `### 4.7 prompt 覆盖` |
+| `REF:HALT` | M | `docs/analysis/2026-08-20-mission-driver-adoption-design.md` | `## 5. 停机条件` |
+| `REF:DAY0` | M | `docs/analysis/2026-08-20-mission-driver-adoption-design.md` | `## 6. Day 0 人工清单` |
+| `REF:RISK` | M | `docs/analysis/2026-08-20-mission-driver-adoption-design.md` | `## 7. 风险与未验证假设` |
+| `REF:PBV-SUMMARY` | M | `docs/analysis/2026-08-19-pre-build-validation.md` | `## 一、结论摘要` |
+| `REF:PBV-RESIDUAL` | M | `docs/analysis/2026-08-19-pre-build-validation.md` | `## 五、未排除的残余风险` |
 | `REF:D01-NAMING` | E | `${XM}/spike/D01-decisions/FINDINGS.md` | `## D-1 项目命名` |
 | `REF:SPIKE02` | E | `${XM}/spike/02-constrained-agent` | - |
 | `REF:SPIKE02-MODELS` | E | `${XM}/spike/02-constrained-agent/models.py` | `SCAFFOLD_TOKENS = 1561` |

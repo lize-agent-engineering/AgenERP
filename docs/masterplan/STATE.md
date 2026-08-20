@@ -92,6 +92,11 @@
 - 2026-08-20T15:05Z · W0.8 · 中途 `doc-line-refs` 多挂一条，查明是 vendor 边界漏了兄弟文件 `tools/check-doc-references.mjs`；补齐后该检查扫出**我们自己文档的 6 处问题**（2 处行号引用会烂、1 处迁移后指向证据仓的悬空路径、3 处模板遗留），已逐条修，`node tools/check-doc-references.mjs` → **exit 0，24 份文档全部通过**
 - 2026-08-20T15:05Z · W0.8 · `.env` / `.env.example` 的 `MISSION_DRIVER_HOME` 由 scratchpad 临时路径改为 `tools/mission-driver`；`./tools/mission-driver.sh list` → exit 0，列出 base/demo/onboarding
 
+- 2026-08-20T15:09Z · W0.7 · 建私有仓 `lize-agent-engineering/AgenERP` 并 push（15 个提交）· 首次 CI 运行 `32384206077`：**5 个 job 中 4 绿 1 红**
+- 2026-08-20T15:09Z · W0.7 · 红的是 `masterplan-links`——**又是「注定红」的病**：CI 里没有证据仓，E 类引用必然断，而我却让它 exit 1。一个注定红的检查等于没有检查，还会废掉「CI 连续 2 轮红 → 停机」。改判定器：证据仓不在场时 E 类跳过、M 类照查
+- 2026-08-20T15:09Z · W0.7 · 改完后暴露真问题：**14 条 M 类引用在 CI 里断**——方案 C 设计文档（12 条）与建设前验证报告（2 条）标着「随仓迁移」却从没迁。两份都已迁入 `docs/analysis/` 并重指向 · 模拟证据仓缺失：`bash tools/check-masterplan-links.sh` → **exit 0**（29 条校验 0 断链，跳过 6 条 E 类）；本机全量 → exit 0（35 条 0 断链）
+- 2026-08-20T15:09Z · W0.7 · 补 `LICENSE`（GPL-3.0，675 行）——架构 §16 早已裁定但仓里一直缺这个文件
+
 ---
 
 ## §3 needs-human 队列
@@ -99,7 +104,7 @@
 > 格式：`[状态] 日期 · 触发条件 · WBS行ID · 最后一条失败命令原文 + 退出码 · sha · 处置`
 > 状态只有 `open` / `resolved`。**resolved 的行保留不删。**
 
-- [open] 2026-08-20 · 触发：W0.7 需要建 GitHub 远程仓才能验证「push 触发 CI」 · W0.7 · 本地部分已完成（workflow + 判定器 + 反向测试，exit 0/1 均实测）· sha `fe6210b` · 待人决定：**建公开仓还是私有仓**、仓库归属（个人账号 / 新建 org）。建仓是对外发布动作，AI 不自行执行
+- [resolved] 2026-08-20 · 触发：W0.7 需要建 GitHub 远程仓才能验证「push 触发 CI」 · W0.7 · 处置：人选定**先建私有仓**，`lize-agent-engineering/AgenERP` 已建并 push，CI 已实跑。公开时机留待 P2 有演示价值时由人再定
 
 - [resolved] 2026-08-20 · 触发：同一 plan 连续 3 轮 GATE_VERIFY fail · P0.4 · 最后失败命令 `pytest tests/gates/test_normalizer_idempotent.py -q` → 记录为 exit 1，**复跑得 exit 4（file not found）**；`git cat-file -t deadbee` → exit 128 · sha `deadbee`（不存在） · 处置：**不可复现 → 关单**。这是 T4 演习的模拟桩，由演习会话按 01 §2 五步正确识破并处置
 
