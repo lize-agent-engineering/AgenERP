@@ -50,7 +50,7 @@
 | W0.11 | 装技能（mattpocock / grill-me / tospec），**尽力而为** | — | 每项一条证据行；装不上则标注「走 03 §A_n 内置清单」 | 人 | **done** · 目录中不存在（搜索返回空结果），走 03 内置等效清单，不再重试 |
 | **W0.12** | LoopX 集成，**2 小时硬上限** | W-1.3 | 闭环跑通：建 goal → 建 todo → `loopx quota should-run` 给出决策 → 门禁退出码由脚本写回证据。**超时未通即按 D-6 退回 STATE.md 手工纪律** | 人 | **新增（D-6）** |
 | **W0.13** ✅ | **锚点重映射 + T2 复跑**（W0.3/W0.4 会把主计划的引用全部打断） | W0.3, W0.4 | `tools/check-masterplan-links.sh` exit 0 | 人 | **done** 2026-08-20T15:16Z · 分三批：W0.3 重指向 6 条、W0.4 重指向 9 条、W0.7 又揪出 14 条 M 类从未迁移的（方案 C 文档 + 验证报告）并迁入 `docs/analysis/` |
-| **W0.14** | 空转一次 mission（不产出业务代码，只验证循环与门禁联动） | W0.9, W0.8b, W0.13 | 人为让 `pytest` 失败 → `GATE_VERIFY` 判 fail → 循环 retry；人为改 `tests/gates/**` → **立即停机** | 人 | **新增（本主计划）** |
+| **W0.14** ✅ | 空转一次 mission（不产出业务代码，只验证循环与门禁联动） | W0.9, W0.8b, W0.13 | 人为让 `pytest` 失败 → `GATE_VERIFY` 判 fail → 循环 retry；人为改 `tests/gates/**` → **立即停机** | 人 | **done** 2026-08-20T15:27Z · 9 项断言全通并进 CI；抓到「halt 被当 fail 重试」与「mission 层不停机」两个缺口并修 |
 
 **Day 0 出口门禁**：W0.0、W0.7、W0.13、W0.14 四项全绿，才允许 `./mission-driver.sh p0-foundation` 接管。少一项都不许开 7×24。
 

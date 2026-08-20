@@ -16,9 +16,21 @@ MISSION="$ROOT/missions/smoke-gate.json"
 VICTIM="tests/gates/test_normalizer_idempotent.py"
 fails=0
 
+ENV_CREATED=0
 cleanup() {
   rm -rf "$SMOKE_DIR" "$MISSION" "$ROOT/.mission-halt.json"
+  [ "$ENV_CREATED" = "1" ] && rm -f "$ROOT/.env"
   git checkout -- "$VICTIM" 2>/dev/null || true
+}
+
+# 全新克隆（含 CI）没有 .env —— 它是 gitignored 的。shim 靠它定位引擎，
+# 缺了就会以 exit 1 失败，看起来像「停机闸放行不了」，其实是没 bootstrap。
+ensure_env() {
+  if [ ! -f "$ROOT/.env" ]; then
+    cp "$ROOT/.env.example" "$ROOT/.env"
+    ENV_CREATED=1
+    echo "  （本轮由冒烟脚本从 .env.example 生成了 .env，结束时删除）"
+  fi
 }
 trap cleanup EXIT
 
@@ -78,6 +90,7 @@ run_engine() {
   echo $?
 }
 
+ensure_env
 setup
 
 echo "A · commands.test 通过 → GATE_VERIFY pass"

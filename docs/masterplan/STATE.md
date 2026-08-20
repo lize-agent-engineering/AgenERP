@@ -12,7 +12,7 @@
 |---|---|
 | 阶段 | **Day -1**（主计划自身制作） |
 | 当前 mission | 无（mission-driver 尚未接管，Day 0 之后才有） |
-| **下一个未阻塞工作项** | **W0.14 · 空转一次 mission**（此字段**只填一个 ID**，不写「但实际前置是…」这类歧义——T1 实测：会让接手会话先做一次推理才敢动手） |
+| **下一个未阻塞工作项** | **W0.12 · LoopX 集成（2 小时硬上限）**（此字段**只填一个 ID**，不写「但实际前置是…」这类歧义——T1 实测：会让接手会话先做一次推理才敢动手） |
 | 该项验收命令 | `--driver claude` 能跑通一次最小 prompt 往返，且**不泄漏本仓 CLAUDE.md / hooks / skills**（对策见 `REF:SPIKE02-MODELS`） |
 | 阻塞 | 无。**T1–T4 四条全过**（2026-08-20） |
 | 成本 | 未开始计量（阈值待 `W0.0` 定出） |
@@ -110,6 +110,12 @@
 
 - 2026-08-20T15:21Z · W0.10 · `missions/prompts/build-verify.md` 覆盖上游版（走上游自带的同名覆盖机制，不改 vendor 原件）· `grep -ciE 'maven|jira|-pl '` → **0** · 引擎实测加载到的是项目侧版本（含「门禁按 TDD 故意全红」段，Maven 段消失），2333 字符 vs 上游 4995 · sha `865982d`
 - 2026-08-20T15:21Z · W0.10 · 初稿留了一段「Maven/Jira 在这里不适用」的解释，judged 判据不过。想清楚后判据是对的：**覆盖之后模型根本看不到上游那份**，每轮再花 token 讲一遍不适用什么纯属噪声 → 删掉，理由留在提交信息里
+
+- 2026-08-20T15:27Z · W0.14 · 空转冒烟三场景（`--dry-run`，agent 步 mock、script 步真跑，零 token、不产业务代码）：A `commands.test` 通过 → GATE_VERIFY **pass**；B 退非 0 → **fail 且 retry EXECUTE**；C 改动 `tests/gates/**` → **停机** · sha `dbf0469`
+- 2026-08-20T15:27Z · W0.14 · **场景 C 抓到设计与实现的缺口（两层）**：① 碰门禁原本只返回 `fail`，会被 flow **重试 3 轮 EXECUTE** 才终局——一次红线违规白烧三轮，且与「测试没过」混为一谈 → 新增独立 marker `halt`，`halt → done: failed` 不重试；② 更严重：plan 层终局后 **mission 层仍继续跑到 `completed`**，等于「碰了裁判之后照常干活」 → gate-verify 违规时 `process.exit(2)` 并落 `.mission-halt.json`
+- 2026-08-20T15:27Z · W0.14 · 停机闸：`tools/mission-driver.sh` 启动前检查 `.mission-halt.json`，**存在即拒绝启动（退 2）**。7×24 靠反复重启，不设这道闸「停机」只停一轮。清除由人做
+- 2026-08-20T15:27Z · W0.14 · 固化为 `tools/gates/smoke-loop-wiring.sh`（9 项断言）并进 CI · 本机 exit 0；**首次进 CI 挂第 9 条**——`.env` 是 gitignored，全新克隆里 shim 找不到引擎，看着像「闸放行不了」实为没 bootstrap → 脚本改为缺 `.env` 时自 `.env.example` 生成、结束删除
+- 2026-08-20T15:27Z · W0.14 · RESUME 协议新增**第 0 步：先看停机记录**，存在即一切让路
 
 ---
 

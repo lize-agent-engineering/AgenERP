@@ -32,6 +32,7 @@ claude "按 docs/masterplan/README.md §2 恢复监督会话"
 
 | # | 动作 | 数据来自 |
 |---|---|---|
+| **0** | **先看有没有停机记录**：`cat .mission-halt.json 2>/dev/null`。**存在即一切让路**——循环撞了停机条件并已拒绝重启，按 [01-EXECUTION-MODEL.md](./01-EXECUTION-MODEL.md) §2 五步处置，处置完删掉该文件循环才能重启 | 仓库根目录 `.mission-halt.json` |
 | 1 | **逐字复述北极星** | [00-GOALS.md](./00-GOALS.md) §1 |
 | 2 | 报出当前阶段 / 当前 mission / 最后一条证据行 | [STATE.md](./STATE.md) §1 + §2 末行 |
 | 3 | 指出**下一个未阻塞工作项的 ID 与标题** | [02-WBS.md](./02-WBS.md)（跳过 `done`，避开 `blocked`，遇 §3 有 `open` 的 needs-human 则优先处理它） |
@@ -47,6 +48,7 @@ claude "按 docs/masterplan/README.md §2 恢复监督会话"
 ```
 
 **四件事缺一件，就说明上下文没建立起来**——不要开始干活，回到 §1 重读。
+（第 0 步不计入这四件：没有停机记录时它无声通过，有则整条回复都该围绕它。）
 
 启动 7×24 循环（Day 0 完成后可用）：
 
