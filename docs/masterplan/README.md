@@ -92,18 +92,20 @@ claude "按 docs/masterplan/README.md §2 恢复监督会话"
 ## §5 引用登记表（**唯一间接层**）
 
 **规矩：正文里一律写 `REF:‹名›`，绝不写具体路径与节号。** 路径只在下表出现一次。
+
+**M / E 两类的区别，决定 Day 0 怎么改这张表**：`M`=随仓迁移的项目文档（迁完把路径改成仓内相对路径），`E`=只读引证的证据（永远留在证据仓，走 `${XM}` 前缀，**不迁**）。2026-08-20 `W0.3` 已把 6 条 ARCHITECTURE 的 M 行重指向 `docs/architecture/` 与 `docs/design/`。
 Day 0 会拆分 `ARCHITECTURE.md`、改写 `ROADMAP.md`——那时**只改这张表**，然后跑 `tools/check-masterplan-links.sh` 复验，其余七份文档一个字都不用动。
 
 `${XM}` 由 `evidence-repo.env` 的 `XM_PATH` 解析。类别：**M** = Day 0 随仓迁移（路径会变）｜ **E** = 只读引证，长期留在证据仓。
 
 | REF | 类 | 目标 | 锚串 |
 |---|---|---|---|
-| `REF:PROBLEM` | M | `${XM}/docs/next/ARCHITECTURE.md` | `### 1.1 我们解决什么问题` |
-| `REF:AXIOMS` | M | `${XM}/docs/next/ARCHITECTURE.md` | `### 1.2 三条设计公理` |
-| `REF:NONGOAL` | M | `${XM}/docs/next/ARCHITECTURE.md` | `### 1.3 明确的非目标` |
-| `REF:ANTI-SPIRAL` | M | `${XM}/docs/next/ARCHITECTURE.md` | `### 11.2 为什么这是防死亡螺旋的关键` |
-| `REF:LICENSE` | M | `${XM}/docs/next/ARCHITECTURE.md` | `## 16. 许可与商业化` |
-| `REF:PENDING` | M | `${XM}/docs/next/ARCHITECTURE.md` | `## 15. 待定项` |
+| `REF:PROBLEM` | M | `docs/architecture/project-vision.md` | `### 1.1 我们解决什么问题` |
+| `REF:AXIOMS` | M | `docs/architecture/project-vision.md` | `### 1.2 三条设计公理` |
+| `REF:NONGOAL` | M | `docs/architecture/project-vision.md` | `### 1.3 明确的非目标` |
+| `REF:ANTI-SPIRAL` | M | `docs/architecture/module-boundaries.md` | `### 11.2 为什么这是防死亡螺旋的关键` |
+| `REF:LICENSE` | M | `docs/architecture/project-vision.md` | `## 16. 许可与商业化` |
+| `REF:PENDING` | M | `docs/architecture/open-questions.md` | `## 15. 待定项` |
 | `REF:ROADMAP-PRINCIPLES` | M | `${XM}/docs/next/ROADMAP.md` | `## 原则` |
 | `REF:ROADMAP-DONT` | M | `${XM}/docs/next/ROADMAP.md` | `## 不做的事（避免踩已知的坑）` |
 | `REF:ROADMAP-SPIKE1112` | M | `${XM}/docs/next/ROADMAP.md` | `## 待补 Spike（阻塞对应阶段）` |

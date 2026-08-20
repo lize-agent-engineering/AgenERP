@@ -38,7 +38,7 @@
 | **W0.0b** ✅ | **打通订阅路径**（**已完成 2026-08-20**：新起会话已走订阅；当前桌面进程环境仍为旧值，需重启）：当前 `~/.claude/settings.json` 把 `ANTHROPIC_BASE_URL` 指向本地代理、模型全设为 `deepseek.local`，headless `claude -p` 与子代理**均起不来**。loop 会继承同一份配置 | W0.0 | `claude -p "ping"` 退 0 且返回非空；`env \| grep ANTHROPIC` 的取值与所选驱动一致 | 人 | **新增（2026-08-20 实测）** |
 | W0.1 | 拍定项目名：复核 GitHub org / PyPI / 域名可得性 | — | 三项复核各留一条证据行；结论写回 [DECISIONS.md](./DECISIONS.md) D-1 | 人 | **done** 2026-08-20T14:43Z · 三项均复核，D-1 维持 |
 | W0.2 | 建仓库骨架：`install-age.sh` 安装 AGE 骨架 | W0.1 | `ls docs/{architecture,design,backlog,context,testing,archive,plans}` 全部存在 | 人 | **done** 2026-08-20T14:45Z · 88 文件，七目录齐全；`.env` 的 MISSION_DRIVER_HOME 待 W0.8 修正 |
-| W0.3 | 拆分 `ARCHITECTURE.md`（69KB/1159 行）→ `docs/architecture/` + `docs/design/` | W0.2 | `find docs -name '*.md' -size +30k` 输出为空 | 人 | §6-3 |
+| W0.3 | 拆分 `ARCHITECTURE.md`（69KB/1159 行）→ `docs/architecture/` + `docs/design/` | W0.2 | `find docs -name '*.md' -size +30k` 输出为空 | 人 | **done** 2026-08-20T14:48Z · 拆 8 份，零行遗失；REF 表 6 条 M 行已重指向，T2 复跑 exit 0 |
 | W0.4 | 改 `ROADMAP.md`：原则 4 措辞、P0 交付表「OpenSpec 初始化」→「AGE 骨架安装 + mission 配置」 | W0.2 | `grep -c OpenSpec docs/backlog/implementation-roadmap.md` == 0 | 人 | §6-4 |
 | W0.5 | 写 `AGENTS.md`，含红线「loop 不得修改 `tests/gates/`」 | W0.2 | `grep -q 'tests/gates' AGENTS.md` | 人 | §6-5 |
 | W0.6 | 手写 P0 的 4 个红测试🔴 | W0.2 | `pytest tests/gates -q` **全红**（这一步的正确结果是失败） | 人 | §6-6 |
