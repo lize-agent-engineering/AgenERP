@@ -117,6 +117,11 @@
 - 2026-08-20T15:27Z · W0.14 · 固化为 `tools/gates/smoke-loop-wiring.sh`（9 项断言）并进 CI · 本机 exit 0；**首次进 CI 挂第 9 条**——`.env` 是 gitignored，全新克隆里 shim 找不到引擎，看着像「闸放行不了」实为没 bootstrap → 脚本改为缺 `.env` 时自 `.env.example` 生成、结束删除
 - 2026-08-20T15:27Z · W0.14 · RESUME 协议新增**第 0 步：先看停机记录**，存在即一切让路
 
+- 2026-08-20T15:34Z · W0.0 · **首次真实（非 dry-run）循环跑通**：`--driver claude` + opus，冒烟 mission 在 `_smoke/` 内写出 `artifact.md`（「hello from loop」），CHECK→EXECUTE→CLOSURE_SCRIPT_CHECK→CLOSURE_AUDIT→DRAFT_PLANS→DEEP_AUDIT 全走完，**产品代码一个字未动**（`git status` 仅多出未跟踪的临时 mission 文件）· sha `6cc80f5`
+- 2026-08-20T15:34Z · W0.0 · **成本基线（驱动方式：claude driver / Opus 5 订阅）**：一个完整循环 = 4 个无头会话 / 56 条助手消息 / **输入 1,599,358 token、输出 22,978**、墙钟 **3 分 36 秒**，按 Opus API 价换算 **≈ \$2.31**。测法：读 `~/.claude/projects/-Users-lize-Documents-claude-AgenERP/*.jsonl` 逐条加总 usage，**排除监督会话自身**（第一次没排除，读出 1,994 万 token 的假数，其中 1,844 万是我自己的）
+- 2026-08-20T15:34Z · W0.0 · 据此定阈值：`missions/p0-foundation.json` 设 `maxTotalSteps: 120`（≈15–20 个循环 ≈2,500 万输入 token ≈\$35 当量），上游默认 500 步对 7×24 太松。⚠️ 外推：3.6 分钟/循环 → 约 400 循环/日 → 日当量近千美元级 —— **订阅下不是钱的问题，是必然撞限流窗口**，这正是 D-6 采用 LoopX 配额调度的实测依据
+- 2026-08-20T15:34Z · W0.0 · ⚠️ 已知缺口：「单 mission 累计成本超阈值 → 停机」目前**由步数上限代理**，没有真正的 token 计量器。真要按 token 停机，需要一个读 transcript 的预算检查器 —— 记在此，P0 复盘时决定要不要做
+
 ---
 
 ## §3 needs-human 队列

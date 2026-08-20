@@ -34,7 +34,7 @@
 
 | ID | 工作项 | 前置 | 验收 | 状态源 | 来源 |
 |---|---|---|---|---|---|
-| **W0.0** | **计费口径核实 + 成本基线**：确认 loop 驱动走的是订阅还是 API；实测一个最小 mission 的真实 token / 墙钟消耗 | W-1.7 | 一条 STATE 证据行，含：驱动方式、单 plan 平均 token、据此定出的**单 mission 成本阈值数字**（写进停机条件） | 人 | **新增（D-3 前提）** |
+| **W0.0** ✅ | **计费口径核实 + 成本基线** | W0.0b | 一条 STATE 证据行，含驱动方式、单循环 token、据此定出的阈值数字 | 人 | **done** 2026-08-20T15:34Z · claude driver/Opus；1,599,358 输入 token / 3.6 分钟 / ≈\$2.31 每循环；`maxTotalSteps: 120` |
 | **W0.0b** ✅ | **打通订阅路径**（**已完成 2026-08-20**：新起会话已走订阅；当前桌面进程环境仍为旧值，需重启）：当前 `~/.claude/settings.json` 把 `ANTHROPIC_BASE_URL` 指向本地代理、模型全设为 `deepseek.local`，headless `claude -p` 与子代理**均起不来**。loop 会继承同一份配置 | W0.0 | `claude -p "ping"` 退 0 且返回非空；`env \| grep ANTHROPIC` 的取值与所选驱动一致 | 人 | **新增（2026-08-20 实测）** |
 | W0.1 | 拍定项目名：复核 GitHub org / PyPI / 域名可得性 | — | 三项复核各留一条证据行；结论写回 [DECISIONS.md](./DECISIONS.md) D-1 | 人 | **done** 2026-08-20T14:43Z · 三项均复核，D-1 维持 |
 | W0.2 | 建仓库骨架：`install-age.sh` 安装 AGE 骨架 | W0.1 | `ls docs/{architecture,design,backlog,context,testing,archive,plans}` 全部存在 | 人 | **done** 2026-08-20T14:45Z · 88 文件，七目录齐全；`.env` 的 MISSION_DRIVER_HOME 待 W0.8 修正 |
