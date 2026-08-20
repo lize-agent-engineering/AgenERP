@@ -95,7 +95,7 @@
     "GATE_VERIFY": {
       "type": "script",
       "scriptId": "gate-verify",
-      "_comment": "补丁 P3（AgenERP fork）：由引擎自身 spawn 子进程复跑 mission.commands，以退出码判定。BUILD_VERIFY 若谎报 pass，这一步立刻打脸。AI 不参与该判定。",
+      "_comment": "补丁 P3（AgenERP fork）：由引擎自身 spawn 子进程复跑 mission.commands，以退出码判定。BUILD_VERIFY 若谎报 pass，这一步立刻打脸。AI 不参与该判定。 marker halt = 红线违规，直接终局不重试（W0.14 实测补）。",
       "transitions": {
         "pass": {
           "done": "completed"
@@ -103,6 +103,9 @@
         "fail": {
           "retry": "EXECUTE",
           "maxRetries": 3
+        },
+        "halt": {
+          "done": "failed"
         }
       },
       "onMaxRetries": {

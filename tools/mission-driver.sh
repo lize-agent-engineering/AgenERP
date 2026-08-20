@@ -1,4 +1,21 @@
 #!/bin/bash
+
+# --- AgenERP 停机闸（W0.14）-------------------------------------------------
+# 7×24 靠的是反复重启这个脚本。停机记录还在，就一次都不许再启动 ——
+# 否则「停机」只是停了一轮，下一轮照常带病狂奔。清除由人做，不是由 loop 做。
+HALT_FILE="$(cd "$(dirname "$0")/.." && pwd)/.mission-halt.json"
+if [ -f "$HALT_FILE" ]; then
+  echo "════════════════════════════════════════════════════════" >&2
+  echo "  拒绝启动：存在未处置的停机记录" >&2
+  echo "════════════════════════════════════════════════════════" >&2
+  cat "$HALT_FILE" >&2
+  echo "" >&2
+  echo "按 docs/masterplan/01-EXECUTION-MODEL.md §2 的五步处置，" >&2
+  echo "处置完删除 $HALT_FILE 再启动。" >&2
+  exit 2
+fi
+# --- 停机闸结束 -------------------------------------------------------------
+
 # tools/mission-driver.sh — Mission driver launcher (thin shim).
 #
 # The mission-driver ENGINE is NOT copied into this repo. It lives in the shared

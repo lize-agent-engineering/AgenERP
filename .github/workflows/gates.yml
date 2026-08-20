@@ -124,3 +124,17 @@ jobs:
           grep -q '^## Work Item Status' docs/backlog/implementation-roadmap.md \
             || { echo "❌ roadmap 缺少硬契约标题 '## Work Item Status'"; exit 1; }
           echo "✅ 硬契约标题在"
+
+  loop-wiring:
+    name: 循环联动冒烟
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: 门禁判定 → 循环反应，三条链
+        run: bash tools/gates/smoke-loop-wiring.sh
