@@ -36,7 +36,7 @@
 |---|---|---|---|---|---|
 | **W0.0** | **计费口径核实 + 成本基线**：确认 loop 驱动走的是订阅还是 API；实测一个最小 mission 的真实 token / 墙钟消耗 | W-1.7 | 一条 STATE 证据行，含：驱动方式、单 plan 平均 token、据此定出的**单 mission 成本阈值数字**（写进停机条件） | 人 | **新增（D-3 前提）** |
 | **W0.0b** ✅ | **打通订阅路径**（**已完成 2026-08-20**：新起会话已走订阅；当前桌面进程环境仍为旧值，需重启）：当前 `~/.claude/settings.json` 把 `ANTHROPIC_BASE_URL` 指向本地代理、模型全设为 `deepseek.local`，headless `claude -p` 与子代理**均起不来**。loop 会继承同一份配置 | W0.0 | `claude -p "ping"` 退 0 且返回非空；`env \| grep ANTHROPIC` 的取值与所选驱动一致 | 人 | **新增（2026-08-20 实测）** |
-| W0.1 | 拍定项目名：复核 GitHub org / PyPI / 域名可得性 | — | 三项复核各留一条证据行；结论写回 [DECISIONS.md](./DECISIONS.md) D-1 | 人 | §6-1 |
+| W0.1 | 拍定项目名：复核 GitHub org / PyPI / 域名可得性 | — | 三项复核各留一条证据行；结论写回 [DECISIONS.md](./DECISIONS.md) D-1 | 人 | **done** 2026-08-20T14:43Z · 三项均复核，D-1 维持 |
 | W0.2 | 建仓库骨架：`install-age.sh` 安装 AGE 骨架 | W0.1 | `ls docs/{architecture,design,backlog,context,testing,archive,plans}` 全部存在 | 人 | §6-2 |
 | W0.3 | 拆分 `ARCHITECTURE.md`（69KB/1159 行）→ `docs/architecture/` + `docs/design/` | W0.2 | `find docs -name '*.md' -size +30k` 输出为空 | 人 | §6-3 |
 | W0.4 | 改 `ROADMAP.md`：原则 4 措辞、P0 交付表「OpenSpec 初始化」→「AGE 骨架安装 + mission 配置」 | W0.2 | `grep -c OpenSpec docs/backlog/implementation-roadmap.md` == 0 | 人 | §6-4 |
@@ -47,7 +47,7 @@
 | **W0.8b** | 实现 `--driver claude`（含 HOME/cwd 沙箱，见 [01](./01-EXECUTION-MODEL.md) §5） | W0.8, W0.0 | 一次 `--driver claude` 干跑产出非空回复，且**上下文里不含本仓 CLAUDE.md / skills**（token 数与空目录基线相差 < 5%） | 人 | **新增（D-3）** |
 | W0.9 | 写 `missions/p0-foundation.json` | W0.4, W0.8 | `node ... --mission missions/p0-foundation.json --dry-run` 退 0；`goal` 字段含北极星原文 | 人 | §6-9 |
 | W0.10 | 重写 `prompts/build-verify.md`（去 Maven/Jira 特化，改 Python/Frappe 语境） | W0.8 | `grep -ciE 'maven\|jira\|-pl ' prompts/build-verify.md` == 0 | 人 | §6-10 |
-| W0.11 | 装技能（mattpocock / grill-me / tospec），**尽力而为** | — | 每项一条证据行；装不上则标注「走 03 §A_n 内置清单」 | 人 | **新增（D-4）** |
+| W0.11 | 装技能（mattpocock / grill-me / tospec），**尽力而为** | — | 每项一条证据行；装不上则标注「走 03 §A_n 内置清单」 | 人 | **done** · 目录中不存在（搜索返回空结果），走 03 内置等效清单，不再重试 |
 | **W0.12** | LoopX 集成，**2 小时硬上限** | W-1.3 | 闭环跑通：建 goal → 建 todo → `loopx quota should-run` 给出决策 → 门禁退出码由脚本写回证据。**超时未通即按 D-6 退回 STATE.md 手工纪律** | 人 | **新增（D-6）** |
 | **W0.13** | **锚点重映射 + T2 复跑**（W0.3/W0.4 会把主计划的引用全部打断） | W0.3, W0.4 | 改 [README.md](./README.md) §5 引用登记表后 `tools/check-masterplan-links.sh` 退 0 | 人 | **新增（本主计划）** |
 | **W0.14** | 空转一次 mission（不产出业务代码，只验证循环与门禁联动） | W0.9, W0.8b, W0.13 | 人为让 `pytest` 失败 → `GATE_VERIFY` 判 fail → 循环 retry；人为改 `tests/gates/**` → **立即停机** | 人 | **新增（本主计划）** |
