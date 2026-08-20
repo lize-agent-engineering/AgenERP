@@ -20,7 +20,8 @@ else echo "OK   2/4 下一项 ID：$id"; fi
 
 # 3. 该 ID 在 02-WBS 里存在
 if [ -n "$id" ]; then
-  line=$(grep -F "| $id " "$MP/02-WBS.md" | head -1)
+  esc=$(printf '%s' "$id" | sed 's/\./\\./g')
+  line=$(grep -E "^\| *\*{0,2}${esc}\*{0,2} *\|" "$MP/02-WBS.md" | head -1)
   if [ -z "$line" ]; then echo "FAIL 3/4 02-WBS 里没有 $id 这一行"; fail=1
   else echo "OK   3/4 02-WBS 命中 $id"; fi
 fi
