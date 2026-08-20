@@ -12,8 +12,8 @@
 |---|---|
 | 阶段 | **Day -1**（主计划自身制作） |
 | 当前 mission | 无（mission-driver 尚未接管，Day 0 之后才有） |
-| **下一个未阻塞工作项** | **W0.8 · fork mission-driver 并打补丁**（此字段**只填一个 ID**，不写「但实际前置是…」这类歧义——T1 实测：会让接手会话先做一次推理才敢动手） |
-| 该项验收命令 | `node tools/mission-driver/src/main.js --help` 可跑；`GATE_VERIFY` 出现在 flow 定义里 |
+| **下一个未阻塞工作项** | **W0.8b · 新增 `--driver claude`**（此字段**只填一个 ID**，不写「但实际前置是…」这类歧义——T1 实测：会让接手会话先做一次推理才敢动手） |
+| 该项验收命令 | `--driver claude` 能跑通一次最小 prompt 往返，且**不泄漏本仓 CLAUDE.md / hooks / skills**（对策见 `REF:SPIKE02-MODELS`） |
 | 阻塞 | 无。**T1–T4 四条全过**（2026-08-20） |
 | 成本 | 未开始计量（阈值待 `W0.0` 定出） |
 | CI | 未配置（`W0.7`） |
@@ -84,6 +84,13 @@
 - 2026-08-20T14:57Z · W0.7 · 判定器三个反向测试全部抓到：①名单外新增红 → 报「真的坏了」②名单内意外变绿 → 报「名单过期」③给门禁加 skip → 报「不允许 skip」· 退出码实测：偏差 **exit 1**，一致 **exit 0** · sha `fe6210b`
 - 2026-08-20T14:57Z · W0.7 · `.github/workflows/gates.yml` 五个 job：`gates-untouched`（改门禁需 `Gates-Change-Approved-By:` trailer）/ `expected-red-ratchet`（名单只能变短）/ `gates-l1` / `masterplan-links` / `roadmap-parseable` · YAML 语法校验通过
 - 2026-08-20T14:57Z · W0.7 · ⏸ **未完成部分**：「一次 push 触发 CI，结果可见」需要 GitHub 远程仓，建仓属对外发布动作 → 转 §3 等人拍板（公开/私有）
+
+- 2026-08-20T15:05Z · W0.8 · vendor 引擎 `tools/mission-driver/`（5.7M/202 文件），钉死上游 `58f7df70`；`node tools/mission-driver/src/main.js --help` → exit 0 · sha `bbbffc5`
+- 2026-08-20T15:05Z · W0.8 · 三个补丁全部落地并端到端验证：**未注册 gate-verify 时 flow 加载 throw `Unknown scriptId`**（证明 P1 必要）→ 注册后 flow 步骤变为 `EXECUTE → CLOSURE_SCRIPT_CHECK → CLOSURE_AUDIT → BUILD_VERIFY → GATE_VERIFY`，`BUILD_VERIFY.pass` 改为 `goto GATE_VERIFY`，`GATE_VERIFY.run` 是可调用函数
+- 2026-08-20T15:05Z · W0.8 · P2 `tools/gates/gate-verify.mjs` 四情形实测：全绿→pass；`test` 退 1→fail 且**真实报错原文回灌**（含「期望 3 实际 4」）；无命令→fail；**改动 `tests/gates/README.md` → 立即 fail 并列出被改文件**（写保护第 1 层生效）
+- 2026-08-20T15:05Z · W0.8 · 引擎回归：上游原始克隆 621 pass / **2 fail**（`mission-check Case D`、`FlowEngine null marker`），本仓打补丁后失败集合**逐条相同** → 补丁未引入新失败。基线记入 `tools/mission-driver/VENDOR.md`
+- 2026-08-20T15:05Z · W0.8 · 中途 `doc-line-refs` 多挂一条，查明是 vendor 边界漏了兄弟文件 `tools/check-doc-references.mjs`；补齐后该检查扫出**我们自己文档的 6 处问题**（2 处行号引用会烂、1 处迁移后指向证据仓的悬空路径、3 处模板遗留），已逐条修，`node tools/check-doc-references.mjs` → **exit 0，24 份文档全部通过**
+- 2026-08-20T15:05Z · W0.8 · `.env` / `.env.example` 的 `MISSION_DRIVER_HOME` 由 scratchpad 临时路径改为 `tools/mission-driver`；`./tools/mission-driver.sh list` → exit 0，列出 base/demo/onboarding
 
 ---
 

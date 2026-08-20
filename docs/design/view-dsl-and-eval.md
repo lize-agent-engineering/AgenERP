@@ -61,7 +61,7 @@ C 让「UI 太不直观」和「每家公司流程不一致」变成同一个问
 
 原生的无代码行为通道只有四条：Workflow、Notification、Assignment Rule、Auto Repeat。校验、自动计算、按钮动作、跨单据联动都不在其中。
 
-**附带发现**：`custom: 1` 的 DocType **绕过 developer_mode**（`frappe/core/doctype/doctype/doctype.py:331`）。站点 `developer_mode` 关闭时，形态 Agent 仍能在生产站点建整张新表 + 整套页面——但 `export_customizations` 要求 developer_mode（§11.1）。**能建，导不出**：L3 动作可以造出治理体系看不见的东西。这比 §11.1 的 revert 缺口更靠前一环，待 Spike 12 收口。
+**附带发现**：`custom: 1` 的 DocType **绕过 developer_mode**（Frappe `DocType.before_insert` 中对 `custom=1` 短路了 developer_mode 校验）。站点 `developer_mode` 关闭时，形态 Agent 仍能在生产站点建整张新表 + 整套页面——但 `export_customizations` 要求 developer_mode（§11.1）。**能建，导不出**：L3 动作可以造出治理体系看不见的东西。这比 §11.1 的 revert 缺口更靠前一环，待 Spike 12 收口。
 
 → 对 §10.1 那张 A/B/C 表的补充：**即使接受 Workspace 的天花板，行为层仍然无解。** 视图 DSL 若只覆盖呈现，定制包就只治理了一半。对策见 §10.5。
 

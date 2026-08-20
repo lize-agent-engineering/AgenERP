@@ -61,14 +61,14 @@
 | 18 | 从权限表反推权限会漏报 | `permission.scope` 第一版漏掉 `Sales Invoice`，而该用户读得到——**漏报比噪声危险** | §5.1 |
 | 19 | 零依赖启动的成因是三行 compose 语法 | `${VAR:?}` 让 `docker compose config` 直接失败；应用层降级逻辑本来就是对的 | §14 |
 | 20 | 行为层没有无代码通道 | `Button` fieldtype 加得上但点了无反应；站点 Client Script / Server Script 均为 0，`server_script_enabled` 未启用 | §10.4 |
-| 21 | `custom:1` DocType 绕过 developer_mode | `doctype.py:331`；能在生产站点建整张表，但 `export_customizations` 导不出 | §10.4、§11.1 |
+| 21 | `custom:1` DocType 绕过 developer_mode | Frappe `DocType.before_insert` 的 developer_mode 校验对 `custom=1` 短路；能在生产站点建整张表，但 `export_customizations` 导不出 | §10.4、§11.1 |
 | 22 | 改标准 Workspace 可能被 app 升级覆盖（**代码路径确认，未实测**） | `import_file.py` hash 变化即走 `delete_doc` 重插；Workspace 无定制隔离层 | §11.4 |
 
 ## 附录 B：建设前验证结果索引（2026-08-19）
 
-本附录记录 P0 动工前对本文档承重假设的实测结论。计划见
-`docs/superpowers/specs/2026-08-19-agenerp-pre-build-validation-design.md`，
-每个 spike 的完整数据与可复跑代码在 `spike/` 下。
+本附录记录 P0 动工前对本文档承重假设的实测结论。计划与每个 spike 的完整数据、可复跑代码都在**证据仓**里（位置与钉死的 sha 见
+[docs/masterplan/evidence-repo.env](../masterplan/evidence-repo.env)）：
+`$XM_PATH` 下的 superpowers 设计文档与 spike 目录。**证据仓只读，不随本仓演进。**
 
 | # | 假设 | 结论 | 证据 | 对本文档的影响 |
 |---|---|---|---|---|

@@ -136,12 +136,12 @@ Bug notes are historical, but they are usually referenced by issue identity rath
 
 For small and medium projects, either of these is acceptable:
 
-- `docs/bugs/01-short-bug-name.md`
+- `docs/bugs/NN-<short-bug-name>.md`
 - `docs/bugs/YYYY-MM-DD-HHmm-short-bug-name.md`
 
 Examples:
 
-- `docs/bugs/01-order-status-double-submit.md`
+- `docs/bugs/NN-<order-status-double-submit>.md`
 - `docs/bugs/2026-05-21-0000-login-token-refresh-loop.md`
 
 Recommendation:
