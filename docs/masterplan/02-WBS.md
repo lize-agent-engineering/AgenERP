@@ -46,7 +46,7 @@
 | W0.8 | fork mission-driver，打 P1/P2/P3 三个补丁；同步提上游 PR | — | `node tools/mission-driver/src/main.js --help` 可跑；`GATE_VERIFY` 出现在 flow 定义里 | 人 | **done** 2026-08-20T15:05Z · 三补丁端到端验证；引擎测试与上游同基线（621/2）；上游 PR 待建远程仓后提 |
 | **W0.8b** ✅ | 实现 `--driver claude`（含 hooks 泄漏对策） | W0.8 | 一次 `--driver claude` 干跑产出非空回复，红线在上下文里 | 人 | **done** 2026-08-20T15:16Z · 实测 AGENTS.md 不会自动加载 → 红线改为 `--append-system-prompt` 显式下发 |
 | W0.9 | 写 `missions/p0-foundation.json` **+ `docs/backlog/p0-foundation-roadmap.md`**（引擎回写的那份） | W0.4, W0.8 | dry-run 退 0；`goal` 含北极星原文；`roadmapPath` 指向 P0 自己的 roadmap | 人 | **done** 2026-08-20T15:19Z · dry-run exit 0 / status completed；8 工作项逐项绑门禁测试 |
-| W0.10 | 重写 `prompts/build-verify.md`（去 Maven/Jira 特化，改 Python/Frappe 语境） | W0.8 | `grep -ciE 'maven\|jira\|-pl ' prompts/build-verify.md` == 0 | 人 | §6-10 |
+| W0.10 | 重写 `build-verify.md`（去 Maven/Jira 特化，改 Python/Frappe 语境） | W0.8 | `grep -ciE 'maven\|jira\|-pl '` == 0 | 人 | **done** 2026-08-20T15:21Z · 走覆盖机制落在 `missions/prompts/`，vendor 原件不动；引擎实测加载到项目侧版本 |
 | W0.11 | 装技能（mattpocock / grill-me / tospec），**尽力而为** | — | 每项一条证据行；装不上则标注「走 03 §A_n 内置清单」 | 人 | **done** · 目录中不存在（搜索返回空结果），走 03 内置等效清单，不再重试 |
 | **W0.12** | LoopX 集成，**2 小时硬上限** | W-1.3 | 闭环跑通：建 goal → 建 todo → `loopx quota should-run` 给出决策 → 门禁退出码由脚本写回证据。**超时未通即按 D-6 退回 STATE.md 手工纪律** | 人 | **新增（D-6）** |
 | **W0.13** ✅ | **锚点重映射 + T2 复跑**（W0.3/W0.4 会把主计划的引用全部打断） | W0.3, W0.4 | `tools/check-masterplan-links.sh` exit 0 | 人 | **done** 2026-08-20T15:16Z · 分三批：W0.3 重指向 6 条、W0.4 重指向 9 条、W0.7 又揪出 14 条 M 类从未迁移的（方案 C 文档 + 验证报告）并迁入 `docs/analysis/` |
