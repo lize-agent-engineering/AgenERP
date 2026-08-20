@@ -23,7 +23,7 @@
 | W-1.3 | 外部件安装（LoopX / 技能），**尽力而为，失败不阻塞** | — | 每项装机结果（成功／失败＋替代方案生效）在 STATE §2 各有一条证据行 | 人 | doing |
 | W-1.4 | 质询关 CP1：拷问整套主计划并按结果修订 | W-1.2 | [03-SKILL-GATE-MAP.md](./03-SKILL-GATE-MAP.md) §A1 十问逐条有书面回答 | 人 | **done** |
 | W-1.5 | 交付物四测 T1–T4 | W-1.2 | 见 [README.md](./README.md) §8，四条全过 | 人 | **done** · T1/T2/T3/T4 全过（2026-08-20，证据见 STATE §2）；三条修订已回填 |
-| W-1.6 | `plan.html` + 发布 Artifact | W-1.2 | 页面可打开，阶段阶梯/关口图/技能矩阵/速查卡齐全 | 人 | **done**（Artifact 发布被 `essential-traffic-only` 拦截，改本地交付；甘特改为阶段阶梯——无真实日期，画甘特等于造数） |
+| W-1.6 | `plan.html` + 发布 Artifact | W-1.2 | 页面可打开，阶段阶梯/关口图/技能矩阵/速查卡齐全 | 人 | **done** · 已发布：<https://claude.ai/code/artifact/88e80606-2137-4df4-923b-94ccdf5dff3b>（重启桌面端解除 `essential-traffic-only` 后补发）；甘特改为阶段阶梯——无真实日期，画甘特等于造数 |
 | W-1.7 | 提交 + 打 tag `masterplan-v1` | W-1.6 | `git tag -l masterplan-v1` 非空 | 人 | **done** |
 
 ---
