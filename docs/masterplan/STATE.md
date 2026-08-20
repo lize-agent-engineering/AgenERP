@@ -12,8 +12,8 @@
 |---|---|
 | 阶段 | **Day -1**（主计划自身制作） |
 | 当前 mission | 无（mission-driver 尚未接管，Day 0 之后才有） |
-| **下一个未阻塞工作项** | **W0.7 · 配 GitHub Actions CI**（此字段**只填一个 ID**，不写「但实际前置是…」这类歧义——T1 实测：会让接手会话先做一次推理才敢动手） |
-| 该项验收命令 | 一次 push 触发 CI，结果可见；`gates-untouched` job 存在 |
+| **下一个未阻塞工作项** | **W0.8 · fork mission-driver 并打补丁**（此字段**只填一个 ID**，不写「但实际前置是…」这类歧义——T1 实测：会让接手会话先做一次推理才敢动手） |
+| 该项验收命令 | `node tools/mission-driver/src/main.js --help` 可跑；`GATE_VERIFY` 出现在 flow 定义里 |
 | 阻塞 | 无。**T1–T4 四条全过**（2026-08-20） |
 | 成本 | 未开始计量（阈值待 `W0.0` 定出） |
 | CI | 未配置（`W0.7`） |
@@ -80,12 +80,19 @@
 - 2026-08-20T14:54Z · W0.6 · 第一版 7 个 error 红在「fixture 不存在」而非「实现不存在」——**红得不对**。补 `tests/gates/conftest.py`：三个 fixture 存在但抛 `NotImplementedError` 并指向 roadmap P0 的对应交付项，实现到位时把 raise 换掉即可
 - 2026-08-20T14:54Z · W0.6 · `tests/gates/README.md` 写明四条判据的出处（roadmap 阶段验收 + Spike 06/10 打脸点）与「要改判据走 needs-human 五步」
 
+- 2026-08-20T14:57Z · W0.7 · **发现真问题**：门禁故意全红 → CI 直接跑必然红 → 停机条件「CI 连续 2 轮红」从第一天就误触发，等于失效。解法：`tests/gates/EXPECTED_RED.txt` 预期红名单 + `tools/gates/check_expected_red.py` 判定器，把「故意的红」与「真的坏了」分开
+- 2026-08-20T14:57Z · W0.7 · 判定器三个反向测试全部抓到：①名单外新增红 → 报「真的坏了」②名单内意外变绿 → 报「名单过期」③给门禁加 skip → 报「不允许 skip」· 退出码实测：偏差 **exit 1**，一致 **exit 0** · sha `fe6210b`
+- 2026-08-20T14:57Z · W0.7 · `.github/workflows/gates.yml` 五个 job：`gates-untouched`（改门禁需 `Gates-Change-Approved-By:` trailer）/ `expected-red-ratchet`（名单只能变短）/ `gates-l1` / `masterplan-links` / `roadmap-parseable` · YAML 语法校验通过
+- 2026-08-20T14:57Z · W0.7 · ⏸ **未完成部分**：「一次 push 触发 CI，结果可见」需要 GitHub 远程仓，建仓属对外发布动作 → 转 §3 等人拍板（公开/私有）
+
 ---
 
 ## §3 needs-human 队列
 
 > 格式：`[状态] 日期 · 触发条件 · WBS行ID · 最后一条失败命令原文 + 退出码 · sha · 处置`
 > 状态只有 `open` / `resolved`。**resolved 的行保留不删。**
+
+- [open] 2026-08-20 · 触发：W0.7 需要建 GitHub 远程仓才能验证「push 触发 CI」 · W0.7 · 本地部分已完成（workflow + 判定器 + 反向测试，exit 0/1 均实测）· sha `fe6210b` · 待人决定：**建公开仓还是私有仓**、仓库归属（个人账号 / 新建 org）。建仓是对外发布动作，AI 不自行执行
 
 - [resolved] 2026-08-20 · 触发：同一 plan 连续 3 轮 GATE_VERIFY fail · P0.4 · 最后失败命令 `pytest tests/gates/test_normalizer_idempotent.py -q` → 记录为 exit 1，**复跑得 exit 4（file not found）**；`git cat-file -t deadbee` → exit 128 · sha `deadbee`（不存在） · 处置：**不可复现 → 关单**。这是 T4 演习的模拟桩，由演习会话按 01 §2 五步正确识破并处置
 

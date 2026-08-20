@@ -1,0 +1,25 @@
+# 预期红名单 —— 判据已写、实现未到的门禁测试。
+#
+# CI 的 `gates` job 用它把「故意的红」和「真的坏了」区分开：
+#   · 名单内的测试红   → 正常，CI 绿
+#   · 名单内的测试却绿 → **失败**（名单过期了，实现已到位就该把它从名单里划掉）
+#   · 名单外的测试红   → **失败**（真的坏了）
+#
+# 棘轮方向：这个名单**只能变短**。变长 = 有人把一个真失败塞进来充当「预期」，
+# CI 的 `expected-red-ratchet` job 会拦下，除非提交信息里带人工批准：
+#   Gates-Change-Approved-By: <姓名>
+#
+# ⚠️ 本文件在 tests/gates/** 红线内，loop 不得修改。
+tests/gates/test_customization_roundtrip_delete.py::test_added_field_exports_into_pack
+tests/gates/test_customization_roundtrip_delete.py::test_export_produces_readable_diff_only
+tests/gates/test_customization_roundtrip_delete.py::test_no_orphan_column_left_behind
+tests/gates/test_customization_roundtrip_delete.py::test_removing_from_pack_actually_deletes_on_site
+tests/gates/test_normalizer_idempotent.py::test_normalize_is_stable_across_reexport
+tests/gates/test_normalizer_idempotent.py::test_normalize_orders_deterministically
+tests/gates/test_normalizer_idempotent.py::test_normalize_strips_volatile_fields
+tests/gates/test_snapshot_diff_structured.py::test_diff_is_structured_not_text
+tests/gates/test_snapshot_diff_structured.py::test_field_addition_shows_up_as_structured_change
+tests/gates/test_snapshot_diff_structured.py::test_two_snapshots_of_unchanged_site_diff_empty
+tests/gates/test_zero_dep_boot.py::test_compose_config_valid_with_empty_env
+tests/gates/test_zero_dep_boot.py::test_homepage_states_ai_disabled_instead_of_crashing
+tests/gates/test_zero_dep_boot.py::test_stack_boots_and_all_services_healthy
