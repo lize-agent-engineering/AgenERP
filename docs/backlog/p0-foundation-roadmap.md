@@ -63,7 +63,11 @@ P0 的目标一句话：**把「可验证」做出来。这一阶段不引入任
 - 四个红测试 13 条断言，全红且红得有据（实现不存在，非测试缺陷）
 
 **主要缺口：**
-- `agenerp` 这个 Python 包**还不存在**——门禁测试 import 的 `agenerp.pack` / `agenerp.snapshot` 全是空的
+- ~~`agenerp` 这个 Python 包**还不存在**~~ —— 2026-08-20 已由前置基线 plan
+  [`2026-08-20-2341-1-agenerp-package-skeleton.md`](../plans/p0-foundation/2026-08-20-2341-1-agenerp-package-skeleton.md) 交付：
+  `agenerp.pack` / `agenerp.snapshot` 六个契约面**签名已定稿、行为未实现**，调用即 `NotImplementedError`。
+  门禁的红因因此从 `ModuleNotFoundError` 变成 `NotImplementedError`——**没有任何一条门禁因此转绿**，
+  下面 8 个工作项的状态一项未动。
 - 没有 `docker-compose.yml`，没有活站点，`live_site` / `pack_repo` / `compose_stack` 三个 fixture 都还抛 `NotImplementedError`
 - 工作项 7（种子数据）**没有门禁测试**
 

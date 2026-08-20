@@ -26,7 +26,11 @@ The default level is `implement` for work items with no explicit label. The defa
 
 Set one value for the copied project:
 
-- Reviewer availability: `<human | subagent | none>`
+- Reviewer availability: `subagent`
+
+本仓的实际做法：草案评审与关闭审计都走独立子代理（fresh session，不带实现上下文）。
+出处：`docs/context/conventions.md` §Review Rule 与 `AGENTS.md` §Reviewer-Availability Fallback 均以此为前提；
+`docs/plans/` 下各 plan 的 `## Draft Review Record` 是它已在运行的证据。
 
 If this value is still a placeholder, treat reviewer availability as `none` and treat protected-area or high-risk plans as blocked until human/subagent review is configured.
 
@@ -64,11 +68,21 @@ Fill these for the copied project.
 
 If this table still contains placeholders, AI must treat payment, auth/permissions, data deletion, database/model shape, deployment, and external integrations as `ask-first` or `blocked` until the table is replaced with real entries or explicit `none`.
 
-| Area                 | Rule       | Required Evidence |
-| -------------------- | ---------- | ----------------- |
-| `<payment>`          | ask first  | owner doc + tests |
-| `<data deletion>`    | ask first  | owner doc + tests |
-| `<auth/permissions>` | plan-first | owner doc + tests |
+本项目此刻**没有**支付面，也没有自有认证/权限面（权限由 Frappe / ERPNext 宿主承担）。
+真正的保护区是下表这八条，全部照抄 `AGENTS.md` 的红线表——**此处不新增、不放宽任何一条**。
+
+| Area | Rule | Required Evidence |
+| --- | --- | --- |
+| `tests/gates/**`（含 `EXPECTED_RED.txt`） | blocked | 人工批准：提交信息含 `Gates-Change-Approved-By:`（`AGENTS.md` 红线 1；`.github/workflows/gates.yml` 的 `gates-untouched` job 服务端复核） |
+| `.github/workflows/**` | blocked | 人工批准（`AGENTS.md` 红线 2：不得让门禁变松） |
+| `docs/masterplan/DECISIONS.md` | blocked | 决策重开只有人能做；loop 仅可在某条决策表末**追加**「复核/实测结果」（红线 3） |
+| `docs/masterplan/` 其余文件 | blocked | loop 侧只读；`STATE.md` 只允许**追加**证据行，不得改写已有行（红线 5） |
+| 证据仓 `${XM_PATH}`（`docs/masterplan/evidence-repo.env`） | blocked | 已冻结在一个 sha 上，只读引用（红线 6） |
+| 项目名 / 包名 / 命名空间 | ask first | 名字由 D-1 定；复核发现被占用须停机等人拍板（红线 4） |
+| 运行时 Server Script 生成 | blocked | 等同 RCE，产品上不做（红线 7） |
+| `missions/*.json` | blocked | 角色 B 禁区（`docs/masterplan/01-EXECUTION-MODEL.md` §1 禁止项 ③），由人编辑 |
+
+支付、数据删除、认证/权限：`none`（本项目当前无自有实现面）。将来出现时，先在本表补行再动手。
 
 Protected-area rule meanings:
 

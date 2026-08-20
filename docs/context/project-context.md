@@ -20,10 +20,10 @@ This file is the AI entry point. The following `docs/context/` companions are re
 
 ## Project Identity
 
-- Project name:
-- Product type:
-- Primary users:
-- Documentation freshness: `<fresh | partially stale | stale | unknown>`
+- Project name: AgenERP
+- Product type: 应用层产品 —— Agent 驱动的 ERP，长在 Frappe / ERPNext 之上（不重造会计与制造内核，见 `docs/masterplan/DECISIONS.md` D-7）
+- Primary users: 中小企业的 ERP 实施者与业务管理员——他们要改的是自己企业的系统形态，而不是写代码
+- Documentation freshness: `partially stale`
 
 **Freshness gating:**
 
@@ -33,23 +33,30 @@ This file is the AI entry point. The following `docs/context/` companions are re
 
 ## Current Technical Baseline
 
-- Frontend stack:
-- Backend stack:
-- Database/model source:
+- Frontend stack: 暂无自有前端。呈现层由 Frappe / ERPNext 的 Desk 与 Web 视图承担；自有呈现层是 P2 的事。
+- Backend stack: Python 3.12.9（`pyproject.toml` 声明 `requires-python >= 3.11`）· 宿主为 Frappe / ERPNext · `agenerp` 是仓库根目录的扁平包，**零第三方依赖可导入**（CI 的 `gates-l1` job 只 `pip install pytest`）
+- Database/model source: DocType —— Frappe 的模型定义即 schema 源。定制以可 diff 的「定制包」形式落盘（`agenerp.pack`），站点状态以快照 + 结构化 diff 表达（`agenerp.snapshot`）。
 
 ## Verification Commands
 
-Replace every placeholder before implementation work starts.
+下表每一行都是 2026-08-20 在本机实测跑得出退出码的真命令；跑不起来的写 `none` 并注明它是 P0 的交付物。
 
-| Purpose                   | Command                       |
-| ------------------------- | ----------------------------- |
-| Install dependencies      | `<fill real command>`         |
-| Run app locally           | `<fill real command>`         |
-| Typecheck / compile check | `<fill real command or none>` |
-| Build                     | `<fill real command or none>` |
-| Lint / static check       | `<fill real command or none>` |
-| Unit tests                | `<fill real command or none>` |
-| E2E / integration tests   | `<fill real command or none>` |
+| Purpose                   | Command                                       |
+| ------------------------- | --------------------------------------------- |
+| Install dependencies      | `python3 -m pip install pytest`                |
+| Run app locally           | `none`（无 `docker-compose.yml`；roadmap 工作项 3「零依赖启动」的交付物） |
+| Typecheck / compile check | `none`（mypy 未安装；装机后由人接进 mission commands） |
+| Build                     | `none`（纯 Python 包，无构建步骤）              |
+| Lint / static check       | `ruff check agenerp tests/unit`                |
+| Unit tests                | `python3 -m pytest tests/unit -q`              |
+| E2E / integration tests   | `python3 tools/gates/check_expected_red.py`（门禁判定器，L1；L2 live 门禁需活站点/docker，属 P0 交付物） |
+
+**这就是当前可跑的全部**：本仓此刻没有全量套件（无 build、无 typecheck，L2 门禁未解锁）。
+不要把上面四条可跑命令的绿说成「全量验证通过」——那是 scoped verification。
+
+门禁的判定权归 `tools/gates/check_expected_red.py`：名单内红 = 正常，名单内绿 = 名单过期，
+名单外红 = 真的坏了，出现 skip = 有人放松裁判。ruff 与它无关，且 `tests/gates/**` 已按红线 1
+排除在 lint 作用域外（`pyproject.toml` 的 `[tool.ruff].exclude`）。
 
 ## Optional Layers Currently In Use
 
