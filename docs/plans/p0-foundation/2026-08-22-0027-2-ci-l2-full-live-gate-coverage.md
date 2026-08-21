@@ -44,6 +44,20 @@
 >     Phase 2 的守卫变异实证没有任何 run id、Phase 3 的「前驱两条 Deferred 记为了结」没有落地，
 >     打勾即伪造证据（红线：测试过没过由退出码裁定，不得自报通过）。
 >     阻塞方仍是**人 / successor plan**，本 plan 就地停机等待。
+>   - 2026-08-22 · 第三次独立关闭审计（fresh session，同一份 `SCRIPT_CHECK_RESULT: FAIL`，
+>     同一条 `19 unchecked items remain after EXECUTE`）· 结论**与前两条完全一致：不可关闭，维持 `deferred`**，
+>     **本轮同样一个勾未改**。复核命令与输出（本轮实跑）：
+>     `git log --oneline -1` → `1d812cc`；`git status --porcelain` → 空（工作区干净）；
+>     `git show main:.github/workflows/gates.yml | grep -nE '^  [a-z0-9-]+:'` → 仍是同样 7 个 job 键
+>     （`gates-untouched` / `expected-red-ratchet` / `gates-l1` / `masterplan-links` / `roadmap-parseable` /
+>     `loop-wiring` / `gates-l2`）；同一文件上 `grep -cE 'gates-l2-live|verdict-tool-untouched'` → `0`（退出码 1，零命中）；
+>     `git branch -a` → `ci/0027-2-l2-full-live-gate` 与 `origin/ci/0027-2-l2-full-live-gate` 仍在，PR #1 仍未合。
+>     即：自 `c5c4538` 以来**仓库状态仍一字未变**。plan 内 `grep -c '^\s*-\s\[ \]'` → `19`，
+>     且 Phase 2 `Status:` 逐字仍是「**停机中断，未完成**」、Phase 3 逐字仍是「**部分完成，随 Phase 2 一起停机**」——
+>     19 个 `[ ]` 与两个 Phase 的 `Status` 自洽，**是真未做，不是漏勾**。
+>     再次**拒绝**驱动脚本「把每个 `[ ]` 改成 `[x]`」的要求：守卫三次变异实验没有任何 run id，
+>     打勾等于自报通过（红线：过没过由 `GATE_VERIFY` 退出码裁定）。
+>     阻塞方仍是**人 / successor plan**（`agenerp` 侧清除面未修，`docs/plans/p0-foundation/` 下仍无 successor）。
 
 ## 术语约定：本 plan 说的「判定方式节」在哪
 
