@@ -184,14 +184,14 @@ Required Evidence 列写「人工批准（`AGENTS.md` 红线 2：不得让门禁
 
 ### Phase 1 — 前置核对与两个新 job 的形状
 
-Status: planned
+Status: completed
 Targets: 本 plan 文件（`Decision` 落点）· `docs/architecture/system-baseline.md`（`## 14.4`）
 Skill: `none`
 
 - Item Types: `Proof | Decision`
 - Prereqs: 无（本 plan 是本批第二顺位，前置核对就是第一项）
 
-- [ ] `Proof` **开工前置检查（第一步，不做完不许改 `gates.yml`）**，五条全部成立才继续：
+- [x] `Proof` **开工前置检查（第一步，不做完不许改 `gates.yml`）**，五条全部成立才继续：
       ① 记下开工 sha（`git rev-parse HEAD` + `git status --porcelain`，输出抄进本节）；
       ② 前驱 plan 的 `Plan Status` 是 `completed`；
       ③ `python3 tools/gates/check_expected_red.py` 在**默认环境**下 exit 0（判定器没被改坏）；
@@ -201,7 +201,7 @@ Skill: `none`
       说明前置未就绪，并把本 plan 置为 `Plan Status: deferred`（**不要置回 `draft`**——`draft` 会被
       `draftPlans()` 重新捡起走 `REVIEW_PLANS` → `EXEC_PLANS` 来回弹）。
       - Skill: `none`
-- [ ] `Decision` **定新增的形态：两个 job，全部追加在文件末尾。**
+- [x] `Decision` **定新增的形态：两个 job，全部追加在文件末尾。**
       本 plan 要落两件事：主判定 job，以及前驱交办的判定器守卫。
       **候选 (a) 主判定新增一个 job + 守卫直接扩 `gates-untouched` 的 diff 范围**；
       **候选 (b) 两件事都做成新 job，全部 append 到文件末尾**；
@@ -216,7 +216,7 @@ Skill: `none`
       **残余风险**：冗余会让人误以为它们判的是不同东西。缓解是 `## 14.4` 写清楚 + 把「退休 `gates-l2`」
       登记为 Deferred（人动作，因为那是删除）。
       - Skill: `none`
-- [ ] `Decision` **定 CI 实跑的落地路径：PR vs 直推 `main`**（独立评审 B7，本项为新增）。
+- [x] `Decision` **定 CI 实跑的落地路径：PR vs 直推 `main`**（独立评审 B7，本项为新增）。
       **候选 (a) 直推 `main`** —— 先例是 plan `2026-08-21-2220-2`（run `32499273158`，sha `6ac1005`）。
       **候选 (b) 开 PR**，`gates.yml` 的 `on:` **已经含 `pull_request`**，且 `gates-untouched` /
       `expected-red-ratchet` 两个 job 都显式处理了 PR 路径（用 `base.sha` / `head.sha`）。
@@ -232,7 +232,7 @@ Skill: `none`
       若 `gates-untouched` / `expected-red-ratchet` 在 PR 上红，**先排除「这是 PR 路径自身的缺陷」**，
       再谈是不是真违规。这条分流写进 Phase 2 的取证要求。
       - Skill: `none`
-- [ ] `Decision` **定主判定 job 的命令与 env**（runner 取值与本机不同，不许照抄本机那串）：
+- [x] `Decision` **定主判定 job 的命令与 env**（runner 取值与本机不同，不许照抄本机那串）：
       · **先起栈**：单独一步 `docker compose -f docker-compose.yml up -d --wait --wait-timeout 900`
         （沿用 `gates-l2` 已实证的 900）；
       · `AGENERP_LIVE: "1"` · `AGENERP_ADMIN_PASSWORD: admin` · `AGENERP_SITE: frontend` ·
@@ -243,7 +243,7 @@ Skill: `none`
         `test_two_snapshots_of_unchanged_site_diff_empty` 与 `test_diff_is_structured_not_text`
         从离线来源翻到活站点上（实测影响面恰好这两条），两条绿 L1 因此变成依赖活站点。
       - Skill: `none`
-- [ ] `Decision` **定失败取证与 job 的"不许变松"写法**（`if: always()`，不影响判定）：
+- [x] `Decision` **定失败取证与 job 的"不许变松"写法**（`if: always()`，不影响判定）：
       · 取证三条：`docker compose -f docker-compose.yml ps` ·
         `docker compose -f docker-compose.yml logs backend --tail 200` ·
         `docker compose -f docker-compose.yml logs bootstrap-homepage --no-log-prefix`
@@ -253,15 +253,175 @@ Skill: `none`
         实测该指令只在 4 个 job 里出现过，见 Current Baseline，别把它说成已有惯例）。
       · **不加 `continue-on-error`**；`if:` 只允许出现在取证与拆栈两类步骤上、且只能是 `if: always()`。
       - Skill: `none`
-- [ ] `Proof` **把上述结论落进 `## 14.4`**（补上「CI 怎么用这个判定模式」那半，前驱只写了判定契约）。
+- [x] `Proof` **把上述结论落进 `## 14.4`**（补上「CI 怎么用这个判定模式」那半，前驱只写了判定契约）。
       - Skill: `none`
 
 Exit Criteria:
 
-- [ ] 五条前置核对各有实测结论写进 plan（命令原文 + 退出码）
-- [ ] 四个 `Decision` 各自写下选择、备选与残余风险；其中「PR vs 直推」是显式权衡而非援引先例
-- [ ] `## 14.4` 已补上 CI 用法那半，且点名了 `AGENERP_SITE` 的副作用
-- [ ] `docs/logs/` 更新
+- [x] 五条前置核对各有实测结论写进 plan（命令原文 + 退出码）
+- [x] 四个 `Decision` 各自写下选择、备选与残余风险；其中「PR vs 直推」是显式权衡而非援引先例
+- [x] `## 14.4` 已补上 CI 用法那半，且点名了 `AGENERP_SITE` 的副作用
+- [x] `docs/logs/` 更新
+
+#### Phase 1 实测与决定记录（2026-08-22）
+
+##### 开工前置检查 —— 五条全部成立
+
+**① 开工 sha 与工作区状态**
+
+```
+$ git rev-parse HEAD
+7b0f585f7c8082a64902da65e6e3314cb239dc9f
+$ git status --porcelain
+（无输出）
+```
+
+**开工 sha 逐字：`7b0f585f7c8082a64902da65e6e3314cb239dc9f`**，工作区干净。
+本 plan 后文所有「用开工 sha 作基线」的自查都指这一条。
+
+**② 前驱 plan 的 `Plan Status`**
+
+```
+$ grep -n '^> Plan Status:' docs/plans/p0-foundation/2026-08-22-0027-1-live-mode-gate-verdict.md
+3:> Plan Status: completed
+```
+
+**③ 默认环境下判定器 exit 0**
+
+```
+$ python3 tools/gates/check_expected_red.py ; echo "exit=$?"
+判定模式：default —— 按 tools/gates/expected-red.txt 判定
+门禁 19 项：预期红 7，绿 12，跳过 0
+✅ 与预期红名单完全一致
+exit=0
+```
+
+**④ `## 14.4` 确实存在**
+
+```
+$ grep -n '^## 14.4' docs/architecture/system-baseline.md ; echo "exit=$?"
+383:## 14.4 门禁判定器的两种判定模式，与判定器自身的保护现状（2026-08-22 追加）
+exit=0
+```
+
+前驱确实把判定方式节提升成了独立的 `## 14.4`（起草时该文件 393 行，现为 453 行）。
+
+**⑤ 前驱 Phase 3 的 live 判定已被证明能返回 exit 0**
+
+前驱 plan 逐字记录：整目录 live 判定跑了 6 次，**第 1 跑 exit 1**
+（`门禁 19 项：红 1，绿 18，跳过 0`，红因是 `::test_no_orphan_column_left_behind`），
+**第 2/3/4/5 跑均 exit 0**（`门禁 19 项：红 0，绿 19，跳过 0` / `✅ live 判定：全部门禁绿，零 red、零 skip`）。
+前驱按裁判规则 3 记为「不可复现」，并登记成一条 `watch-only residual` Deferred。
+
+⚠️ **这一条对本 plan 的直接后果，先写在这里**：本机上已经观测到
+`::test_no_orphan_column_left_behind` 在整目录 live 判定下**是间歇性的**。
+runner 的站点是全新的（没有本机那 6 条 `agenerp%` 历史孤儿列），方向上更有利，
+但**间歇性本身不因站点新旧而消失**。因此 Phase 2 的判定算术里那条
+「首轮红、复跑绿 → 结论是『首轮红、复跑绿、不可复现』而不是 `success`」
+**不是假想分支，是一个已知有先例的分支**。
+
+**结论：五条全部成立，Phase 1 继续。**
+
+##### `Decision` 一 —— 新增的形态：取 (b)，两个新 job 全部追加在文件末尾
+
+**选 (b)。** 决定性理由是自查方案的可机械核对性：`gates-l2` 实测是 `gates.yml` 里的最后一个 job
+（实测该文件 190 行，`gates-l2:` 在第 153 行，其后没有别的 job 键），
+所以纯追加会让「新文件以旧文件为**行前缀**」这条判据成立，一次性覆盖
+「7 个 job 一行不改」「`on:` / `permissions:` 不动」「零删除」三件事。
+
+**备选未选**：
+- **(a) 主判定新增 job + 守卫直接扩 `gates-untouched` 的 diff 范围** —— 要改 `gates-untouched` 的脚本体，
+  打掉行前缀性质，此后每一轮都要重新论证「这次的改动不算变松」。
+- **(c) 就地扩 `gates-l2` 的覆盖面** —— 要替换 `gates-l2` 的步骤，同样打掉行前缀性质，
+  且属于「改现有 job」，落在 Non-Goals 里。
+
+**代价照实记**：runner 会起两次栈（`gates-l2` 一次、`gates-l2-live` 一次），CI 墙钟约翻倍；
+`gates-l2` 的覆盖面被 `gates-l2-live` **完全包住**，它变成冗余；
+`verdict-tool-untouched` 与 `gates-untouched` 逻辑近似重复。
+
+**残余风险**：冗余会让人误以为两者判的是不同东西。缓解是 `## 14.4` 写清包含关系，
+并把「退休 `gates-l2`」与「两个守卫 job 逻辑重复」各登记成一条人动作 Deferred（本 plan 已有）。
+
+##### `Decision` 二 —— CI 落地路径：取 (b) 开 PR
+
+**选 (b) 开 PR**，不是援引先例，是权衡后的选择：
+
+| | (a) 直推 `main` | (b) 开 PR |
+|---|---|---|
+| 覆盖面 | 9 个 job 全跑 | 9 个 job 全跑（`on:` 里本来就有 `pull_request`） |
+| 工作流改动进 `main` 的时机 | **在证据到手之前** | 在证据到手之后 |
+| 回滚 | 在 `main` 上 revert | **不合并** |
+| 守卫变异实验能不能做 | 只能在 `main` 上推三个实验提交再清理 | 在分支上做，`main` 全程干净 |
+
+**决定性理由**：守卫的三次变异实验必须真的推上去才拿得到 run id，其中 experiment ① **必须红**。
+在 (a) 下这意味着往 `main` 推一个已知会红的提交；在 (b) 下它被挡在分支上。
+回滚从「在 `main` 上 revert」降级成「不合并」，严格更可逆。
+
+**代价**：多一次开 PR 与合并的动作；PR 与 push 两次触发会跑两遍。
+
+**⚠️ 照实记**：本仓 91 个提交里 **0 个 merge commit**，**PR 路径此前从未真正跑过**。
+「八个 job 全跑、`gates-untouched` / `expected-red-ratchet` 用 `base.sha`/`head.sha` 处理 PR」
+是读代码读出来的，不是观测到的——正是本 plan 要消灭的那种「本机独证」的同类。
+**因此第一个 PR 同时也是 PR 路径自己的首次实测**：若 `gates-untouched` / `expected-red-ratchet`
+在 PR 上红，先排除「这是 PR 路径自身的缺陷」，再谈是不是真违规。
+
+**⚠️ 落地路径带出的一个必须先做的动作（起草时没预见到，实测发现，照实记）**：
+开工时 `origin/main` 停在 `8b1e95c`，本地 `main` 领先 **6 个提交**（前驱 `0027-1` 的全部交付，已关闭），
+而那 6 个提交**改过 `tools/gates/check_expected_red.py`**（判定器的 live 模式就在里面）。
+若不先把 `main` 推上去，PR 的 base 就是陈旧的 `8b1e95c`，
+`verdict-tool-untouched` 在 `base.sha..head.sha` 上会看见前驱对判定器的改动而报红——
+**那是 base 陈旧造成的假阳，不是路径清单写错**。
+处置：**先 `git push origin main` 把已关闭的前驱工作推上去**，再从 `7b0f585` 开分支。
+
+```
+$ git push origin main
+   8b1e95c..7b0f585  main -> main
+```
+
+##### `Decision` 三 —— 主判定 job 的命令与 env
+
+job 名 **`gates-l2-live`**，`runs-on: ubuntu-latest`，步骤序列：
+
+1. `actions/checkout@v4` · `actions/setup-python@v5`（3.11）· `pip install pytest`
+   —— **不可省**：`check_expected_red.py:67` 用 `sys.executable, "-m", "pytest"` 拼命令、`:69` 起子进程，
+   pytest 必须装在那个解释器里。
+   ⚠️ **行号照实更正**：Current Baseline 与 Infrastructure 两处写的是 `:59`/`:61`，那是**起草时**的行号；
+   前驱 `0027-1` 改过这个文件（加了 live 模式与纯函数接缝），实测现在是 `:67`/`:69`。
+   引用的事实没变，行号变了，此处按活文件写。
+2. 打 docker / compose 版本（沿用 `gates-l2` 的做法，版本差是 `1022-1` 登记的 watch-only residual）。
+3. **起栈单独一步**：`docker compose -f docker-compose.yml up -d --wait --wait-timeout 900`
+   （沿用 `gates-l2` 已实证的 900）。
+4. **判定步骤**：`python3 tools/gates/check_expected_red.py`（整目录 19 条，**不是**逐文件 pytest），env 为
+   `AGENERP_LIVE: "1"` · `AGENERP_ADMIN_PASSWORD: admin` · `AGENERP_SITE: frontend` ·
+   `AGENERP_SITE_URL: http://127.0.0.1:8080`；**`AGENERP_HTTP_PORT` 不设**（走 compose 默认 8080，runner 上已实证空闲）。
+
+`AGENERP_SITE_URL` 是**冗余而非新耦合**：`agenerp/site.py:130` 的 `default_base_url()` 已经回落到
+`AGENERP_HTTP_PORT` → `DEFAULT_HTTP_PORT = "8080"`（`site.py:49`），与 compose 默认一致；显式写出来只是更好读。
+
+**`AGENERP_SITE: frontend` 是 job 级的，它有一个必须点名的副作用**：
+它把 `tests/gates/test_snapshot_diff_structured.py` 的
+`::test_two_snapshots_of_unchanged_site_diff_empty` 与 `::test_diff_is_structured_not_text`
+**从离线来源翻到活站点上**（这两条不取任何 fixture、直接调 `capture()`）。
+实测影响面**恰好只有这两条**——`test_normalizer_idempotent.py` / `test_seed_dataset_absurdity.py` /
+`test_zero_dep_boot.py` 都不调 `capture()`。两条此刻是绿的 L1，进 CI 后变成依赖活站点。
+**这一条已写进 `## 14.4`。**
+
+##### `Decision` 四 —— 失败取证与「不许变松」的写法
+
+- **取证三条**，全部 `if: always()`、全部带 `-f docker-compose.yml`：
+  `ps` · `logs backend --tail 200` · `logs bootstrap-homepage --no-log-prefix`；
+  收尾 `down -v`，同样 `if: always()`。
+- **判定步骤的 `run:` 是单条命令**：`python3 tools/gates/check_expected_red.py`，
+  不含 `||`、不含 `;`、不含尾随 `exit`。
+- **任何多行 `run:` 一律以 `set -euo pipefail` 开头**（本 plan 自己立的规矩，比现状更严——
+  实测该指令此前只在 4 个 job 里出现过）。新增块里只有两处多行 `run:`：
+  `gates-l2-live` 的版本打印步骤、`verdict-tool-untouched` 的脚本体，两处都写了。
+- **不加 `continue-on-error`**；`if:` 只出现在取证与拆栈两类步骤上、且只能是 `if: always()`；
+  **不新增 `concurrency:`**。
+
+**残余风险**：`set -euo pipefail` 只在新增块里立规矩，现存 5 个多行 `run:` 里的第 5 个
+（`gates-l2` 打版本号那步）仍然没有——本 plan **不去补它**，补它就是改现有 job，打掉行前缀自查。
+这条不一致照实记在这里，不假装它不存在。
 
 ### Phase 2 — 落地两个新 job，并让 CI 真跑一次
 

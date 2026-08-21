@@ -387,7 +387,9 @@ roadmap 工作项 3（plan `docs/plans/p0-foundation/2026-08-21-1022-1-zero-dep-
 > 14.3 讲的是首页「AI 能力未配置」的表达口径，与 CI 判定方式无关。
 > 2026-08-22 由 plan `docs/plans/p0-foundation/2026-08-22-0027-1-live-mode-gate-verdict.md`
 > 提升为独立的 `## 14.4` 并改写。
-> **本节只写判定契约本身，不写「CI 怎么用」**——CI 消费面归 plan `2026-08-22-0027-2`，写早了是假陈述。
+> **2026-08-22 二次追加**：本节起初只写判定契约本身、不写「CI 怎么用」（写早了是假陈述）；
+> CI 消费面已由 plan `docs/plans/p0-foundation/2026-08-22-0027-2-ci-l2-full-live-gate-coverage.md`
+> 交付，补在下面两个小节（`gates-l2-live` 与 `verdict-tool-untouched`）。
 
 ### 两个判定环境给出相反判定，这是本节要解决的那个矛盾
 
@@ -441,13 +443,70 @@ roadmap 工作项 3（plan `docs/plans/p0-foundation/2026-08-21-1022-1-zero-dep-
 
 **空窗期照实记**：文档级约束对拿着 shell 的执行器没有强制力，真正带牙齿的是 CI 侧守卫
 （把 diff 范围扩到 `tools/gates/check_expected_red.py` 的 `verdict-tool-untouched` job），
-它由 plan `2026-08-22-0027-2-ci-l2-full-live-gate-coverage.md` 承接，**本节写下时还没上线**。
+它由 plan `2026-08-22-0027-2-ci-l2-full-live-gate-coverage.md` 承接。
+**空窗期的两个端点照实记**：起点是本节被写下的那一刻（守卫还没上线），
+终点是 `verdict-tool-untouched` 合并进 `main` 的那一刻（见下面第二个小节）。
 空窗期内唯一带牙齿的控制是**自愿**在改判定器的提交上带一行 `Gates-Change-Approved-By:` trailer——
-它不是本仓要求的（判定器不在 `gates-untouched` 的路径里，没有任何 job 会检查它），
-但它让这次改动在 `git log` 里**可被检索**。
+它当时不是本仓要求的（判定器不在 `gates-untouched` 的路径里，没有任何 job 会检查它），
+但它让那次改动在 `git log` 里**可被检索**。
+
+### CI 怎么用这个判定模式（`gates-l2-live` job，plan `2026-08-22-0027-2` 交付）
+
+`.github/workflows/gates.yml` 末尾的 **`gates-l2-live`** job 是 live 判定模式在服务端的唯一消费者：
+它在 runner 上起栈，然后用 **`python3 tools/gates/check_expected_red.py`** 对**全部 19 条门禁**做一次判定，
+env 为 `AGENERP_LIVE=1` · `AGENERP_ADMIN_PASSWORD=admin` · `AGENERP_SITE=frontend` ·
+`AGENERP_SITE_URL=http://127.0.0.1:8080`（`AGENERP_HTTP_PORT` 不设，走 compose 默认 8080）。
+
+**它与 `gates-l2` 的覆盖面是包含关系**：`gates-l2` 只跑 `tests/gates/test_zero_dep_boot.py` 三条，
+`gates-l2-live` 跑的 19 条**完全包住**它。两个 job 因此**冗余**——保留 `gates-l2` 是因为
+本仓对红线 2 的自查已固化成「新文件以旧文件为行前缀」，删 job 会直接打掉那条判据；
+退休它是删除动作，已登记为人动作 Deferred（见 plan `2026-08-22-0027-2` 的 `Deferred But Adjudicated`）。
+**不要把两个 job 读成「判的是不同东西」**，它们判的是同一批门禁，后者是前者的超集。
+
+**`AGENERP_SITE=frontend` 是 job 级的，它有一个必须点名的副作用**：
+它把 `tests/gates/test_snapshot_diff_structured.py` 的
+`::test_two_snapshots_of_unchanged_site_diff_empty` 与 `::test_diff_is_structured_not_text`
+**从离线来源翻到活站点上**——这两条不取任何 fixture、直接调 `capture()`，所以只能由命令行 env 供给站点。
+实测影响面**恰好只有这两条**（`test_normalizer_idempotent.py` / `test_seed_dataset_absurdity.py` /
+`test_zero_dep_boot.py` 都不调 `capture()`）。**后果**：两条原本是纯离线的绿 L1，
+进 `gates-l2-live` 之后变成**依赖活站点**；它们在 `gates-l1` 里仍按离线判定，两处判据来源不同。
+
+**「L2 在 CI 上不受预期红名单棘轮保护」这条残余风险已被覆盖**：`gates-l2-live` 走的是判定器，
+而 **live 模式的契约是「全部绿、零 red、零 skip」，比预期红名单棘轮更紧**——
+棘轮只拦「名单变长」，live 契约连一条 skip 都不放过，且没有任何名单可以把一条红登记成「预期」。
+上一小节那条风险因此在 `gates-l2-live` 的覆盖面（19 条全部）上收口；
+`gates-l2` 自己那条绕开判定器的路径仍然存在，但它的覆盖面是 `gates-l2-live` 的子集。
+
+### 判定器的 CI 侧守卫（`verdict-tool-untouched` job）与它的实证边界
+
+上一小节说的那段空窗期，由 `gates.yml` 末尾的 **`verdict-tool-untouched`** job 闭合：
+逻辑与 `gates-untouched` 同构（同一套 `BASE`/`HEAD` 推导、同一个全零 sha 分支、
+同一个 `^Gates-Change-Approved-By:` 匹配式），只有 diff 路径不同——
+它盯的是 **`tools/gates/check_expected_red.py`** 与 **`tools/gates/gate-verify.mjs`**。
+
+**硬边界：路径清单里没有 `tools/gates/expected-red.txt`，这是刻意的。**
+账本允许在同一提交里划短（`AGENTS.md` 红线 1 的「边界」句 + 本仓 Protected Areas 表第 2 行
+`allowed（只能变短）`），服务端控制是既有的 `expected-red-ratchet` job。
+把账本圈进守卫会让**每一次合法的划短**在 CI 上失败。
+
+**⚠️ 实证边界，不得读成「守卫已全面实证」**：守卫的三次变异实验全部在 **PR 分支**上做，
+因此**只证明了 `pull_request` 那条 `BASE`/`HEAD` 推导路径**。
+`gates.yml` 的 `on: push` 限定 `branches: [main]`，所以 **`push` 那条分支在合并前无法实测**；
+而交付证据又以合并后 `main` 上那次 `push` 运行为权威运行。
+两条路径的代码是同构的，但「同构」是读出来的，不是跑出来的。
+
+**顺带记一条待人处理的措辞不一致**：`docs/context/ai-autonomy-policy.md` 的 Protected Areas 表把
+`.github/workflows/**` 标为 `blocked`，而该表第 72 行自称是 `AGENTS.md` 红线表的**转录**
+（「下表前八条全部照抄⋯此处不新增、不放宽任何一条」），红线 2 原文只禁**变松**。
+纯新增、零删除、不变松的改动落不落在禁止面内，两处措辞给不出同一个答案。
+已登记为人动作 Deferred（plan `2026-08-22-0027-2` 的 `Deferred But Adjudicated` 首条），
+**下一个要动 `gates.yml` 的 plan 直接引它，不必从零再论证一遍**。
 
 ### L2 门禁在 CI 上不受预期红名单棘轮保护（既有残余风险，原样保留）
 
 `gates-l2` job 的那几条门禁在 CI 上不受预期红名单棘轮保护：有人把它们改绿而不改实现，棘轮不会响。
 **代偿控制**：`gates-untouched` job 仍然拦着对 `tests/gates/**` 的无批准改动，
-而那几条断言就在 `tests/gates/**` 内。这条风险的收口归工作项 9 的 CI 半（plan `2026-08-22-0027-2`）。
+而那几条断言就在 `tests/gates/**` 内。
+**这条风险已由上面的 `gates-l2-live` 收口**（它走判定器，live 契约比棘轮更紧，且覆盖面是 `gates-l2` 的超集）；
+本小节原样保留，是因为 `gates-l2` 那条绕开判定器的路径**仍然存在**——
+它只是不再是本仓对 L2 的唯一服务端判定。
