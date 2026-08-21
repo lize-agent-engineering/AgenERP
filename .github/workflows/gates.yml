@@ -58,7 +58,7 @@ jobs:
       - name: 名单不得变长
         run: |
           set -euo pipefail
-          FILE=tests/gates/EXPECTED_RED.txt
+          FILE=tools/gates/expected-red.txt
           count() { grep -vE '^\s*(#|$)' | wc -l | tr -d ' '; }
           NOW=$(count < "$FILE")
           if [ "${{ github.event_name }}" = "pull_request" ]; then

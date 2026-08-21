@@ -9,17 +9,19 @@
 # CI 的 `expected-red-ratchet` job 会拦下，除非提交信息里带人工批准：
 #   Gates-Change-Approved-By: <姓名>
 #
-# ⚠️ 本文件在 tests/gates/** 红线内，loop 不得修改。
+# ⚠️ 2026-08-21 从 tests/gates/ 挪到这里，原因是循环实测撞出的一个真矛盾：
+#    build-verify prompt、判定器输出、gate-verify 的失败回灌 —— 三处都命令 loop
+#    「测试转绿就把它从名单里划掉」，而 AGENTS.md 红线 1 又禁止碰 tests/gates/** 下的
+#    任何文件。循环没有自己找理由绕过，而是停下来写了交接文档等人（做得对）。
+#
+#    分清两件事就解开了：**测试代码是裁判，名单只是「哪些裁判现在预期是红的」的账本。**
+#    裁判仍受红线保护（一个字都不许改）；账本允许 loop 在同一提交里划掉已转绿的行，
+#    棘轮 job 保证它只能变短。账本变长仍需 Gates-Change-Approved-By: 人工批准。
 tests/gates/test_customization_roundtrip_delete.py::test_added_field_exports_into_pack
 tests/gates/test_customization_roundtrip_delete.py::test_export_produces_readable_diff_only
 tests/gates/test_customization_roundtrip_delete.py::test_no_orphan_column_left_behind
 tests/gates/test_customization_roundtrip_delete.py::test_removing_from_pack_actually_deletes_on_site
-tests/gates/test_normalizer_idempotent.py::test_normalize_is_stable_across_reexport
-tests/gates/test_normalizer_idempotent.py::test_normalize_orders_deterministically
-tests/gates/test_normalizer_idempotent.py::test_normalize_strips_volatile_fields
-tests/gates/test_snapshot_diff_structured.py::test_diff_is_structured_not_text
 tests/gates/test_snapshot_diff_structured.py::test_field_addition_shows_up_as_structured_change
-tests/gates/test_snapshot_diff_structured.py::test_two_snapshots_of_unchanged_site_diff_empty
 tests/gates/test_zero_dep_boot.py::test_compose_config_valid_with_empty_env
 tests/gates/test_zero_dep_boot.py::test_homepage_states_ai_disabled_instead_of_crashing
 tests/gates/test_zero_dep_boot.py::test_stack_boots_and_all_services_healthy

@@ -59,9 +59,19 @@ if d.get("ok") is not True:
 PY
     ;;
   2)
-    "$LOOPX" todo update --goal-id "$GOAL_ID" --todo-id "$TODO_ID" --status blocked \
-      --reason "mission 退出码 2：撞停机条件（见 .mission-halt.json / STATE §3）" >/dev/null
-    echo "[writeback] 已标 blocked —— 停机需人处置，循环不会自行重启"
+    # 退出码 2 有两种来源，别混：
+    #   · 红线停机 → 有 .mission-halt.json，必须人处置
+    #   · 引擎的超限终止（maxCycles / maxTotalSteps / pingPong）→ 没有该文件，是正常的边界到顶
+    # 首轮实测就踩了这个坑：--max-cycles 2 到顶被当成停机，todo 被误标 blocked。
+    if [ -f "$ROOT/.mission-halt.json" ]; then
+      "$LOOPX" todo update --goal-id "$GOAL_ID" --todo-id "$TODO_ID" --status blocked \
+        --reason "mission 退出码 2：撞红线停机（见 .mission-halt.json / STATE §3）" >/dev/null
+      echo "[writeback] 已标 blocked —— 红线停机需人处置，循环不会自行重启"
+    else
+      "$LOOPX" todo update --goal-id "$GOAL_ID" --todo-id "$TODO_ID" --status open \
+        --note "mission 退出码 2：引擎超限终止（cycles/steps 到顶），非红线停机；保持 open 待下轮" >/dev/null
+      echo "[writeback] 引擎超限终止（非停机），保持 open"
+    fi
     ;;
   *)
     "$LOOPX" todo update --goal-id "$GOAL_ID" --todo-id "$TODO_ID" --status open \

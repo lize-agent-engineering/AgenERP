@@ -7,7 +7,7 @@ Verify that the build passes for mission '{{missionName}}'.
 Python / Frappe（ERPNext）项目。三件事决定了怎么验证：
 
 1. **门禁测试按 TDD 故意全红。** `{{testCmd}}` 不是 `pytest`，而是 `tools/gates/check_expected_red.py`：
-   它比对「实际结果 vs `tests/gates/EXPECTED_RED.txt`」。名单内红 = 正常；名单内**绿** = 名单过期，
+   它比对「实际结果 vs `tools/gates/expected-red.txt`」。名单内红 = 正常；名单内**绿** = 名单过期，
    实现已到位，你必须**在同一个提交里**把它从名单划掉；名单外红 = 真的坏了；出现 skip = 有人放松裁判。
 2. **你的 pass 不是最终判定。** 这一步之后还有 `GATE_VERIFY`，由引擎自己 spawn 子进程复跑同样的命令，
    以退出码裁定。你若在这里谎报 pass，下一步立刻打脸，白白多烧一轮。**如实报 fail 比虚报 pass 便宜。**
@@ -60,7 +60,8 @@ Python / Frappe（ERPNext）项目。三件事决定了怎么验证：
      Plan: {{plansDir}}/{YYYY-MM-DD-HHmm}-...md
      ```
 
-  c. **若本轮让某条门禁测试转绿**：把它从 `tests/gates/EXPECTED_RED.txt` 删掉，**并入代码提交**。
+  c. **若本轮让某条门禁测试转绿**：把它从 `tools/gates/expected-red.txt` 删掉，**并入代码提交**。
+     该文件**不在** `tests/gates/**` 红线内——测试代码是裁判（不许碰），这份名单只是「哪些裁判现在预期是红的」的账本（可以划）。
      名单只能变短——CI 的棘轮 job 盯着这件事，变长会被拦下。
   d. `git commit` 失败时：修根因后重试，最多 2 次。**永远不要** `--no-verify`、`--force`、
      或 reset 共享分支。修不好就保留工作区原样，输出 `fail` 并说明，让下一轮接手。

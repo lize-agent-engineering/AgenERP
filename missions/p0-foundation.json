@@ -13,7 +13,7 @@
   "auditsDir": "docs/audits",
   "contextDir": "docs/context",
   "commands": {
-    "test": "python3 tools/gates/check_expected_red.py"
+    "test": "python3 tools/gates/check_expected_red.py && python3 -m pytest tests/unit -q"
   },
   "scripts": {
     "gate-verify": "tools/gates/gate-verify.mjs"
@@ -21,7 +21,7 @@
   "commitFormat": "<type>(<scope>): <description>",
   "_notes": {
     "commands": "只列现在真跑得起来的。本机 ruff / mypy / docker 都还没有，写进去等于每个 plan 一开局就 fail —— 它们是 P0 的交付物，装上了再往这里加 lint / typecheck / build。",
-    "test": "这条不是 `pytest tests/gates`。门禁按 TDD 故意全红，直接跑 pytest 必然非 0。check_expected_red.py 比对的是「实际结果 vs 预期红名单」：名单内红=正常，名单内绿=名单过期，名单外红=真坏了，出现 skip=有人放松裁判。",
+    "test": "这条不是 `pytest tests/gates`。门禁按 TDD 故意全红，直接跑 pytest 必然非 0。check_expected_red.py 比对的是「实际结果 vs 预期红名单」：名单内红=正常，名单内绿=名单过期，名单外红=真坏了，出现 skip=有人放松裁判。 2026-08-21 追加 tests/unit：首轮实测循环实现了 snapshot.capture/diff 却没更新自己写的契约测试，因为 commands.test 里没有单测，GATE_VERIFY 看不见 —— 判定面漏了一块，循环就不会自己发现。",
     "scripts": "gate-verify 由引擎自身 spawn 子进程复跑上面的 commands，以退出码判定，AI 不参与。需要 fork 的补丁 P1（SCRIPT_REGISTRY 可扩展），见 tools/mission-driver/VENDOR.md。",
     "driver_model": "driver/model 必须写在 mission 里。base.json 自称是 shared defaults，但实测主运行路径上 config.js 的 loadBaseAndInjectEnv() 只做 env 注入、返回值被丢弃 —— base.model / base.driver 只在 draft/analyze 两条路径生效。写在 base.json 里会安静地不起作用。",
     "budget": "maxTotalSteps=120 不是拍脑袋：W0.0 实测一个完整循环 ≈ 5–8 步、输入约 160 万 token、墙钟 3 分 36 秒（干的活只是写一行字，真实工作项只会更大）。120 步 ≈ 15–20 个循环 ≈ 2,500 万输入 token，按 Opus API 价换算约 35 美元 —— 这是「人应当回来看一眼」的量级，不是「烧穿了才发现」的量级。上游默认 500 步（≈ 70 个循环 ≈ 160 美元当量）对 7×24 太松。阈值随实测更新，改之前先在 STATE 留证据行。"

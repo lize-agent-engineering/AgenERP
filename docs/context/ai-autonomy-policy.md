@@ -73,7 +73,8 @@ If this table still contains placeholders, AI must treat payment, auth/permissio
 
 | Area | Rule | Required Evidence |
 | --- | --- | --- |
-| `tests/gates/**`（含 `EXPECTED_RED.txt`） | blocked | 人工批准：提交信息含 `Gates-Change-Approved-By:`（`AGENTS.md` 红线 1；`.github/workflows/gates.yml` 的 `gates-untouched` job 服务端复核） |
+| `tests/gates/**`（测试代码 = 裁判） | blocked | 人工批准：提交信息含 `Gates-Change-Approved-By:`（`AGENTS.md` 红线 1；`.github/workflows/gates.yml` 的 `gates-untouched` job 服务端复核） |
+| `tools/gates/expected-red.txt`（预期红名单 = 账本） | **allowed（只能变短）** | 2026-08-21 由人裁定：账本不是裁判。测试转绿时 loop 应在同一提交里划掉对应行；名单**变长**仍需 `Gates-Change-Approved-By:`（`expected-red-ratchet` job 服务端复核） |
 | `.github/workflows/**` | blocked | 人工批准（`AGENTS.md` 红线 2：不得让门禁变松） |
 | `docs/masterplan/DECISIONS.md` | blocked | 决策重开只有人能做；loop 仅可在某条决策表末**追加**「复核/实测结果」（红线 3） |
 | `docs/masterplan/` 其余文件 | blocked | loop 侧只读；`STATE.md` 只允许**追加**证据行，不得改写已有行（红线 5） |

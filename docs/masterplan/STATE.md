@@ -12,7 +12,7 @@
 |---|---|
 | 阶段 | **Day -1**（主计划自身制作） |
 | 当前 mission | 无（mission-driver 尚未接管，Day 0 之后才有） |
-| **下一个未阻塞工作项** | **P0.1 · 定制包规范化器**（Day 0 出口门禁四项已全绿）（此字段**只填一个 ID**，不写「但实际前置是…」这类歧义——T1 实测：会让接手会话先做一次推理才敢动手） |
+| **下一个未阻塞工作项** | **P0.2 · 修过期的契约测试并关闭工作项 1/2**（交给下一轮循环）（此字段**只填一个 ID**，不写「但实际前置是…」这类歧义——T1 实测：会让接手会话先做一次推理才敢动手） |
 | 该项验收命令 | `--driver claude` 能跑通一次最小 prompt 往返，且**不泄漏本仓 CLAUDE.md / hooks / skills**（对策见 `REF:SPIKE02-MODELS`） |
 | 阻塞 | 无。**T1–T4 四条全过**（2026-08-20） |
 | 成本 | 未开始计量（阈值待 `W0.0` 定出） |
@@ -127,6 +127,11 @@
 - 2026-08-20T15:38Z · W0.12 · 写回闸 `tools/loopx-writeback.sh`：配额闸 → 跑 mission → **按退出码单向写回**（0 → 请求完成；2 → 标 blocked 并说明撞停机；其他 → 保持 open）。端到端实测：mission 退 0，但工作项**仍未被接受**，因为它自己的校验命令没过 —— 「mission 成功 ≠ 工作项完成」这条分层契约在实现层成立，不只是文档说法
 - 2026-08-20T15:38Z · W0.12 · 两处工程细节：① `loopx` 是 `pip --user` 装的，**不在非登录 shell 的 PATH 上** → 脚本用 `LOOPX_BIN` 兜底；② `.loopx/` 与 `.codex/` 已进 `.gitignore`（LoopX 自己也警告 registry 应当 gitignore）
 
+- 2026-08-21T01:56Z · P0 首轮循环 · **限 2 循环、墙钟 1h09m51s**，产出 7 个提交 / 1,499 行 / **5 条门禁转绿**（规范化器 3 + 快照 diff 2）。成本：15 个无头会话 / 387 条助手消息 / 输入 **29,900,540**（cache_read 占 2,865 万）/ 输出 376,397 / 按 Opus API 价 **≈\$31.5**
+- 2026-08-21T01:56Z · P0 首轮循环 · **循环的表现是对的**：撞上「三处命令它划名单 vs 红线 1 禁止碰 `tests/gates/**`」的矛盾后，**没有自己找理由绕过**，而是逐条引原文写了 153 行交接文档、把 plan 置 `deferred`、往 STATE §3 追加 needs-human，然后停下。它还自己起子代理做了独立 plan 评审（12 条 blocking）
+- 2026-08-21T01:56Z · P0 首轮循环 · **实测暴露我的三处缺陷**：① 名单放在红线内 → 已迁至 `tools/gates/expected-red.txt`；② `commands.test` 只有门禁判定器、**不含单测** → 循环实现了 `snapshot.capture/diff` 却看不见自己写的契约测试已过期（判定面漏一块，循环就不会自己发现）→ 已补 `pytest tests/unit`；③ 写回脚本把「引擎超限终止」和「红线停机」都当成退出码 2 处理，把 todo 误标 blocked → 已按 `.mission-halt.json` 是否存在区分
+- 2026-08-21T01:56Z · P0 首轮循环 · 在途工作（snapshot.py 237 行）被 `--max-cycles 2` 截断在提交之前，人工代为落盘、内容未改一字。当前 `commands.test` → **exit 1**（契约测试过期），这正是下一轮的活
+
 ---
 
 ## §3 needs-human 队列
@@ -139,4 +144,4 @@
 - [resolved] 2026-08-20 · 触发：同一 plan 连续 3 轮 GATE_VERIFY fail · P0.4 · 最后失败命令 `pytest tests/gates/test_normalizer_idempotent.py -q` → 记录为 exit 1，**复跑得 exit 4（file not found）**；`git cat-file -t deadbee` → exit 128 · sha `deadbee`（不存在） · 处置：**不可复现 → 关单**。这是 T4 演习的模拟桩，由演习会话按 01 §2 五步正确识破并处置
 
 
-- [open] 2026-08-21 · 触发：工作项 1（定制包规范化器）实现到位，三条门禁转绿，`check_expected_red.py` 报名单过期；划掉 `tests/gates/EXPECTED_RED.txt` 三行属红线 1，需带 `Gates-Change-Approved-By:` trailer 的人工提交 · P0.4 · 最后一条命令 `python3 tools/gates/check_expected_red.py` → **exit 1**（「门禁 13 项：预期红 10，绿 3，跳过 0 / ❌ 名单内的门禁却绿了」，列出 `test_normalize_is_stable_across_reexport` / `test_normalize_orders_deterministically` / `test_normalize_strips_volatile_fields`） · sha `37ffc5d` · 处置：open —— 等人提交划名单，验收 `python3 tools/gates/check_expected_red.py` → exit 0；plan 已自置 `deferred`，详见 `docs/plans/p0-foundation/2026-08-20-2341-2-customization-pack-normalizer.md` 的 `## Human Handoff`
+- [resolved] 2026-08-21 · 触发：工作项 1（定制包规范化器）实现到位，三条门禁转绿，`check_expected_red.py` 报名单过期；划掉 `tests/gates/EXPECTED_RED.txt` 三行属红线 1，需带 `Gates-Change-Approved-By:` trailer 的人工提交 · P0.4 · 最后一条命令 `python3 tools/gates/check_expected_red.py` → **exit 1**（「门禁 13 项：预期红 10，绿 3，跳过 0 / ❌ 名单内的门禁却绿了」，列出 `test_normalize_is_stable_across_reexport` / `test_normalize_orders_deterministically` / `test_normalize_strips_volatile_fields`） · sha `37ffc5d` · 处置：open —— 等人提交划名单，验收 `python3 tools/gates/check_expected_red.py` → exit 0；plan 已自置 `deferred`，详见 `docs/plans/p0-foundation/2026-08-20-2341-2-customization-pack-normalizer.md` 的 `## Human Handoff` · **处置（人，2026-08-21）**：循环指出的矛盾属实且是我的设计缺陷——build-verify prompt、判定器输出、gate-verify 回灌三处都命令它划名单，而红线 1 禁止碰 `tests/gates/**`。裁定：**测试代码是裁判（红线保护），预期红名单只是账本** → 名单迁至 `tools/gates/expected-red.txt`（红线外），loop 可在同一提交里划掉已转绿行，变长仍需人工批准。已划掉 5 行，`check_expected_red.py` → exit 0

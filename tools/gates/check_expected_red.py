@@ -16,7 +16,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-ALLOWLIST = ROOT / "tests/gates/EXPECTED_RED.txt"
+ALLOWLIST = ROOT / "tools/gates/expected-red.txt"
 JUNIT = ROOT / ".pytest-gates.xml"
 
 
@@ -75,7 +75,7 @@ def main() -> int:
             print(f"   {n}")
 
     if unexpected_green:
-        print("\n❌ 名单内的门禁却绿了 —— 实现已到位，请在同一个提交里把它从 EXPECTED_RED.txt 划掉：")
+        print("\n❌ 名单内的门禁却绿了 —— 实现已到位，请在同一个提交里把它从 tools/gates/expected-red.txt 划掉：")
         for n in unexpected_green:
             print(f"   {n}")
 

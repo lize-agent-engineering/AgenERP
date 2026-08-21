@@ -23,3 +23,10 @@
 
 判据被实测推翻时，走 `docs/masterplan/01-EXECUTION-MODEL.md` §2 的 needs-human 五步，由**人**改，
 并在 roadmap 里追加一行写清是什么实测推翻了它。**不要在这里静悄悄改。**
+
+## 预期红名单在哪
+
+在 `tools/gates/expected-red.txt`，**不在本目录**。分清两件事：
+本目录的测试代码是**裁判**，红线保护，一个字不许改；那份名单只是
+「哪些裁判现在预期是红的」的**账本**，实现到位时 loop 应当在同一提交里划掉对应行。
+账本只能变短，变长需 `Gates-Change-Approved-By:` 人工批准（CI 棘轮 job 盯着）。
