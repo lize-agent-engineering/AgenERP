@@ -19,10 +19,9 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Protocol
 
+from agenerp.oob import TRIM_TABLE, OobError, Runner, run_json
 from agenerp.pack import normalize
 from agenerp.site import SiteClient, client_from_env
-
-_TODO = "尚未实现 —— 见 docs/backlog/p0-foundation-roadmap.md 的工作项对照表"
 
 # 离线来源的约定根目录：仓内 `.agenerp/snapshots/<scope>/*.json`。
 # 目录不存在 = 零条目快照，**不是错误**——今天仓里还没有快照数据，这条读取路径本身是真的。
@@ -323,6 +322,32 @@ def diff(before: Snapshot, after: Snapshot) -> Diff:
     return Diff(scope=before.scope, added=added, removed=removed, changed=changed)
 
 
-def schema_drift(doctype: str) -> Any:
-    """列出 `doctype` 在物理表上残留、但已不在定制包里的孤儿列。"""
-    raise NotImplementedError(f"schema_drift {_TODO}（工作项 5 · 差集 apply 引擎）")
+def schema_drift(
+    doctype: str, site: str | None = None, runner: Runner | None = None
+) -> tuple[str, ...]:
+    """`doctype` 的物理表上**存在、但按 Frappe 自己的口径不属于任何字段**的列，排序去重。
+
+    这是「孤儿列巡检」的唯一落点。口径**直接复用 Frappe 的 `frappe.model.meta.trim_table`**
+    （`dry_run=True`，经 `agenerp.oob` 的白名单带外调用，§11.8）：它算的是
+    `set(表上的列) - set(有值字段)`，再剥掉 `default_fields + optional_fields +
+    child_table_fields` 与 `_` 前缀的框架列。自己用 `information_schema` 减一遍
+    `tabDocField` / `tabCustom Field` 也能算出同一集合，但那会产生**第二套字段口径**——
+    Frappe 一次升级就能让两边错开，而错开的表现是「孤儿列漏报」，最难发现的那种假绿（§11.5）。
+
+    返回 `tuple[str, ...]`（不是 `Any`）：调用方靠它做 `in` 与集合运算，不定型只能靠猜。
+
+    **站点答不上话时抛 `agenerp.oob.OobError`，不返回空元组**——空元组是「没有孤儿列」这个
+    合法结论的表示，用它兼表「命令没跑起来」会让门禁在栈坏掉时照样绿（与 §11.7 同一条约定）。
+
+    `site` / `runner` 是可选注入（默认按 `AGENERP_SITE` 与 `docker compose exec` 解析），
+    目的与 `SiteSnapshotSource.client` 一样：让单测喂假件，不是给产品代码多一条配置路径。
+    """
+    columns = run_json(TRIM_TABLE, doctype=doctype, site=site, runner=runner)
+    if not isinstance(columns, list):
+        raise OobError(
+            f"{TRIM_TABLE} 对 {doctype} 回的不是列表，读到 {type(columns).__name__}：{columns!r:.200}"
+        )
+    for column in columns:
+        if not isinstance(column, str):
+            raise OobError(f"{TRIM_TABLE} 对 {doctype} 回的列名不是字符串：{column!r}")
+    return tuple(sorted(set(columns)))

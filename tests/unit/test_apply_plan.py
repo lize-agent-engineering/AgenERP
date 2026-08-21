@@ -308,7 +308,17 @@ def test_execute_plan_no_longer_reds_unconditionally():
         def delete_custom_field(self, doctype, fieldname):
             calls.append((doctype, fieldname))
 
-    execute_plan(plan, site="dev.localhost", client=_Recorder())
+    def _no_orphans(command):
+        """带外执行器也要喂假件：清除面接上之后 `execute_plan` 多了一条打到物理表的路径。
+
+        这里答「没有孤儿列」——本用例只管删除请求那一格，清除面的判据在
+        `tests/unit/test_apply_execute.py` 的 ⑨ 组。
+        """
+        from agenerp.oob import OobResult
+
+        return OobResult(0, "[]", "")
+
+    execute_plan(plan, site="dev.localhost", client=_Recorder(), runner=_no_orphans)
 
     assert calls == [("Item", "shelf_life_days")], calls
 

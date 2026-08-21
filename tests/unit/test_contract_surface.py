@@ -25,12 +25,15 @@ IMPLEMENTED: list[str] = [
     "agenerp.pack:export_customizations",
     "agenerp.snapshot:capture",
     "agenerp.snapshot:diff",
+    # 2026-08-21 由 plan `2026-08-21-2220-1` 从 NOT_YET_IMPLEMENTED 搬来：
+    # `schema_drift` 已接上 `agenerp.oob` 的带外巡检（§11.8），离线调用红在 `OobError` 而非
+    # `NotImplementedError`，行为覆盖在 `tests/unit/test_schema_drift.py`。
+    "agenerp.snapshot:schema_drift",
 ]
 
 # 签名已定稿、行为未实现（调用即 NotImplementedError）的契约面。
 NOT_YET_IMPLEMENTED: list[str] = [
     "agenerp.pack:apply_pack",
-    "agenerp.snapshot:schema_drift",
 ]
 
 # 每个契约面的一组合法调用参数，逐字对齐 tests/gates/ 里的调用处。

@@ -32,6 +32,7 @@ import logging
 from dataclasses import dataclass, replace
 from pathlib import Path
 
+from agenerp.oob import Runner, drop_columns
 from agenerp.site import SiteClient, client_from_env
 from agenerp.snapshot import (
     ChangedEntry,
@@ -40,6 +41,7 @@ from agenerp.snapshot import (
     diff,
     doctype_from_payload,
     read_scope_dir,
+    schema_drift,
 )
 
 # 被收窄 / 被排除的删除条目走这里发 WARNING。**「不许静默丢弃」这条安全承诺的唯一判据面**，
@@ -211,7 +213,12 @@ def narrow_deletes(plan: ApplyPlan, covered: frozenset[str]) -> ApplyPlan:
     return replace(plan, deletes=tuple(kept))
 
 
-def execute_plan(plan: ApplyPlan, site: str, client: SiteClient | None = None) -> None:
+def execute_plan(
+    plan: ApplyPlan,
+    site: str,
+    client: SiteClient | None = None,
+    runner: Runner | None = None,
+) -> None:
     """对活站点执行 `plan` 的**删除**部分。差集 apply 的 B 半，唯一落点。
 
     只做删除（§11.6 裁定 3）：`creates` / `updates` 非空时**显式抛**，不静默跳过。
@@ -238,5 +245,60 @@ def execute_plan(plan: ApplyPlan, site: str, client: SiteClient | None = None) -
     if not plan.deletes:
         return
     resolved = client if client is not None else client_from_env(site)
-    for entry in sorted(plan.deletes, key=lambda e: e.key):
+    deleted = tuple(sorted(plan.deletes, key=lambda e: e.key))
+    for entry in deleted:
         resolved.delete_custom_field(entry.doctype, entry.fieldname)
+    drop_orphan_columns(deleted, site, runner=runner)
+
+
+def drop_orphan_columns(
+    deleted: tuple[SnapshotEntry, ...], site: str, runner: Runner | None = None
+) -> None:
+    """删完 Custom Field 之后清掉**本次 apply 自己造成**的残留物理列。
+
+    Frappe 删 Custom Field **不删物理列**（Spike 06 的结论在 v15.119.3 上仍成立，2026-08-21
+    活站点复验）。不清的话反复增删会静默累积孤儿列，判据是
+    `tests/gates/test_customization_roundtrip_delete.py::test_no_orphan_column_left_behind`。
+
+    **作用域收窄到交集**（§11.6，与 `narrow_deletes` 是同一条原则）：一列要被删，必须同时
+    ① 在 `schema_drift(doctype)` 的返回集合里（**Frappe 自己**判它是孤儿），
+    ② 在本次 apply 真删掉的 fieldname 集合里。
+    直接调 `trim_table(dry_run=False)` 更省代码，但那会把该 DocType 上**所有**孤儿列一次删光——
+    2026-08-21 活站点实测 `Item` 上有 6 条孤儿列、其中 5 条不是本次 apply 造成的（历轮残留）。
+    那等于让一次 apply 顺手删掉五列历史数据，违反「apply 只做包表达过的意图」。
+    **门禁挡不住这个错误**（它只看探针列没了，多删的另外 5 列一个字都不会说），
+    所以收窄自带判据（`tests/unit/test_apply_execute.py`）。
+
+    **`schema_drift` 抛错时本函数也抛，不吞**：把「巡检没跑起来」当成「没有孤儿列」，
+    会让残列在站点上静默累积，而门禁照样绿——与 §11.7 第 1 条是同一条约定。
+
+    被跳过的列一条都不静默：沿用本模块的 `LOGGER.warning` 纪律，逐条列出
+    `(doctype, column, 跳过原因)`。
+    """
+    wanted: dict[str, set[str]] = {}
+    for entry in deleted:
+        wanted.setdefault(entry.doctype, set()).add(entry.fieldname)
+
+    for doctype in sorted(wanted):
+        orphans = set(schema_drift(doctype, site=site, runner=runner))
+        fieldnames = wanted[doctype]
+        removable = sorted(fieldnames & orphans)
+
+        not_orphaned = sorted(fieldnames - orphans)
+        if not_orphaned:
+            LOGGER.warning(
+                "apply 跳过 %d 条**Frappe 不认为是孤儿列**的清除（%s）：%s",
+                len(not_orphaned), doctype,
+                ", ".join(f"({doctype!r}, {c!r}, '不在 schema_drift 的返回集合里')"
+                          for c in not_orphaned),
+            )
+        untouched = sorted(orphans - fieldnames)
+        if untouched:
+            LOGGER.warning(
+                "apply **不碰** %d 条不是本次 apply 造成的孤儿列（%s）：%s",
+                len(untouched), doctype,
+                ", ".join(f"({doctype!r}, {c!r}, '本次 apply 没有删过同名字段')"
+                          for c in untouched),
+            )
+
+        drop_columns(doctype, tuple(removable), site=site, runner=runner)

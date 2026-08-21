@@ -14,6 +14,7 @@
 Phase 2 的 `Proof` 一致（① ~ ⑧ + 一条端到端纯逻辑回归）。
 """
 
+import json
 import logging
 import subprocess
 import sys
@@ -31,6 +32,7 @@ from agenerp.apply import (
     pack_doctypes,
     read_pack,
 )
+from agenerp.oob import OobError, OobResult
 from agenerp.pack import apply_pack, render_doctype_file
 from agenerp.site import SiteError
 from agenerp.snapshot import ChangedEntry, Snapshot, SnapshotEntry
@@ -59,6 +61,48 @@ class FakeSiteClient:
         if self._fail_on == (doctype, fieldname):
             raise SiteError(f"DELETE Custom Field/{doctype}-{fieldname} → HTTP 417（假件）")
         self.deleted.append((doctype, fieldname))
+
+
+class FakeOobRunner:
+    """记下每一次带外命令，按预设答复。**默认答「这个 DocType 上没有孤儿列」**。
+
+    默认取「没有」而不是「凡删过的都算孤儿」：后者会让每个既有用例都顺手发一条 DDL，
+    把「清除真的挑过交集」这件事糊掉。要测清除路径的用例**显式**给 `orphans`。
+    """
+
+    def __init__(self, orphans: dict[str, list[str]] | None = None, db_name: str = "_testdb"):
+        self.orphans = dict(orphans or {})
+        self.db_name = db_name
+        self.drift_fails = False
+        self.commands: list = []
+
+    def __call__(self, command) -> OobResult:
+        self.commands.append(command)
+        argv = command.argv
+        if argv[0] == "cat":
+            return OobResult(0, json.dumps({"db_name": self.db_name}), "")
+        if argv[0] == "bench":
+            if self.drift_fails:
+                return OobResult(1, "", "bench: 站点答不上话（假件）")
+            kwargs = eval(argv[argv.index("--kwargs") + 1])  # noqa: S307 —— 与 bench 侧同一条口径
+            return OobResult(0, json.dumps(self.orphans.get(kwargs["doctype"], [])), "")
+        return OobResult(0, "", "")
+
+    @property
+    def ddl(self) -> list[str]:
+        return [c.argv[-1] for c in self.commands if c.service == "db"]
+
+
+@pytest.fixture(autouse=True)
+def oob(monkeypatch):
+    """兜底：任何没被显式注入的带外调用都落到假件上，**本文件永不碰 docker**。
+
+    与文件头「不连真站点」是同一条约束的延伸——清除面接上之后，`execute_plan`
+    多了一条打到物理表的路径，不兜住的话既有用例会在 `GATE_VERIFY` 里去 `docker compose exec`。
+    """
+    runner = FakeOobRunner()
+    monkeypatch.setattr("agenerp.oob.ComposeExecRunner", lambda *a, **k: runner)
+    return runner
 
 
 def _entry(doctype: str, fieldname: str, **attributes) -> SnapshotEntry:
@@ -382,3 +426,104 @@ def test_removing_a_field_from_the_pack_ends_up_as_a_delete_request(tmp_path, wi
     assert wired.deleted == [("Item", PROBE)], (
         f"包里仍有 brand_code、只少了探针，删除请求却是 {wired.deleted}"
     )
+
+
+# --------------------------------------------------------------------------
+# ⑨ 清除面：apply 之后不留**本次造成**的残列（plan `2026-08-21-2220-1` Phase 2）
+# --------------------------------------------------------------------------
+def test_only_columns_in_the_intersection_are_dropped(oob):
+    """**承重条款**：删的列必须同时满足「Frappe 判它是孤儿」与「本次 apply 真删过同名字段」。
+
+    门禁只看探针列没了 —— 一个 `trim_table(dry_run=False)` 的实现照样让它绿，
+    却会顺手删掉该 DocType 上**所有**历史孤儿列。判据挡不住，所以收窄自带判据。
+    """
+    oob.orphans = {"Item": [PROBE, "agenerp_gate_probe", "agenerp_explore_probe"]}
+    plan = _plan(_entry("Item", PROBE), _entry("Item", "never_had_a_column"))
+
+    execute_plan(plan, "frontend", client=FakeSiteClient())
+
+    assert len(oob.ddl) == 1, f"该发且只发一条 DDL：{oob.ddl}"
+    assert f"DROP COLUMN `{PROBE}`" in oob.ddl[0]
+    for untouched in ("agenerp_gate_probe", "agenerp_explore_probe", "never_had_a_column"):
+        assert untouched not in oob.ddl[0], f"多删了 {untouched}：{oob.ddl[0]}"
+
+
+def test_empty_intersection_sends_no_ddl(oob):
+    """交集为空时**一条命令都不发**——空 DDL 与「什么都没删」在站点眼里不是一回事。"""
+    oob.orphans = {"Item": ["agenerp_gate_probe"]}
+
+    execute_plan(_plan(_entry("Item", PROBE)), "frontend", client=FakeSiteClient())
+
+    assert oob.ddl == [], f"交集为空却发了 DDL：{oob.ddl}"
+
+
+def test_untouched_orphans_are_logged_not_silently_ignored(oob, caplog):
+    """不删的那些也要说出来：否则「站点上还有 5 条历史残列」这件事永远没人知道。"""
+    oob.orphans = {"Item": [PROBE, "agenerp_gate_probe"]}
+
+    with caplog.at_level(logging.WARNING, logger="agenerp.apply"):
+        execute_plan(_plan(_entry("Item", PROBE)), "frontend", client=FakeSiteClient())
+
+    messages = " ".join(r.getMessage() for r in caplog.records)
+    assert "agenerp_gate_probe" in messages and "本次 apply 没有删过同名字段" in messages, messages
+
+
+def test_fields_frappe_does_not_call_orphaned_are_logged(oob, caplog):
+    with caplog.at_level(logging.WARNING, logger="agenerp.apply"):
+        execute_plan(_plan(_entry("Item", PROBE)), "frontend", client=FakeSiteClient())
+
+    messages = " ".join(r.getMessage() for r in caplog.records)
+    assert PROBE in messages and "不在 schema_drift 的返回集合里" in messages, messages
+
+
+def test_schema_drift_failure_aborts_instead_of_being_read_as_no_orphans(oob):
+    """**不吞掉**：把「巡检没跑起来」当成「没有孤儿列」，残列会静默累积而门禁照样绿。"""
+    oob.drift_fails = True
+
+    with pytest.raises(OobError):
+        execute_plan(_plan(_entry("Item", PROBE)), "frontend", client=FakeSiteClient())
+
+    assert oob.ddl == [], "巡检都没成功却发了 DDL"
+
+
+def test_column_outside_the_identifier_allowlist_is_refused(oob):
+    """未经验证的标识符不许进 DDL —— 拒掉即抛，不静默放行。"""
+    oob.orphans = {"Item": ["bad-col"]}
+
+    with pytest.raises(OobError, match="标识符白名单"):
+        execute_plan(_plan(_entry("Item", "bad-col")), "frontend", client=FakeSiteClient())
+
+    assert oob.ddl == []
+
+
+def test_ddl_single_quotes_the_statement_so_backticks_are_not_command_substituted(oob):
+    """2026-08-21 实测红过一次：反引号落在 `sh -c` 的双引号里被当成命令替换（`tabItem: not found`）。"""
+    oob.orphans = {"Item": [PROBE]}
+
+    execute_plan(_plan(_entry("Item", PROBE)), "frontend", client=FakeSiteClient())
+
+    payload = oob.ddl[0]
+    assert payload.endswith("'"), f"SQL 没有被单引号包住：{payload}"
+    assert "-e '" in payload and '-e "' not in payload, payload
+
+
+def test_db_name_comes_from_site_config_not_from_the_site_name(oob):
+    """`db` 服务不设 `MYSQL_DATABASE`，库名（`_5e5899d8398b5f7b` 这种）推不出来，只能读。"""
+    oob.orphans = {"Item": [PROBE]}
+    oob.db_name = "_5e5899d8398b5f7b"
+
+    execute_plan(_plan(_entry("Item", PROBE)), "frontend", client=FakeSiteClient())
+
+    assert "_5e5899d8398b5f7b" in oob.ddl[0]
+    assert any(c.argv[0] == "cat" for c in oob.commands), "库名不是读来的"
+
+
+def test_columns_are_dropped_only_after_the_custom_fields_are_gone(oob):
+    """顺序：先删 Custom Field 再清列。反过来的话 Frappe 会把列当成「字段还在」而不判孤儿。"""
+    oob.orphans = {"Item": [PROBE]}
+    client = FakeSiteClient()
+
+    execute_plan(_plan(_entry("Item", PROBE)), "frontend", client=client)
+
+    assert client.deleted == [("Item", PROBE)]
+    assert oob.ddl, "字段删了却没清列"

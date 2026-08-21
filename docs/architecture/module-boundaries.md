@@ -335,9 +335,11 @@ B 半（`execute_plan` 的删除路径、作用域收窄、建/改显式拒绝�
 | `agenerp/apply.py` · `narrow_deletes(plan, covered)` | 纯函数收窄 `deletes`，被丢弃的条目发 WARNING | 已实现（B 半） |
 | `agenerp/apply.py` · `execute_plan(plan, site, client=None)` | **对站点执行**：删除已实现；`creates` / `updates` **显式拒绝** | 已实现（B 半） |
 | `agenerp/apply.py` · `ApplyDirectionError` | 方向不变量的失败机制：裸 `assert` 换成显式 `raise`（`-O` 下不消失） | 已实现（B 半） |
-| `agenerp/site.py` · `SiteClient.delete_custom_field` | 站点侧删除的**唯一**出口，只删 Custom Field | 已实现（B 半） |
+| `agenerp/site.py` · `SiteClient.delete_custom_field` | 站点侧**字段**删除的唯一出口，只删 Custom Field | 已实现（B 半） |
+| `agenerp/oob.py` · `drop_columns(doctype, columns)` | 站点侧**物理列**删除的唯一出口（§11.8）。删字段不删列，两个出口管两件事 | 已实现（清除面） |
+| `agenerp/apply.py` · `drop_orphan_columns(deleted, site)` | 清除面的作用域收窄：只删 `本次删掉的 fieldname ∩ schema_drift(doctype)` | 已实现（清除面） |
 | `agenerp/pack.py` · `apply_pack(path, site)` | 委派链的入口，签名不变；委派链**四步**（读包 → 求差 → 收窄 → 执行） | 已委派 |
-| `agenerp/snapshot.py` · `schema_drift(doctype)` | 物理表孤儿列巡检（§11.1 第三个部件） | `raise`，归工作项 6 的第二个 plan |
+| `agenerp/snapshot.py` · `schema_drift(doctype)` | 物理表孤儿列巡检（§11.1 第三个部件），返回 `tuple[str, ...]` | 已实现（§11.8） |
 
 **方向约定**（写反了不报错、只会把「删」算成「建」，所以写在这里）：`plan_apply(desired, current)` 的
 `desired` = 定制包、`current` = 站点现状；而 `snapshot.diff(before, after)` 的 `added` = 只在 `after`、
@@ -366,13 +368,18 @@ B 半（`execute_plan` 的删除路径、作用域收窄、建/改显式拒绝�
 **承重条款已在 live 环境实测转绿（2026-08-21，B 半落地后）。** 工作项 5 绑定的
 `tests/gates/test_customization_roundtrip_delete.py::test_removing_from_pack_actually_deletes_on_site`
 在 fixture 自己拉起的一次性栈上实跑 **PASSED**（该文件 `1 failed, 3 passed`）。
-唯一仍红的 `::test_no_orphan_column_left_behind` 红因**已从 `execute_plan` 挪到 `schema_drift`**——
-它第一次走得到那一步。`tools/gates/expected-red.txt` **一行未动**（默认判定环境下 L2 恒红，
+当时仍红的 `::test_no_orphan_column_left_behind` 红因**已从 `execute_plan` 挪到 `schema_drift`**——
+它第一次走得到那一步。**该条其后也在 live 环境转绿**（2026-08-21，清除面落地，见上一小节）：
+该文件四条在 live 下 `4 passed`，本节此前那句「唯一仍红」已不再成立。
+`tools/gates/expected-red.txt` **一行未动**（默认判定环境下 L2 恒红，
 `AGENERP_LIVE` 未设即 `pytest.fail`；划掉会让默认 `GATE_VERIFY` 立刻转红），
-roadmap 工作项 5 停在 `planned`，该矛盾的处置权在 `docs/masterplan/STATE.md` §3 那行 needs-human。
-**live 环境下判定器退 1 是预期**（名单内 5 条在 live 下变绿），不得被读成回归。
-A 半的判据落在 `tests/unit/test_apply_plan.py`、B 半的落在 `tests/unit/test_apply_execute.py`
-（19 条，喂假客户端，`missions/p0-foundation.json` 的 `commands.test` 复跑得到）。
+roadmap 工作项 5 / 6 均停在 `planned`。该矛盾此前登记在 `docs/masterplan/STATE.md` §3，
+人已于 2026-08-21T14:21Z（`3fed439`）把 §3 的 `[open]` 全部关闭；口径以 §2
+（2026-08-21T11:20Z「名单必须反映判定器实际看到的」）为准。
+**live 环境下判定器退 1 是预期**（名单内的条目在 live 下变绿），不得被读成回归。
+A 半的判据落在 `tests/unit/test_apply_plan.py`、B 半与清除面的落在
+`tests/unit/test_apply_execute.py`（28 条，喂假客户端 + 假带外执行器，
+`missions/p0-foundation.json` 的 `commands.test` 复跑得到）。
 
 **`apply_pack` 现在红在哪**（2026-08-21 更新：两个站点侧落点都已接上）：离线跑仍红在
 `SiteSnapshotSource.read`——没有活站点、没有凭据时它抛 `SiteError` 而**不伪装成功**，
@@ -505,14 +512,69 @@ apply 不会照做，`git revert` 撤不掉这一类定制。代价被限定在�
 **404** `DoesNotExistError`。因此成败判据沿用 `SiteClient._request` 的 `200 <= status < 300`，
 不为删除另开分支；**「要删的东西不在」被判为失败并抛 `SiteError`，不静默吞掉**。
 
+
+#### apply 之后不留残列：清除面与它的作用域裁定（2026-08-21）
+
+**为什么 apply 必须多做这一步**：Frappe 删 Custom Field **不删物理列**（Spike 06 的结论在
+v15.119.3 上复验仍成立）。不清的话反复增删会静默累积孤儿列——2026-08-21 活站点实测，
+`tabItem` 上已积了 6 条。判据是
+`tests/gates/test_customization_roundtrip_delete.py::test_no_orphan_column_left_behind`。
+**只做巡检转不了绿**：`schema_drift` 诚实实现之后，探针列会被如实报成孤儿列，
+门禁照旧红——巡检与清除必须同时做。
+
+**Decision：清除的作用域收窄到「交集」，不是「该 DocType 上的全部孤儿列」。**
+
+| 候选 | 说明 | 结论 |
+|---|---|---|
+| (a) `trim_table(doctype, dry_run=False)` | Frappe 自己的语义，一次把该 DocType 上**所有**孤儿列删光；最省代码、完全复用框架 | 未取：实测 `Item` 上 6 条孤儿列里**有 5 条不是本次 apply 造成的**（历轮门禁探针 + 人工探查）。选它等于让一次 apply 顺手删掉五列历史数据，把「清理」和「apply」混成一件事，违反「apply 只做包表达过的意图」 |
+| (b) 只删「本次 apply 真删掉了 Custom Field」的那些列 | 取 `execute_plan` 收窄后的 `deletes` 与 `schema_drift` 的**交集**，逐列 `DROP COLUMN` | **取此**：与本节上面的「作用域收窄」是同一条原则 |
+
+**门禁挡不住选 (a) 的错误**——它只看探针列没了，多删的另外 5 列一个字都不会说。
+这与 `narrow_deletes` 那次是同一个陷阱换了一层（那次不收窄会连删 11 条而门禁照样绿），
+所以收窄自带判据（`tests/unit/test_apply_execute.py` 的 ⑨ 组）。
+
+**残余风险与它的两道闸**：(b) 要自己拼一条 DDL。因此一列要进 DDL 必须**同时**满足
+① 在 `schema_drift(doctype)` 的返回集合里（**Frappe 自己**判它是孤儿）、
+② 在本次 apply 真删掉的 fieldname 集合里；再加 §11.8 的标识符白名单
+（`^[A-Za-z0-9_ ]+$`，v0 的刻意收窄）。任一条件不成立就**跳过并 WARNING**，
+标识符不合法则直接抛 `OobError`——两者不是一回事，不许混。
+
+**Decision：DDL 走 `db` 容器直发，不加进 `ALLOWED_CALLS`。**
+
+| 候选 | 说明 | 结论 |
+|---|---|---|
+| (i) `bench execute frappe.db.sql_ddl --kwargs "{'query': …}"` | 调用方给整条 SQL | 未取：这正是 §11.8 拒绝过的通用 RCE 接口，把它加进白名单等于把白名单作废 |
+| (ii) `docker compose exec -T db mariadb -e "ALTER TABLE …"` | DDL 走 db 容器，不经任何 Python 执行面 | **取此**。它**不与 §11.8 的巡检选型冲突**：那里拒绝候选 (b) 的理由是「不要第二套**字段口径**」，而这里不做任何字段判断——判断已由 `schema_drift` 做完，db 侧只执行一条列名已被验证过的 DDL |
+| (iii) 扩白名单到 `trim_table(dry_run=False)` | —— | 未取：与上面的作用域裁定 (b) 直接冲突 |
+
+**顺序是先删字段、再清列**，不能反：反过来 Frappe 会把该列当成「字段还在」而不判它是孤儿
+（判据 `test_columns_are_dropped_only_after_the_custom_fields_are_gone`）。
+
+**`schema_drift` 抛错时 `execute_plan` 也抛，不吞**：把「巡检没跑起来」读成「没有孤儿列」，
+残列会静默累积而门禁照样绿。
+
+**作用域的活站点实测（2026-08-21，方向是「减少」不是「新增」）**：门禁跑前
+`schema_drift("Item")` 回 6 条，跑后回 5 条——**消失的恰好只有 `agenerp_gate_roundtrip`**
+（本门禁的探针，也就是本次 apply 自己造成的那一列）；
+`agenerp_gate_probe` / `agenerp_explore_probe` / `agenerp_explore_probe2` /
+`agenerp_scope_probe_item` / `agenerp_probe_orphan` **一条不少地还在**。
+这是「没有顺手多删」的正向证据。原文在 plan
+`docs/plans/p0-foundation/2026-08-21-2220-1-schema-drift-orphan-columns.md` Phase 2。
+
+**门禁自己在污染站点（已登记，本 plan 不处置）**：`tests/gates/conftest.py` 的 teardown 只删
+Custom Field 不删列，所以此前每跑一轮就留一条孤儿列——清除面接上之后这条止血了，
+但 teardown 本身在红线 1 内，loop 不得改。触发条件与 successor 见
+`docs/backlog/gate-fixtures-pollute-the-live-site.md`。
+
 ### 11.7 站点只读传输在本仓的落点（工作项 4 的 B 半，2026-08-21）
 
-§11.5 末节留下的接缝接上了：`agenerp/site.py` 是 `agenerp` 里**唯一**打到真站点的模块，
+§11.5 末节留下的接缝接上了：`agenerp/site.py` 是 `agenerp` 里**唯一经 HTTP/REST** 打到真站点的模块，
+`agenerp/oob.py`（§11.8，2026-08-21）是第二条打到站点的传输，走的是带外容器命令、够得到物理表；
 `SiteSnapshotSource.read` 经它回答「站点现状是什么」。plan `docs/plans/p0-foundation/2026-08-21-1922-1-site-snapshot-source-live.md`。
 
 | 落点 | 职责 | 状态 |
 |---|---|---|
-| `agenerp/site.py` · `SiteClient` | 连活站点的**唯一**传输落点。`get(path, params)` 返回已解析载荷；`list_resource(doctype)` 列出全部行 | 已实现（**只有读方法**） |
+| `agenerp/site.py` · `SiteClient` | 连活站点的**唯一 HTTP** 传输落点（物理层那条在 §11.8）。`get(path, params)` 返回已解析载荷；`list_resource(doctype)` 列出全部行 | 已实现（**只有读方法**） |
 | `agenerp/site.py` · `SiteError` | 站点侧一切失败的统一异常：连不上 / 认证失败 / 非 2xx / 载荷不是 JSON | 已实现 |
 | `agenerp/site.py` · `client_from_env(site)` | 环境 → 客户端的组装点，缺凭据时抛并指名变量 | 已实现 |
 | `agenerp/site.py` · `Transport` / `UrllibTransport` | 可注入的传输接缝：单测喂假件，产品走标准库 | 已实现 |
@@ -563,6 +625,88 @@ apply 不会照做，`git revert` 撤不掉这一类定制。代价被限定在�
 在 `GATE_VERIFY` 与 CI 的 `gates-l1` 里再绑一个端口是自找的不稳定源。单测喂注入式假传输；
 唯一例外是「连不上 → `SiteError`」那条，它必须走真 `UrllibTransport`（假件证明不了
 `URLError` 被翻译过），用一个刚释放的端口构造 connection refused，不留监听。
+
+
+### 11.8 带外容器命令传输在本仓的落点（工作项 6 的第二个 plan，2026-08-21）
+
+**为什么需要第二条传输，而不是把 §11.7 扩一扩**：`schema_drift` 要回答的是
+「物理表上还剩哪些列」。Frappe **没有任何白名单方法**回物理列，且 `docker-compose.yml`
+不对宿主发布 db 端口——REST 那条路不是取舍问题，是**够不到**。所以另起一条，
+不是给 §11.7 加功能。
+
+模块：`agenerp/oob.py`（out-of-band）。零第三方依赖，只用 `subprocess` + `json`，
+与 `agenerp/site.py` 同一条约束。
+
+**三个 exec 目标**（模块不叫 `bench.py` 就是因为它不只跑 bench）：
+
+| 目标 | 命令 | 方向 | 落点 |
+|---|---|---|---|
+| `backend` | `bench --site <site> execute <白名单函数> --kwargs …` | 读 | `run_json` |
+| `backend` | `cat sites/<site>/site_config.json` | 读 | `read_site_config` |
+| `db` | `mariadb … -e "ALTER TABLE … DROP COLUMN …"` | **写** | `drop_columns`（§11.6 的清除面） |
+
+| 落点 | 职责 | 状态 |
+|---|---|---|
+| `agenerp/oob.py` · `OobError` | 带外命令一切失败的统一异常，与 `SiteError` 平级 | 已实现 |
+| `agenerp/oob.py` · `ALLOWED_CALLS` | **「函数名 → 钉死的 kwargs」映射**，v0 只有 `frappe.model.meta.trim_table → {"dry_run": True}` | 已实现 |
+| `agenerp/oob.py` · `run_json(function, doctype, …)` | 白名单内的 `bench execute`，返回已解析 JSON | 已实现 |
+| `agenerp/oob.py` · `read_site_config(site, …)` | 读站点 `site_config.json`，**DDL 拿库名的唯一来源** | 已实现 |
+| `agenerp/oob.py` · `Runner` / `ComposeExecRunner` | 可注入的执行接缝：单测喂假件，产品走 `docker compose exec -T` | 已实现 |
+| `agenerp/oob.py` · `drop_columns(doctype, columns, …)` | 本模块**唯一的写动作**，见 §11.6 的清除面 | 已实现 |
+| `agenerp/snapshot.py` · `schema_drift(doctype)` | 孤儿列巡检，返回 `tuple[str, ...]`（排序去重） | 已实现 |
+
+**Decision：巡检口径复用 Frappe 自己的 `trim_table`，不自建第二套。**
+
+| 候选 | 说明 | 结论 |
+|---|---|---|
+| (a) `bench execute frappe.model.meta.trim_table` | 复用 Frappe 的孤儿列定义，`dry_run` 同时给出巡检与清除两个模式 | **取此** |
+| (b) `docker compose exec db mariadb` 直查 `information_schema` | 只读 SQL、不执行任何代码 | 未取：要把 `default_fields + optional_fields + child_table_fields` 与 `_` 前缀规则**抄一遍**，产生第二套字段口径（§11.5 的「不该有第二份」）。Frappe 一次升级就能让两边错开，而错开的表现是**孤儿列漏报**——最难发现的那种假绿 |
+| (c) 经 REST | —— | 未取：够不到（见本节开头） |
+
+一次性交叉验证（**不留成常驻的第二套口径**）：2026-08-21 在活站点上把
+`set(schema_drift("Item"))` 与 `information_schema.COLUMNS` 减去 `tabDocField` / `tabCustom Field`
+的结果对账，两侧相等（17 行 = 11 个基础列 + 6 条孤儿列）。原文在 plan
+`docs/plans/p0-foundation/2026-08-21-2220-1-schema-drift-orphan-columns.md`。
+**不拿 `trim_table(dry_run=True)` 做交叉验证**——那是拿函数和它自己的后端对账，什么也证明不了。
+
+**与红线 7（不得让 Agent 生成运行时 Server Script）的界线，必须写清楚不许含糊过去**：
+红线 7 禁的是把可执行脚本**装进站点**、由站点在处理请求时自己执行——那是**持久化**的 RCE 面。
+`agenerp/oob.py` 是运维侧的**一次性带外调用**：不留任何站点态，进程退出即结束。
+这条界线不是靠「意图」立住的，靠的是下面两条机制：
+
+1. **`ALLOWED_CALLS` 钉到参数一级。** 它是「函数名 → kwargs」映射，不是名字集合。
+   调用方只能给 `doctype`；`dry_run` 恒为 `True`，**传不进 `False`**。只钉名字挡不住
+   `trim_table(dry_run=False)`——那会把该 DocType 的孤儿列一次删光，正是 §11.6 清除面
+   明文排除的作用域。
+2. **不提供通用 SQL / 通用函数入口。** `frappe.db.sql_ddl(query=…)` 这类「调用方给整条 SQL」的
+   接口被显式排除：把它加进白名单等于把白名单作废。DDL 因此走 `db` 容器的
+   `drop_columns`，列名先经两道验证（§11.6），**不与 `ALLOWED_CALLS` 共用**——
+   那张表管的是 Python 函数调用，管不到 DDL。
+
+**两条实测硬约束（不是猜的）**：
+
+| 约束 | 出处 | 判据 |
+|---|---|---|
+| `bench execute --kwargs` 的载荷是 **Python 字面量，不是 JSON** | `frappe/commands/utils.py:258` 对它做 `eval(kwargs)`；喂 `json.dumps` 的结果红在 `NameError: name 'true' is not defined`（2026-08-21 实测红过一次） | `test_bench_kwargs_are_a_python_literal_not_json` |
+| 库名只能读、**推不出来** | `docker-compose.yml` 的 `db` 服务只设 `MYSQL_ROOT_PASSWORD`、不设 `MYSQL_DATABASE`，`mariadb` 没有默认库；库名形如 `_5e5899d8398b5f7b`，从 `AGENERP_SITE=frontend` 推不出来 | `test_read_site_config_returns_the_db_name` |
+
+**缓存的连带事实（第三轮独立评审在活栈上带回，记此备查）**：Frappe 把列清单缓存在 Redis 的
+`table_columns` 里，带外 `ALTER TABLE` 本会让它变陈旧、从而让门禁继续红；但 `trim_table` 的
+**第一行**就是 `frappe.cache.hdel("table_columns", …)`，所以每次 `schema_drift` 调用都会先把
+缓存打掉。上面的 Decision (a) 与 §11.6 的 DDL 走 db 容器因此能安全组合。
+
+**不伪装成功**：命令起不来 / 非零退出 / 载荷不是 JSON —— 一律抛 `OobError`，
+**绝不降级成空列表**。空列表是「没有孤儿列」这个合法结论的表示，用它兼表「命令没跑起来」
+会让门禁在栈坏掉时照样绿——与 §11.7 第 1 条是同一条约定。
+
+**配置口径（环境变量，全部带默认值）**：
+
+| 变量 | 含义 | 默认 |
+|---|---|---|
+| `AGENERP_SITE` | 站点名 | 无（**不猜**：缺了就抛 `OobError`，猜一个站点名去跑 DDL 是本模块最不该有的行为） |
+| `AGENERP_OOB_BACKEND_SERVICE` | 跑 bench / cat 的 compose 服务名 | `backend` |
+| `AGENERP_OOB_DB_SERVICE` | 跑 DDL 的 compose 服务名 | `db` |
+| `AGENERP_OOB_COMPOSE_FILE` | compose 文件路径 | 仓库根的 `docker-compose.yml` |
 
 ---
 
