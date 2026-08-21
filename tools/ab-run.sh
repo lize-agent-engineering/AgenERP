@@ -42,8 +42,22 @@ cd "$WT"
 python3 "$ROOT/tools/gates/pass_usage.py" snapshot "$OUT/snap.txt" 2>/dev/null
 
 START=$(date +%s)
-node tools/mission-driver/src/main.js "ab-$ARM" "$@" > "$OUT/run.log" 2>&1
-CODE=$?
+# 脱离会话跑 —— 第一次尝试就是被会话退出带走的（额度耗尽时前台会话一退，子进程全没）。
+# 与 tools/run-loop.sh 同一手法：Python 的 start_new_session=True。
+python3 - "$WT" "$OUT/run.log" "ab-$ARM" "$@" <<'PY'
+import os, subprocess, sys
+wt, logfile, mission, *extra = sys.argv[1:]
+log = open(logfile, "ab", buffering=0)
+p = subprocess.Popen(["node", "tools/mission-driver/src/main.js", mission, *extra],
+                     cwd=wt, stdout=log, stderr=log, stdin=subprocess.DEVNULL,
+                     start_new_session=True)
+open(os.path.join(os.path.dirname(logfile), "arm.pid"), "w").write(str(p.pid))
+print(f"[ab] 已脱离会话启动（pid {p.pid}）")
+PY
+ARM_PID=$(cat "$OUT/arm.pid")
+# 等它自己跑完（本脚本可被中断，臂进程不受影响）
+while kill -0 "$ARM_PID" 2>/dev/null; do sleep 20; done
+CODE=0
 END=$(date +%s)
 
 cd "$ROOT"
