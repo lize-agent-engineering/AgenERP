@@ -1,6 +1,6 @@
 # 2026-08-21-2220-2 首页「AI 能力未配置」降级文案，以及让 CI 真跑 L2
 
-> Plan Status: active
+> Plan Status: completed
 > Mission: p0-foundation
 > Work Item: 8. 零依赖启动进 CI（L2 慢门禁）—— **第二个（也是最后一个）plan：首页降级文案 + CI 真跑 L2**
 > Last Reviewed: 2026-08-21
@@ -428,7 +428,7 @@ Exit Criteria:
 
 ### Phase 4 — 让 CI 真跑 L2
 
-Status: planned
+Status: completed
 Targets: `.github/workflows/gates.yml`（**只增一个 job；现有 6 个 job 与 `on:` / `permissions:` 共享块都不动**）·
   `docs/backlog/p0-foundation-roadmap.md` · `docs/masterplan/STATE.md`（**只追加**）
   （`tools/gates/expected-red.txt` **不在 Targets 内**：推荐的候选 (i) 对它零改动；
@@ -438,7 +438,7 @@ Skill: `none`
 - Item Types: `Decision | Add | Proof | Fix`（6 项无单一主导类型，**逐项标**）
 - Prereqs: Phase 3 完成（首页门禁不绿，这个 job 注定红，加了也只是把红搬进 CI）
 
-- [ ] `Decision` **定 live 判定环境下的名单口径**。这是本阶段真正的难点，也是原草案想回避的那件事。
+- [x] `Decision` **定 live 判定环境下的名单口径**。这是本阶段真正的难点，也是原草案想回避的那件事。
       事实：默认环境下 `check_expected_red.py` **exit 0**（预期红 7 / 绿 12）；而在 live 环境下，
       名单里有几条是绿的，判定器会报「名单内的门禁却绿了」并 exit 1。
       三个候选：
@@ -456,7 +456,7 @@ Skill: `none`
       **残余风险**：选 (i) 时，L2 那几条门禁在 CI 上由 pytest 退出码直接判，
       **不受棘轮保护**——有人把它们改绿而不改实现，棘轮不会响。
       这条必须写进 job 的注释与 §14.3，并登记进 `Deferred But Adjudicated`。
-- [ ] `Add` 往 `.github/workflows/gates.yml` 加一个 job（名字形如 `gates-l2`）：
+- [x] `Add` 往 `.github/workflows/gates.yml` 加一个 job（名字形如 `gates-l2`）：
       `runs-on: ubuntu-latest`，起栈 → 跑 `tests/gates/test_zero_dep_boot.py` → 无条件拆栈。
       **硬约束（草案评审第二轮把这里的漏洞指出来了，原文只护住了「6 个 job 不动」，
       而 `on:` 是整份工作流共享的、不属于任何 job，narrow 掉它照样能通过那条自查）**：
@@ -467,19 +467,19 @@ Skill: `none`
         **拿到「CI 上的真实退出码」不需要动任何触发范围**；
       · 若执行中判断必须加 `schedule`、加 job 级 `if:`、或把 L2 拆到独立 workflow 文件，
         **停下写 needs-human，不自行决定**——缩小触发范围是红线 2 逐字点名的禁止项。
-- [ ] `Proof` **在 CI 上真跑一次并拿到结果**：push 后用 `gh run list` / `gh run view` 取回该 job 的
+- [x] `Proof` **在 CI 上真跑一次并拿到结果**：push 后用 `gh run list` / `gh run view` 取回该 job 的
       结论与日志片段，命令原文与退出码照抄。**没有 CI 上的真实退出码，本阶段不算完成**——
       本仓所有 live 证据至今都带着「只在本机做过」的限定，这个 job 存在的全部意义就是消掉它。
-- [ ] `Proof` 若 runner 上的 compose 2.38.2 与本机 v5.0.2 表现不同（plan `1022-1` 登记的 watch-only residual），
+- [x] `Proof` 若 runner 上的 compose 2.38.2 与本机 v5.0.2 表现不同（plan `1022-1` 登记的 watch-only residual），
       **照实记录差异并停下来**，不为了让 job 变绿而改 compose 语法——那会动到工作项 3 已关闭的交付面。
-- [ ] `Fix` **先改掉 roadmap 工作项 8 对照行里的那句假话**：① 声称 `compose_stack` 仍抛
+- [x] `Fix` **先改掉 roadmap 工作项 8 对照行里的那句假话**：① 声称 `compose_stack` 仍抛
       `NotImplementedError`、仍在等人处置——fixture 已由人在 `ede5440` 实现，阻塞已在 `3fed439` 关闭。
       这是确认的 owner-doc 漂移，非降级项（Minimum Rule 14），不许混在下一项的「更新对照行」里含糊带过。
-- [ ] `Add` 更新 `docs/backlog/p0-foundation-roadmap.md` 工作项 8 的对照行与状态：
+- [x] `Add` 更新 `docs/backlog/p0-foundation-roadmap.md` 工作项 8 的对照行与状态：
       两半都已落地时，**是否置 `done` 取决于「从预期红名单划掉」这个条件在选定方案下是否可满足**。
       选 (i) 时它不可满足（名单不动），因此**保持 `planned`**，并把这个理由逐字写进对照行，
       与工作项 4/5/6/7 同一情形。
-- [ ] `Add` 往 `docs/masterplan/STATE.md` **§2（会话日志，只追加）**写证据行；
+- [x] `Add` 往 `docs/masterplan/STATE.md` **§2（会话日志，只追加）**写证据行；
       **只有当 Phase 4 的 `Decision` 暴露出需要人拍板的事项时**才往 §3 追加一条 `[open]`
       （例如选 (ii) 需要改判定器）。§3 此刻一条 `[open]` 都没有，不无故注水。
       按 `1922-1` / `1922-3` 的先例**照实引出授权链矛盾**：`01-EXECUTION-MODEL.md` §1 写角色 B
@@ -488,14 +488,63 @@ Skill: `none`
 
 Exit Criteria:
 
-- [ ] `gates.yml` 新增 job 落地；**`git diff .github/workflows/` 的全部改动仅为新增一个 job** ——
+- [x] `gates.yml` 新增 job 落地；**`git diff .github/workflows/` 的全部改动仅为新增一个 job** ——
       现有 6 个 job 一行未改，且 `on:` / `permissions:` 两个共享块**一行未改**；新 job 无 `continue-on-error`、无 job 级 `if:`
-- [ ] CI 上该 job 的**真实结论与退出码**已记录（不是「本机模拟过」）
-- [ ] 名单口径的 `Decision` 已记选择、备选、残余风险，且残余风险已登记进 `Deferred But Adjudicated`
-- [ ] roadmap 工作项 8 对照行里关于 `compose_stack` 的**假陈述已改准**（与 `project-context.md:48` 同一类）
-- [ ] roadmap 工作项 8 对照行与状态更新，理由逐字写清
-- [ ] `STATE.md` §2 追加证据行；§3 仅在确有待人拍板事项时追加
-- [ ] `docs/logs/` 更新
+- [x] CI 上该 job 的**真实结论与退出码**已记录（不是「本机模拟过」）
+- [x] 名单口径的 `Decision` 已记选择、备选、残余风险，且残余风险已登记进 `Deferred But Adjudicated`
+- [x] roadmap 工作项 8 对照行里关于 `compose_stack` 的**假陈述已改准**（与 `project-context.md:48` 同一类）
+- [x] roadmap 工作项 8 对照行与状态更新，理由逐字写清
+- [x] `STATE.md` §2 追加证据行；§3 仅在确有待人拍板事项时追加
+- [x] `docs/logs/` 更新
+
+**Phase 4 执行留痕（2026-08-21）**
+
+- `Decision` **名单口径取候选 (i)：CI 的 L2 job 不跑判定器，直接对 `pytest` 退出码判定。**
+  依据是两个判定环境不同：默认环境无 `AGENERP_LIVE`，L2 恒红，名单如实登记着它们；
+  而 L2 job 在 live 判定环境下跑，那几条是绿的，判定器会报「名单内的门禁却绿了」并退 1，
+  两个 job 会互相拆台。候选 (ii)（给判定器加「live 名单」）**未实施**——按 plan 的规定它不是可选分支，
+  但本轮**也不需要**它：(i) 走得通，`gates-l1` 与 `gates-l2` 各自在自己的判定环境里都绿。
+  (iii) 起草时即排除。**残余风险**：这几条门禁在 CI 上不受棘轮保护；代偿控制是 `gates-untouched` job
+  （那几条断言就在 `tests/gates/**` 内，改它们要人工批准 trailer）。
+  该风险已逐字写进 job 注释与 `system-baseline.md` §14.3，并已在 `Deferred But Adjudicated` 登记。
+- `Add` `.github/workflows/gates.yml` **只新增一个 job** `gates-l2`：
+  checkout → setup-python → `pip install pytest` → 打印 runner 的 docker/compose 版本 →
+  `docker compose -f docker-compose.yml up -d --wait --wait-timeout 900` →
+  `AGENERP_LIVE=1 AGENERP_ADMIN_PASSWORD=admin python3 -m pytest tests/gates/test_zero_dep_boot.py -q` →
+  引导服务日志（`if: always()`）→ `down -v`（`if: always()`，无条件拆栈）。
+  **红线 2 自查**：`git diff --stat .github/workflows/` → `1 file changed, 50 insertions(+)`，
+  **零删除、零修改行**——`on:` / `permissions:` 两个共享块与现有 6 个 job **一行未改**；
+  新 job 无 `continue-on-error`（全文 `continue-on-error` 计数 **0**）、无 job 级 `if:`
+  （两处 `if: always()` 都在 step 上，且都是「无论如何都要拆栈/看日志」，是加严不是放松）。
+- `Proof` **CI 上真跑了一次，拿到真实结论**。sha **`6ac1005`**（push 到 `main`，触发既有 `on: push`，
+  一个 trigger 都没加）· run id **`32499273158`**：
+  · `gh run view 32499273158 --json conclusion` → **`success`**；七个 job **全绿**
+    （原有 6 个 + 新增的 `L2 慢门禁（零依赖启动）`）。
+  · L2 job 时间轴：`2026-08-21T15:44:57Z → 15:48:34Z`（**3 分 37 秒**，含拉镜像）。
+  · 起栈：`up -d --wait --wait-timeout 900` 从 `15:45:09Z` 到 `15:48:05Z`（**约 176 秒**）成功，
+    日志逐条列出 `db` / `redis-queue` / `redis-cache` / `backend` / `websocket` / `frontend` / 三个 worker `Healthy`，
+    `configurator` / `create-site` / **`bootstrap-homepage`** 三个 `Exited`。
+  · 门禁：**`3 passed in 2.68s`**，step 成功（job `success` ⇒ 退出码 0）。
+  · 引导服务日志逐字：**「引导：首页横幅已写入（AI 能力状态）」**——
+    在一台**从来没有过这个站点**的 runner 上，文案是引导步骤自己建出来的，不是谁手点的。
+  · 拆栈：`down -v` 把五个卷与网络全部 `Removed`，runner 上没留东西。
+  **「本仓所有 live 证据都只在本机做过」这条限定，到此消掉。**
+- `Proof` **compose 版本差：实测无行为差异**。runner 是 **Docker 28.0.4 + Compose v2.38.2**，
+  本机是 **Docker 29.2.1 + Compose v5.0.2**。同一份 `docker-compose.yml` 在两边表现一致：
+  冷起都退 0、同一组服务 healthy、一次性容器都 `Exited (0)`、同三条门禁都过。
+  **compose 语法一个字节都没为 CI 改过**（工作项 3 的交付面未被触及）。
+  plan `1022-1` 登记的那条 watch-only residual **至此第一次拿到了两侧的对照数据**，
+  但仍保持 watch-only：本次只覆盖了 `test_zero_dep_boot.py` 三条，不是全部 L2。
+- `Fix` roadmap 工作项 8 对照行里的假话已改准：原文「① `compose_stack` fixture 在
+  `tests/gates/conftest.py`（红线 1，等人处置，见 STATE §3）」——实测
+  `grep -c NotImplementedError tests/gates/conftest.py` → **0**，fixture 已由人在 `ede5440` 实现，
+  阻塞已在 `3fed439` 关闭，STATE §3 此刻一条 `[open]` 都没有。该行改为指向新增的「8 现状」行。
+- `Add` roadmap 新增「8 现状」行：两半均已落地（附冷起与 CI 的证据），
+  **状态保持 `planned` 不置 `done`**，理由逐字写清——置 `done` 的条件是「从 `expected-red.txt` 划掉」，
+  而选定方案 (i) 对名单零改动，与工作项 4/5/6/7 同一情形。`## Work Item Status` 块第 8 项不动。
+- `Add` `STATE.md` **§2 追加一条证据行**（只追加，不改写任何已有行）。
+  **§3 不追加**：本阶段的 `Decision` 落在 (i)，全程由 loop 可解，没有任何要人拍板的事项；
+  §3 此刻一条 `[open]` 都没有，塞证据行进去是给队列注水。授权链矛盾按 `1922-1` / `1922-3` 的先例照实引出。
 
 ## Draft Review Record
 
