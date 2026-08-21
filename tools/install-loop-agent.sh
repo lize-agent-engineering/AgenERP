@@ -50,6 +50,8 @@ case "${1:-status}" in
     <key>AGENERP_MISSION</key><string>$MISSION</string>
     <key>AGENERP_TODO</key><string>$TODO</string>
     <key>LOOPX_BIN</key><string>$LOOPX_DEFAULT</string>
+    <!-- 日预算：写进 plist 才能在重启后存活。改它要在 STATE 留证据行说明为什么。 -->
+    <key>AGENERP_DAILY_TOKEN_BUDGET</key><string>${AGENERP_DAILY_TOKEN_BUDGET:-200000000}</string>
   </dict>
 </dict>
 </plist>
