@@ -1,6 +1,6 @@
 # 2026-08-21-1022-2 工具契约层 v0 · 声明面（契约格式 + 10 个只读工具的声明）
 
-> Plan Status: active
+> Plan Status: completed
 > Mission: p0-foundation
 > Work Item: 4. 工具契约层 v0（先包 10 个只读工具）—— **只做声明面（A 半），不解锁 L2（B 半）**
 > Last Reviewed: 2026-08-21
@@ -428,15 +428,15 @@ Exit Criteria:
 
 ## Closure Gates
 
-- [ ] in-scope behavior is complete
-- [ ] relevant docs are aligned
-- [ ] verification has run：`python3 -m pytest tests/contracts -q`（exit 0）/ `python3 -m pytest tests/unit -q`（exit 0）/ `python3 tools/gates/check_expected_red.py`（exit 0）/ `ruff check agenerp tests/unit tests/contracts`（exit 0）
-- [ ] scoped verification is not conflated with full verification —— 本仓无全量套件（无 build、无 typecheck），**L2 门禁仍全红**，且本 plan 的主判据 `pytest tests/contracts` **不在 `GATE_VERIFY` 的复跑范围内**（见 `## 判据缺口登记` 第 1 条）；上列即当前可跑的全部
-- [ ] no in-scope item downgraded to deferred/follow-up
-- [ ] independent draft review completed and recorded
-- [ ] text consistency verified: status, phases, gates, and log all agree
-- [ ] closure audit was independent
-- [ ] closure evidence exists in files
+- [x] in-scope behavior is complete
+- [x] relevant docs are aligned
+- [x] verification has run：`python3 -m pytest tests/contracts -q`（exit 0）/ `python3 -m pytest tests/unit -q`（exit 0）/ `python3 tools/gates/check_expected_red.py`（exit 0）/ `ruff check agenerp tests/unit tests/contracts`（exit 0）
+- [x] scoped verification is not conflated with full verification —— 本仓无全量套件（无 build、无 typecheck），**L2 门禁仍全红**，且本 plan 的主判据 `pytest tests/contracts` **不在 `GATE_VERIFY` 的复跑范围内**（见 `## 判据缺口登记` 第 1 条）；上列即当前可跑的全部
+- [x] no in-scope item downgraded to deferred/follow-up
+- [x] independent draft review completed and recorded
+- [x] text consistency verified: status, phases, gates, and log all agree
+- [x] closure audit was independent
+- [x] closure evidence exists in files
 
 ## Deferred But Adjudicated
 
@@ -497,13 +497,70 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: <未关闭>
+Status Note: A 半（声明面）已完整落盘并被独立复核；红线零触碰；四条验证命令逐条实跑退 0。
+工作项 4 **仍是 `planned`（不是 `done`）**——它绑定的判据是 B 半，B 半被红线 1 挡着，已占 `STATE.md` §3 一行 `[open]`，
+该行**不阻塞本 plan 关闭**（它挡的是 B 半与工作项 5/6/8）。故本 plan 可关闭。
 
 Closure Audit Evidence:
 
-- Auditor / Agent: <独立关闭审计子代理，待填>
-- Evidence: <待填：命令原文 + 退出码 + commit sha>
+- Auditor / Agent: 独立关闭审计会话（`MISSION_DRIVER:2026-08-21-150632-mission-driver` 的 `CLOSURE_AUDIT` 步），
+  与 `EXECUTE` 会话分离；**不采信 plan 内既有 `[x]`**，逐条复跑并读活代码复核。
+- 审计基线 sha：`8721b0d`。本 plan 的实现落在 `c3bd794`（代码 + 文档）与 `8721b0d`（日志 + 三阶段勾选）；
+  `agenerp/contracts.py` 在开工前由 `091a150` 落盘（在途产物，`EXECUTE` 已记明判为续做而非停手）。
+- 逐条复跑（命令原文 + 退出码，退出码单独取 `$?`）：
+  - `python3 -m pytest tests/contracts -q` → **exit 0**（151 passed）—— `02-WBS.md` P0.2 的验收命令原文
+  - `python3 -m pytest tests/unit -q` → **exit 0**（50 passed）
+  - `ruff check agenerp tests/unit tests/contracts` → **exit 0**（All checks passed!）
+  - `PATH="/usr/local/bin:$PATH" python3 tools/gates/check_expected_red.py` → **exit 0**
+    （门禁 13 项：预期红 7，绿 6，跳过 0 · ✅ 与预期红名单完全一致）
+  - ⚠️ **不带 `/usr/local/bin` 的 `PATH` 下同一条命令退 1**：`tests/gates/test_zero_dep_boot.py::test_compose_config_valid_with_empty_env`
+    报 `FileNotFoundError: [Errno 2] No such file or directory: 'docker'`，被判为「名单外的门禁红了」。
+    审计按裁判规则 3 原样复跑复现，查实 `/usr/local/bin/docker` 存在 → **判为环境 `PATH` 差异，不是本 plan 引入的回归**
+    （失败点在 compose 门禁，与本 plan 的声明面无任何调用关系；`EXECUTE` 日志已如实记过同一现象）。
+    **没有为迁就它改动任何 `tests/gates/**` 文件。**
+  - `! python3 -m pytest tests -q --tb=no 2>&1 | grep -q 'import file mismatch'` → **exit 0**（无跨目录同名冲突）
+  - 零依赖判据（`import agenerp.contracts` / `agenerp.tools_readonly` 前后的顶层模块集合求差，
+    差集中不属于 `sys.stdlib_module_names` 且不是 `agenerp` 的）→ **空** → **exit 0**
+- 红线自查（区间 diff；基线取本 plan 自身两个提交的父 `d35ec2b`，避开中间那次人工迁库提交对 `STATE.md`/`02-WBS.md` 的改写）：
+  - `git diff --name-only d35ec2b..HEAD -- tests/gates/ .github/workflows/ missions/ tools/gates/ docs/masterplan/DECISIONS.md` → **输出为空**
+  - `git diff --numstat d35ec2b..HEAD -- docs/masterplan/` → 仅 `5	0  docs/masterplan/STATE.md`（**只增不删**，删除行实测计数 0）；
+    新增部分含且仅含**一行** `[open]`（B 半红线障碍），`docs/masterplan/` 下无其他文件被本 plan 改动
+  - `git diff --numstat 091a150..HEAD -- docs/architecture/module-boundaries.md` → `58	0`（**只追加**）
+- 交付物读活代码复核（不看 `[x]`，看仓里的东西）：
+  - `agenerp/contracts.py`（320 行）：`ToolContract` 九段字段齐全（`tool` / `target` / `risk` / `requires_permission` /
+    `preconditions` / `postconditions` / `returns` / `on_violation` / `approval`）；`Returns` 含 §7.3.1 三项
+    （`trim_rules` / `max_rows` / `must_keep`）加 §7.5 声明位 `user_writable_free_text`；
+    校验器 `validate` / `check` / `validate_registry` / `check_registry` 各有实体实现且错误消息带工具名与段名；
+    求值面 `Condition.evaluate(ReadOnlyContext)` 返回「满足 / 不满足 + 原因」，**全文无网络与站点调用**。
+  - `agenerp/tools_readonly.py`（392 行）：`READONLY_CONTRACTS` 实测 **10 条**，名字逐字为
+    `query.read` / `schema.search` / `snapshot.read` / `lineage.trace` / `rule.lookup` / `system.overview` /
+    `permission.scope` / `doc.get` / `doc.links` / `meta.fields`，与 Phase 2 的选法一致。
+  - 实测硬约束**确在声明里**（不是注释）：`doc.links.returns.must_keep` 含 `from_is_submittable` 且有同名后置断言；
+    `doc.get.returns.user_writable_free_text is True`；`doc.get.returns.trim_rules` 剔除 `_comments` / `_liked_by`；
+    `permission.scope.returns.trim_rules` 写明按 app 过滤（83/61 → 34/12），并有后置断言要求
+    `permission_probe_method == "has_permission"`（禁 DocPerm 反推）；`lineage.trace` 三条后置断言覆盖
+    主表级 / 子表级 / 回溯父单据；证据充分性门禁 L1/L2 挂在作答类工具的 `preconditions`。
+  - 反空壳：无空函数体、无占位 `return None`、无吞异常（唯一的 `except TypeError` 在 `_size()` 内，
+    是对无 `len()` 对象的有意分支）。`tests/contracts/` 四个文件 **151 条断言**真实消费上述声明面；
+    `EXECUTE` 记录的 12 种变异实测（改真文件跑、还原后 `diff -q` 字节一致）为「判据有牙齿」提供了额外证据。
+  - 文档同步：`docs/architecture/module-boundaries.md` §7.6（58 增 0 删，含落点表、清单选法与排除项、
+    硬约束对照表、未表达项、字段名漂移裁定、判据缺口）；`docs/context/project-context.md:53` 新增 Contract tests 行
+    并注明它不在 `commands.test` 内；`docs/logs/2026/08-21.md` 首条含命令原文 + 退出码 + sha，且写明
+    「只交付 A 半、工作项 4 停在 `planned`」；`docs/backlog/p0-foundation-roadmap.md:23` 实测为 `planned`（未被置 `done`）。
+- 文本一致性实测：`Plan Status: completed` · Phase 1/2/3 均 `Status: completed` 且执行项与 Exit Criteria 全 `[x]` ·
+  `## Closure Gates` 九框全 `[x]` · 本节证据 · `docs/logs/2026/08-21.md` 条目 —— 五处相符。
+  `node tools/mission-driver/src/plan-check.mjs docs/plans/p0-foundation/2026-08-21-1022-2-tool-contract-layer-v0.md --strict` → **exit 0**（`totalUnchecked: 0`）。
+- 独立草案评审：`## Draft Review Record` 记录 5 轮迭代（独立子代理 `a91304a379609c5a3`），第 5 轮 `accept`。
+- 降级检查：`## Deferred But Adjudicated` 五条**无一是本 plan 范围内的活缺陷或未处置的契约漂移**——
+  B 半、§7.4 熔断与 §7.5 包裹动作、写契约均由 `## Non-Goals` 明确排除且各带重开事件；
+  `from_is_submittable` 漂移已按 `Fix` 就地处置（实现取架构文档字段名并写进 §7.6），
+  Deferred 里留的只是「接活站点时以 Frappe 真实字段名复核」这一 watch-only 残余。
+- **验证范围限定，如实声明**：本仓无全量套件（无 build、无 typecheck）；L2 门禁仍全红（预期内，`expected-red.txt` 一行未动）；
+  本 plan 主判据 `pytest tests/contracts -q` **不在 `missions/p0-foundation.json` 的 `commands.test` 内**，
+  `GATE_VERIFY` 复跑不到它——该缺口已在四处披露，代偿控制正是本次独立关闭审计的逐条复跑。上列即当前可跑的全部。
 
 Follow-up:
 
-- <待填；确认缺陷不得记在这里>
+- **人的动作（非本 plan 缺陷）**：`STATE.md` §3 那行 `[open]` 等一个红线决定——B 半的三个 fixture 与 hook 级绕道禁/授权，四个处置项 (a)/(b)/(c)/(d)。
+- **人的动作**：若认为 A 半也必须被判定面覆盖，把 `python3 -m pytest tests/contracts -q` 接进 `missions/p0-foundation.json` 的 `commands.test`（`missions/**` 是角色 B 禁区，loop 无权动）。
+- **交给 B 半 successor**：自带 `planned → done` 的 roadmap 写入落点（`closure-audit.md` 里 `roadmap` 出现 0 次），详见 `## Deferred But Adjudicated` 首条。
