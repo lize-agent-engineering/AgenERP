@@ -1,6 +1,6 @@
 # 2026-08-21-1022-1 零依赖启动（compose 语法，L1 部分）
 
-> Plan Status: active
+> Plan Status: completed
 > Mission: p0-foundation
 > Work Item: 3. 零依赖启动（compose 语法 + 首页 AI 未配置降级）
 > Last Reviewed: 2026-08-21
@@ -399,16 +399,16 @@ Exit Criteria:
 
 ## Closure Gates
 
-- [ ] in-scope behavior is complete
-- [ ] relevant docs are aligned
-- [ ] verification has run：`python3 tools/gates/check_expected_red.py`（exit 0）/ `python3 -m pytest tests/unit -q`（exit 0）/ `python3 -m pytest tests/gates/test_zero_dep_boot.py::test_compose_config_valid_with_empty_env -q`（exit 0）/ `ruff check agenerp tests/unit`（exit 0）/ `docker compose up -d`（如实记录）
-- [ ] scoped verification is not conflated with full verification —— 本仓无全量套件（无 build、无 typecheck，L2 门禁未解锁），上列即当前可跑的全部；「栈起得来且 healthy」**未验证**，归工作项 8
-- [ ] no in-scope item downgraded to deferred/follow-up
-- [ ] independent draft review completed and recorded
-- [ ] text consistency verified: status, phases, gates, and log all agree
-- [ ] closure audit was independent
-- [ ] closure evidence exists in files
-- [ ] 独立关闭审计通过**之后**，`docs/backlog/p0-foundation-roadmap.md` 的工作项 3 由 `planned` 置为 `done`
+- [x] in-scope behavior is complete
+- [x] relevant docs are aligned
+- [x] verification has run：`python3 tools/gates/check_expected_red.py`（exit 0）/ `python3 -m pytest tests/unit -q`（exit 0）/ `python3 -m pytest tests/gates/test_zero_dep_boot.py::test_compose_config_valid_with_empty_env -q`（exit 0）/ `ruff check agenerp tests/unit`（exit 0）/ `docker compose up -d`（如实记录）
+- [x] scoped verification is not conflated with full verification —— 本仓无全量套件（无 build、无 typecheck，L2 门禁未解锁），上列即当前可跑的全部；「栈起得来且 healthy」**未验证**，归工作项 8
+- [x] no in-scope item downgraded to deferred/follow-up
+- [x] independent draft review completed and recorded
+- [x] text consistency verified: status, phases, gates, and log all agree
+- [x] closure audit was independent
+- [x] closure evidence exists in files
+- [x] 独立关闭审计通过**之后**，`docs/backlog/p0-foundation-roadmap.md` 的工作项 3 由 `planned` 置为 `done`
       （不在 Phase 3 做，理由见 Phase 3 对应项记录的产物冲突）
 
 ## Deferred But Adjudicated
@@ -453,13 +453,65 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: <未关闭>
+Status Note: 独立关闭审计（CLOSURE_AUDIT 步，独立子会话）**不采信 plan 里的 `[x]`**，逐条读活代码与活文档，
+并把每条验证命令原样复跑、退出码单独取 `$?`（不经管道）。全部与 plan 声称一致，故关闭。
+审计基线 **HEAD `c98f938`**（实现提交 `ba7bdae`，文档提交 `c98f938`；开工 sha `f4fe0ce`）。
 
 Closure Audit Evidence:
 
-- Auditor / Agent: <独立关闭审计子代理，待填>
-- Evidence: <待填：命令原文 + 退出码 + commit sha>
+- Auditor / Agent: 独立关闭审计子会话（`MISSION_DRIVER:2026-08-21-113253-mission-driver`，与起草/执行会话不同），非自审。
+- 基线 sha: `c98f938`（`git rev-parse --short HEAD`）
+- 原样复跑（命令原文 + 退出码）：
+
+  | 命令 | 退出码 | 关键输出 |
+  | --- | --- | --- |
+  | `python3 tools/gates/check_expected_red.py` | **0** | `门禁 13 项：预期红 7，绿 6，跳过 0` / `✅ 与预期红名单完全一致` |
+  | `python3 -m pytest tests/unit -q` | **0** | `50 passed` |
+  | `python3 -m pytest tests/gates/test_zero_dep_boot.py::test_compose_config_valid_with_empty_env -q` | **0** | `1 passed` |
+  | `ruff check agenerp tests/unit` | **0** | `All checks passed!` |
+  | `env -i PATH="$PATH" HOME="$HOME" docker compose -f docker-compose.yml config -q` | **0** | 无输出 |
+  | `! grep -q ':?' docker-compose.yml` | **0** | 无输出 |
+  | `! grep -q 'EXPECTED_RED' docs/backlog/p0-foundation-roadmap.md` | **0** | 无输出（三处漂移确已修到 `tools/gates/expected-red.txt`） |
+  | `python3 -m pytest tests/gates/test_zero_dep_boot.py -q --tb=line` | 非 0（**预期**） | `1 passed, 2 errors`；两条 error 仍逐字为 `NotImplementedError: compose_stack 尚未实现`，红因未被本 plan 改变 |
+
+- 红线自查（区间 diff，基线 `f4fe0ce..HEAD`，与 Phase 3 判据同形）：
+  - `git diff --name-only f4fe0ce..HEAD -- tests/gates/ .github/workflows/ missions/ docs/masterplan/DECISIONS.md tools/gates/check_expected_red.py tools/gates/gate-verify.mjs | wc -l` → **0**
+  - `git diff --name-only f4fe0ce..HEAD -- docs/masterplan/ | wc -l` → **0**（本轮连 `STATE.md` 都未动）
+  - `git diff --numstat f4fe0ce..HEAD -- docs/architecture/system-baseline.md` → **`28  0`**（纯追加，§14 无一行被改写）
+  - `git diff --stat f4fe0ce..HEAD` 的全部落点：`.env.example` / `docker-compose.yml` / `docs/architecture/system-baseline.md` /
+    `docs/context/project-context.md` / `docs/logs/2026/08-21.md` / 本 plan / `tests/unit/test_compose_zero_dep.py` /
+    `tools/gates/expected-red.txt`(-1 行) —— 无一处越红线。
+- 反空壳复核（不只看签名，看运行时是否真被调用）：
+  - `docker-compose.yml`（234 行）是 frappe/erpnext 真实多服务栈（`configurator` / `db` / `redis-cache` / `redis-queue` /
+    `backend` / `frontend` / `websocket` / queue worker / scheduler / 建站 init），**不是**为让 `config` 退 0 而写的单服务占位——
+    与 Phase 1 `Decision` 否决备选 (b) 的记录一致；镜像 tag 全部写死（`frappe/erpnext:v15.119.3` / `mariadb:10.6` / `redis:6.2-alpine`），无 `latest`。
+    它被门禁 `test_compose_config_valid_with_empty_env` 在每次 `check_expected_red.py` 里真实执行，不是死文件。
+  - `tests/unit/test_compose_zero_dep.py`（205 行）**逐条断言、无空 body、无 `pass` 占位**：文件存在性（用
+    `Path(__file__).resolve().parents[2]` 解析仓根，不跟 cwd 走）、禁 `${VAR:?}`、每个插值必须带 `:-`、
+    AI 三变量默认必须为空串、发布端口宿主侧字面 `127.0.0.1`、只许短语法、无顶层 `version:`、无 `:latest`。
+    `$$` 转义已在 `_text_without_escapes()` 里先行剔除（评审 iteration 中实测要求），断言不会对着正确的 compose 报红。
+    它随 `python3 -m pytest tests/unit -q` 在 `GATE_VERIFY` 每轮复跑，是活判据。
+  - **判据非同义反复（审计当场实跑的反证，不是推理）**：把 `docker-compose.yml` `:222` 的宿主侧临时改成 `0.0.0.0:` 后
+    `python3 -m pytest tests/unit/test_compose_zero_dep.py -q --tb=line` → **`1 failed, 9 passed`**，失败原文逐字为
+    `test_compose_zero_dep.py:156: AssertionError: 端口条目 '0.0.0.0:${AGENERP_HTTP_PORT:-8080}:8080' 的宿主侧不是字面的 127.0.0.1。`
+    随即原样还原（`git diff --stat docker-compose.yml` → 空，`python3 -m pytest tests/unit -q` → exit 0）。
+    → 判据对实现有真实约束，不是「按构造即成立」的那种假判据。
+- 五点一致性复核：`Plan Status: completed` · Phase 1/2/3 `Status: completed` 且执行项与 Exit Criteria 全 `[x]` ·
+  `## Closure Gates` 十框全 `[x]` · 本节证据落盘 · `docs/logs/2026/08-21.md` 有对应条目（含开工 sha `f4fe0ce`、
+  各命令原文与退出码、`docker compose up -d` 的如实记录与「必须经 PR 落地」条款）——五处一致，无 `completed` 配 `draft` 的错配。
+- Deferred 诚实性复核：四条 `Deferred But Adjudicated` 全部有归属与重开事件，**无一条是在藏本 plan 范围内的活缺陷**——
+  工作项 8 的两条门禁由 roadmap §对照表明确划走、`missions/**` 属角色 B 禁区、§14 规则 ③ 在本仓当前**无对象**（无 verify 脚本、无启动路径前置检查）、
+  compose 版本差已如实记为 `watch-only residual` 并配齐失败特征与恢复路径。规则 ① ② 与「附带风险」的回环绑定都已落成可执行判据，未降级。
+- 验证范围声明：**verification scope limited**——本仓无全量套件（无 build、无 typecheck，L2 门禁未解锁），上表即当前可跑的全部。
+  「栈起得来且全部 healthy」**未验证**，按 roadmap §对照表归工作项 8；本机 `docker compose up -d` 的尝试与退出码已如实写入 log，是证据不是判据。
+- 审计后落地动作：`docs/backlog/p0-foundation-roadmap.md` `## Work Item Status` 第 3 项由 `planned` 置 `done`
+  （依 roadmap `:9`「由引擎在 closure 审计通过后回写」与 `Status values` 表对 `done` 的定义；`execute.md:11` 的上游模板默认按 `AGENTS.md` 优先级次序不采纳，冲突原文已记在 Phase 3 与 log）。
 
 Follow-up:
 
-- <待填；确认缺陷不得记在这里>
+- **本批必须经 PR 落地，不得直推 `main`**：`git push origin main:refs/heads/<分支名>` 再开 PR，让 `gates-l1` 在真正的 compose 2.38.2 runner 上先跑一遍。
+  开 PR 属对外动作，不由 loop 执行。实跑结果**无论红绿都要回写进 `docs/logs/2026/08-21.md`**。
+  （`git fetch origin` 后 `git log --oneline origin/main..HEAD` 实测只有本批提交，红了就是本批引入的。）
+- `pyproject.toml:21` 写「L1 快门禁跑 `-m 'not live'`」而本条门禁所在文件带 `live` marker——今日不咬人（判定器不传 `-m`），
+  已在 `## Current Baseline` 登记，触发条件：有人给 `check_expected_red.py` 加上 `-m` 过滤时。
+- 工作项 1 至今仍是 `todo` 而其门禁早已转绿并划掉（plan `…-2341-2` 停在 `deferred` 未走关闭审计的后果）——**不属本 plan 范围**，留给人处置。
