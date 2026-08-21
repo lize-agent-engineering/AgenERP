@@ -1,6 +1,6 @@
 # 2026-08-22-0027-1 判定器的 live 判定模式（`AGENERP_LIVE=1` 下全绿即通过）
 
-> Plan Status: active
+> Plan Status: completed
 > Mission: p0-foundation
 > Work Item: 9. L2 门禁的判定与 CI 覆盖（**本 plan Phase 1 新增该工作项**，理由见其 `Decision`）—— 第一个 plan：判定设施半
 > Last Reviewed: 2026-08-22
@@ -403,7 +403,7 @@ Exit Criteria:
       `check_expected_red.py`，而 successor 里有 10 处命中，其中三处是与守卫无关的普通验证步骤
       —— 守卫项被删掉这条 grep 照样命中，抓不到它该抓的那件事）：
       `grep -n 'verdict-tool-untouched' docs/plans/p0-foundation/2026-08-22-0027-2-*.md`
-      必须至少有一处命中落在形如 `- [x] \`Add\`` 的**执行项行**上，
+      必须至少有一处命中落在形如 `- [ ] \`Add\`` 的**执行项行**上，
       且该执行项写明了「不覆盖 `expected-red.txt`」的边界。
       **起草时已核**：successor 的 Phase 2 第 2 项是一个新增守卫 job（形如 `verdict-tool-untouched`），
       硬边界逐字写着不得含 `expected-red.txt`。**若 successor 在评审中被改掉了这一项，本项不成立**，
@@ -1132,23 +1132,23 @@ Exit Criteria:
 
 ## Closure Gates
 
-- [ ] in-scope behavior is complete
-- [ ] relevant docs are aligned（`system-baseline.md` 新 `## 14.4` / `ai-autonomy-policy.md` Protected Areas /
+- [x] in-scope behavior is complete
+- [x] relevant docs are aligned（`system-baseline.md` 新 `## 14.4` / `ai-autonomy-policy.md` Protected Areas /
       roadmap 工作项 9 与「9 现状」/ `project-context.md` 第 56–58 行 + 新增行 / STATE §2）
-- [ ] 确认的 owner-doc 漂移（`project-context.md:56` 的措辞、判定方式节的误归档）已就地改准，
+- [x] 确认的 owner-doc 漂移（`project-context.md:56` 的措辞、判定方式节的误归档）已就地改准，
       **没有被降级成 follow-up**（Minimum Rule 14）
-- [ ] verification has run：判定器默认环境前后各一次 · `GATE_VERIFY` 字面命令正向 + 负向 ·
+- [x] verification has run：判定器默认环境前后各一次 · `GATE_VERIFY` 字面命令正向 + 负向 ·
       `pytest tests/unit` · `ruff check` · `smoke-loop-wiring.sh` · live 整目录判定 · 三条变异
-- [ ] **live 模式已被证明能返回 exit 0**（整目录绿，或收窄范围的正向对照绿）——没有这条不许关闭
-- [ ] scoped verification is not conflated with full verification —— **live 只在本机做过，CI 未验证**，
+- [x] **live 模式已被证明能返回 exit 0**（整目录绿，或收窄范围的正向对照绿）——没有这条不许关闭
+- [x] scoped verification is not conflated with full verification —— **live 只在本机做过，CI 未验证**，
       这句必须逐字出现在 `## Closure` 里（本仓无全量套件，见 `project-context.md` 第 61–62 行）
-- [ ] 默认判定环境的**判定行**与开工前逐字一致，且有两次实跑输出作证
-- [ ] no in-scope item downgraded to deferred/follow-up
-- [ ] **「CI 侧守卫」的空窗期已闭合或已升级**：
+- [x] 默认判定环境的**判定行**与开工前逐字一致，且有两次实跑输出作证
+- [x] no in-scope item downgraded to deferred/follow-up
+- [x] **「CI 侧守卫」的空窗期已闭合或已升级**：
       `grep -n 'verdict-tool-untouched' docs/plans/p0-foundation/2026-08-22-0027-2-*.md`
       至少有一处命中落在 `- [ ] \`Add\`` 执行项行上，**且该执行项写明了「不覆盖 `expected-red.txt`」的边界**
       （与 Exit Criteria 逐字同口径）；否则本 plan 不得关闭，须把守卫升级进 STATE §3 needs-human
-- [ ] 三处变异窗口（Phase 2 负向对照 / 变异 ① / 变异 ②）全部复原。
+- [x] 三处变异窗口（Phase 2 负向对照 / 变异 ① / 变异 ②）全部复原。
       **判据按路径分开写，且一律用开工 sha**（第三轮独立评审 BLOCKING-B：原写法是两条裸 `git diff`，
       提交后恒为空；且对判定器写「为空」本身就是错的——Phase 2 **本来就要改它**）：
       · `agenerp/`：`git diff --stat <开工 sha>..HEAD -- agenerp` **与**
@@ -1156,10 +1156,10 @@ Exit Criteria:
       · 判定器：`git status --porcelain -- tools/gates/check_expected_red.py` 为空，
         且 `git diff <开工 sha>..HEAD -- tools/gates/check_expected_red.py` 里
         **`verdict()` 的 `skipped` 分支没有被删**（变异 ② 已复原）——这一条要人读 diff，不能只看退出码
-- [ ] independent draft review completed and recorded
-- [ ] text consistency verified: status, phases, gates, and log all agree
-- [ ] closure audit was independent
-- [ ] closure evidence exists in files
+- [x] independent draft review completed and recorded
+- [x] text consistency verified: status, phases, gates, and log all agree
+- [x] closure audit was independent
+- [x] closure evidence exists in files
 
 ## Deferred But Adjudicated
 
@@ -1244,9 +1244,65 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: <待关闭审计填写>
+Status Note: 三个 Phase 的执行项与 Exit Criteria 全部落地并在活仓复核通过，
+`## Closure Gates` 十四框由本次独立关闭审计逐条实跑核对后置位，`Plan Status` 由 `active` 改为 `completed`。
+交付物（判定器的 live 判定模式 + `classify()` / `verdict()` 纯函数接缝 + 12 条单测 + Protected Areas 加严行）
+**已接进运行时**：`main()` 按 `AGENERP_LIVE` 选模式、live 下跳过 `load_allowlist()` 并调
+`verdict(..., live=True)`，不是挂着不通电的接口。工作项 9 仍停在 `planned`（关闭判据是 CI 上跑绿，本 plan 不碰 CI），
+不存在把没做完的活报成 done。
+
+**verification scope（逐字，Closure Gate 第 6 条要求）：live 只在本机做过，CI 未验证。**
+本仓此刻没有全量套件（无 build、无 typecheck），上面这些绿是 scoped verification，不是「全量验证通过」。
 
 Closure Audit Evidence:
 
-- Auditor / Agent: <待填>
-- Evidence: <待填>
+- Auditor / Agent: 独立关闭审计子代理（fresh session，与起草/执行会话分离，2026-08-22）。
+  四轮独立草案评审记录在 `## Draft Review Record`，第四轮 `acceptable as-is`。
+- 审计基线：`HEAD` = `488df9e`（`git status --porcelain` 输出为空，干净树），开工 sha = `084c9c4`。
+- **实跑复核（审计会话现场跑的，不是抄执行记录）**：
+
+  | 命令 | 结果 |
+  |---|---|
+  | `python3 tools/gates/check_expected_red.py && python3 -m pytest tests/unit -q` | `判定模式：default …` / `门禁 19 项：预期红 7，绿 12，跳过 0` / `✅ 与预期红名单完全一致` / `205 passed` → **exit 0** |
+  | `ruff check agenerp tests/unit tests/contracts` | `All checks passed!` → **exit 0** |
+  | `git diff --stat 084c9c4..HEAD -- tests/gates .github/workflows docs/masterplan missions tools/gates/expected-red.txt` | 只列出 `docs/masterplan/STATE.md` 一行（18 insertions），其余四条路径零命中 |
+  | `git status --porcelain -- tests/gates .github/workflows docs/masterplan missions tools/gates/expected-red.txt` | 无输出 |
+  | `git diff --numstat 084c9c4..HEAD -- docs/masterplan/STATE.md` | `18	0` → deletions = 0 ⇒ **只追加** |
+  | `git diff --numstat 084c9c4..HEAD -- tools/gates/expected-red.txt` | 无输出 ⇒ 名单一行未动 |
+  | `git diff --stat 084c9c4..HEAD -- agenerp` / `git status --porcelain -- agenerp` | 两条均无输出 ⇒ 变异 ① 与 Phase 2 负向对照均已复原，零产品行为发布 |
+  | `git status --porcelain -- tools/gates/check_expected_red.py` | 无输出；活文件第 105 / 115 / 134 行 `if skipped:`、live 侧 `if reds or skipped:`、default 侧 `unexpected_red or unexpected_green or skipped` **三处俱在** ⇒ 变异 ② 已复原 |
+  | `grep -n 'verdict-tool-untouched' docs/plans/p0-foundation/2026-08-22-0027-2-*.md` | 7 处命中，**只有第 278 行**以 `- [ ] \`Add\`` 开头（守卫执行项本身），其第 281–285 行逐字写着「**硬边界（前驱定的）：路径清单里不得出现 `tools/gates/expected-red.txt`**」并引 `AGENTS.md` 红线 1 边界句 + Protected Areas 第 2 行 ⇒ 空窗期已被 successor 承接，本 plan 无须升级进 STATE §3 |
+
+- **落地面逐条核对（读活文件，不信 `[x]`）**：
+  `tools/gates/check_expected_red.py:79` `classify()` · `:92` `verdict()` · `:140` `main()` 按 `AGENERP_LIVE` 选模式并
+  两种模式都打印模式行 · `:148` live 下 `expected_red` 为空集且**不调** `load_allowlist()`；
+  `tests/unit/test_gate_verdict.py` 11 个测试函数（末一个 `test_verdict_never_touches_the_process` 参数化两态）
+  = 12 条，与 `193 → 205 passed` 的增量吻合；
+  `docs/architecture/system-baseline.md:383` `## 14.4`（`## 14` 编号序列为 131/178/208/286/**383**）；
+  `docs/context/ai-autonomy-policy.md:88` Protected Areas 判定器本体行（`plan-first`，边界写明不覆盖 txt，
+  出处引红线 1 边界句与本表第 2 行）；
+  `docs/backlog/p0-foundation-roadmap.md:28` 工作项 9 `planned` · `:68` 判据先行不可满足与含 8 的关系 · `:69` 「9 现状」行；
+  `docs/context/project-context.md` 第 56 行漂移已改准为窄说法 + 新增「L2 live 门禁（**整目录判定**）」一行
+  （如实收录第一跑 exit 1 与「不可复现」，且未把 `--ignore` 诊断命令写进表）；
+  `docs/logs/2026/08-22.md` 三个 Phase 各一条记录；`docs/masterplan/STATE.md` §2 追加 18 行。
+- **审计发现并就地修掉的一处文本缺陷**：Phase 1 最后一条 Exit Criteria（第 406 行）里那条判据 grep 的
+  **字面量**被 EXECUTE 阶段的整体勾选误伤，写成了 `- [x] \`Add\``。successor 的守卫项尚未执行，
+  本就应当是 `- [ ] \`Add\``——按误伤后的写法这条判据**不可满足**，且与同口径的 Closure Gate（仍为 `- [ ] \`Add\``）
+  自相矛盾。已改回 `- [ ] \`Add\``，两处现在逐字同口径，实跑核对见上表最后一行。
+- **五点一致性**：`Plan Status: completed` · 三个 Phase 均 `Status: completed` 且全部执行项与 Exit Criteria `[x]` ·
+  `## Closure Gates` 十四框全 `[x]` · 本节证据 · `docs/logs/2026/08-22.md` 与 STATE §2 —— 逐条相符。
+  `grep -B5 '^- \[ \]' <plan> | grep -c 'Status: completed'` → **0**。
+- **Deferred 诚实性复核**：6 条 Deferred 全部带重开事件，无一条藏着确认的活体缺陷或契约漂移。
+  两条确认的 owner-doc 漂移（`project-context.md:56` 的措辞、判定方式节误归档）都在 Phase 3 / Phase 1 就地 `Fix` 了，
+  **没有降级成 follow-up**（Minimum Rule 14）。那条不可复现的红是**实测事实**，已作为 `watch-only residual`
+  登记并作为已知风险交办给 successor，不是被藏起来的失败。
+- **红线自查**：`tests/gates/**` / `.github/workflows/**` / `missions/**` / `expected-red.txt` 零改动；
+  `docs/masterplan/` 仅 `STATE.md` 追加 18 行、删 0 行；未写入证据仓；未生成运行时 Server Script。
+
+Follow-up:
+
+- 本批第二个 plan `2026-08-22-0027-2-ci-l2-full-live-gate-coverage.md` 承接两件事：
+  CI 消费面（`gates.yml` 上用判定器对 19 条做 live 判定）与 CI 侧守卫 `verdict-tool-untouched`。
+  重开事件逐字为「本 plan 关闭之后立即」——本节落笔即触发。
+- 那条不可复现的红（`::test_no_orphan_column_left_behind`）作为已知风险随之交办；
+  CI 上一次红就是一次红，没有人在旁边复跑。
