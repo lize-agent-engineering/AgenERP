@@ -308,25 +308,35 @@ def test_apply_pack_really_runs_the_pure_half():
             apply_pack(tmp, site="dev.localhost")
 
 
-def test_apply_pack_reds_on_the_site_half_not_on_diffing(tmp_path):
+def test_apply_pack_reds_on_the_site_half_not_on_diffing(tmp_path, monkeypatch):
     """门禁逐字 `from agenerp.pack import apply_pack`：导入路径与签名一字不改。
 
-    红因已经从「求差不存在」挪到站点侧。**当前逐字是 `SiteSnapshotSource.read`**
-    （工作项 4 的 B 半：没有活站点就答不出「站点现状是什么」），它接上之后才轮到
-    `execute_plan`（工作项 6）。两处都在站点侧，A 半在它们之前已经跑完。
+    红因一路往后挪，本条钉的就是「挪到哪了」：先是「求差不存在」（A 半，已过），
+    再是 `SiteSnapshotSource.read`（工作项 4 的 B 半，**已接上**），现在是站点侧的
+    环境本身——离线跑没有活站点、没有凭据，B 半**拒绝伪装成功**，抛 `SiteError`。
+    这正是它该有的行为：降级成空快照会让 `plan_apply` 把站点上每个字段都算成「要删」。
+
+    **不再期待 `NotImplementedError`**：B 半落地后，`apply_pack` 在离线环境里根本走不到
+    工作项 6 的 `execute_plan`。`execute_plan` 仍是站点侧唯一未实现的落点，由
+    `test_execute_plan_is_the_single_landing_spot_for_the_site_half` 单独钉。
+
+    凭据环境变量在这里被清空：单测的判定面不该随本机 env 漂移。
     """
     from agenerp.pack import apply_pack
+    from agenerp.site import ADMIN_PASSWORD_ENV, API_KEY_ENV, API_SECRET_ENV, SiteError
 
-    with pytest.raises(NotImplementedError) as excinfo:
+    for name in (API_KEY_ENV, API_SECRET_ENV, ADMIN_PASSWORD_ENV):
+        monkeypatch.delenv(name, raising=False)
+
+    with pytest.raises(SiteError) as excinfo:
         apply_pack(str(tmp_path), site="dev.localhost")
 
     message = str(excinfo.value)
     assert "apply_pack" not in message, (
         f"红因还停在 apply_pack 自己身上，说明委派没接上：{message}"
     )
-    assert "SiteSnapshotSource.read" in message or "execute_plan" in message, (
-        f"红因不在站点侧的两个落点上：{message}"
-    )
+    assert "dev.localhost" in message, f"红因没指到站点侧：{message}"
+    assert ADMIN_PASSWORD_ENV in message, f"报错没指名缺哪个环境变量：{message}"
 
 
 # --- 零依赖与导入方向（**必须在全新子进程里测**） -----------------------------------

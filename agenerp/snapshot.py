@@ -3,8 +3,8 @@
 三个部件，职责互不重叠（结构边界见 `docs/architecture/module-boundaries.md` §11.5）：
 
 - `Snapshot`：不可变值对象，只承载「某一时刻某 scope 的结构化状态」。不持连接、不做 I/O 缓存。
-- 来源（`SnapshotSource`）：唯一做 I/O 的地方。本模块交付**离线来源**；
-  站点来源属 roadmap 工作项 4（工具契约层 v0），此处只留接缝。
+- 来源（`SnapshotSource`）：唯一做 I/O 的地方。本模块交付**离线来源**与**站点来源**；
+  站点侧的 HTTP 传输在 `agenerp.site`（§11.7），本模块不自己开第二个连接落点。
 - `diff`：纯函数，不碰来源，产出机器可判定的 added / removed / changed。
 
 「结构化」的含义：调用方靠三个序列回答「什么被加/删/改了」，不必解析 `summary()` 的文本。
@@ -20,6 +20,7 @@ from pathlib import Path
 from typing import Any, Protocol
 
 from agenerp.pack import normalize
+from agenerp.site import SiteClient, client_from_env
 
 _TODO = "尚未实现 —— 见 docs/backlog/p0-foundation-roadmap.md 的工作项对照表"
 
@@ -28,13 +29,22 @@ _TODO = "尚未实现 —— 见 docs/backlog/p0-foundation-roadmap.md 的工作
 OFFLINE_ROOT_ENV = "AGENERP_SNAPSHOT_DIR"
 _DEFAULT_OFFLINE_ROOT = Path(__file__).resolve().parents[1] / ".agenerp" / "snapshots"
 
-# 有站点配置时走站点来源（工作项 4 才提供实现）。
+# 有站点配置时走站点来源。次序是**显式来源 > 站点配置 > 离线来源**，见 `resolve_source`。
 SITE_ENV = "AGENERP_SITE"
 
 # 离线快照文件里承载字段清单的键，与 `agenerp.pack` 的定制导出同名。
 _ENTRIES_KEY = "custom_fields"
 _IDENTITY_KEY = "fieldname"
 _DOCTYPE_KEY = "doctype"
+
+# 站点行里承载「这个字段挂在哪个 DocType 上」的列名是 `dt`，**不叫 `doctype`**
+# （`_DOCTYPE_KEY` 是**包文件**那侧的键，两边不能互抄）。身份是 `(doctype, fieldname)`
+# 二元组：只按字段名去重会把两个 DocType 上的同名字段混成一条。
+_SITE_DOCTYPE_KEY = "dt"
+
+# 站点来源认识的 scope → 承载它的 DocType。**未知 scope 显式抛，不返回空元组**：
+# 返回空会让「这个 scope 拼错了」和「这个 scope 下没有定制」长得一模一样。
+SITE_SCOPE_DOCTYPES: dict[str, str] = {"doctypes": "Custom Field"}
 
 
 class SnapshotScopeMismatch(ValueError):
@@ -106,7 +116,12 @@ class SnapshotSource(Protocol):
     identity: str
 
     def read(self, scope: str) -> tuple[SnapshotEntry, ...]:
-        """返回该 scope 下的全部条目。位置不存在时返回空元组，不抛异常。"""
+        """返回该 scope 下的全部条目。
+
+        **离线来源**：位置不存在时返回空元组，不抛异常（「还没有定制」是合法状态）。
+        **站点来源**：站点答不上话不是合法状态，抛 `agenerp.site.SiteError`——
+        降级成空会让「未改动 → diff 为空」在站点宕机时照样绿。见 §11.5 与 §11.7。
+        """
         ...
 
 
@@ -135,18 +150,33 @@ class OfflineSnapshotSource:
 
 @dataclass(frozen=True)
 class SiteSnapshotSource:
-    """活站点来源。属 roadmap 工作项 4（工具契约层 v0），此处只留接缝。"""
+    """活站点来源：站点现状 → 条目。I/O 全部委给 `agenerp.site`（§11.7）。
+
+    `client` 是**可选注入**（默认 `None` → 走 `client_from_env`），既有构造式
+    `SiteSnapshotSource(site)` 的调用点一个字不用改。注入的目的是让单测能喂假客户端，
+    而不是让产品代码多一条配置路径。
+
+    **口径与离线来源同源**：载荷同样先过 `agenerp.pack.normalize` 剥易变字段
+    （modified / creation / owner / `_comments`），否则同一站点两次快照必然 diff 出差异。
+    不开第二套口径——§11.5 的「不该有第二份」。
+    """
 
     site: str
+    client: SiteClient | None = None
 
     @property
     def identity(self) -> str:
         return f"site:{self.site}"
 
     def read(self, scope: str) -> tuple[SnapshotEntry, ...]:
-        raise NotImplementedError(
-            f"SiteSnapshotSource.read {_TODO}（工作项 4 · 工具契约层 v0）"
-        )
+        doctype = SITE_SCOPE_DOCTYPES.get(scope)
+        if doctype is None:
+            raise ValueError(
+                f"站点来源不认识 scope {scope!r}；已知：{sorted(SITE_SCOPE_DOCTYPES)}"
+            )
+        client = self.client if self.client is not None else client_from_env(self.site)
+        entries = entries_from_site_rows(client.list_resource(doctype))
+        return tuple(sorted(entries, key=lambda entry: entry.key))
 
 
 def read_scope_dir(root: Path, scope: str) -> tuple[SnapshotEntry, ...]:
@@ -179,6 +209,34 @@ def entries_from_payload(payload: Any, default_doctype: str) -> list[SnapshotEnt
             raise ValueError(f"{doctype} 的条目缺少 {_IDENTITY_KEY}：{row!r}")
         attributes = {k: v for k, v in row.items() if k != _IDENTITY_KEY}
         entries.append(SnapshotEntry(doctype, str(row[_IDENTITY_KEY]), attributes))
+    return entries
+
+
+def entries_from_site_rows(rows: Any) -> list[SnapshotEntry]:
+    """站点上的 Custom Field 行 → 快照条目。**「一行变成哪些属性」的唯一落点。**
+
+    投影口径是「剥掉易变键之后全留」。将来若为 diff 可读性收窄它（例如再剥空值），
+    只能改这一个地方：导出与站点读取用不同投影，会让 `plan_apply` 把每个字段都算成 `changed`。
+    """
+    if not isinstance(rows, list):
+        raise ValueError(f"站点返回的行集合必须是列表，读到 {type(rows).__name__}")
+    entries: list[SnapshotEntry] = []
+    for row in rows:
+        if not isinstance(row, dict):
+            raise ValueError(f"站点行必须是对象，读到 {type(row).__name__}：{row!r}")
+        doctype = row.get(_SITE_DOCTYPE_KEY)
+        fieldname = row.get(_IDENTITY_KEY)
+        if not doctype or not fieldname:
+            raise ValueError(
+                f"站点行缺少 {_SITE_DOCTYPE_KEY} / {_IDENTITY_KEY}，无法定身份：{row!r}"
+            )
+        normalized = normalize(row)
+        attributes = {
+            key: value
+            for key, value in normalized.items()
+            if key not in (_SITE_DOCTYPE_KEY, _IDENTITY_KEY)
+        }
+        entries.append(SnapshotEntry(str(doctype), str(fieldname), attributes))
     return entries
 
 

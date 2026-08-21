@@ -53,6 +53,7 @@ P0 的目标一句话：**把「可验证」做出来。这一阶段不引入任
 | 2 | 状态快照与 diff | `test_snapshot_diff_structured.py::test_two_snapshots_of_unchanged_site_diff_empty` / `::test_diff_is_structured_not_text` | L1 |
 | 3 | 零依赖启动 | `test_zero_dep_boot.py::test_compose_config_valid_with_empty_env` | L1 |
 | 4 | 工具契约层 v0 | 提供 `live_site` fixture，解锁 L2 各项 | — |
+| 4 现状 | **2026-08-21 补记，保持 `planned`**：A 半（声明面，`agenerp/contracts.py` + 十条契约）与 **B 半（站点只读传输 + `SiteSnapshotSource.read`，plan [`2026-08-21-1922-1`](../plans/p0-foundation/2026-08-21-1922-1-site-snapshot-source-live.md)，落点见 `docs/architecture/module-boundaries.md` §11.7）都已落地**；`test_field_addition_shows_up_as_structured_change` 在活站点上**实测转绿**（`… AGENERP_SITE=frontend … python3 -m pytest tests/gates/test_snapshot_diff_structured.py -q` → exit 0，3 passed）。**但 `expected-red.txt` 一行未动**，理由是人在 STATE §2（11:20Z）已裁定「名单必须反映判定器实际看到的」，默认判定环境下该条仍红；新事实（harness 官方 L2 跑法缺 `AGENERP_SITE`、以及两条 L1 门禁的起栈顺序陷阱）已按 P0.7 先例追加进 STATE §3。**不置 `done` 的理由不是「名单没划」**：本行给工作项 4 绑的是「提供 `live_site` fixture」，它没有一条属于自己的门禁测试，`done` 的字面定义对它不可满足——与工作项 7 同一情形。**仍未做**：十条只读工具的**运行时执行器**（属 P1 控制循环） | — |
 | 5 | 差集 apply 引擎 | `test_customization_roundtrip_delete.py::test_removing_from_pack_actually_deletes_on_site` | L2 |
 | 6 | 定制包往返验证 | `test_customization_roundtrip_delete.py` 其余 3 条 + `test_snapshot_diff_structured.py::test_field_addition_shows_up_as_structured_change` | L2 |
 | 7 | 种子数据 | `test_seed_dataset_absurdity.py`（6 条：确定性 ×2、1,010 米/6,450 元精确值、积压对规则可见、不含图片、无第三方权利）—— **2026-08-21 由人补齐**，此前这一格是「仍然没有门禁」。实跑全绿：实现先于门禁存在，属特征化门禁而非 TDD | L1 |

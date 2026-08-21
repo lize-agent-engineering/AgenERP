@@ -1,6 +1,6 @@
 # 2026-08-21-1922-1 站点来源接活站点（工作项 4 的 B 半：`SiteSnapshotSource.read`）
 
-> Plan Status: active
+> Plan Status: completed
 > Mission: p0-foundation
 > Work Item: 4. 工具契约层 v0（先包 10 个只读工具）—— **只做 B 半：站点只读传输 + `SiteSnapshotSource.read`，不做工具执行器**
 > Last Reviewed: 2026-08-21
@@ -92,6 +92,47 @@
   （`docker-compose.yml:255` 的映射是 `"127.0.0.1:${AGENERP_HTTP_PORT:-8080}:8080"`，改得动）。
 - 起栈的健康判定口径取 `docs/architecture/system-baseline.md` §14.2（**六个服务**这个收窄集合，三个 worker 不可判）；
   「冷起约 68 秒」这个数出自 `docs/context/project-context.md` 的验证命令表与 `STATE.md`，**不在 §14.2 里**，引用别混。
+
+### 实测回填（Phase 3，2026-08-21 · 起草时的预判有两处不准，照实改写）
+
+**起草时的预判 vs 实测**：
+
+| 起草时写的 | 实测 |
+|---|---|
+| 带 `AGENERP_LIVE=1` 跑判定器 → 「名单内的门禁却绿了」→ exit 1 | **成立**。exit 1，两条：`test_field_addition_shows_up_as_structured_change`（本 plan 让它绿的）+ `test_stack_boots_and_all_services_healthy`（人在 §2 11:20Z 已裁定过的那条） |
+| 「第二种形态」：两条 L1 快照门禁改走站点来源后可能红成「名单外的门禁红了」 | **栈预先起好时没有出现**——两条 L1 在活站点上照样绿。但它换了个形态真的发生了，见下一行 |
+| （未预见） | **起栈顺序陷阱**：两条 L1 快照门禁**不取任何 fixture**，配了 `AGENERP_SITE` 之后它们在 `compose_stack` 拉起栈**之前**就跑完了 → 红在 connection refused。栈没预起时那条 live 命令 **exit 1（`FF.`，两次复跑逐字一致）**，而第三条 live 门禁在同一次运行里**是绿的**。**栈预先起好再跑同一条命令 → exit 0（3 passed）**。这是接线问题不是实现问题，解法在 harness 侧（红线 1），已按 P0.7 先例写进 STATE §3 |
+| 「全新 ERPNext 站点上 `len(capture("doctypes"))` **必须 > 20**，等于 20 就是分页没关掉」 | **这条判据的阈值不成立，照实记**：本站点 Custom Field **总共只有 10 条**，站点自报计数 `frappe.client.get_count` 也是 **10**——两数一致，说明读全了，不是被截断（截断只会给出**恰好 20**）。10 < 20 让原阈值无从判别，故换了一条**更直接**的证明，见下 |
+
+**完整性（不变量 3）在 live 层的证明——换了判据，理由写清**：原判据（条目数 > 20）在这个站点上不可判。
+改用同一条代码路径去读一张**行数远超默认页长**的表，并做变异验证：
+
+| 命令 / 动作 | 结果 |
+|---|---|
+| `client_from_env('frontend').list_resource('Custom Field')` | **10 行**；站点自报 `get_count` = **10**（读全了） |
+| `client_from_env('frontend').list_resource('DocType')` | **775 行**；站点自报 `get_count` = **775**（Frappe **认** `limit_page_length=0`） |
+| 变异：从 `list_resource` 里删掉 `PAGE_LENGTH_PARAM` 那一行后同一条调用 | **20 行**（Frappe 的默认页长，逐字命中假绿的形态） |
+| 还原后同一条调用 | **775 行**；`shasum -a 256 agenerp/site.py` 变异前 / 还原后同为 `22ae0d34…9165d424` |
+
+这一条正是起草时说的「假传输只能证明客户端**发了**那个参数，证明不了 Frappe **认**这个参数」——
+现在两边都证到了：单测证明参数被发出，live 的 775 vs 20 证明它被 Frappe 认下。
+
+**live 实跑的全部命令与退出码**（`docs/logs/2026/08-21.md` 同步落盘）：
+
+| 命令 | 退出码 |
+|---|---|
+| `AGENERP_HTTP_PORT=18080 AGENERP_LIVE=1 AGENERP_SITE=frontend AGENERP_SITE_URL=http://127.0.0.1:18080 AGENERP_ADMIN_PASSWORD=admin python3 -m pytest tests/gates/test_snapshot_diff_structured.py -q`（栈未预起，plan 原文那条） | **1**（`FF.` · 2 failed, 1 passed · 25.80s；原样复跑 → 同样 exit 1、25.92s、逐字同因） |
+| `AGENERP_HTTP_PORT=18080 docker compose -f docker-compose.yml up -d --wait` | **0**（20.5 秒，**热卷**；六个服务 healthy，口径取 `system-baseline.md` §14.2） |
+| 同上第一条命令，**栈预先起好** | **0**（3 passed，3.03s） |
+| 同上，变异（`SiteSnapshotSource.read` 返回空元组） | **1**（1 failed, 2 passed，逐字红在 `test_field_addition_shows_up_as_structured_change`） |
+| 同上，还原后 | **0**（3 passed；`shasum -a 256 agenerp/snapshot.py` 变异前 / 还原后同为 `f3d421f7…e0496e21`） |
+| `AGENERP_HTTP_PORT=18080 AGENERP_LIVE=1 AGENERP_SITE=frontend AGENERP_SITE_URL=http://127.0.0.1:18080 AGENERP_ADMIN_PASSWORD=admin python3 tools/gates/check_expected_red.py` | **1**（「门禁 19 项：预期红 5，绿 14，跳过 0」+「❌ 名单内的门禁却绿了」两条，**只有这一种形态**） |
+| `python3 tools/gates/check_expected_red.py`（默认环境） | **0**（门禁 19 项：预期红 7，绿 12，跳过 0） |
+| `AGENERP_HTTP_PORT=18080 docker compose -f docker-compose.yml down` | **0**（`agenerp-` 容器残留 0 个；站点上 `agenerp_gate_probe` 探针残留 0 条，`live_site` 的 teardown 干净） |
+
+**verification scope limited**：live 实证只在本机做过（compose v5.0.2、端口 18080、**热卷**——站点由此前运行留下，
+20.5 秒不是冷起的 68 秒）。CI runner 是 compose 2.38.2，版本差是 plan `…-1022-1` 已登记的 watch-only residual。
+**不得报为「CI 上也验证过」。**
 
 ### 执行顺序与 roadmap 的表面冲突（先说清，免得被读成矛盾）
 
@@ -195,20 +236,20 @@ roadmap 的 `Work Item Status` 块写「顺序即执行顺序」，列的是 4�
 
 ### Phase 1 — 站点传输落盘（`agenerp/site.py`）
 
-Status: planned
+Status: completed
 Targets: `agenerp/site.py`（新文件）、`tests/unit/test_site_client.py`（新文件）
 Skill: `none`
 Prereqs: 无
 
 - Item Types: 3 `Add` / 1 `Decision` / 1 `Proof`（未到 80% 门槛，故不作 phase 级统一声明）
 
-- [ ] `Add` 实现 `SiteClient` / `SiteError` / `client_from_env`，只用标准库，只有读方法。
-- [ ] `Add` 凭据解析：token 优先，回退会话登录；**缺凭据时抛 `SiteError` 并指名缺哪个环境变量**。
-- [ ] `Add` `Host` 头 = 站点名；路径 URL 编码（保留 `/` 分隔）。
-- [ ] `Decision` **认证方式取「token 优先、会话登录回退」**。备选：① 只做会话登录（最省事，但把口令带进每次运行，且
+- [x] `Add` 实现 `SiteClient` / `SiteError` / `client_from_env`，只用标准库，只有读方法。
+- [x] `Add` 凭据解析：token 优先，回退会话登录；**缺凭据时抛 `SiteError` 并指名缺哪个环境变量**。
+- [x] `Add` `Host` 头 = 站点名；路径 URL 编码（保留 `/` 分隔）。
+- [x] `Decision` **认证方式取「token 优先、会话登录回退」**。备选：① 只做会话登录（最省事，但把口令带进每次运行，且
       Frappe 的登录端点有速率限制）；② 只做 token（更贴生产，但零依赖栈上没有现成 key，L2 门禁跑不起来）。
       取两者兼容的理由与残余风险（回退路径把口令读进内存）写进 `module-boundaries.md` 追加小节。
-- [ ] `Proof` 单测（`tests/unit/test_site_client.py`，**不连真站点**，**用注入式假传输**——
+- [x] `Proof` 单测（`tests/unit/test_site_client.py`，**不连真站点**，**用注入式假传输**——
       不起本地 `http.server`：本机端口冲突在本 plan 的 Current Baseline 里已经是实测事实，
       CI 的 `gates-l1` 与 `GATE_VERIFY` 里再绑一个端口是自找的不稳定源）：
       非 2xx → 抛 `SiteError`；连不上 → 抛 `SiteError`（用一个立即关闭的 socket 构造）；缺凭据 → 抛且消息含变量名；
@@ -219,33 +260,33 @@ Prereqs: 无
 
 Exit Criteria:
 
-- [ ] `python3 -m pytest tests/unit -q` → exit 0，且新文件的用例真在其中（记录用例数增量）
-- [ ] `ruff check agenerp tests/unit tests/contracts` → exit 0
-- [ ] `docs/architecture/module-boundaries.md` 追加小节落盘（凭据口径 + 认证 Decision）
-- [ ] `docs/logs/2026/08-21.md` 追加条目
+- [x] `python3 -m pytest tests/unit -q` → exit 0，且新文件的用例真在其中（记录用例数增量）
+- [x] `ruff check agenerp tests/unit tests/contracts` → exit 0
+- [x] `docs/architecture/module-boundaries.md` 追加小节落盘（凭据口径 + 认证 Decision）
+- [x] `docs/logs/2026/08-21.md` 追加条目
 
 ### Phase 2 — 接上 `SiteSnapshotSource.read`
 
-Status: planned
+Status: completed
 Targets: `agenerp/snapshot.py`、`tests/unit/test_snapshot_capture.py`、`docs/architecture/module-boundaries.md` §11.5
 Skill: `none`
 Prereqs: Phase 1
 
 - Item Types: `Add | Fix | Proof`
 
-- [ ] `Add` `SiteSnapshotSource` 增可选注入字段；`read("doctypes")` 经客户端读 Custom Field，
+- [x] `Add` `SiteSnapshotSource` 增可选注入字段；`read("doctypes")` 经客户端读 Custom Field，
       载荷过 `normalize` 后转 `SnapshotEntry`，按 `key` 排序。
-- [ ] `Add` 未知 scope 显式抛（不返回空元组），错误消息指名收到的 scope。
-- [ ] `Proof` 单测（假客户端注入）：两次 read 结果相同；含 `modified` / `creation` / `owner` 的原始行
+- [x] `Add` 未知 scope 显式抛（不返回空元组），错误消息指名收到的 scope。
+- [x] `Proof` 单测（假客户端注入）：两次 read 结果相同；含 `modified` / `creation` / `owner` 的原始行
       被剥干净（**否则同站点两次快照会 diff 出差异**）；同名字段挂在两个 DocType 上不被混成一条
       （身份是 `(doctype, fieldname)` 二元组，§11.5）；站点抛错时 `capture` **不吞异常**。
-- [ ] `Proof` 既有 L1 两条快照门禁在**无 `AGENERP_SITE`** 时行为逐字不变（跑判定器复核）。
-- [ ] `Proof` **完整性**：假客户端喂 25 条（超过 Frappe 默认页长 20）→ `read` 必须拿到 25 条，
+- [x] `Proof` 既有 L1 两条快照门禁在**无 `AGENERP_SITE`** 时行为逐字不变（跑判定器复核）。
+- [x] `Proof` **完整性**：假客户端喂 25 条（超过 Frappe 默认页长 20）→ `read` 必须拿到 25 条，
       且断言请求里带了关掉分页的参数。少一条就是假绿的入口。
-- [ ] `Proof` **单测层的变异验证**（`GATE_VERIFY` 唯一看得见的层）：把投影里 `normalize` 那一步摘掉，
+- [x] `Proof` **单测层的变异验证**（`GATE_VERIFY` 唯一看得见的层）：把投影里 `normalize` 那一步摘掉，
       `python3 -m pytest tests/unit -q` 必须转红并指名；还原后复跑转绿。
       不做这条，「两次快照相同」可能靠假客户端返回同一个字典而空转。
-- [ ] `Fix` **owner-doc drift（确认的，按指南规则 14 不可降级）**：`module-boundaries.md` §11.5 不变量表
+- [x] `Fix` **owner-doc drift（确认的，按指南规则 14 不可降级）**：`module-boundaries.md` §11.5 不变量表
       逐字写 `SnapshotSource` → 「位置不存在 → 空元组，不抛异常」，`agenerp/snapshot.py:109` 的 Protocol
       docstring 复述了同一句。本 plan 让站点来源在站点答不上话时**抛**，两处随即变成陈述性错误。
       **同一个 phase 里改掉**：§11.5 那一格改成「离线来源：位置不存在 → 空元组；站点来源见追加小节」，
@@ -253,39 +294,39 @@ Prereqs: Phase 1
 
 Exit Criteria:
 
-- [ ] `python3 tools/gates/check_expected_red.py && python3 -m pytest tests/unit -q` → exit 0
-- [ ] `SiteSnapshotSource.read` 不再 `raise NotImplementedError`；`agenerp/` 全树只剩
+- [x] `python3 tools/gates/check_expected_red.py && python3 -m pytest tests/unit -q` → exit 0
+- [x] `SiteSnapshotSource.read` 不再 `raise NotImplementedError`；`agenerp/` 全树只剩
       `export_customizations`（`pack.py:66`）/ `schema_drift`（`snapshot.py:256`）/ `execute_plan`（`apply.py:107`）
       三处 `NotImplementedError`（逐条列出复核结果，行号以实际为准）
-- [ ] §11.5 不变量表与 `agenerp/snapshot.py:109` 的 Protocol docstring 已同步（owner-doc drift 已消）
-- [ ] `docs/logs/2026/08-21.md` 追加条目
+- [x] §11.5 不变量表与 `agenerp/snapshot.py:109` 的 Protocol docstring 已同步（owner-doc drift 已消）
+- [x] `docs/logs/2026/08-21.md` 追加条目
 
 ### Phase 3 — 活站点实跑 + 名单矛盾实测 + 交接
 
-Status: planned
+Status: completed
 Targets: `docs/masterplan/STATE.md`（**只追加**）、`docs/context/project-context.md`、`docs/backlog/p0-foundation-roadmap.md`
 Skill: `none`
 Prereqs: Phase 2
 
 - Item Types: `Proof | Decision`
 
-- [ ] `Proof` 冷起并实跑 L2 快照门禁，命令原文（端口 18080，理由见 Current Baseline）：
+- [x] `Proof` 冷起并实跑 L2 快照门禁，命令原文（端口 18080，理由见 Current Baseline）：
       `AGENERP_HTTP_PORT=18080 AGENERP_LIVE=1 AGENERP_SITE=frontend AGENERP_SITE_URL=http://127.0.0.1:18080 AGENERP_ADMIN_PASSWORD=admin python3 -m pytest tests/gates/test_snapshot_diff_structured.py -q`
       → 期望 exit 0（三条全绿）。**退出码与命令原文一并抄进 plan 与日志**，抄不到就不算过。
-- [ ] `Proof` **变异验证**（判据有没有牙齿）：临时把 `SiteSnapshotSource.read` 改成返回空元组，
+- [x] `Proof` **变异验证**（判据有没有牙齿）：临时把 `SiteSnapshotSource.read` 改成返回空元组，
       同一条命令必须**转红**且红在 `test_field_addition_shows_up_as_structured_change`；
       验证后立即还原（`git diff` 复核为空）。空转的判据等于没有判据。
-- [ ] `Proof` **完整性在 live 层的核对**（不变量 3 承诺了这一项，不能只落在假传输上）：
+- [x] `Proof` **完整性在 live 层的核对**（不变量 3 承诺了这一项，不能只落在假传输上）：
       在同一 live 环境里打印 `len(capture("doctypes"))` 并把数与命令原文抄进 plan 与日志。
       全新 ERPNext 站点上该数**必须 > 20**——**等于 20 就是分页没关掉**。
       假传输只能证明「客户端发了 plan 假定的那个参数」，证明不了 Frappe 认这个参数
       （写成 `limit` 而不是 `limit_page_length` 时，25 条那个单测照样绿而 live 上仍只读回 20 条）。
-- [ ] `Proof` **实测名单矛盾**：同样的 live 环境里跑 `AGENERP_HTTP_PORT=18080 AGENERP_LIVE=1 AGENERP_SITE=frontend AGENERP_SITE_URL=http://127.0.0.1:18080 AGENERP_ADMIN_PASSWORD=admin python3 tools/gates/check_expected_red.py`，
+- [x] `Proof` **实测名单矛盾**：同样的 live 环境里跑 `AGENERP_HTTP_PORT=18080 AGENERP_LIVE=1 AGENERP_SITE=frontend AGENERP_SITE_URL=http://127.0.0.1:18080 AGENERP_ADMIN_PASSWORD=admin python3 tools/gates/check_expected_red.py`，
       记录退出码与输出原文。**不要预设结论**，且注意两种形态别混：
       「名单内的门禁却绿了」（本 plan 让它转绿的那条）与「名单外的门禁红了」
       （两条 L1 快照门禁改走站点来源后若站点答不上话）——同为 exit 1，语义相反。
       实际是什么就照抄什么，并据实改写 Current Baseline 那一节。
-- [ ] `Decision` 往 `docs/masterplan/STATE.md` §3 追加一行，**照 §3 里 P0.7 那条「补充事实行，不另开条目」的先例写**
+- [x] `Decision` 往 `docs/masterplan/STATE.md` §3 追加一行，**照 §3 里 P0.7 那条「补充事实行，不另开条目」的先例写**
       （挂在既有那条工作项 4 / `compose_stack` 的 `[open]` 上，**不新开 needs-human 条目**——
       名单口径人已在 §2 的 11:20Z 裁定过，本 plan 只补新事实）。要补的事实两条：
       ① harness 官方 L2 跑法不设 `AGENERP_SITE`，`test_field_addition_shows_up_as_structured_change`
@@ -293,9 +334,9 @@ Prereqs: Phase 2
       ② 带 `AGENERP_LIVE=1` 跑判定器的实测退出码与输出原文。
       **同时如实引出授权链矛盾**（`01-EXECUTION-MODEL.md` §1 表禁止角色 B 手写 STATE vs 执行器人格要求写进
       needs-human 队列 vs 红线 5 允许追加），照既有两行的写法处理，不擅自消解。
-- [ ] `Add` `docs/context/project-context.md` 验证命令表增一行「L2 live 门禁」，写明完整命令、端口理由与
+- [x] `Add` `docs/context/project-context.md` 验证命令表增一行「L2 live 门禁」，写明完整命令、端口理由与
       **它不在 `missions/p0-foundation.json` 的 `commands.test` 里**（`GATE_VERIFY` 复跑不到，代偿控制是变异验证 + 独立关闭审计）。
-- [ ] `Add` `docs/backlog/p0-foundation-roadmap.md` 工作项 4 保持 `planned`（理由见 Current Baseline：
+- [x] `Add` `docs/backlog/p0-foundation-roadmap.md` 工作项 4 保持 `planned`（理由见 Current Baseline：
       它没有属于自己的门禁，`done` 的字面定义不可满足，与已 `[resolved]` 的工作项 7 同一情形），
       在对照表第 4 行补一句现状：
       B 半已落地、`test_field_addition_shows_up_as_structured_change` 在 live 环境实测转绿、
@@ -303,13 +344,13 @@ Prereqs: Phase 2
 
 Exit Criteria:
 
-- [ ] live 三条命令的原文 + 退出码全部落进 plan 与 `docs/logs/2026/08-21.md`
-- [ ] 变异验证有牙齿（转红且指名），还原后工作区相对变异前基线无残留
-- [ ] live 环境下 `len(capture("doctypes"))` 的实测数已落盘且 > 20（分页确已关掉）
-- [ ] STATE §3 **按 P0.7 先例追加一条补充事实行**，挂在既有那条工作项 4 / `compose_stack` 的 `[open]` 上，
+- [x] live 三条命令的原文 + 退出码全部落进 plan 与 `docs/logs/2026/08-21.md`
+- [x] 变异验证有牙齿（转红且指名），还原后工作区相对变异前基线无残留
+- [x] live 环境下 `len(capture("doctypes"))` 的实测数已落盘且 > 20（分页确已关掉）
+- [x] STATE §3 **按 P0.7 先例追加一条补充事实行**，挂在既有那条工作项 4 / `compose_stack` 的 `[open]` 上，
       **未新开 needs-human 条目**；**§2 与 §3 已有行一字未改**（用 `git diff` 复核）
-- [ ] `tools/gates/expected-red.txt` **一行未动**
-- [ ] `python3 tools/gates/check_expected_red.py`（默认环境）→ exit 0
+- [x] `tools/gates/expected-red.txt` **一行未动**
+- [x] `python3 tools/gates/check_expected_red.py`（默认环境）→ exit 0
 
 ## Draft Review Record
 
@@ -353,19 +394,22 @@ Exit Criteria:
 
 ## Closure Gates
 
-- [ ] in-scope behavior is complete（站点传输 + `SiteSnapshotSource.read` 两处都落地，不是只有签名）
-- [ ] relevant docs are aligned（`module-boundaries.md` 追加小节、`project-context.md` 命令表、roadmap 第 4 行）
-- [ ] verification has run：`python3 tools/gates/check_expected_red.py && python3 -m pytest tests/unit -q`（默认环境）
-      + `ruff check agenerp tests/unit tests/contracts` + Phase 3 三条 live 命令，**逐条抄退出码**
-- [ ] **verification scope limited 明写**：live 实跑只在本机（compose v5.0.2、端口 18080）做过，
+- [x] in-scope behavior is complete（`agenerp/site.py` 的传输 + `SiteSnapshotSource.read` 两处都落地并有行为判据，不是只有签名）
+- [x] relevant docs are aligned（`module-boundaries.md` **新增 §11.7** + §11.5 不变量表与「接缝」段 + §11.6 红因段 + §7.6 的一条陈述、
+      `project-context.md` 命令表新增「L2 live 门禁（快照）」一行、roadmap 对照表新增「4 现状」一行）
+- [x] verification has run：`python3 tools/gates/check_expected_red.py && python3 -m pytest tests/unit -q`（默认环境）→ **exit 0**
+      + `ruff check agenerp tests/unit tests/contracts` → **exit 0** + Phase 3 的 live 命令**逐条抄了退出码**（见「实测回填」表）
+- [x] **verification scope limited 明写**：live 实跑只在本机（compose v5.0.2、端口 18080、**热卷 20.5 秒**而非冷起 68 秒）做过，
       CI runner 是 2.38.2，不得报成「CI 上也验证过」（沿用 plan `…-1022-1` 已登记的 watch-only residual）
-- [ ] no in-scope item downgraded to deferred/follow-up
-- [ ] independent draft review completed and recorded
-- [ ] text consistency verified: status, phases, gates, and log all agree
-- [ ] closure audit was independent（`docs/skills/closure-audit-prompt.md`）
-- [ ] closure evidence exists in files
-- [ ] **红线自查**：`git diff --name-only` 里不出现 `tests/gates/`、`.github/workflows/`、`missions/`、
-      `docs/masterplan/DECISIONS.md`；`tools/gates/expected-red.txt` 未变；`STATE.md` 只增不改
+- [x] no in-scope item downgraded to deferred/follow-up
+- [x] independent draft review completed and recorded（三轮，见 `## Draft Review Record`）
+- [x] text consistency verified: status, phases, gates, and log all agree
+- [ ] closure audit was independent（`docs/skills/closure-audit-prompt.md`）—— **本轮未做，属 `CLOSURE_VERIFY` 步骤的活**。
+      执行会话内无可用的独立评审者，且执行器不得自审自判（`AGENTS.md` 裁判规则 1）。
+      **本条未打勾即为如实状态**，不得据此把 plan 报成「已通过关闭审计」。
+- [x] closure evidence exists in files（plan 的「实测回填」表 + `docs/logs/2026/08-21.md` 三条阶段条目 + STATE §3 补充事实行）
+- [x] **红线自查**：`git diff --name-only -- tests/gates/ .github/workflows/ missions/ docs/masterplan/DECISIONS.md tools/gates/expected-red.txt`
+      → **输出为空**；`git diff --numstat docs/masterplan/STATE.md` → **`8	0`**（第二列为 0，只增不改）
 
 ## Deferred But Adjudicated
 
@@ -395,13 +439,30 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: <closure 时填>
+Status Note: 三个 Phase 全部执行完毕并逐项打勾。交付两处落点（`agenerp/site.py` 的站点只读传输、
+`agenerp/snapshot.py` 的 `SiteSnapshotSource.read`）+ 26 条新单测（`tests/unit` 104 → **130**）。
+`test_field_addition_shows_up_as_structured_change` 在活站点上**实测转绿**（exit 0，3 passed），
+这是本仓第一条在真站点上绿的 L2 门禁。**`tools/gates/expected-red.txt` 一行未动、工作项 4 保持 `planned`**
+（理由见 Current Baseline 的「账本」一节，沿用人在 STATE §2 11:20Z 的既有裁定）。
+
+**起草时的两处预判不准，已在「实测回填」一节照实改写，不粉饰**：
+① plan 原文那条 live 命令实测 **exit 1**——两条 L1 快照门禁不取 fixture、在栈起来之前就跑完了；
+栈预先起好再跑同一条命令才是 exit 0。② 完整性判据「条目数 > 20」在本站点上不可判（Custom Field 总共 10 条，
+站点自报计数也是 10），改用 `list_resource('DocType')` 的 **775 vs 变异后恰好 20** 证明 Frappe 确实认 `limit_page_length=0`。
 
 Closure Audit Evidence:
 
-- Auditor / Agent: <independent subagent>
-- Evidence: <task id / 命令原文 + 退出码 + commit sha>
+- Auditor / Agent: **未做（本轮）**。执行会话内无可用的独立评审者；执行器不得自审自判（`AGENTS.md` 裁判规则 1）。
+  该审计属 `CLOSURE_VERIFY` 步骤，Closure Gates 里对应那条**如实留空**。
+- Evidence（执行侧，命令原文 + 退出码；本机实测，非 CI）：
+  - `python3 tools/gates/check_expected_red.py && python3 -m pytest tests/unit -q` → **0**（门禁 19 项：预期红 7，绿 12，跳过 0；130 passed）
+  - `ruff check agenerp tests/unit tests/contracts` → **0**
+  - `python3 -m pytest tests/contracts -q` → **0**（151 passed）
+  - `bash tools/check-masterplan-links.sh` → **0**（35 条引用，断链 0）· `node tools/check-doc-references.mjs` → **0**（24 篇活文档）
+  - live 七条命令与退出码见「实测回填」一节的表，逐条抄了原文
+  - 开工基线 sha `826cdf8`
 
 Follow-up:
 
-- <closure 时填；确认的缺陷不得写在这里>
+- 独立关闭审计（`docs/skills/closure-audit-prompt.md`）—— 归 `CLOSURE_VERIFY`，不是缺陷。
+- STATE §3 那条补充事实行等人处置（三条出路 loop 不替人选）；处置后由工作项 8 的第二个 plan（CI 真跑 L2）承接。

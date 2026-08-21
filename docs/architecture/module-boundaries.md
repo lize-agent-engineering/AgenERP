@@ -166,7 +166,9 @@ ERP 中大量字段是**用户可写的自由文本**——备注、评论、异
 - §7.4 的**权限拒绝熔断**（N=5）与 §7.5 的**数据边界标记包裹动作**——二者是控制循环的运行时部件，
   `docs/masterplan/02-WBS.md` 的 P0 段没有任何一行对应它们，且 P0 还没有控制循环去消费它们。
   §7.5 在 v0 里只留**声明位**，包裹动作归 P1。处置见 plan 的 `## Deferred But Adjudicated`。
-- **接活站点的一切**：`live_site` fixture、`SiteSnapshotSource.read`（§11.5 留下的接缝）。见 `docs/masterplan/STATE.md` §3 那条 `[open]`。
+- **工具的运行时执行器**：十条契约今天只有声明，没有一条被真正调用过（属 P1 控制循环）。
+  接活站点的**传输**已于 2026-08-21 落地（§11.7 的 `agenerp/site.py`，工作项 4 的 B 半），
+  三个 fixture 也已由人写完；仍未做的是执行器本身。见 `docs/masterplan/STATE.md` §3 那条 `[open]`。
 
 **一处 owner-doc 字段名漂移，就地裁定**：本文件 §7.3.1 写 `from_is_submittable`，
 `docs/analysis/2026-08-19-pre-build-validation.md 的「五、未排除的残余风险」节` 写 `is_submittable`。
@@ -272,7 +274,7 @@ ERPNext 把标准工作台以 JSON fixture 装在 app 目录里（`erpnext/selli
 | 部件 | 职责 | 不变量 |
 |---|---|---|
 | `Snapshot` | 承载「某一时刻某 scope 的结构化状态」 | 不可变值对象；**不持连接、不做 I/O 缓存**；相等性只看 `scope` + 条目内容 |
-| `SnapshotSource` | **唯一做 I/O 的接缝**：给定 scope 返回条目 | 位置不存在 → 空元组，不抛异常；`identity` 只是溯源串，不参与相等性 |
+| `SnapshotSource` | **唯一做 I/O 的接缝**：给定 scope 返回条目 | **离线来源**：位置不存在 → 空元组，不抛异常（「还没有定制」是合法状态）；**站点来源**：站点答不上话不是合法状态 → 抛 `SiteError`，见 §11.7；`identity` 只是溯源串，不参与相等性 |
 | `diff` | 比较两份快照 | 纯函数：不读来源、不改入参；同样两份快照比两次结论必须相同 |
 
 #### 为什么相等性里不能有采集时刻
@@ -297,12 +299,20 @@ ERPNext 把标准工作台以 JSON fixture 装在 app 目录里（`erpnext/selli
 
 #### 留给工具契约层的接缝
 
-来源解析次序是 **显式来源 > 站点配置（`AGENERP_SITE`）> 离线来源（`AGENERP_SNAPSHOT_DIR`）**。
-`SiteSnapshotSource.read` 目前抛 `NotImplementedError`——**活站点来源属 roadmap 工作项 4（工具契约层 v0）**，
-此处只留接口。接上时只需提供该来源的实现，`capture` / `diff` 的签名与语义都不动。
+来源解析次序是 **显式来源 > 站点配置（`AGENERP_SITE`）> 离线来源（`AGENERP_SNAPSHOT_DIR`）**，**这一条没变**。
+`SiteSnapshotSource.read` 已于 2026-08-21 接上（工作项 4 的 B 半），落点与凭据口径见 §11.7；
+如当初所料，`capture` / `diff` 的签名与语义一个字没动，`SiteSnapshotSource(site)` 的既有构造式也没动
+（新增的 `client` 是可选注入，默认 `None` → 走 `client_from_env`）。
 
-判据出处：`tests/gates/test_snapshot_diff_structured.py`（L1 两条）；真实语义覆盖在
-`tests/unit/test_snapshot_capture.py` 与 `tests/unit/test_snapshot_diff.py`，不依赖活站点。
+**站点来源与离线来源的一处必要分歧**（不是口径分裂，是两种失败语义不同）：离线来源「位置不存在」
+返回空元组，站点来源「站点答不上话」抛 `SiteError`。降级成空快照会让「未改动 → diff 为空」在站点宕机时
+照样绿，还会让 `plan_apply` 把站点上每个字段都算成「要删」。剥易变字段的口径两边**仍然同源**
+（同一个 `agenerp.pack.normalize`）。站点行的身份列是 `dt` 而不是 `doctype` —— 那是包文件那侧的键，两边不能互抄。
+
+判据出处：`tests/gates/test_snapshot_diff_structured.py`（L1 两条 + live 一条）；真实语义覆盖在
+`tests/unit/test_snapshot_capture.py` 与 `tests/unit/test_snapshot_diff.py`，不依赖活站点
+（站点来源那组喂**假客户端**：`dt → doctype` 投影、两次读相同、易变列被剥、同名字段不混、
+25 条不截断、未知 scope 抛、`capture` 不吞 `SiteError`）。
 ### 11.6 差集 apply 引擎在本仓的落点（A 半，2026-08-21）
 
 §11.1「三个必须自建的部件」第二行的**前半边**已落地：读包 → 与站点现状求差 → 产出含**删除计划**的
@@ -346,13 +356,73 @@ loop 无权实现。该文件四条仍红且红在 fixture 层（`4 errors`，`E
 A 半的判据全部落在 `tests/unit/test_apply_plan.py`（`missions/p0-foundation.json` 的
 `commands.test` 复跑得到）。
 
-**`apply_pack` 现在红在哪**：委派后它先跑完读包与求差，随后红在站点侧——逐字是
-`SiteSnapshotSource.read`（工作项 4 的 B 半：没有活站点就答不出「站点现状是什么」），
-它接上之后才轮到 `execute_plan`（工作项 6）。**站点侧有这两个落点，不是一个**；
-B 半的 successor 两处都要接。
+**`apply_pack` 现在红在哪**（2026-08-21 更新：B 半已接上）：委派后它先跑完读包与求差，
+随后红在站点侧。**站点侧有两个落点，不是一个**——先是 `SiteSnapshotSource.read`（工作项 4 的 B 半，
+**已实现**，见 §11.7），再是 `execute_plan`（工作项 6，仍 `raise`）。离线跑到不了第二个：
+没有活站点、没有凭据时 B 半抛 `SiteError` 而**不伪装成功**，判据是
+`tests/unit/test_apply_plan.py::test_apply_pack_reds_on_the_site_half_not_on_diffing`。
 
 `agenerp.apply` 在 `apply_pack` 的**函数体内**导入：`apply` 顶层导入 `snapshot`，`snapshot` 顶层
 导入 `pack.normalize`，提到顶层就是 `pack` ↔ `apply` 循环导入。两种导入次序各有一个子进程判据。
+
+### 11.7 站点只读传输在本仓的落点（工作项 4 的 B 半，2026-08-21）
+
+§11.5 末节留下的接缝接上了：`agenerp/site.py` 是 `agenerp` 里**唯一**打到真站点的模块，
+`SiteSnapshotSource.read` 经它回答「站点现状是什么」。plan `docs/plans/p0-foundation/2026-08-21-1922-1-site-snapshot-source-live.md`。
+
+| 落点 | 职责 | 状态 |
+|---|---|---|
+| `agenerp/site.py` · `SiteClient` | 连活站点的**唯一**传输落点。`get(path, params)` 返回已解析载荷；`list_resource(doctype)` 列出全部行 | 已实现（**只有读方法**） |
+| `agenerp/site.py` · `SiteError` | 站点侧一切失败的统一异常：连不上 / 认证失败 / 非 2xx / 载荷不是 JSON | 已实现 |
+| `agenerp/site.py` · `client_from_env(site)` | 环境 → 客户端的组装点，缺凭据时抛并指名变量 | 已实现 |
+| `agenerp/site.py` · `Transport` / `UrllibTransport` | 可注入的传输接缝：单测喂假件，产品走标准库 | 已实现 |
+| `agenerp/site.py` · 写 / 删方法 | 归工作项 5 的删除段（plan `…-1922-3`） | 未做 |
+
+**配置口径（环境变量，产品代码不内置口令默认值）**：
+
+| 变量 | 含义 | 默认 |
+|---|---|---|
+| `AGENERP_SITE` | 站点名，同时用作 HTTP `Host` 头 | 无（未设即走离线来源，§11.5 的次序不变） |
+| `AGENERP_SITE_URL` | 站点基址 | `http://127.0.0.1:${AGENERP_HTTP_PORT:-8080}`，与 `docker-compose.yml` 的端口映射同源 |
+| `AGENERP_API_KEY` / `AGENERP_API_SECRET` | Frappe token 认证，**必须成对** | 无 |
+| `AGENERP_ADMIN_USER` / `AGENERP_ADMIN_PASSWORD` | 会话登录（token 未配时的回退） | 用户名 `Administrator`；**口令无默认值** |
+
+`tests/gates/conftest.py` 给 fixture 留了 `admin` 这个口令默认值，那是**测试脚手架**。
+产品代码内置口令等于把「本地默认口令」变成一条对外暴露时会咬人的隐性配置，所以缺凭据时
+显式抛 `SiteError` 并指名缺哪个变量。半套 token（只给 key 或只给 secret）判为配错而不是
+静默回退——静默回退会让「token 没生效」在日志里完全看不见。
+
+**Decision：认证取「token 优先、会话登录回退」。** 备选与否决理由：
+
+| 候选 | 说明 | 结论 |
+|---|---|---|
+| (a) 只做会话登录 | 最省事 | 未取：把口令带进每次运行，且 Frappe 的登录端点有速率限制 |
+| (b) 只做 token | 更贴生产 | 未取：零依赖 compose 栈上没有现成 key，L2 门禁跑不起来 |
+| (c) token 优先、会话登录回退 | 两者兼容 | **取此** |
+
+**残余风险（如实记）**：回退路径把口令读进进程内存并随登录请求发出。缓解只有一条——
+配了 token 就完全不走登录往返（判据 `tests/unit/test_site_client.py::test_token_credentials_skip_the_login_roundtrip`）。
+生产站点应当配 token；`AGENERP_ADMIN_PASSWORD` 是本地零依赖栈的通道。
+
+**三条实测硬约束，全部表达成了断言**（不是注释）：
+
+| 约束 | 出处 | 判据 |
+|---|---|---|
+| `Host` 头必须等于站点名 | `docker-compose.yml` 的 backend 探针注释：gunicorn 按 Host 解析站点，打 `127.0.0.1` 会被当成一个叫 `127.0.0.1` 的站点而 404 | `test_host_header_is_the_site_name` |
+| 路径必须 URL 编码（保留 `/`） | DocType 名带空格（`Custom Field`），不编码时 `http.client` 以 `URL can't contain control characters` 拒掉 | `test_path_is_url_encoded_keeping_slashes` |
+| 必须显式关分页 | Frappe `/api/resource` 默认只回 20 条；静默截断会让「未改动 → diff 为空」在缺条目时照样绿 | `test_list_resource_explicitly_disables_paging` + `test_list_resource_returns_every_row_the_site_gave`，外加 live 层实测条目数（§11.5 的完整性不变量） |
+
+**只读不变量的判据形式是「显式白名单」而不是「一个写动词都不许出现」**：
+`tests/unit/test_site_client.py::test_site_module_exposes_no_unlisted_write_method` 断言
+「公开方法名里出现 `agenerp/contracts.py` 的 `WRITE_VERBS` 的，必须在一个可见的字面量白名单内」，
+**本 plan 内白名单为空**。写成绝对禁令的话，工作项 5 的删除段在同一模块上加 `delete_custom_field`
+会被一条已关闭 plan 的判据当场打红，届时只剩「动别人的判据」和「卡住」两条路。
+白名单让它按**收窄**演进：每加一个写方法都要付一次 diff 和一次留痕。
+
+**不起本地 `http.server` 做单测**：本机 8080 已被另一套常驻栈占用是实测事实，
+在 `GATE_VERIFY` 与 CI 的 `gates-l1` 里再绑一个端口是自找的不稳定源。单测喂注入式假传输；
+唯一例外是「连不上 → `SiteError`」那条，它必须走真 `UrllibTransport`（假件证明不了
+`URLError` 被翻译过），用一个刚释放的端口构造 connection refused，不留监听。
 
 ---
 
