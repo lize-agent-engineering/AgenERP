@@ -444,6 +444,8 @@ Status Note: 四个阶段全部执行完毕并逐条打勾，`Plan Status: compl
 **独立关闭审计尚未跑**——`## Closure Gates` 里「closure audit was independent」一框**如实留空**，
 它归 mission-driver 的 `CLOSURE_VERIFY` 步（fresh session 子代理，不带实现上下文），不由执行会话自封。
 
+**收尾 sha**：`3024a3d`（18 个文件）。
+
 **交付物**：`agenerp/seed/`（10 个模块，最大 300 行）· `tests/unit/test_seed_deterministic.py`（31 条）·
 `docs/architecture/module-boundaries.md` §12 · `docs/backlog/gate-proposal-seed-dataset.md` ·
 `docs/masterplan/STATE.md` needs-human 新增一行 · `docs/context/project-context.md` 两处 ·
