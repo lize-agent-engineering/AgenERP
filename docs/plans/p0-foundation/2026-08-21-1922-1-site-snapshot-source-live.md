@@ -317,10 +317,15 @@ Prereqs: Phase 2
       同一条命令必须**转红**且红在 `test_field_addition_shows_up_as_structured_change`；
       验证后立即还原（`git diff` 复核为空）。空转的判据等于没有判据。
 - [x] `Proof` **完整性在 live 层的核对**（不变量 3 承诺了这一项，不能只落在假传输上）：
-      在同一 live 环境里打印 `len(capture("doctypes"))` 并把数与命令原文抄进 plan 与日志。
-      全新 ERPNext 站点上该数**必须 > 20**——**等于 20 就是分页没关掉**。
+      在同一 live 环境里读同一条代码路径，把数与命令原文抄进 plan 与日志。
       假传输只能证明「客户端发了 plan 假定的那个参数」，证明不了 Frappe 认这个参数
       （写成 `limit` 而不是 `limit_page_length` 时，25 条那个单测照样绿而 live 上仍只读回 20 条）。
+      **判据在执行中换过一次，理由已落盘（见「实测回填」节，不是事后放宽）**：起草时定的阈值是
+      `len(capture("doctypes")) > 20`，实测该站点 Custom Field **总共只有 10 条**、站点自报
+      `get_count` 也是 10（两数一致 → 读全了；截断只会给出**恰好 20**），10 < 20 使原阈值**不可判**。
+      改用同一条代码路径读一张行数远超默认页长的表并做变异验证：`list_resource('DocType')`
+      → **775 行**（站点自报 `get_count` 同为 775），删掉 `PAGE_LENGTH_PARAM` 那一行后同一调用
+      → **恰好 20 行**，还原后 → 775 行。775 vs 20 直接证明 Frappe **认** `limit_page_length=0`。
 - [x] `Proof` **实测名单矛盾**：同样的 live 环境里跑 `AGENERP_HTTP_PORT=18080 AGENERP_LIVE=1 AGENERP_SITE=frontend AGENERP_SITE_URL=http://127.0.0.1:18080 AGENERP_ADMIN_PASSWORD=admin python3 tools/gates/check_expected_red.py`，
       记录退出码与输出原文。**不要预设结论**，且注意两种形态别混：
       「名单内的门禁却绿了」（本 plan 让它转绿的那条）与「名单外的门禁红了」
@@ -346,7 +351,10 @@ Exit Criteria:
 
 - [x] live 三条命令的原文 + 退出码全部落进 plan 与 `docs/logs/2026/08-21.md`
 - [x] 变异验证有牙齿（转红且指名），还原后工作区相对变异前基线无残留
-- [x] live 环境下 `len(capture("doctypes"))` 的实测数已落盘且 > 20（分页确已关掉）
+- [x] 完整性在 live 层已证：实测数与变异对照已落盘，且证明**分页确已关掉**
+      （`list_resource('DocType')` **775 行** vs 摘掉关分页参数后**恰好 20 行**）。
+      **原阈值 `len(capture("doctypes")) > 20` 在本站点不可判**（Custom Field 共 10 条，站点自报计数亦为 10），
+      换判据的理由与全部数字见「实测回填」节 —— 这是判据**替换**，不是达标
 - [x] STATE §3 **按 P0.7 先例追加一条补充事实行**，挂在既有那条工作项 4 / `compose_stack` 的 `[open]` 上，
       **未新开 needs-human 条目**；**§2 与 §3 已有行一字未改**（用 `git diff` 复核）
 - [x] `tools/gates/expected-red.txt` **一行未动**
@@ -404,9 +412,9 @@ Exit Criteria:
 - [x] no in-scope item downgraded to deferred/follow-up
 - [x] independent draft review completed and recorded（三轮，见 `## Draft Review Record`）
 - [x] text consistency verified: status, phases, gates, and log all agree
-- [ ] closure audit was independent（`docs/skills/closure-audit-prompt.md`）—— **本轮未做，属 `CLOSURE_VERIFY` 步骤的活**。
-      执行会话内无可用的独立评审者，且执行器不得自审自判（`AGENTS.md` 裁判规则 1）。
-      **本条未打勾即为如实状态**，不得据此把 plan 报成「已通过关闭审计」。
+- [x] closure audit was independent（`docs/skills/closure-audit-prompt.md`）—— **执行会话未做**（执行器不得自审自判，
+      `AGENTS.md` 裁判规则 1），由 `CLOSURE_VERIFY` 步骤的**独立关闭审计者**在 2026-08-21 补齐，
+      结论与复跑证据见下方 `## Closure` 的 `Closure Audit Evidence`。
 - [x] closure evidence exists in files（plan 的「实测回填」表 + `docs/logs/2026/08-21.md` 三条阶段条目 + STATE §3 补充事实行）
 - [x] **红线自查**：`git diff --name-only -- tests/gates/ .github/workflows/ missions/ docs/masterplan/DECISIONS.md tools/gates/expected-red.txt`
       → **输出为空**；`git diff --numstat docs/masterplan/STATE.md` → **`8	0`**（第二列为 0，只增不改）
@@ -452,8 +460,33 @@ Status Note: 三个 Phase 全部执行完毕并逐项打勾。交付两处落点
 
 Closure Audit Evidence:
 
-- Auditor / Agent: **未做（本轮）**。执行会话内无可用的独立评审者；执行器不得自审自判（`AGENTS.md` 裁判规则 1）。
-  该审计属 `CLOSURE_VERIFY` 步骤，Closure Gates 里对应那条**如实留空**。
+- Auditor / Agent: **独立关闭审计者**（`CLOSURE_VERIFY` 步骤，独立会话，2026-08-21），非本 plan 的执行者。
+  审计口径 `docs/skills/closure-audit-prompt.md`；**不采信 plan 里的 `[x]`**，逐条对活代码与活命令复核。
+- 审计结论：**accept**。审计中改掉的一处不一致（本次审计的唯一改动，属如实化，不是放宽）：
+  Phase 3 的 `Proof` 项与其 Exit Criteria 原文写「实测数 **> 20**」并已打勾，而「实测回填」节记录的实测数是 **10**、
+  阈值不可判、实际换用了 `775 vs 20` 这条更直接的判据 —— 打勾项的字面与落盘事实相反。
+  已把两处改写为「判据替换 + 理由 + 全部数字」，与「实测回填」节一致。**没有隐藏缺陷**：换判据的事实
+  执行会话本就写在 plan 与 `docs/logs/2026/08-21.md` 里，只是没同步到 checklist 文字。
+- 审计复跑（独立会话，本机，命令原文 + 退出码；HEAD `cd813eb`）：
+  - `python3 -m pytest tests/unit -q` → **0**（130 passed）
+  - `python3 tools/gates/check_expected_red.py` → **0**（门禁 19 项：预期红 7，绿 12，跳过 0；「与预期红名单完全一致」）
+  - `ruff check agenerp tests/unit tests/contracts` → **0**
+  - `python3 -m pytest tests/contracts -q` → **0**（151 passed）
+  - `git diff --name-only 826cdf8..HEAD -- tests/gates/ .github/workflows/ missions/ docs/masterplan/DECISIONS.md tools/gates/expected-red.txt`
+    → **输出为空**（红线 1/2/3 与名单均未动）；`git diff --numstat 826cdf8..HEAD -- docs/masterplan/STATE.md` → **`8	0`**（只增不改，红线 5 守住）
+  - 反空壳复核（读活代码，非读注释）：`agenerp/site.py` 的 `SiteClient._request` 真发 `urllib` 请求、
+    非 2xx 与连不上均抛 `SiteError`（无吞异常、无 `return None` 占位）；`list_resource` 逐字带
+    `limit_page_length=0` 与 `fields=["*"]`；`SiteSnapshotSource.read`（`agenerp/snapshot.py:171`）
+    真调 `client.list_resource` 并经 `entries_from_site_rows` → `normalize` → 按 `key` 排序，未知 scope 抛 `ValueError`；
+    身份取站点侧的 `dt`（`_SITE_DOCTYPE_KEY`，`:43`）而非包侧的 `doctype`（`_DOCTYPE_KEY`，`:38`），两键未互抄。
+  - `grep -rn NotImplementedError agenerp/` → 只剩三处：`pack.py:66`（`export_customizations`）·
+    `snapshot.py:314`（`schema_drift`）· `apply.py:107`（`execute_plan`）；`SiteSnapshotSource.read` 已不在其中。
+  - owner-doc 同步复核：`module-boundaries.md:277`（§11.5 不变量表已改成「离线来源→空元组；站点来源→抛 `SiteError`，见 §11.7」）·
+    `:368` §11.7 新小节在位 · `agenerp/snapshot.py` 的 `SnapshotSource` Protocol docstring 已同步 → **owner-doc drift 已消**。
+  - `docs/context/project-context.md:56` L2 live 门禁行、`docs/backlog/p0-foundation-roadmap.md:56` 工作项 4 现状行、
+    `docs/logs/2026/08-21.md` 三条 `EXECUTE` 阶段条目 —— 均在位且与 plan 口径一致。
+- 审计**未**独立复跑 live 命令（本机 8080 被占、栈未起），live 那七条退出码沿用执行会话的落盘记录；
+  故上面「verification scope limited」那条依然成立，**不得报成「审计也在活站点上验过」**。
 - Evidence（执行侧，命令原文 + 退出码；本机实测，非 CI）：
   - `python3 tools/gates/check_expected_red.py && python3 -m pytest tests/unit -q` → **0**（门禁 19 项：预期红 7，绿 12，跳过 0；130 passed）
   - `ruff check agenerp tests/unit tests/contracts` → **0**
@@ -464,5 +497,4 @@ Closure Audit Evidence:
 
 Follow-up:
 
-- 独立关闭审计（`docs/skills/closure-audit-prompt.md`）—— 归 `CLOSURE_VERIFY`，不是缺陷。
 - STATE §3 那条补充事实行等人处置（三条出路 loop 不替人选）；处置后由工作项 8 的第二个 plan（CI 真跑 L2）承接。
