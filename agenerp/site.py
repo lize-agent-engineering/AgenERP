@@ -8,8 +8,13 @@
 2. **零第三方依赖。** 只用标准库（CI 的 `gates-l1` 只 `pip install pytest`）。
 3. **产品代码不内置口令默认值。** 缺凭据时显式报错并指名缺哪个环境变量。
    `tests/gates/conftest.py` 给 fixture 留的 `admin` 默认值是测试脚手架，不是产品口径。
-4. **只读。** 本模块公开的方法里没有写动作；判据是
-   `tests/unit/test_site_client.py` 的写动词白名单断言（白名单目前为空）。
+4. **写方法必须登记。** 公开方法名里出现 `agenerp.contracts.WRITE_VERBS` 的，
+   必须在 `tests/unit/test_site_client.py` 的 `WRITE_METHOD_ALLOWLIST` 里逐条列名。
+   2026-08-21 起白名单有且只有一条：`SiteClient.delete_custom_field`
+   （差集 apply 的 B 半，plan `2026-08-21-1922-3`）。这是**收窄式演进**——
+   每加一个写方法就要付一次 diff 和一次留痕，不是把只读约束取消了。
+   **不提供「删任意 DocType 文档」的通用方法**：通用删除接口等于把业务数据交出去，
+   而本模块的写面只该覆盖「结构定制」。
 
 两条实测得来的硬约束（不是猜的）：
 
@@ -50,6 +55,16 @@ ALL_FIELDS = ("*",)
 
 LOGIN_PATH = "/api/method/login"
 RESOURCE_PATH = "/api/resource"
+
+# 承载「某个 DocType 上的某个定制字段」的 DocType，以及它的文档名口径。
+# 名字形如 `Item-agenerp_gate_roundtrip` —— 2026-08-21 在活站点上实测确认
+# （`POST /api/resource/Custom Field` 回的 `data.name`），不是从 fixture 推断的。
+CUSTOM_FIELD_DOCTYPE = "Custom Field"
+
+
+def custom_field_name(doctype: str, fieldname: str) -> str:
+    """Custom Field 的文档名。**唯一落点**——读回那侧将来若要按 name 查，也走这里。"""
+    return f"{doctype}-{fieldname}"
 
 
 class SiteError(RuntimeError):
@@ -118,7 +133,7 @@ def default_base_url() -> str:
 
 
 class SiteClient:
-    """活站点的只读客户端。
+    """活站点的客户端：读全部、写只有一条（`delete_custom_field`，见模块头第 4 条）。
 
     认证取「token 优先、会话登录回退」：token 贴生产且不把口令带进每次运行，
     但零依赖栈上没有现成的 key，只做 token 会让 L2 门禁跑不起来。取舍与残余风险
@@ -173,6 +188,20 @@ class SiteClient:
         if not isinstance(rows, list):
             raise SiteError(f"{doctype} 的列表载荷缺少 data 数组：{str(payload)[:200]}")
         return rows
+
+    def delete_custom_field(self, doctype: str, fieldname: str) -> None:
+        """删掉站点上的一条 Custom Field。**本模块唯一的写动作**（见模块头第 4 条）。
+
+        实测语义（2026-08-21，活站点）：成功回 **HTTP 202** `{"data":"ok"}`（不是 200/204），
+        随后 `GET` 同一路径回 404；删一个不存在的 name 回 **404 `DoesNotExistError`**。
+        因此成败判据沿用 `_request` 的 `200 <= status < 300`，不为删除另开分支——
+        **「要删的东西不在」被判为失败并抛 `SiteError`**，不静默吞掉。
+
+        路径由 `_request` 统一 URL 编码（`Custom Field` 带空格，不编码时 `http.client` 直接拒）。
+        """
+        self._ensure_authenticated()
+        name = custom_field_name(doctype, fieldname)
+        self._request("DELETE", f"{RESOURCE_PATH}/{CUSTOM_FIELD_DOCTYPE}/{name}")
 
     def _ensure_authenticated(self) -> None:
         if self._authenticated:

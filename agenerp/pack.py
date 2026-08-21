@@ -1,7 +1,7 @@
 """定制包（customization pack）的导出、规范化与 apply。
 
-`normalize`（工作项 1）与 `export_customizations`（工作项 6 的前半）已实现；
-`apply_pack` 是委派链的入口，红因落在被委派的那一半。签名逐字对齐 tests/gates/ 里的调用处。
+`normalize`（工作项 1）、`export_customizations`（工作项 6 的前半）与 `apply_pack`
+（工作项 5，委派链的入口，含对差集执行删除）均已实现。签名逐字对齐 tests/gates/ 里的调用处。
 
 本模块是「条目 → 包文件」的**唯一写入口径**；读回那一侧在 `agenerp.snapshot`
 （`read_scope_dir` / `entries_from_payload`），两者互为逆。结构边界与排版裁定见
@@ -153,17 +153,34 @@ def export_customizations(doctype: str, into: str, source: Any = None) -> None:
 def apply_pack(path: str, site: str) -> None:
     """把定制包 `path` 应用到站点 `site`，**含对差集执行删除**。
 
-    委派给 `agenerp.apply`：读包 → 求差 → 执行。**求差这一半已经实现**（工作项 5 的 A 半），
-    红因因此从「求差不存在」挪到了站点侧——先是 `SiteSnapshotSource.read`（工作项 4 的 B 半，
-    要活站点才答得出「站点现状是什么」），随后才是 `execute_plan`（工作项 6）。
+    委派给 `agenerp.apply`，四步：读包 → 求差 → **收窄** → 执行。签名不变（门禁逐字调用
+    `apply_pack(pack_repo.path, site=live_site.name)`），`site` 是**站点名**不是 URL——
+    地址与凭据仍由 `agenerp.site` 从环境解析。
+
+    **收窄那一步不能省，也只能落在这里**：`current` 是**整个 scope 的站点现状**，
+    而包通常只管几个 DocType；不收窄就会把包没覆盖到的 DocType 上的定制一并删光
+    （2026-08-21 活站点实测：只含 `Item.json` 的包算出 11 条 `deletes`，10 条是别的 DocType 上
+    应用自带的字段）。管辖面要读包**目录**才算得出来，而 `execute_plan` 只拿得到条目——
+    所以落点在委派链里，不在 `execute_plan` 内。裁定与备选见
+    `docs/architecture/module-boundaries.md` §11.6。
+
+    收窄在求差**之后**：方向不变量已先对全集通过，过滤只做删减，不影响它的结论。
 
     `agenerp.apply` 在**函数体内**导入：`apply` 顶层已经导入 `snapshot`，而 `snapshot` 顶层
     导入本模块的 `normalize`；把它提到顶层就是 `pack` ↔ `apply` 循环导入。
     判据在 `tests/unit/test_apply_plan.py::test_import_order_does_not_deadlock`。
     """
-    from agenerp.apply import PACK_SCOPE, execute_plan, plan_apply, read_pack
+    from agenerp.apply import (
+        PACK_SCOPE,
+        execute_plan,
+        narrow_deletes,
+        pack_doctypes,
+        plan_apply,
+        read_pack,
+    )
     from agenerp.snapshot import SiteSnapshotSource, capture
 
     desired = read_pack(path)
     current = capture(PACK_SCOPE, source=SiteSnapshotSource(site))
-    execute_plan(plan_apply(desired=desired, current=current), site)
+    plan = plan_apply(desired=desired, current=current)
+    execute_plan(narrow_deletes(plan, pack_doctypes(path)), site)

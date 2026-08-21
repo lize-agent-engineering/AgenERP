@@ -69,7 +69,8 @@ Fill these for the copied project.
 If this table still contains placeholders, AI must treat payment, auth/permissions, data deletion, database/model shape, deployment, and external integrations as `ask-first` or `blocked` until the table is replaced with real entries or explicit `none`.
 
 本项目此刻**没有**支付面，也没有自有认证/权限面（权限由 Frappe / ERPNext 宿主承担）。
-真正的保护区是下表这八条，全部照抄 `AGENTS.md` 的红线表——**此处不新增、不放宽任何一条**。
+下表前八条全部照抄 `AGENTS.md` 的红线表——**此处不新增、不放宽任何一条**；
+第九条是 2026-08-21 新增的**加严**行（本仓第一次出现对活站点的破坏性写实现面，见其 Required Evidence）。
 
 | Area | Rule | Required Evidence |
 | --- | --- | --- |
@@ -82,8 +83,10 @@ If this table still contains placeholders, AI must treat payment, auth/permissio
 | 项目名 / 包名 / 命名空间 | ask first | 名字由 D-1 定；复核发现被占用须停机等人拍板（红线 4） |
 | 运行时 Server Script 生成 | blocked | 等同 RCE，产品上不做（红线 7） |
 | `missions/*.json` | blocked | 角色 B 禁区（`docs/masterplan/01-EXECUTION-MODEL.md` §1 禁止项 ③），由人编辑 |
+| 对活站点的破坏性写（删除 Custom Field：`agenerp/site.py` · `SiteClient.delete_custom_field`、`agenerp/apply.py` · `execute_plan` 的删除路径） | plan-first | 独立草案评审 + 独立关闭审计 + **实跑前后全量 `capture` 对照**（差集必须只含本次探针）。2026-08-21 由 plan `2026-08-21-1922-3-execute-plan-site-delete.md` 补行——该 plan 落地前本表此行不存在，本行是**加严**（此前默认 `implement`） |
 
-支付、数据删除、认证/权限：`none`（本项目当前无自有实现面）。将来出现时，先在本表补行再动手。
+支付、认证/权限：`none`（本项目当前无自有实现面）。将来出现时，先在本表补行再动手。
+**数据删除**：不再是 `none` —— 2026-08-21 起本仓有了自有实现面（上表最后一行）。它删的是**结构定制**（Custom Field），不是业务数据；业务数据删除面仍为 `none`。
 
 Protected-area rule meanings:
 

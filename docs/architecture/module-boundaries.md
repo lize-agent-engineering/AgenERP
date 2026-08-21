@@ -211,6 +211,13 @@ ERP 中大量字段是**用户可写的自由文本**——备注、评论、异
 
 原因在 Frappe 的 `sync_customizations_for_doctype`：它是**纯 upsert，没有任何删除分支**。
 
+**本仓的实测反证（2026-08-21）：现在撤得回了。** 上表最后一行说的是**走 Frappe 那条路径**时的结果；
+换成本项目自建的差集 apply 引擎（§11.6，`read_pack` → `plan_apply` → `narrow_deletes` → `execute_plan`）后，
+同一个动作在活站点上实测**字段真的消失**：门禁 `test_removing_from_pack_actually_deletes_on_site` **PASSED**，
+且变异验证（把删除改成 no-op）让它逐字转红「字段仍在站点上」。
+**仍未撤回的是物理列**——「删 Custom Field 不删列、数据仍在」那一行**没有被推翻**，
+它归第三个部件 `schema_drift`（`test_no_orphan_column_left_behind` 仍红，红因已挪到那里）。
+
 → 三个必须自建的部件（建议随 P0 的契约层与快照一起做，它们是同一批地基）：
 
 | 部件 | 解决什么 |
@@ -313,19 +320,24 @@ ERPNext 把标准工作台以 JSON fixture 装在 app 目录里（`erpnext/selli
 `tests/unit/test_snapshot_capture.py` 与 `tests/unit/test_snapshot_diff.py`，不依赖活站点
 （站点来源那组喂**假客户端**：`dt → doctype` 投影、两次读相同、易变列被剥、同名字段不混、
 25 条不截断、未知 scope 抛、`capture` 不吞 `SiteError`）。
-### 11.6 差集 apply 引擎在本仓的落点（A 半，2026-08-21）
+### 11.6 差集 apply 引擎在本仓的落点（2026-08-21，A 半 + B 半均已落地）
 
-§11.1「三个必须自建的部件」第二行的**前半边**已落地：读包 → 与站点现状求差 → 产出含**删除计划**的
-`ApplyPlan`。切分依据只有一条：**算出删除集是纯逻辑，执行删除才需要活站点。**
+§11.1「三个必须自建的部件」第二行**整条**已落地：读包 → 与站点现状求差 → **收窄** → 对差集在活站点上执行删除。
+切分依据只有一条：**算出删除集是纯逻辑，执行删除才需要活站点。**
+B 半（`execute_plan` 的删除路径、作用域收窄、建/改显式拒绝）见本节末的三条裁定。
 
 | 落点 | 职责 | 状态 |
 |---|---|---|
 | `agenerp/apply.py` · `read_pack(path, scope=PACK_SCOPE)` | 定制包目录 → `Snapshot` | 已实现 |
 | `agenerp/apply.py` · `ApplyPlan` | 不可变值对象：`creates` / `updates` / `deletes` | 已实现 |
 | `agenerp/apply.py` · `plan_apply(desired, current)` | 纯函数求差 | 已实现 |
-| `agenerp/apply.py` · `execute_plan(plan, site)` | **对站点执行，B 半的唯一落点** | `raise`，归工作项 6 |
-| `agenerp/pack.py` · `apply_pack(path, site)` | 委派链的入口，签名与导入路径不变 | 已委派 |
-| `agenerp/snapshot.py` · `schema_drift(doctype)` | 物理表孤儿列巡检（§11.1 第三个部件） | `raise`，与 B 半同一 successor |
+| `agenerp/apply.py` · `pack_doctypes(path, scope)` | 包**管辖**哪些 DocType = 目录里存在文件的那些（收窄集） | 已实现（B 半） |
+| `agenerp/apply.py` · `narrow_deletes(plan, covered)` | 纯函数收窄 `deletes`，被丢弃的条目发 WARNING | 已实现（B 半） |
+| `agenerp/apply.py` · `execute_plan(plan, site, client=None)` | **对站点执行**：删除已实现；`creates` / `updates` **显式拒绝** | 已实现（B 半） |
+| `agenerp/apply.py` · `ApplyDirectionError` | 方向不变量的失败机制：裸 `assert` 换成显式 `raise`（`-O` 下不消失） | 已实现（B 半） |
+| `agenerp/site.py` · `SiteClient.delete_custom_field` | 站点侧删除的**唯一**出口，只删 Custom Field | 已实现（B 半） |
+| `agenerp/pack.py` · `apply_pack(path, site)` | 委派链的入口，签名不变；委派链**四步**（读包 → 求差 → 收窄 → 执行） | 已委派 |
+| `agenerp/snapshot.py` · `schema_drift(doctype)` | 物理表孤儿列巡检（§11.1 第三个部件） | `raise`，归工作项 6 的第二个 plan |
 
 **方向约定**（写反了不报错、只会把「删」算成「建」，所以写在这里）：`plan_apply(desired, current)` 的
 `desired` = 定制包、`current` = 站点现状；而 `snapshot.diff(before, after)` 的 `added` = 只在 `after`、
@@ -351,19 +363,21 @@ ERPNext 把标准工作台以 JSON fixture 装在 app 目录里（`erpnext/selli
 `read_scope_dir` 互为逆，`read_pack` 一行未改、`plan_apply` 形状未动。判据：
 `tests/unit/test_pack_export.py` 的往返用例（导出 → `read_pack` → 与 `capture` 逐条相等）。
 
-**未让任何门禁转绿（如实记录）。** 工作项 5 绑定的
+**承重条款已在 live 环境实测转绿（2026-08-21，B 半落地后）。** 工作项 5 绑定的
 `tests/gates/test_customization_roundtrip_delete.py::test_removing_from_pack_actually_deletes_on_site`
-要 `live_site` / `pack_repo` 两个 fixture，全在 `tests/gates/conftest.py`（`AGENTS.md` 红线 1），
-loop 无权实现。该文件四条仍红且红在 fixture 层（`4 errors`，`ERROR at setup`），
-`tools/gates/expected-red.txt` 一行未动，roadmap 工作项 5 停在 `planned`。
-A 半的判据全部落在 `tests/unit/test_apply_plan.py`（`missions/p0-foundation.json` 的
-`commands.test` 复跑得到）。
+在 fixture 自己拉起的一次性栈上实跑 **PASSED**（该文件 `1 failed, 3 passed`）。
+唯一仍红的 `::test_no_orphan_column_left_behind` 红因**已从 `execute_plan` 挪到 `schema_drift`**——
+它第一次走得到那一步。`tools/gates/expected-red.txt` **一行未动**（默认判定环境下 L2 恒红，
+`AGENERP_LIVE` 未设即 `pytest.fail`；划掉会让默认 `GATE_VERIFY` 立刻转红），
+roadmap 工作项 5 停在 `planned`，该矛盾的处置权在 `docs/masterplan/STATE.md` §3 那行 needs-human。
+**live 环境下判定器退 1 是预期**（名单内 5 条在 live 下变绿），不得被读成回归。
+A 半的判据落在 `tests/unit/test_apply_plan.py`、B 半的落在 `tests/unit/test_apply_execute.py`
+（19 条，喂假客户端，`missions/p0-foundation.json` 的 `commands.test` 复跑得到）。
 
-**`apply_pack` 现在红在哪**（2026-08-21 更新：B 半已接上）：委派后它先跑完读包与求差，
-随后红在站点侧。**站点侧有两个落点，不是一个**——先是 `SiteSnapshotSource.read`（工作项 4 的 B 半，
-**已实现**，见 §11.7），再是 `execute_plan`（工作项 6，仍 `raise`）。离线跑到不了第二个：
-没有活站点、没有凭据时 B 半抛 `SiteError` 而**不伪装成功**，判据是
-`tests/unit/test_apply_plan.py::test_apply_pack_reds_on_the_site_half_not_on_diffing`。
+**`apply_pack` 现在红在哪**（2026-08-21 更新：两个站点侧落点都已接上）：离线跑仍红在
+`SiteSnapshotSource.read`——没有活站点、没有凭据时它抛 `SiteError` 而**不伪装成功**，
+判据是 `tests/unit/test_apply_plan.py::test_apply_pack_reds_on_the_site_half_not_on_diffing`。
+**有活站点时整条链路跑通**（读包 → 求差 → 收窄 → 删除），不再红在 `execute_plan`。
 
 `agenerp.apply` 在 `apply_pack` 的**函数体内**导入：`apply` 顶层导入 `snapshot`，`snapshot` 顶层
 导入 `pack.normalize`，提到顶层就是 `pack` ↔ `apply` 循环导入。两种导入次序各有一个子进程判据。
@@ -438,6 +452,58 @@ CI 亦未验证——代偿控制是下面两条变异 + 独立关闭审计。
 **未收窄投影，故 `agenerp/snapshot.py` 一个字未动**（`Decision` 3），按 plan 这一格无需回归；
 仍在同一 live 环境顺手复跑了一次作为加固：
 `… python3 -m pytest tests/gates/test_snapshot_diff_structured.py -q` → **exit 0**，`3 passed`。
+
+#### apply 对活站点执行删除的三条裁定（B 半，2026-08-21）
+
+plan `docs/plans/p0-foundation/2026-08-21-1922-3-execute-plan-site-delete.md` 的 Phase 1，
+全部依活站点实测得出（栈端口 18080），不是推断。
+
+**裁定 1 · 作用域收窄口径 = 包目录里「存在文件」的 DocType 集合。**
+落点是 `agenerp/apply.py` 新增的 `pack_doctypes(path, scope)`，在 `agenerp/pack.py` · `apply_pack`
+的委派链里过滤 `plan.deletes`（`read_pack` 的签名与返回类型不动、`plan_apply` 的求差逻辑不动）。
+
+必要性是实测出来的：`apply_pack` 的 `current` 是**整个 scope 的站点现状**，而门禁给的包只有 `Item.json`。
+实测那一次 `plan.deletes` 有 **11 条，其中 10 条是别的 DocType 上应用自带的字段**
+（`Address.tax_category`、`Customer.crm_deal` …）。不收窄就会把它们全删光，而门禁那条断言
+（只看 Item 上探针没了）**照样绿**——判据挡不住这个错误，所以收窄自带判据
+（`tests/unit/test_apply_execute.py` 的正反两断言写在同一个用例里）。
+
+| 候选 | 说明 | 结论 |
+|---|---|---|
+| (a) 不收窄 | 直接执行 `plan.deletes` | 未取：实测会删掉 10 条应用自带字段 |
+| (b) 按**包条目**里出现过的 DocType | 从 `ApplyPlan` 的条目里推 | 未取：`remove_field` 之后 `Item.json` 是**「文件在、数组空」**，`Item` 不在集内 → 探针不会被删，承重条款照样红（实测坐实） |
+| (c) **按包目录里存在文件的 DocType** | 「文件在、数组空」= 「我管这个 DocType，且它应该没有定制」 | **取此** |
+| (d) `apply_pack(..., doctypes=)` 显式参数 | 更精确 | 未取：门禁调用式是 `apply_pack(pack_repo.path, site=...)`，必填参数改不了调用方，可选参数则默认路径仍不安全 |
+| (e) 让 `capture` 只读包里的 DocType | 把安全约束塞进快照层 | 未取：`capture` 是共享件，污染职责边界 |
+
+covered 的判定口径与 `entries_from_payload` **同源**：载荷里的 `doctype` 键优先、文件名 stem 兜底。
+只按文件名算的话，一份 `Item.json` 内写 `{"doctype": "Customer"}` 会让管辖面与条目面对不上。
+**残余风险**：靠**删除包文件**表达「清空该 DocType 的全部定制」这一意图表达不出来（删文件 = 「不管它」）；
+「文件在、数组空」这条路是通的，且默认口径偏保守（少删），错的方向在安全那一侧。
+
+**裁定 2 · `is_system_generated` 的 Custom Field 排除在删除集外。**
+实测分布：站点上 10 条 Custom Field **全部** `is_system_generated = 1`，散在 7 个 DocType 上，
+全部由 ERPNext / CRM 应用装上；REST 建出来的探针是 `0`。**按 DocType 收窄挡不住这一类**——
+包里一旦出现 `Customer.json`，`Customer.crm_deal` 就落进删除集，删掉可能直接弄坏应用功能。
+`normalize` 不剥这个键（不含 modified / creation / owner / `_comments`），所以它在快照条目的
+`attributes` 里读得到，判据面是存在的。
+**残余风险**：包因此**不是**该 DocType 的完整真相源——从包里删掉一条 `is_system_generated` 的字段，
+apply 不会照做，`git revert` 撤不掉这一类定制。代价被限定在「应用自己装的字段」上，那一类本就不该由定制包管辖。
+
+**裁定 3 · 建（`creates`）/ 改（`updates`）一律显式拒绝。**
+`execute_plan` 在两者任一非空时抛 `NotImplementedError` 并指名 successor。
+备选「一并实现」未取（P0 无判据覆盖，等于交付没人验的破坏性代码）；
+备选「静默跳过」**明令禁止**（假装成功正是本仓反复挡的那种事）。
+**残余风险**：站点侧的回滚只能手工重建（`POST /api/resource/Custom Field` 或 Desk），
+「用包把删掉的字段建回来」这条能力要等 `creates` 落地。
+
+**被收窄 / 被排除的条目一律不静默**：`logging.getLogger("agenerp.apply")` 发 WARNING 并逐条列出
+`(doctype, fieldname)`。这是「不许静默丢弃」这个安全承诺的唯一判据面，也是 `agenerp/` 全树的第一处 logging。
+
+**删除的传输语义（活站点实测）**：`DELETE /api/resource/Custom Field/<dt>-<fieldname>` 成功返回
+**HTTP 202** `{"data":"ok"}`（不是 200/204），随后 `GET` 同一路径返回 404；删一个不存在的 name 返回
+**404** `DoesNotExistError`。因此成败判据沿用 `SiteClient._request` 的 `200 <= status < 300`，
+不为删除另开分支；**「要删的东西不在」被判为失败并抛 `SiteError`，不静默吞掉**。
 
 ### 11.7 站点只读传输在本仓的落点（工作项 4 的 B 半，2026-08-21）
 

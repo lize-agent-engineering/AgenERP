@@ -195,10 +195,24 @@ def read_scope_dir(root: Path, scope: str) -> tuple[SnapshotEntry, ...]:
     return tuple(sorted(entries, key=lambda entry: entry.key))
 
 
-def entries_from_payload(payload: Any, default_doctype: str) -> list[SnapshotEntry]:
+def _normalized_payload(payload: Any) -> dict[str, Any]:
     if not isinstance(payload, dict):
         raise ValueError(f"快照文件必须是 JSON 对象，读到 {type(payload).__name__}")
-    normalized = normalize(payload)
+    return normalize(payload)
+
+
+def doctype_from_payload(payload: Any, default_doctype: str) -> str:
+    """一份快照/定制包载荷讲的是**哪个 DocType**：载荷 `doctype` 键优先、文件名兜底。
+
+    与 `entries_from_payload` 走同一条判定（两者都经 `_normalized_payload`）。
+    差集 apply 的作用域收窄靠它算「这个包管辖哪些 DocType」，两套口径会让管辖面与条目面对不上：
+    一份 `Item.json` 内写 `{"doctype": "Customer"}` 时，条目算 Customer 而管辖面算 Item。
+    """
+    return str(_normalized_payload(payload).get(_DOCTYPE_KEY, default_doctype))
+
+
+def entries_from_payload(payload: Any, default_doctype: str) -> list[SnapshotEntry]:
+    normalized = _normalized_payload(payload)
     doctype = str(normalized.get(_DOCTYPE_KEY, default_doctype))
     rows = normalized.get(_ENTRIES_KEY, [])
     if not isinstance(rows, list):

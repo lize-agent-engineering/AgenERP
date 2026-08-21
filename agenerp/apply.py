@@ -1,14 +1,25 @@
-"""差集 apply 引擎的 **A 半**：读包 → 与站点现状求差 → 产出含**删除计划**的 `ApplyPlan`。
+"""差集 apply 引擎：读包 → 与站点现状求差 → **对差集在活站点上执行删除**。
 
-为什么这半边要自建（`docs/architecture/module-boundaries.md` §11.1 的实测结论）：
+为什么整条要自建（`docs/architecture/module-boundaries.md` §11.1 的实测结论）：
 Frappe 的 `sync_customizations_for_doctype` 是**纯 upsert，没有任何删除分支**——
 从定制包 JSON 里删掉一个字段再 sync，站点上的字段纹丝不动，`git revert` 撤不掉定制。
 「删除集」这个概念在那条路径上根本不存在，它正是本项目必须自己长出来的东西。
 
-职责切分（本模块只做前者）：
+职责切分（两半都在本模块，但接触外部世界的只有第二半）：
 
-- **算出删除集是纯逻辑** —— `read_pack` / `plan_apply`，无 I/O 副作用、不接站点，判据在 `tests/unit/`。
-- **执行删除才需要活站点** —— `execute_plan` 在此只留接缝并 `raise`，归工作项 6 与同一个 successor。
+- **算出删除集是纯逻辑** —— `read_pack` / `plan_apply` / `pack_doctypes` / `narrow_deletes`，
+  无 I/O 副作用、不接站点，判据在 `tests/unit/`。
+- **执行删除才需要活站点** —— `execute_plan`，I/O 全部委给 `agenerp.site`（§11.7）。
+
+**执行前必须先收窄**（这是本模块唯一一条「不这么做就会静默毁坏站点」的约束，所以写在最前面）：
+`apply_pack` 里的 `current` 是**整个 scope 的站点现状**，而一个定制包通常只管几个 DocType。
+直接执行 `plan.deletes` 会把包没覆盖到的 DocType 上的定制一并删光——2026-08-21 活站点实测：
+只含 `Item.json` 的包算出 11 条 `deletes`，其中 10 条是别的 DocType 上应用自带的字段。
+门禁那条断言照样会绿（它只看 Item 上的探针没了），**判据挡不住这个错误**，所以收窄自带判据
+（`tests/unit/test_apply_execute.py`）。裁定与备选见 §11.6。
+
+**本模块不做建（`creates`）与改（`updates`）**：两者非空时 `execute_plan` 显式抛，
+不静默跳过——假装成功比没实现更坏。successor 见 plan `2026-08-21-1922-3` 的 Deferred 第一条。
 
 三个序列（`creates` / `updates` / `deletes`）是判定面；`summary()` 只供人读（断言失败信息、日志），
 **不是判定面**——与 `agenerp.snapshot.Diff` 是同一条约定，不开第二口径。
@@ -16,10 +27,39 @@ Frappe 的 `sync_customizations_for_doctype` 是**纯 upsert，没有任何删�
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+import json
+import logging
+from dataclasses import dataclass, replace
 from pathlib import Path
 
-from agenerp.snapshot import ChangedEntry, Snapshot, SnapshotEntry, diff, read_scope_dir
+from agenerp.site import SiteClient, client_from_env
+from agenerp.snapshot import (
+    ChangedEntry,
+    Snapshot,
+    SnapshotEntry,
+    diff,
+    doctype_from_payload,
+    read_scope_dir,
+)
+
+# 被收窄 / 被排除的删除条目走这里发 WARNING。**「不许静默丢弃」这条安全承诺的唯一判据面**，
+# 也是 `agenerp/` 全树的第一处 logging（plan `2026-08-21-1922-3` 的结构边界表）。
+LOGGER = logging.getLogger("agenerp.apply")
+
+# 应用自带的 Custom Field 的标记列。ERPNext / CRM 会往 DocType 上装这类字段，
+# 删掉可能直接弄坏应用功能，而按 DocType 收窄挡不住它们（§11.6 裁定 2）。
+# `normalize` 不剥这个键（不含 modified / creation / owner / `_comments`），故快照条目里读得到。
+SYSTEM_GENERATED_KEY = "is_system_generated"
+
+
+class ApplyDirectionError(RuntimeError):
+    """`desired` / `current` 传反了。
+
+    A 半时这只是纯逻辑自检，用裸 `assert` 就够；B 半接上真删除之后，它是**唯一**挡住
+    「把整站定制算成待删」的运行时闸门，而 `python -O` / `PYTHONOPTIMIZE=1` 会把裸 `assert`
+    整条剥掉 —— 那正是灾难性误删最可能发生的方式。所以换成显式 `raise`（加严，不是改判定）。
+    """
+
 
 # 定制包的目录布局：`<root>/<scope>/<DocType>.json`，与仓内 `OfflineSnapshotSource` 同一套
 # （裁定与备选见 `docs/architecture/module-boundaries.md` §11.6）。
@@ -86,28 +126,117 @@ def plan_apply(desired: Snapshot, current: Snapshot) -> ApplyPlan:
 
 
 def _assert_direction(plan: ApplyPlan, desired: Snapshot, current: Snapshot) -> None:
-    """方向不变量：建 = 只在包里，删 = 只在站点上，改 = 两边都有。"""
+    """方向不变量：建 = 只在包里，删 = 只在站点上，改 = 两边都有。
+
+    **不用裸 `assert`**：见 `ApplyDirectionError` 的 docstring —— `python -O` 下裸 `assert`
+    整条消失，而这里是接上真删除之后挡住灾难性误删的最后一道闸。
+    """
     in_desired, in_current = desired.by_key(), current.by_key()
     for entry in plan.creates:
-        assert entry.key in in_desired and entry.key not in in_current, (
-            f"creates 里出现了站点上已有的 {entry.key}——desired / current 传反了"
-        )
+        if entry.key not in in_desired or entry.key in in_current:
+            raise ApplyDirectionError(
+                f"creates 里出现了站点上已有的 {entry.key}——desired / current 传反了"
+            )
     for entry in plan.deletes:
-        assert entry.key in in_current and entry.key not in in_desired, (
-            f"deletes 里出现了定制包里仍有的 {entry.key}——desired / current 传反了"
-        )
+        if entry.key not in in_current or entry.key in in_desired:
+            raise ApplyDirectionError(
+                f"deletes 里出现了定制包里仍有的 {entry.key}——desired / current 传反了"
+            )
     for entry in plan.updates:
-        assert entry.key in in_desired and entry.key in in_current, (
-            f"updates 里出现了只存在于一侧的 {entry.key}"
-        )
+        if entry.key not in in_desired or entry.key not in in_current:
+            raise ApplyDirectionError(
+                f"updates 里出现了只存在于一侧的 {entry.key}"
+            )
 
 
-def execute_plan(plan: ApplyPlan, site: str) -> None:
-    """对活站点执行 `plan`，**含真正的删除**。B 半的唯一落点。"""
-    raise NotImplementedError(
-        "execute_plan 尚未实现 —— 差集 apply 引擎的 B 半（对站点执行）。"
-        "它要的 live_site / pack_repo 两个 fixture 全在 tests/gates/conftest.py（AGENTS.md 红线 1），"
-        "loop 无权实现；归 docs/backlog/p0-foundation-roadmap.md 工作项 6，"
-        "重开条件见 docs/masterplan/STATE.md §3 的 [open] 行（处置项 a/b/c/d 只有人能选）。"
-        f"（本次计划：{plan.summary()}，目标站点 {site!r}）"
+def pack_doctypes(path: str | Path, scope: str = PACK_SCOPE) -> frozenset[str]:
+    """这个定制包**管辖**哪些 DocType = `<root>/<scope>/` 里存在文件的那些。
+
+    口径与 `entries_from_payload` **同源**（都走 `snapshot.doctype_from_payload`）：
+    载荷 `doctype` 键优先、文件名 stem 兜底。只按文件名算的话，一份 `Item.json` 内写
+    `{"doctype": "Customer"}` 会让管辖面与条目面对不上。
+
+    **管辖面不能从 `ApplyPlan` 的条目里推**（§11.6 裁定 1，实测排除的备选 ②）：
+    从包里删掉某 DocType 的最后一个字段后，该 DocType 的文件是「**文件在、数组空**」——
+    包里一个该 DocType 的条目都没有，按条目推它就不在管辖面内，那条字段永远删不掉。
+    「文件在、数组空」= 「这个 DocType 我管，且它应该没有定制」；
+    「文件不在」= 「这个 DocType 不归这个包管」。
+
+    目录不存在返回空集合而**不抛**——与 `read_pack` 同一条约定（「还没有这个 scope 的定制」
+    是合法状态）。空集合意味着**一条都不删**，方向偏保守，错在安全那一侧。
+    """
+    scope_dir = Path(path) / scope
+    if not scope_dir.is_dir():
+        return frozenset()
+    return frozenset(
+        doctype_from_payload(json.loads(f.read_text(encoding="utf-8")), f.stem)
+        for f in sorted(scope_dir.glob("*.json"))
     )
+
+
+def _describe(entries: tuple[SnapshotEntry, ...]) -> str:
+    return ", ".join(f"({e.doctype!r}, {e.fieldname!r})" for e in entries)
+
+
+def narrow_deletes(plan: ApplyPlan, covered: frozenset[str]) -> ApplyPlan:
+    """把 `plan.deletes` 收窄到**包管辖的 DocType**，并排除应用自带的字段。
+
+    纯函数：返回新的 `ApplyPlan`，不改入参，不做 I/O。`creates` / `updates` 原样带过——
+    收窄只做删减，不改变方向不变量已经对全集得出的结论。
+
+    **被丢掉的条目一条都不静默**：逐类发一条 WARNING 并列出 `(doctype, fieldname)`。
+    静默丢弃与「什么都没删」在调用方眼里一模一样，那正是本仓反复挡的那种事。
+    """
+    kept: list[SnapshotEntry] = []
+    out_of_scope: list[SnapshotEntry] = []
+    system_generated: list[SnapshotEntry] = []
+    for entry in plan.deletes:
+        if entry.doctype not in covered:
+            out_of_scope.append(entry)
+        elif entry.attributes.get(SYSTEM_GENERATED_KEY):
+            system_generated.append(entry)
+        else:
+            kept.append(entry)
+
+    if out_of_scope:
+        LOGGER.warning(
+            "apply 跳过 %d 条**不在定制包管辖范围内**的删除（包覆盖的 DocType：%s）：%s",
+            len(out_of_scope), sorted(covered) or "（空）", _describe(tuple(out_of_scope)),
+        )
+    if system_generated:
+        LOGGER.warning(
+            "apply 跳过 %d 条**应用自带**（%s）的删除：%s",
+            len(system_generated), SYSTEM_GENERATED_KEY, _describe(tuple(system_generated)),
+        )
+    return replace(plan, deletes=tuple(kept))
+
+
+def execute_plan(plan: ApplyPlan, site: str, client: SiteClient | None = None) -> None:
+    """对活站点执行 `plan` 的**删除**部分。差集 apply 的 B 半，唯一落点。
+
+    只做删除（§11.6 裁定 3）：`creates` / `updates` 非空时**显式抛**，不静默跳过。
+
+    删除**顺序确定**（按 `key` 排序）：调用方复跑同一个计划时请求序一致，日志可比对。
+    任一条失败即抛（`agenerp.site.SiteError`）且**不继续删后面的**——中途失败会留下
+    **部分应用**的状态，本层不做事务/回滚（`02-WBS.md` 把写契约划给 P3.1），这一点不假装。
+
+    空的删除集**零副作用**：连客户端都不构造，所以离线跑一个空计划不会红在缺凭据上。
+
+    `client` 是可选注入（默认 `None` → `client_from_env(site)`），与 `SiteSnapshotSource.client`
+    同一个目的：让单测喂假客户端，不是给产品代码多一条配置路径。
+    """
+    if plan.creates or plan.updates:
+        raise NotImplementedError(
+            "execute_plan 只实现了删除路径：本次计划里 "
+            f"creates {len(plan.creates)} 条、updates {len(plan.updates)} 条，拒绝执行。"
+            "建/改的执行是显式 deferred（不是遗漏，也不静默跳过）——"
+            "裁定见 docs/architecture/module-boundaries.md §11.6 裁定 3，"
+            "successor 见 docs/plans/p0-foundation/2026-08-21-1922-3-execute-plan-site-delete.md "
+            "的 ## Deferred But Adjudicated 第一条（重开事件：出现需要用包在站点上建字段的调用方）。"
+            f"（本次计划：{plan.summary()}，目标站点 {site!r}）"
+        )
+    if not plan.deletes:
+        return
+    resolved = client if client is not None else client_from_env(site)
+    for entry in sorted(plan.deletes, key=lambda e: e.key):
+        resolved.delete_custom_field(entry.doctype, entry.fieldname)

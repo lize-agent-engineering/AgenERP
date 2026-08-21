@@ -277,18 +277,40 @@ def test_read_pack_and_plan_apply_compose_into_a_delete(tmp_path):
     assert [e.fieldname for e in plan.deletes] == ["agenerp_gate_roundtrip"], _UPSERT_LESSON
 
 
-# --- B 半的接缝：必须红在「执行未实现」 ---------------------------------------------
+# --- B 半的接缝：删除已实现，建/改显式拒绝 -------------------------------------------
+# 2026-08-21 B 半落地（plan `2026-08-21-1922-3`）之后，`execute_plan` 不再无条件 `raise`。
+# 这里只留「它仍是站点侧唯一落点」这一条结构断言；执行语义的判据在
+# `tests/unit/test_apply_execute.py`（假客户端，不连站点）。
 
 
 def test_execute_plan_is_the_single_landing_spot_for_the_site_half():
-    plan = plan_apply(desired=_snapshot(BRAND), current=_snapshot(BRAND, SHELF))
+    """建/改仍未实现，且是**显式拒绝**而非静默跳过 —— 消息必须指名 successor。"""
+    plan = plan_apply(desired=_snapshot(BRAND, SHELF), current=_snapshot(BRAND))
 
+    assert plan.creates and not plan.deletes, "夹具没摆出「只有 creates」的形状"
     with pytest.raises(NotImplementedError) as excinfo:
         execute_plan(plan, site="dev.localhost")
 
     message = str(excinfo.value)
-    assert "工作项 6" in message, f"红因没有指名后继：{message}"
-    assert "STATE.md" in message, f"红因没有指向等人的那行 [open]：{message}"
+    assert "2026-08-21-1922-3" in message, f"红因没有指名后继 plan：{message}"
+    assert "Deferred" in message, f"红因没有指向那条 deferred 裁定：{message}"
+
+
+def test_execute_plan_no_longer_reds_unconditionally():
+    """删除路径已实现：一个只含 `deletes` 的计划不该再抛 `NotImplementedError`。
+
+    这条是**反向**断言——把实现改回 `raise` 就红，防止 B 半被悄悄退回接缝状态。
+    """
+    plan = plan_apply(desired=_snapshot(BRAND), current=_snapshot(BRAND, SHELF))
+    calls = []
+
+    class _Recorder:
+        def delete_custom_field(self, doctype, fieldname):
+            calls.append((doctype, fieldname))
+
+    execute_plan(plan, site="dev.localhost", client=_Recorder())
+
+    assert calls == [("Item", "shelf_life_days")], calls
 
 
 def test_apply_pack_really_runs_the_pure_half():

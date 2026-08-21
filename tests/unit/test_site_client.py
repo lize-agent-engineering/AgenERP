@@ -27,9 +27,15 @@ from agenerp.site import (
     client_from_env,
 )
 
-# 本 plan 的客户端只读，白名单为空。第 3 顺位加 `delete_custom_field` 时，
-# 把它连同理由加进这个**可见的字面量**列表 —— 每加宽一次面就留一次痕。
-WRITE_METHOD_ALLOWLIST: tuple[str, ...] = ()
+# 每加宽一次写面就留一次痕 —— 这个列表是那道痕。**只登记，不取消判据**。
+#
+# `SiteClient.delete_custom_field`（2026-08-21，plan `2026-08-21-1922-3` 差集 apply 的 B 半）：
+#   差集 apply 要在站点上**真的删掉** Custom Field，否则 Frappe 那条纯 upsert 路径下
+#   「从包里删掉字段 → apply → 字段仍在」，`git revert` 撤不掉定制（承重条款
+#   `tests/gates/test_customization_roundtrip_delete.py::test_removing_from_pack_actually_deletes_on_site`）。
+#   写面被**刻意限死在 Custom Field 一种文档上**：不提供「删任意 DocType 文档」的通用方法，
+#   那等于把业务数据交出去。
+WRITE_METHOD_ALLOWLIST: tuple[str, ...] = ("SiteClient.delete_custom_field",)
 
 ALL_ENV = (API_KEY_ENV, API_SECRET_ENV, ADMIN_PASSWORD_ENV, "AGENERP_ADMIN_USER",
            "AGENERP_SITE_URL", "AGENERP_HTTP_PORT")

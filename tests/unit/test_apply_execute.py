@@ -1,0 +1,384 @@
+"""非门禁测试 · 钉死差集 apply 的**执行**半边（`agenerp.apply.execute_plan` 与作用域收窄）。
+
+**不连真站点**：站点侧收一个假客户端（`execute_plan(..., client=...)`，或对
+`apply_pack` 那条委派链 monkeypatch `client_from_env`），所以本文件在 `GATE_VERIFY` 的
+默认环境里就能跑，不依赖 docker、不依赖端口。
+
+为什么这些用例必须存在：承重条款
+`tests/gates/test_customization_roundtrip_delete.py::test_removing_from_pack_actually_deletes_on_site`
+只看「Item 上的探针没了」——**一个把站点定制全删光的实现照样让它绿**。
+判据挡不住那个错误，所以收窄自带判据，且**正反两断言写在同一个用例里**：
+只写反断言（「Customer 没被删」）的话，一个什么都不删的空实现完美通过。
+
+用例编号与 plan `docs/plans/p0-foundation/2026-08-21-1922-3-execute-plan-site-delete.md`
+Phase 2 的 `Proof` 一致（① ~ ⑧ + 一条端到端纯逻辑回归）。
+"""
+
+import logging
+import subprocess
+import sys
+from pathlib import Path
+
+import pytest
+
+from agenerp.apply import (
+    PACK_SCOPE,
+    ApplyDirectionError,
+    ApplyPlan,
+    _assert_direction,
+    execute_plan,
+    narrow_deletes,
+    pack_doctypes,
+    read_pack,
+)
+from agenerp.pack import apply_pack, render_doctype_file
+from agenerp.site import SiteError
+from agenerp.snapshot import ChangedEntry, Snapshot, SnapshotEntry
+
+PROBE = "agenerp_gate_roundtrip"
+
+
+class FakeSiteClient:
+    """记下每一次删除请求。`fail_on` 命中时抛 `SiteError`（站点侧失败的形状）。"""
+
+    def __init__(self, fail_on: tuple[str, str] | None = None) -> None:
+        self.deleted: list[tuple[str, str]] = []
+        self.listed: list[str] = []
+        self._fail_on = fail_on
+        self._rows: list[dict] = []
+
+    def with_rows(self, rows: list[dict]) -> "FakeSiteClient":
+        self._rows = rows
+        return self
+
+    def list_resource(self, doctype: str, fields: tuple[str, ...] = ("*",)) -> list[dict]:
+        self.listed.append(doctype)
+        return list(self._rows)
+
+    def delete_custom_field(self, doctype: str, fieldname: str) -> None:
+        if self._fail_on == (doctype, fieldname):
+            raise SiteError(f"DELETE Custom Field/{doctype}-{fieldname} → HTTP 417（假件）")
+        self.deleted.append((doctype, fieldname))
+
+
+def _entry(doctype: str, fieldname: str, **attributes) -> SnapshotEntry:
+    return SnapshotEntry(doctype, fieldname, {"fieldtype": "Data", **attributes})
+
+
+def _site_row(doctype: str, fieldname: str, **extra) -> dict:
+    return {"dt": doctype, "fieldname": fieldname, "fieldtype": "Data", **extra}
+
+
+def _plan(*deletes: SnapshotEntry, creates=(), updates=()) -> ApplyPlan:
+    return ApplyPlan(scope=PACK_SCOPE, creates=tuple(creates), updates=tuple(updates),
+                     deletes=tuple(deletes))
+
+
+def _write_pack(root, doctype: str, rows: list[dict], filename: str | None = None) -> None:
+    scope_dir = root / PACK_SCOPE
+    scope_dir.mkdir(parents=True, exist_ok=True)
+    (scope_dir / f"{filename or doctype}.json").write_text(
+        render_doctype_file(doctype, rows), encoding="utf-8"
+    )
+
+
+@pytest.fixture
+def wired(monkeypatch):
+    """把 `apply_pack` 委派链两端的 `client_from_env` 都换成同一个假客户端。
+
+    两端：`agenerp.snapshot`（`SiteSnapshotSource.read` 读站点现状）与
+    `agenerp.apply`（`execute_plan` 发删除请求）。两个模块各自 `from ... import` 进了
+    自己的名字空间，只换一处会漏掉另一处。
+    """
+    client = FakeSiteClient()
+
+    def _factory(site, transport=None):
+        return client
+
+    monkeypatch.setattr("agenerp.snapshot.client_from_env", _factory)
+    monkeypatch.setattr("agenerp.apply.client_from_env", _factory)
+    return client
+
+
+# --------------------------------------------------------------------------
+# ① 只对 deletes 发删除请求，条数与目标逐条相符
+# --------------------------------------------------------------------------
+def test_execute_plan_deletes_exactly_the_planned_entries():
+    client = FakeSiteClient()
+    plan = _plan(_entry("Item", "b_field"), _entry("Item", "a_field"), _entry("Customer", "tier"))
+
+    execute_plan(plan, "frontend", client=client)
+
+    assert client.deleted == [("Customer", "tier"), ("Item", "a_field"), ("Item", "b_field")], (
+        f"删除的目标或顺序不对：{client.deleted}"
+    )
+
+
+def test_execute_plan_order_is_deterministic():
+    """按 `key` 排序 —— 复跑同一个计划的请求序必须一致，否则日志没法比对。"""
+    first, second = FakeSiteClient(), FakeSiteClient()
+    entries = [_entry("Item", "z"), _entry("Address", "a"), _entry("Item", "a")]
+
+    execute_plan(_plan(*entries), "frontend", client=first)
+    execute_plan(_plan(*reversed(entries)), "frontend", client=second)
+
+    assert first.deleted == second.deleted == [("Address", "a"), ("Item", "a"), ("Item", "z")]
+
+
+# --------------------------------------------------------------------------
+# ② 作用域收窄：正反两断言写在同一个用例里
+# --------------------------------------------------------------------------
+def test_apply_pack_narrows_deletes_to_doctypes_covered_by_the_pack(tmp_path, wired):
+    """包只含 `Item.json`，站点上 `Item.probe` 与 `Customer.probe` 都在。
+
+    **正**：恰好发出一条删除请求，目标是 `Item.probe`。
+    **反**：对 Customer 零请求。
+
+    只写反断言的话，一个什么都不删的空实现完美通过 —— 那正是最可能发生的失败模式。
+    """
+    _write_pack(tmp_path, "Item", [])
+    wired.with_rows([_site_row("Item", PROBE), _site_row("Customer", PROBE)])
+
+    apply_pack(str(tmp_path), site="frontend")
+
+    assert wired.deleted == [("Item", PROBE)], f"删除的目标不对：{wired.deleted}"
+    assert not [d for d in wired.deleted if d[0] == "Customer"], (
+        f"包没管辖 Customer，却删了它的定制：{wired.deleted}"
+    )
+
+
+# --------------------------------------------------------------------------
+# ③ 「文件在、数组空」回归 —— 门禁里承重条款的真实状态
+# --------------------------------------------------------------------------
+def test_pack_file_present_with_empty_array_still_deletes(tmp_path, wired):
+    """`Item.json` 存在但 `custom_fields` 为空、站点上有 `Item.probe` → 必须删。
+
+    「文件在、数组空」= 「这个 DocType 我管，且它应该没有定制」。
+    按**包条目**推管辖面的话 Item 不在集内，门禁会红而单测全绿 —— 所以这条不能省。
+    """
+    _write_pack(tmp_path, "Item", [])
+    wired.with_rows([_site_row("Item", PROBE)])
+
+    assert pack_doctypes(str(tmp_path)) == frozenset({"Item"})
+    assert read_pack(str(tmp_path)).entries == (), "夹具没摆成「文件在、数组空」"
+
+    apply_pack(str(tmp_path), site="frontend")
+
+    assert wired.deleted == [("Item", PROBE)]
+
+
+def test_missing_pack_dir_deletes_nothing(tmp_path, wired):
+    """包目录不存在 → 管辖面为空 → 一条都不删（偏保守，错在安全那一侧）。"""
+    wired.with_rows([_site_row("Item", PROBE)])
+
+    assert pack_doctypes(str(tmp_path)) == frozenset()
+    apply_pack(str(tmp_path), site="frontend")
+
+    assert wired.deleted == []
+
+
+# --------------------------------------------------------------------------
+# ④ 被收窄掉的条目可观测（不许静默丢弃）
+# --------------------------------------------------------------------------
+def test_narrowed_out_entries_are_logged_not_silently_dropped(caplog):
+    plan = _plan(_entry("Item", PROBE), _entry("Customer", "credit_tier"),
+                 _entry("Address", "tax_category"))
+
+    with caplog.at_level(logging.WARNING, logger="agenerp.apply"):
+        narrowed = narrow_deletes(plan, frozenset({"Item"}))
+
+    assert [e.key for e in narrowed.deletes] == [("Item", PROBE)]
+    messages = " ".join(r.getMessage() for r in caplog.records if r.levelno >= logging.WARNING)
+    assert messages, "被收窄掉两条却一句 WARNING 都没发 —— 静默丢弃"
+    for doctype, fieldname in (("Customer", "credit_tier"), ("Address", "tax_category")):
+        assert doctype in messages and fieldname in messages, (
+            f"WARNING 没有逐条列出 ({doctype}, {fieldname})：{messages}"
+        )
+
+
+def test_system_generated_fields_are_excluded_and_logged(caplog):
+    """应用自带的字段（`is_system_generated`）即便在管辖面内也不删，且不静默。
+
+    实测依据：站点上 10 条 Custom Field 全部 `is_system_generated = 1`，全部由
+    ERPNext / CRM 装上；删掉可能直接弄坏应用功能，而按 DocType 收窄挡不住这一类。
+    """
+    plan = _plan(_entry("Item", PROBE),
+                 _entry("Item", "crm_deal", is_system_generated=1))
+
+    with caplog.at_level(logging.WARNING, logger="agenerp.apply"):
+        narrowed = narrow_deletes(plan, frozenset({"Item"}))
+
+    assert [e.key for e in narrowed.deletes] == [("Item", PROBE)]
+    messages = " ".join(r.getMessage() for r in caplog.records)
+    assert "crm_deal" in messages and "is_system_generated" in messages, messages
+
+
+def test_narrowing_keeps_creates_and_updates_untouched():
+    """收窄只删减 `deletes`：另外两个序列原样带过，方向不变量的结论不受影响。"""
+    creates = (_entry("Customer", "new_field"),)
+    updates = (ChangedEntry("Customer", "tier", before={"a": 1}, after={"a": 2}),)
+    plan = _plan(_entry("Customer", "gone"), creates=creates, updates=updates)
+
+    narrowed = narrow_deletes(plan, frozenset({"Item"}))
+
+    assert narrowed.creates == creates and narrowed.updates == updates
+    assert narrowed.deletes == ()
+
+
+# --------------------------------------------------------------------------
+# ④b covered 口径与 `entries_from_payload` 同源（载荷 doctype 键优先，不按文件名）
+# --------------------------------------------------------------------------
+def test_covered_set_follows_payload_doctype_not_filename(tmp_path, wired):
+    """一份**文件名叫 `Item.json`**、载荷里写 `{"doctype": "Customer"}` 的包。
+
+    条目面按载荷算（`entries_from_payload`），管辖面必须跟着走 —— 否则两者对不上：
+    管辖面说管 Item，条目面说这是 Customer 的定制。
+    """
+    _write_pack(tmp_path, "Customer", [], filename="Item")
+    wired.with_rows([_site_row("Item", PROBE), _site_row("Customer", PROBE)])
+
+    assert pack_doctypes(str(tmp_path)) == frozenset({"Customer"})
+
+    apply_pack(str(tmp_path), site="frontend")
+
+    assert wired.deleted == [("Customer", PROBE)], f"管辖面按文件名算错了：{wired.deleted}"
+
+
+# --------------------------------------------------------------------------
+# ⑤ 站点删除失败 → 抛，且不继续删后面的
+# --------------------------------------------------------------------------
+def test_site_failure_aborts_and_does_not_continue():
+    client = FakeSiteClient(fail_on=("Item", "b_field"))
+    plan = _plan(_entry("Item", "a_field"), _entry("Item", "b_field"), _entry("Item", "c_field"))
+
+    with pytest.raises(SiteError):
+        execute_plan(plan, "frontend", client=client)
+
+    assert client.deleted == [("Item", "a_field")], (
+        f"失败之后还在继续删：{client.deleted}（本层不做事务，失败即停）"
+    )
+
+
+# --------------------------------------------------------------------------
+# ⑥ 空计划 → 零请求、零副作用
+# --------------------------------------------------------------------------
+def test_empty_plan_makes_zero_requests():
+    client = FakeSiteClient()
+
+    execute_plan(_plan(), "frontend", client=client)
+
+    assert client.deleted == []
+
+
+def test_empty_plan_does_not_even_need_credentials(monkeypatch):
+    """空的删除集连客户端都不构造 —— 否则离线跑一个空计划会红在缺凭据上。"""
+    def _explode(site, transport=None):
+        raise AssertionError("空计划不该构造站点客户端")
+
+    monkeypatch.setattr("agenerp.apply.client_from_env", _explode)
+    execute_plan(_plan(), "frontend")
+
+
+def test_empty_pack_and_empty_site_makes_zero_requests(tmp_path, wired):
+    """包目录为空、站点上也没有定制 → 委派链跑完，零请求。"""
+    apply_pack(str(tmp_path), site="frontend")
+
+    assert wired.deleted == []
+
+
+# --------------------------------------------------------------------------
+# ⑦ creates / updates 非空 → 抛且消息指名
+# --------------------------------------------------------------------------
+def test_creates_are_explicitly_rejected_with_a_named_successor():
+    client = FakeSiteClient()
+    plan = _plan(creates=(_entry("Item", "brand_code"),))
+
+    with pytest.raises(NotImplementedError) as excinfo:
+        execute_plan(plan, "frontend", client=client)
+
+    message = str(excinfo.value)
+    assert "2026-08-21-1922-3" in message and "Deferred" in message, message
+    assert client.deleted == [], "拒绝之后不该有任何副作用"
+
+
+def test_updates_are_explicitly_rejected_not_silently_skipped():
+    client = FakeSiteClient()
+    plan = _plan(_entry("Item", PROBE),
+                 updates=(ChangedEntry("Item", "tier", before={"a": 1}, after={"a": 2}),))
+
+    with pytest.raises(NotImplementedError):
+        execute_plan(plan, "frontend", client=client)
+
+    assert client.deleted == [], "updates 非空时连 deletes 也不该执行 —— 那是部分应用"
+
+
+# --------------------------------------------------------------------------
+# ⑧ 方向传反 → 抛新异常类型（而不是靠裸 assert）
+# --------------------------------------------------------------------------
+def test_direction_invariant_raises_an_explicit_error_not_a_bare_assert():
+    """删除集里出现了「包里仍有」的条目 → 方向传反了 → 必须抛 `ApplyDirectionError`。
+
+    这条自检**走不到 `plan_apply` 的正常路径**（`diff` 自己是自洽的，互换入参只会得到
+    镜像但同样自洽的结果）——它挡的是「`diff` 或映射被改坏」那一类，所以直接喂
+    `_assert_direction` 一个不自洽的计划。判据是**类型**，不是文字。
+    """
+    entry = _entry("Item", "brand_code")
+    both = Snapshot(scope=PACK_SCOPE, entries=(entry,))
+
+    with pytest.raises(ApplyDirectionError):
+        _assert_direction(_plan(entry), desired=both, current=both)
+
+
+def test_direction_invariant_survives_python_dash_O():
+    """**这条才是把裸 `assert` 换掉的理由**：`-O` 下裸 `assert` 整条消失。
+
+    在子进程里带 `-O` 跑一遍同一个不自洽的计划：仍然抛，才算这道闸真的在。
+    """
+    code = "\n".join((
+        "from agenerp.apply import ApplyDirectionError, ApplyPlan, PACK_SCOPE, _assert_direction",
+        "from agenerp.snapshot import Snapshot, SnapshotEntry",
+        "e = SnapshotEntry('Item', 'brand_code', {})",
+        "both = Snapshot(scope=PACK_SCOPE, entries=(e,))",
+        "plan = ApplyPlan(scope=PACK_SCOPE, deletes=(e,))",
+        "try:",
+        "    _assert_direction(plan, desired=both, current=both)",
+        "    print('NOT_RAISED')",
+        "except ApplyDirectionError:",
+        "    print('RAISED')",
+    ))
+    proc = subprocess.run(
+        [sys.executable, "-O", "-c", code],
+        capture_output=True, text=True, cwd=Path(__file__).resolve().parents[2],
+    )
+
+    assert proc.returncode == 0, proc.stderr
+    assert "RAISED" in proc.stdout, (
+        f"`python -O` 下方向不变量没有生效（裸 assert 会被整条剥掉）：{proc.stdout!r}"
+    )
+
+
+def test_direction_error_is_not_an_assertion_error():
+    """显式类型才可被上层分类处置；`AssertionError` 在 `-O` 下根本不会被抛出来。"""
+    assert not issubclass(ApplyDirectionError, AssertionError)
+    assert issubclass(ApplyDirectionError, RuntimeError)
+
+
+# --------------------------------------------------------------------------
+# 端到端纯逻辑回归 —— 反 upsert 的完整链路（不连站点）
+# --------------------------------------------------------------------------
+def test_removing_a_field_from_the_pack_ends_up_as_a_delete_request(tmp_path, wired):
+    """包里删掉一个字段 → `plan_apply` 把它算进 `deletes` → 真的发出删除请求。
+
+    这是 Frappe 那条纯 upsert 路径**做不到**的事，也是 `git revert` 撤得回的全部依据。
+    """
+    _write_pack(tmp_path, "Item", [{"fieldname": "brand_code", "fieldtype": "Data"}])
+    wired.with_rows([_site_row("Item", "brand_code"), _site_row("Item", PROBE)])
+
+    desired = read_pack(str(tmp_path))
+    assert [e.key for e in desired.entries] == [("Item", "brand_code")]
+
+    apply_pack(str(tmp_path), site="frontend")
+
+    assert wired.deleted == [("Item", PROBE)], (
+        f"包里仍有 brand_code、只少了探针，删除请求却是 {wired.deleted}"
+    )
