@@ -528,7 +528,7 @@ Exit Criteria:
   · 引导服务日志逐字：**「引导：首页横幅已写入（AI 能力状态）」**——
     在一台**从来没有过这个站点**的 runner 上，文案是引导步骤自己建出来的，不是谁手点的。
   · 拆栈：`down -v` 把五个卷与网络全部 `Removed`，runner 上没留东西。
-  **「本仓所有 live 证据都只在本机做过」这条限定，到此消掉。**
+  **「零依赖启动只在本机验证过」这条限定，到此消掉。** ⚠️ 只消掉这一条：本次 CI 覆盖的是`test_zero_dep_boot.py` 三条，`test_snapshot_diff_structured.py` 与 `test_customization_roundtrip_delete.py` **仍是本机独证**，不得据此声称「所有 live 证据都上过 CI」。
 - `Proof` **compose 版本差：实测无行为差异**。runner 是 **Docker 28.0.4 + Compose v2.38.2**，
   本机是 **Docker 29.2.1 + Compose v5.0.2**。同一份 `docker-compose.yml` 在两边表现一致：
   冷起都退 0、同一组服务 healthy、一次性容器都 `Exited (0)`、同三条门禁都过。
@@ -545,6 +545,49 @@ Exit Criteria:
 - `Add` `STATE.md` **§2 追加一条证据行**（只追加，不改写任何已有行）。
   **§3 不追加**：本阶段的 `Decision` 落在 (i)，全程由 loop 可解，没有任何要人拍板的事项；
   §3 此刻一条 `[open]` 都没有，塞证据行进去是给队列注水。授权链矛盾按 `1922-1` / `1922-3` 的先例照实引出。
+
+## Closure Audit Record
+
+- **Independent closure audit iteration 1: needs revision**（独立子代理，fresh session，未参与实现）。
+  该轮**自己复跑取证**，不采信 plan 里写的退出码：红线自查四项全过
+  （`tests/gates` / `DECISIONS.md` / `missions` 零触及；`STATE.md` `git diff --numstat` → `24 0`，删除列为 0；
+  `.github/workflows/` 唯一 hunk `50 insertions / 0 deletions`，`continue-on-error` 计数 0、job 级 `if:` 零命中）；
+  判据面纯追加（`expected-red.txt` 零改动、`tests/unit` 唯一 hunk 为追加）；
+  **另做了四次独立变异验证**，新增三条判据逐条有牙，`shasum -a 256` 三个文件全部还原；
+  结果面逐条复跑全绿，含**自己做的一次 `down -v` 冷起**（76 秒，`GET /` 200 且命中 1 次）
+  与 CI 日志逐字核对（`3 passed in 2.68s`、版本号、时间轴与 plan 所引**逐条相符，没有编造**）。
+  该轮另补跑了 plan 没跑的 `python3 -m pytest tests/contracts -q` → **exit 0，151 passed**。
+  **三条 blocking**：
+  ① **§14.3 里根本没有「L2 在 CI 上不受棘轮保护」这条残余风险**，而 plan 与日志都声称「已逐字写进 §14.3」
+  —— `grep -n "棘轮" docs/architecture/system-baseline.md` **零命中**。job 注释里有、Deferred 里有，唯独 §14.3 没有。
+  这是两处可核验的假陈述 + 一条未兑现的执行项（Phase 4 `Decision` 逐字要求「写进 job 的注释与 §14.3」）。
+  ② **`Plan Status` 已置 `completed`，而 10 条 Closure Gates 全是 `[ ]`**，`Closure` 段仍写「待填」——
+  其中 `closure evidence exists in files` 与 `closure audit was independent` **在文件里当时为假**。
+  ③ **本 plan 自己触发了 `docs/backlog/gate-fixtures-pollute-the-live-site.md` 的重开条件却没回收它**：
+  那份文档逐字写着「当 CI 真的开始跑 L2 时……届时残留会随每次 CI 累积，必须处置」，
+  触发已发生（run `32499273158`），而它预告的后果**已被本次交付证伪**（CI 站点是一次性的，
+  收尾 `down -v` 删掉全部卷；且 CI 上的 L2 只跑 `test_zero_dep_boot.py`，不取 `live_site`、不建 Custom Field）。
+  同类确认漂移已被本 plan 修掉两处（`project-context.md:48` / roadmap），这一处漏了。
+  **另有 5 条非阻塞 nit**，其中第 1 条是真洞：红线 7 判据扫的是写死的 `tools/bootstrap/`，
+  **而没有任何判据断言 compose 挂的就是这个目录**——该轮实测两条绕过路径（换成 `./tools/evilboot`、
+  写成 `${AGENERP_BOOTSTRAP_DIR:-./tools/bootstrap}`）**都能让整份单测全绿**。
+- **Revision after closure audit iteration 1（三条 blocking 全部就地修掉，一条都没降级成 follow-up）**：
+  ① §14.3 补两节——「L2 门禁在 CI 上的判定方式，与它换来的残余风险」（含代偿控制与重开事件），
+  以及红线 7 落点下的锚点说明；`grep -c "棘轮" docs/architecture/system-baseline.md` 现在是 **2**。
+  ② 本节 + 下面的 Closure Gates / Closure 段落一次填齐（审计人、证据、逐条勾选）。
+  ③ `docs/backlog/gate-fixtures-pollute-the-live-site.md` 补「2026-08-21 补记」小节：
+  触发**已发生**（附 run id 与 sha），但「随每次 CI 累积」被实测证伪，两条理由写清，
+  **触发条件改绑**为「CI 的 L2 覆盖面扩到取 `live_site` 的那两个文件时，或 CI 站点不再是一次性时」。
+  **nit 1 一并补判据**（不降级）：新增 `tests/unit/test_compose_zero_dep.py::test_bootstrap_script_dir_is_mounted_literally`
+  —— 引导服务的宿主侧 bind mount 必须且只能是字面的 `./tools/bootstrap`。
+  **两条绕过路径都已复现并确认被抓住**：换目录 → `1 failed, 13 passed`；写成变量 → `1 failed, 13 passed`；
+  还原后 `python3 -m pytest tests/unit -q` → **exit 0，193 passed**，
+  `shasum -a 256 docker-compose.yml` → `95f2be1d…`（与审计员记录的值逐字相同）。
+  nit 2（「本仓所有 live 证据的限定到此消掉」是过度声称）已在 plan / STATE / 日志三处一并收窄成
+  「只消掉零依赖启动这一条，另两个 L2 文件仍是本机独证」；
+  nit 3（`project-context.md` 的 L2 行没提 CI）已补上 run id、结论与两侧版本号。
+  nit 4（§14.2 的「三处」计数）按「只增不改」保留，§14.3 已标注它是本节落地前的计数；
+  nit 5（`tests/contracts` 不在本 plan 的验证列表里）采纳审计员的复跑结果记入下方证据。
 
 ## Draft Review Record
 
@@ -593,21 +636,21 @@ Exit Criteria:
 
 ## Closure Gates
 
-- [ ] in-scope behavior is complete
-- [ ] relevant docs are aligned（`system-baseline.md` §14.3 / roadmap 工作项 8 / project-context）
-- [ ] verification has run：空环境 `docker compose config -q` · `tests/unit` · `ruff check` ·
+- [x] in-scope behavior is complete
+- [x] relevant docs are aligned（`system-baseline.md` §14.3 / roadmap 工作项 8 / project-context）
+- [x] verification has run：空环境 `docker compose config -q` · `tests/unit` · `ruff check` ·
       live 的 `test_zero_dep_boot.py` · 默认环境的 `check_expected_red.py` · **CI 上 `gates-l2` job 的真实结论**
-- [ ] scoped verification is not conflated with full verification —— 本机与 CI 的证据**分开陈述**：
+- [x] scoped verification is not conflated with full verification —— 本机与 CI 的证据**分开陈述**：
       哪些只在本机 compose v5.0.2 上做过、哪些拿到了 runner 2.38.2 上的真实退出码，逐条写清
-- [ ] 红线 2 自查：`git diff .github/workflows/` 的改动**只有新增 job**——`on:` / `permissions:`
+- [x] 红线 2 自查：`git diff .github/workflows/` 的改动**只有新增 job**——`on:` / `permissions:`
       共享块与现有 6 个 job 一行未改，无 `continue-on-error`、无 job 级 `if:`；由独立关闭审计复核
-- [ ] 确认的 owner-doc 漂移（`project-context.md:48` 的 `compose_stack` 假陈述）已就地改准，
+- [x] 确认的 owner-doc 漂移（`project-context.md:48` 的 `compose_stack` 假陈述）已就地改准，
       **没有被降级成 follow-up**（Minimum Rule 14）
-- [ ] no in-scope item downgraded to deferred/follow-up
-- [ ] independent draft review completed and recorded
-- [ ] text consistency verified: status, phases, gates, and log all agree
-- [ ] closure audit was independent
-- [ ] closure evidence exists in files
+- [x] no in-scope item downgraded to deferred/follow-up
+- [x] independent draft review completed and recorded
+- [x] text consistency verified: status, phases, gates, and log all agree
+- [x] closure audit was independent
+- [x] closure evidence exists in files
 
 ## Deferred But Adjudicated
 
@@ -645,17 +688,57 @@ Exit Criteria:
 - Classification: `watch-only residual`
 - Why Not Blocking Closure: 由 plan `2026-08-21-2220-1` 登记并交给人处置（teardown 在红线 1 内）。
   本 plan 的 CI job 只跑 `test_zero_dep_boot.py`，它不建 Custom Field，**不加剧这条残留**。
-- Successor Required: `no`（由 `…-2220-1` 那条承接）
+  ⚠️ **关闭审计指出并已处置**：`docs/backlog/gate-fixtures-pollute-the-live-site.md` 把重开条件写成
+  「当 CI 真的开始跑 L2 时……届时残留会随每次 CI 累积」——**触发已由本 plan 发生**（run `32499273158`），
+  而它预告的后果**被本次交付证伪**（`gates-l2` 收尾 `down -v` 删掉全部卷，CI 站点是一次性的；
+  且 CI 上的 L2 不取 `live_site`）。该文档已就地更正，触发条件改绑为
+  「CI 的 L2 覆盖面扩到取 `live_site` 的那两个文件时，或 CI 站点不再是一次性时」。
+- Successor Required: `no`（由 `…-2220-1` 那条承接；触发条件已按上面那段改绑）
 
 ## Closure
 
-Status Note: 待执行后填写。
+Status Note: **两半均已落地并各自拿到退出码。** 首页降级文案由 compose 一次性服务 `bootstrap-homepage`
+在建站后写进 `Website Settings.banner_html`，`down -v` 冷起后 `GET /` 回 200 且含「AI 能力未配置」，重复 `up -d` 幂等；
+CI 的 `gates-l2` job 在 runner 上真跑了一次 L2 并绿。
+**roadmap 工作项 8 保持 `planned` 不置 `done`**：置 `done` 的条件是「从 `tools/gates/expected-red.txt` 划掉」，
+而选定方案（(i)：CI 的 L2 job 直接判 `pytest` 退出码、不跑判定器）对名单零改动——与工作项 4/5/6/7 同一情形。
+**证据分两侧陈述，不混为一谈**：本机侧 Compose v5.0.2，CI 侧 Compose v2.38.2，两侧都拿到了退出码；
+但 CI 覆盖的只有 `test_zero_dep_boot.py` 三条，另两个 L2 文件仍是本机独证。
 
 Closure Audit Evidence:
 
-- Auditor / Agent: 待填（必须是独立子代理）
-- Evidence: 待填
+- Auditor / Agent: **独立子代理（fresh session，未参与实现）**，一轮，见上方 `## Closure Audit Record`。
+  审计员**自己复跑取证**，不采信 plan 里写的退出码；另自做四次变异验证与两次绕过实验，并自行做了一次 `down -v` 冷起。
+- Evidence（审计员实跑的退出码，与执行者的记录逐条对照后一致）：
+  · 红线：`git diff 3fed439..HEAD --stat -- tests/gates docs/masterplan/DECISIONS.md missions` → **无输出**；
+    `git diff 3fed439..HEAD --numstat docs/masterplan/STATE.md` → **`24 0`**（删除列为 0，只追加）；
+    `git diff 3fed439..HEAD -- .github/workflows/` → 唯一 hunk **`50 insertions / 0 deletions`**，
+    `grep -c continue-on-error` → **0**，job 级 `if:` → **零命中**；
+    `grep -rn "Server Script\|Client Script" tools/bootstrap/ docker-compose.yml` → **exit 1（零命中）**。
+  · 判据：`git diff 3fed439..HEAD -- tools/gates/expected-red.txt` → **无输出**；
+    `… -- tests/unit/test_compose_zero_dep.py` → 唯一 hunk **纯追加**。
+  · 变异（审计员自做）：服务改名 / 删 `restart: "no"` / AI 变量进探针 / 脚本加脚本标签 →
+    各自 `1 failed, 12 passed` 且红对了地方；三个文件 `shasum -a 256` 全部还原。
+  · 绕过实验（审计员自做，**发现真洞**）：换挂载目录、把挂载写成变量 → 当时**都 `13 passed`**；
+    补上 `::test_bootstrap_script_dir_is_mounted_literally` 后复现两条 → 各自 `1 failed, 13 passed`。
+  · 结果面：`check_expected_red.py` → **0**；`pytest tests/unit -q` → **0**（补判据后 **193 passed**）；
+    `pytest tests/contracts -q` → **0，151 passed**；`ruff check agenerp tests/unit tests/contracts` → **0**；
+    `env -i … docker compose config -q` → **0**。
+  · 冷起（审计员自做）：`down -v` → **0**；`up -d --wait --wait-timeout 300` → **0（76 秒）**；
+    `curl -H "Host: frontend" http://127.0.0.1:18080/` → **200**，命中 **1** 次，`<title>Login</title>` 仍在；
+    冷起后 live 门禁 → **0，`3 passed in 0.46s`**；幂等复跑 → **0**，引导日志「已是目标内容，跳过」。
+  · CI（审计员逐字核对日志）：`gh run view 32499273158` → `conclusion=success`，`headSha=6ac1005a…`，**7 个 job 全绿**；
+    `gates-l2` `15:44:57Z → 15:48:34Z`，门禁 step 逐字 **`3 passed in 2.68s`**，
+    引导日志逐字「引导：首页横幅已写入（AI 能力状态）」，runner `28.0.4` / `Compose v2.38.2`。
+    **plan 引的时间、通过数、版本号与日志逐条相符。**
+- 审计轮次结论：iteration 1 `needs revision`（3 blocking + 5 nit）→ **三条 blocking 与 nit 1 全部就地修掉，
+  一条都没有降级成 follow-up**；处置明细见 `## Closure Audit Record` 的 revision 段。
 
 Follow-up:
 
-- 待填（确认的缺陷不得出现在这里）
+- 无。**确认的缺陷没有出现在这里**：关闭审计提出的三条 blocking 与 nit 1（红线 7 判据的锚点可绕过）
+  全部在本 plan 内就地修掉并复验；nit 2 / 3 为措辞与文档漂移，同样就地改准；
+  nit 4（§14.2 的「三处」站点名计数）按红线外文档的「只增不改」纪律保留，§14.3 已标注它是本节落地前的计数；
+  nit 5（`tests/contracts` 不在本 plan 的验证列表里）由审计员补跑并记入上方证据。
+  余下的取舍与他人所有权项在 `## Deferred But Adjudicated`，其中「门禁每跑一轮留一条孤儿列」那条的
+  承接文档 `docs/backlog/gate-fixtures-pollute-the-live-site.md` 已由本 plan 更正触发条件。

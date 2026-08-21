@@ -252,6 +252,29 @@ def test_bootstrap_service_is_one_shot():
     )
 
 
+def test_bootstrap_script_dir_is_mounted_literally():
+    """引导服务挂的必须**就是**上面那条判据扫的那个目录，且路径字面写死。
+
+    没有这一条，红线 7 判据就是悬空的：它扫 `tools/bootstrap/`，而 compose 可以挂别处。
+    实测两条绕过路径都能让本文件全绿——把挂载换成 `./tools/evilboot`（新目录里放脚本标签），
+    或写成 `${AGENERP_BOOTSTRAP_DIR:-./tools/bootstrap}`（`:-` 默认值满足既有插值判据，
+    而仓根 `.env` 能在 `config` 时把它改掉）。这是 2026-08-21 关闭审计实测出来的洞。
+
+    与 `test_published_ports_bind_loopback_literally` 是同一条理由：静态文本扫描管不到 `.env`，
+    所以凡是判据依赖的路径，都必须字面写死。
+
+    失败意味着：红线 7 的判据扫的目录和容器里真正跑的目录不是同一个。
+    """
+    joined = "\n".join(_service_block(BOOTSTRAP_SERVICE))
+    mounts = [ln.strip()[2:].strip() for ln in joined.splitlines()
+              if ln.strip().startswith("- ") and ":/" in ln]
+    host_side = [m.split(":", 1)[0] for m in mounts if m.startswith(".")]
+    assert host_side == ["./tools/bootstrap"], (
+        f"{BOOTSTRAP_SERVICE} 的宿主侧 bind mount 必须且只能是字面的 `./tools/bootstrap`，实际：{host_side}。"
+        "写成变量或换成别的目录，红线 7 判据就扫不到真正跑起来的脚本了。"
+    )
+
+
 def _healthcheck_blocks() -> list[str]:
     """取所有 `healthcheck:` 块的正文。"""
     blocks: list[str] = []

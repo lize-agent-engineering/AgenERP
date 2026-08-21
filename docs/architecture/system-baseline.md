@@ -369,3 +369,25 @@ roadmap 工作项 3（plan `docs/plans/p0-foundation/2026-08-21-1022-1-zero-dep-
 交付的横幅内容与引导脚本都**只含静态文本**：不出现 `<script`、不出现 Jinja 定界符、
 不建 `Server Script` / `Client Script` 任何一种。这不是只写在文档里的承诺，
 判据是 `tests/unit/test_compose_zero_dep.py::test_bootstrap_delivers_no_runtime_code`。
+
+**这条判据的锚点必须自己也有判据。** 它扫的是 `tools/bootstrap/` 这个**写死的目录**，
+而 compose 理论上可以挂别处——2026-08-21 的关闭审计实测出两条绕过路径，两条都能让整份单测全绿：
+把挂载换成 `./tools/evilboot`（新目录里放脚本标签），或写成 `${AGENERP_BOOTSTRAP_DIR:-./tools/bootstrap}`
+（`:-` 默认值满足既有插值判据，而仓根 `.env` 能在 `config` 时把它改掉）。
+补上的判据是 `::test_bootstrap_script_dir_is_mounted_literally`：引导服务的宿主侧 bind mount
+**必须且只能是字面的 `./tools/bootstrap`**。与 §14.1「回环 IP 必须字面写死」是同一条理由的第三次应用——
+**凡是判据依赖的路径，都必须字面写死**，否则判据扫的东西和真正跑起来的东西不是同一个。
+
+### L2 门禁在 CI 上的判定方式，与它换来的残余风险
+
+`.github/workflows/gates.yml` 的 `gates-l2` job 在 runner 上把栈拉起来跑
+`tests/gates/test_zero_dep_boot.py` 三条。它**不跑** `tools/gates/check_expected_red.py`，
+而是直接对 `pytest` 的退出码做判定。理由是两个判定环境不同：默认环境没有 `AGENERP_LIVE`，
+L2 在那里恒红，预期红名单如实登记着它们；而这个 job 在 live 判定环境下跑，那几条是绿的，
+判定器会报「名单内的门禁却绿了」并退 1——两个 job 会互相拆台。
+
+**残余风险照实记：这几条门禁在 CI 上不受预期红名单棘轮保护。**
+有人把它们改绿而不改实现，棘轮不会响。**代偿控制**：`gates-untouched` job 仍然拦着对
+`tests/gates/**` 的无批准改动，而那几条断言就在 `tests/gates/**` 内。
+真正的修法是给判定器加一份「live 名单」，那属判据设施改造，超出工作项 8 的范围；
+重开事件是**CI 的 L2 覆盖面扩到 `test_zero_dep_boot.py` 之外时**（届时逐条手写退出码断言不再可行）。

@@ -40,6 +40,23 @@ plan `2026-08-21-2220-1` 的清除面让 `apply_pack` 在删完 Custom Field 之
 在那之前不处置的理由：本机站点上多几条孤儿列不影响任何判据（`schema_drift` 如实报它们，
 清除面按交集收窄、不碰它们），而唯一的修法在红线 1 内。
 
+### 2026-08-21 补记：触发**已经发生**，但上面那句「随每次 CI 累积」被实测证伪
+
+plan `2026-08-21-2220-2` 的 CI 阶段已落地，`gates-l2` job 在 run `32499273158`（sha `6ac1005`）
+上真跑过一次 L2，结论 `success`。所以「当 CI 真的开始跑 L2 时」这个触发条件**已满足**。
+
+但它预告的那个后果**不成立**，本行照实更正（确认的文档漂移，不降级）：
+
+1. **CI 站点是一次性的。** `gates-l2` job 的收尾步骤是 `docker compose down -v`（`if: always()`，
+   无条件执行），实测把五个卷与网络全部 `Removed`。下一次 CI 是一个全新站点，**没有任何东西可累积**。
+2. **CI 上的 L2 只跑 `tests/gates/test_zero_dep_boot.py` 三条。** 那三条只取 `compose_stack`，
+   **不取 `live_site`**，一条 Custom Field 都不建——即使站点是常驻的，这条路径也不产生孤儿列。
+
+因此本条**回到 watch-only**，不再由「CI 开始跑 L2」触发。**新的触发条件**：
+**当 CI 的 L2 覆盖面扩到 `test_snapshot_diff_structured.py` 或 `test_customization_roundtrip_delete.py` 时**
+（那两个文件才取 `live_site`），或**当 CI 的 L2 站点不再是一次性的**（收尾从 `down -v` 改成保留卷）时。
+在此之前，唯一受影响的仍然只有本机常驻站点，处置手段见文末那条 `trim-tables`。
+
 ## 可选处置（loop 不替人选）
 
 - **(a)** 人带 `Gates-Change-Approved-By:` trailer 改 `tests/gates/conftest.py` 的 `live_site` teardown，
