@@ -28,6 +28,7 @@ import shutil
 import subprocess
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
@@ -176,8 +177,12 @@ class LiveSite:
 
     def _call(self, path: str, payload: dict | None = None, method: str | None = None) -> tuple[int, str]:
         data = json.dumps(payload).encode() if payload is not None else None
+        # DocType 名带空格（`Custom Field`），不编码的话 http.client 直接以
+        # "URL can't contain control characters" 拒掉 —— 实测踩过。
+        # 只编码路径段，保留 `/` 分隔。
+        safe_path = urllib.parse.quote(path, safe="/")
         req = urllib.request.Request(
-            BASE_URL + path, data=data,
+            BASE_URL + safe_path, data=data,
             headers={"Host": SITE_NAME, "Content-Type": "application/json", "Accept": "application/json"},
             method=method or ("POST" if data else "GET"),
         )
