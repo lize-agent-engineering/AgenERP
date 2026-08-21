@@ -70,6 +70,23 @@
 >     处置选项仍是 STATE §3 那条补充事实行里写死的 (a)/(b)/(c)，**loop 不替人选**；
 >     在人给出裁定之前，后续每一轮的正确产出都是「拒绝执行 + 不写新东西」，
 >     **包括不再往本 Log 追加第五条**——继续追加只是把空转记成了工作量。
+>   - 2026-08-22 · **第五条，写它的理由是 `Reopen When` 已被满足**（不是又一轮空转——
+>     上一条说的「不再追加」限定在「人给出裁定之前、每轮产出都是同一份拒绝执行」的情形，
+>     本条记的是那个条件本身发生了变化）。**只追加事实，不改本 plan 的 `Plan Status`**——
+>     Reopen 之后续跑是它自己的事，successor 不代它改。
+>     successor plan [`2026-08-22-0228-2`](2026-08-22-0228-2-orphan-column-clearance-fresh-site.md)
+>     已把 `agenerp` 侧修好并推上同一分支：`main` 上 `578eb8f`、分支上 `c2c688b`
+>     （**只 cherry-pick `agenerp/**` 两个文件，不合 `main` 进分支**；
+>     `git diff --name-only 7b0f585 c2c688b -- tools/gates/check_expected_red.py tools/gates/gate-verify.mjs` → **无输出**）。
+>     **CI run `32533449466`（PR #1 的 `pull_request` synchronize，head `c2c688b`）结论 `success`**，
+>     九个 job 全绿，其中 `gates-l2-live`（job `96929876654`）日志逐字
+>     `门禁 19 项：红 0，绿 19，跳过 0` / `✅ live 判定：全部门禁绿，零 red、零 skip`；
+>     `verdict-tool-untouched`（job `96929876658`）仍 `success`。
+>     即 STATE §3 那条 `[open]` 停机行自己写死的重开条件（「successor 修好 `agenerp` 侧清除面后，
+>     往分支推一次，`gates-l2-live` 在 PR 上 `success`」）**逐字满足**。
+>     **本 plan 自己欠的两项仍然欠着，一个勾未改**：守卫 `verdict-tool-untouched` 的三次变异实证
+>     仍**没有任何 run id**（successor 的 Non-Goals 明列不补它），Phase 3 的「前驱两条 Deferred 记为了结」
+>     仍未落地。所以 19 个 `[ ]` 依旧是真未做——**重开条件满足 ≠ 可以关闭**，两件事不要混。
 
 ## 术语约定：本 plan 说的「判定方式节」在哪
 

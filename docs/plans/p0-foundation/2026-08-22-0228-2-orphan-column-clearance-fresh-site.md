@@ -1,6 +1,6 @@
 # 2026-08-22-0228-2 孤儿列清除面在**全新站点**上不成立：先取证复现，再修 `agenerp`
 
-> Plan Status: active
+> Plan Status: completed
 > Mission: p0-foundation
 > Work Item: 6. 定制包往返删除验证（活站点端到端）—— 承接 `::test_no_orphan_column_left_behind`
 > Last Reviewed: 2026-08-22
@@ -363,7 +363,7 @@ Exit Criteria:
 
 ### Phase 4 - CI 实跑与回写（**硬上限 2 次实跑**）
 
-Status: planned
+Status: completed
 Targets: `docs/backlog/p0-foundation-roadmap.md` · `docs/masterplan/STATE.md`（§2/§3 追加行）· `docs/context/project-context.md`
 Skill: `none`
 
@@ -374,41 +374,85 @@ Skill: `none`
   推之前先 `gh pr view 1 --json state,baseRefOid` 确认 `state=OPEN` 且 `baseRefOid` 仍是 `7b0f585`；
   任一条不成立则**不推**，按 `## Deferred But Adjudicated` 的固定处置停机等人
   （PR 被关掉或 base 被移动都属于人的动作，loop 不替人重开 PR）。
+  - **两条硬前置推前实测均成立**：Phase 3 三面证明全绿（见上）；
+    `gh pr view 1 --json state,baseRefOid,headRefOid,headRefName` →
+    `{"baseRefOid":"7b0f585f7c8082a64902da65e6e3314cb239dc9f","headRefName":"ci/0027-2-l2-full-live-gate","headRefOid":"9a8832f…","state":"OPEN"}`。
 
-- [ ] `Decision`（**草案评审阶段已裁定，执行时照做**）：本阶段跑 CI 是**合法**的，理由是它逐字满足
+- [x] `Decision`（**草案评审阶段已裁定，执行时照做**）：本阶段跑 CI 是**合法**的，理由是它逐字满足
       STATE §3 那条 `[open]` 停机行自己写死的重开条件（「successor 修好 `agenerp` 侧清除面后，
       往分支推一次，`gates-l2-live` 在 PR 上 `success`」）。**Phase 3 三面证明全绿是硬前置**——
       没跑绿就推分支，等于在停机状态下碰运气，本 plan 明令禁止。
       备选（推迟到人显式解停机线再推）被排除：那会让停机永远等不到它自己写的重开事件。
       残余风险：仍可能红，缓解是硬上限 2 次实跑 + 红即停机不重试第三次。
       - Skill: `none`
-- [ ] `Fix`：推分支的形态**只能是把 `agenerp/**` 的修复 cherry-pick 到 `ci/0027-2-l2-full-live-gate`**，
+      - **照做**：Phase 3 全绿后才推，实跑 1 次即绿，未用到第 2 次配额。
+- [x] `Fix`：推分支的形态**只能是把 `agenerp/**` 的修复 cherry-pick 到 `ci/0027-2-l2-full-live-gate`**，
       **不得 merge / rebase `main` 进分支**（会点亮 `verdict-tool-untouched`，见 Baseline）。
       推之前实跑 `git diff --name-only 7b0f585 <branch-head> -- tools/gates/check_expected_red.py tools/gates/gate-verify.mjs`
       确认**无输出**，把命令与输出抄进本 plan。
-- [ ] `Proof`：推分支（PR #1 的 `pull_request` synchronize 事件）触发 CI，读 `gates-l2-live` 的结论。**上限 2 次实跑**（首跑 + 必要时 1 次原样复跑）。
+      - 形态：`git checkout -B ci/0027-2-l2-full-live-gate origin/ci/0027-2-l2-full-live-gate`（基线 `9a8832f`）
+        → `git checkout 578eb8f -- agenerp/oob.py agenerp/snapshot.py` → 提交 `c2c688b`。
+        **只取两个文件，未 merge / rebase `main`。**
+      - `git diff --name-only 9a8832f c2c688b` → 逐字只有两行：`agenerp/oob.py` · `agenerp/snapshot.py`。
+      - `git diff --name-only 7b0f585 c2c688b -- tools/gates/check_expected_red.py tools/gates/gate-verify.mjs`
+        → **无输出**（exit 0）。
+      - `git push origin ci/0027-2-l2-full-live-gate` → **exit 0**，`9a8832f..c2c688b`。
+- [x] `Proof`：推分支（PR #1 的 `pull_request` synchronize 事件）触发 CI，读 `gates-l2-live` 的结论。**上限 2 次实跑**（首跑 + 必要时 1 次原样复跑）。
       绿：记 run id / job id / sha。红：**先原样复跑一次**（裁判规则 3），仍红则按固定处置停机，
       **不猜根因**，把前驱取证步骤打出的红因原文追加进 STATE §3。
-- [ ] `Fix`：绿之后**就地改准**两处已确认的 owner-doc 漂移（Minimum Rule 14，不降级）——
+      - **绿，首跑即绿，用了 1 次实跑（上限 2）**。三件套：
+        **run id `32533449466`** · **job id `96929876654`**（`L2 全量 live 判定（19 条）` = `gates-l2-live`）·
+        **sha `c2c688b7f6bc49a96d1e89a3582014334ba8fb71`**。
+      - `gh run view 32533449466 --json status,conclusion,headSha` → `"conclusion":"success"` / `"status":"completed"`。
+      - 该 job 日志逐字：`判定模式：live（AGENERP_LIVE=1）—— 契约为全部门禁绿、零 skip，不读预期红名单` /
+        `门禁 19 项：红 0，绿 19，跳过 0` / `✅ live 判定：全部门禁绿，零 red、零 skip`。
+      - **九个 job 全部 `success`**，其中 `判定器未被改动`（`verdict-tool-untouched`，job `96929876658`）`success`。
+      - 实跑次数核对：`gh run list --branch ci/0027-2-l2-full-live-gate` 推前 **1 条**、推后 **2 条**，差 **1**（≤ 2）。
+- [x] `Fix`：绿之后**就地改准**两处已确认的 owner-doc 漂移（Minimum Rule 14，不降级）——
       `docs/context/project-context.md` 与 roadmap「5 现状」/「6 现状」/「9 现状」三行里
       「红因是 `::test_no_orphan_column_left_behind`、CI 上不成立」的表述已被本 plan 推翻，
       须就地改准并注明改准日期与依据 run id。
-- [ ] `Fix`：在 `2026-08-22-0027-2-…md` 的 `Closure Audit Log` **追加**一行
+      - roadmap 三行各追加一段「2026-08-22 三次补记，就地改准」，逐字推翻
+        「红在**实现**（`apply_pack` 的物理列清除面在 runner 的全新站点上不成立）」，
+        改准为「清除面从来没坏过，真红因在巡检的表达能力」，并注明依据 run `32533449466`
+        与 job `96929876654` / `96929876658`。`grep -c 32533449466` → **3**。
+      - `docs/context/project-context.md` 两行（「L2 live 门禁（定制包往返）」与「L2 live 门禁（**整目录判定**）」）
+        同样就地改准，含「本机 6 跑红 1 次 / runner 2 跑红 2 次……**不猜根因**」那处——本轮已给出实测答案。
+        `grep -c 32533449466` → **2**。
+      - **三张表的结构未破**：三条 roadmap 行仍以 `| — |` / `| L2 |` 收尾（脚本实测断言通过）。
+      - **仍不置 `done`**（Non-Goals）：`done` 要求「从 `expected-red.txt` 划掉」，默认判定环境无
+        `AGENERP_LIVE`、L2 恒红，条件不可满足（人在 STATE §2 11:20Z 的裁定），与工作项 4/5/7/8/9 同一情形。
+        因此 driver 步骤 4.b 的「把工作项由 ❌ 改 ✅」在本 plan 上以**就地改准现状行**的方式落实，不改状态值。
+- [x] `Fix`：在 `2026-08-22-0027-2-…md` 的 `Closure Audit Log` **追加**一行
       （只追加，不改写任何既有行）说明其 `Reopen When` 已满足；**不替它改 `Plan Status`**——
       那是它自己 Reopen 之后续跑的事。
-- [ ] `Proof`：在 `docs/masterplan/STATE.md` §2 追加一条证据行
+      - 已追加第五条。**为什么追加不违反它上一条自己写的「不再往本 Log 追加第五条」**：那句限定在
+        「人给出裁定之前、每轮产出都是同一份拒绝执行」的空转情形，本条记的是**那个条件本身发生了变化**
+        （重开条件被满足），是新事实不是空转。
+      - 该条同时写明：**重开条件满足 ≠ 可以关闭**——它自己欠的守卫三次变异实证仍无 run id，
+        19 个 `[ ]` 仍是真未做。**本轮一个勾未改、`Plan Status` 未动。**
+- [x] `Proof`：在 `docs/masterplan/STATE.md` §2 追加一条证据行
       （时间 · WBS 行 ID · 命令→退出码 · sha · 下一项），§3 那条 `[open]` 行下方追加处置事实行。
+      - §2 追加 `2026-08-22T14:40Z · P0/工作项 6 · …` 一条（含五条子事实：红因 · 本机/runner 差异的解释 ·
+        清除面证据 · 修法与「不是放宽」的实证 · 变异 · CI 三件套 · 未做且明确不做 · 验证范围）。
+      - §3 在那条 `[open]` 行之后追加一条 `[resolved]` **处置事实行**，
+        逐字记「重开条件已被满足 / 停机就此解除 / 红因不再是未知 / 重开条件满足 ≠ `0027-2` 可关闭 /
+        (a) 项仍未做」。**未改写 §3 任何既有行**（`[open]` 那行一字未动）。
+      - **红线 5 自查实跑**：`git diff -U0 docs/masterplan/STATE.md | grep -c '^-[^-]'` → **0**
+        （`17 insertions(+), 0 deletions`），纯追加属实。
+      - `docs/masterplan/DECISIONS.md` **一行未动**（`git status` 无该文件）。
 
 Exit Criteria:
 
-- [ ] 推之前 `gh pr view 1 --json state,baseRefOid` 实测为 `OPEN` / `7b0f585`，命令与输出在案
-- [ ] `gates-l2-live` 在 CI 上 `success`，或红且已按固定处置停机并留痕（run id / job id / sha 三件套在案）
-- [ ] `verdict-tool-untouched` 仍 `success`；`git diff --name-only 7b0f585 <branch-head> -- tools/gates/check_expected_red.py tools/gates/gate-verify.mjs` 无输出
-- [ ] CI 实跑次数 ≤ 2（`gh run list --branch ci/0027-2-l2-full-live-gate` 前后条数差在案）
-- [ ] roadmap 三行 + `project-context.md` 的确认漂移已就地改准
-- [ ] `0027-2` 的 Closure Audit Log 有追加行，其既有行一字未改
-- [ ] STATE §2/§3 有追加行；`docs/masterplan/DECISIONS.md` 一行未动
-- [ ] `docs/logs/2026/08-22.md` 更新
+- [x] 推之前 `gh pr view 1 --json state,baseRefOid` 实测为 `OPEN` / `7b0f585`，命令与输出在案
+- [x] `gates-l2-live` 在 CI 上 `success`（run `32533449466` / job `96929876654` / sha `c2c688b`）
+- [x] `verdict-tool-untouched` 仍 `success`（job `96929876658`）；
+      `git diff --name-only 7b0f585 c2c688b -- tools/gates/check_expected_red.py tools/gates/gate-verify.mjs` 无输出
+- [x] CI 实跑次数 ≤ 2 —— `gh run list --branch ci/0027-2-l2-full-live-gate` 推前 1 条、推后 2 条，**差 1**
+- [x] roadmap 三行 + `project-context.md` 的确认漂移已就地改准
+- [x] `0027-2` 的 Closure Audit Log 有追加行，其既有行一字未改
+- [x] STATE §2/§3 有追加行（纯追加实测 0 删除）；`docs/masterplan/DECISIONS.md` 一行未动
+- [x] `docs/logs/2026/08-22.md` 更新
 
 ## Draft Review Record
 
@@ -488,7 +532,7 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: <待关闭审计填写>
+Status Note: 四个 Phase 全部执行完毕，逐项证据写在各 Phase 项下（命令原文 + 退出码 + sha）。**verification scope limited**：本仓无全量套件（无 build、无 typecheck），本 plan 覆盖的是 `ruff` · `pytest tests/unit`（221 passed）· `pytest tests/contracts`（151 passed）· 默认判定环境判定器 · 本机 live 整目录判定（冷起全新站点 3 跑 + 多轮累积站点 1 跑，均 exit 0）· 变异验证（冷起全新站点，A/B 各一次）· CI run `32533449466`（九个 job 全绿）。交付 sha：`main` 上 `578eb8f`（**未推**）、分支 `ci/0027-2-l2-full-live-gate` 上 `c2c688b`（已推）。**`## Closure Gates` 十二框本轮一个未勾，`Closure Audit Evidence` 亦留空——本 plan 头 `Audit: required`，且它触及 `ai-autonomy-policy.md` Protected Areas 的 `agenerp/apply.py` 删除路径一族，关闭审计须由执行器之外的独立 `CLOSURE_VERIFY` 步做；执行器自勾即自审，等于伪造独立性。**（与 `2026-08-22-0228-1` 的处置一致：那份的十四框也是由独立审计回填的。）
 
 Closure Audit Evidence:
 
