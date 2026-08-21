@@ -921,6 +921,67 @@ live 整目录实测的六次退出码与那次不可复现的红、以及仍未
 见本节末尾「收尾自查（STATE §2 提交之后跑）」小节——按 plan 自己定的执行顺序，
 这五条必须在写完 STATE §2 并提交**之后**才跑，否则第二条会拿到一个伪失败。
 
+##### 收尾自查（STATE §2 提交之后跑，`HEAD` = `ef01d12`）
+
+**执行顺序说明**：这五条必须在写完 STATE §2 **并提交之后**才跑——本 plan 合法地会往
+`docs/masterplan/STATE.md` 追加证据行，提交之前跑第二条会拿到一个**伪失败**，
+那时不许去放松判据，先提交再跑。以下是提交之后的实测。
+
+```
+① $ python3 tools/gates/check_expected_red.py && python3 -m pytest tests/unit -q
+判定模式：default —— 按 tools/gates/expected-red.txt 判定
+门禁 19 项：预期红 7，绿 12，跳过 0
+✅ 与预期红名单完全一致
+205 passed in 0.46s
+$ echo $?
+0
+
+② $ git diff --stat 084c9c4..HEAD -- tests/gates .github/workflows docs/masterplan missions tools/gates/expected-red.txt
+ docs/masterplan/STATE.md | 18 ++++++++++++++++++
+ 1 file changed, 18 insertions(+)
+   → 只列出 docs/masterplan/STATE.md 一行，其余四条路径零命中 ✅
+
+③ $ git status --porcelain -- tests/gates .github/workflows docs/masterplan missions tools/gates/expected-red.txt
+   （无输出）✅  —— 与 ② 一起才覆盖「已提交」与「未提交」两种情形
+
+④ $ git diff --numstat 084c9c4..HEAD -- docs/masterplan/STATE.md
+18	0
+   → deletions = 0 ⇒ **只追加** ✅
+   为什么 deletions=0 就等于只追加：git 把「就地改一行」记成 1 增 1 删、把「移动一行」也记成 1 增 1 删，
+   所以 deletions 只要为 0，就没有任何既有行被改写或删除。
+   **这条判据不是仪式**：`git diff --numstat bd32959^..bd32959 -- docs/masterplan/STATE.md` → `1	1`，
+   本仓真实历史上那次提交确实就地改写了 STATE 的一行，这条判据当时会咬。
+
+⑤ $ git diff --numstat 084c9c4..HEAD -- tools/gates/expected-red.txt
+   （无输出）✅  —— 名单一行未动
+```
+
+**三处变异窗口的复原判据（按路径分开写，一律用开工 sha，不用裸 `git diff`）**：
+
+```
+$ git diff --stat 084c9c4..HEAD -- agenerp      # 无输出 ✅（Non-Goals 禁止任何净改动）
+$ git status --porcelain -- agenerp             # 无输出 ✅
+$ git status --porcelain -- tools/gates/check_expected_red.py   # 无输出 ✅
+$ git diff 084c9c4..HEAD -- tools/gates/check_expected_red.py | grep -n skipped
+51:             outcomes[nodeid] = "skipped"
+69:     skipped = sorted(n for n, o in outcomes.items() if o == "skipped")
+79:     if skipped:
+85:+        lines += [f"   {n}" for n in skipped]
+92:+        if reds or skipped:
+117:     if unexpected_red or unexpected_green or skipped:
+```
+
+判定器的 diff 里 `if skipped:`（第 79 行，**上下文行、无前缀**）与两条失败条件
+（第 92 行 live 侧新增、第 117 行 default 侧**上下文行、无前缀**）**都在**——
+**变异 ② 已复原**。这一条要人读 diff，不能只看退出码：判定器 **Phase 2 本来就要改**，
+对它写「diff 为空」本身就是错的。
+
+**文本一致性**：`grep -B5 '^- \[ \]' <plan> | grep -c 'Status: completed'` → **0**
+（没有任何 `Status: completed` 的 Phase 还留着未勾项）；
+全文剩余 14 个未勾项**全部落在 `## Closure Gates`**，按本 plan「`Plan Status` 由谁写」一节的归属，
+EXECUTE 阶段不勾它们、`Plan Status` 保持 `active`，由独立关闭审计置位。
+
+
 
 Exit Criteria:
 
