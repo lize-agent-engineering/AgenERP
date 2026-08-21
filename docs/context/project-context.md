@@ -45,7 +45,7 @@ This file is the AI entry point. The following `docs/context/` companions are re
 | Purpose                   | Command                                       |
 | ------------------------- | --------------------------------------------- |
 | Install dependencies      | `python3 -m pip install pytest`                |
-| Run app locally           | `docker compose up -d`（仓根 `docker-compose.yml`，roadmap 工作项 3 交付。**验证到哪一步**：`docker compose config -q` 在空环境下已绿并由门禁把守；「栈起得来且全部 healthy」**尚未验证**，归工作项 8，起栈尝试的原文与退出码见 `docs/logs/2026/08-21.md`） |
+| Run app locally           | `docker compose up -d`（仓根 `docker-compose.yml`，roadmap 工作项 3 交付。**验证到哪一步，两件事分开说**：① **起栈与健康判定已实证**——2026-08-21 由 plan `2026-08-21-1634-2` 冷起实测，`AGENERP_HTTP_PORT=18080 docker compose up -d --wait --wait-timeout 300` → exit 0（68 秒），`db`/`redis-cache`/`redis-queue`/`backend`/`websocket`/`frontend` 六个 healthy，首页 `/api/method/ping` → 200，并做过变异验证（探针改成必然失败的地址 → exit 1 并指名 unhealthy 的服务）；判定口径写在 `docs/architecture/system-baseline.md` §14.2，**三个 worker 的健康不可判，「全部 healthy」是收窄过的集合**。② **工作项 8 的 L2 门禁仍未解锁**——`test_stack_boots_and_all_services_healthy` 与 `test_homepage_states_ai_disabled_instead_of_crashing` 两条**仍在 `tools/gates/expected-red.txt` 名单内**，`compose_stack` fixture 仍抛 `NotImplementedError`（红线 1，等人处置）。①**不等于**②，不得把工作项 8 报成已验证。命令原文与退出码见 `docs/logs/2026/08-21.md`） |
 | Typecheck / compile check | `none`（mypy 未安装；装机后由人接进 mission commands） |
 | Build                     | `none`（纯 Python 包，无构建步骤）              |
 | Lint / static check       | `ruff check agenerp tests/unit tests/contracts` |

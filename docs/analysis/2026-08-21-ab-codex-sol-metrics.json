@@ -1,0 +1,18 @@
+{
+  "arm": "codex-sol",
+  "driver": "codex",
+  "model": "gpt-5.6-sol",
+  "base": "dc653ec",
+  "engine_status": "completed（引擎判定无事可做）",
+  "gate_exit": 0,
+  "gate_green": true,
+  "commits": 1,
+  "plans_drafted": 1,
+  "plans_promoted_to_active": 0,
+  "work_items_advanced": 0,
+  "gate_files_touched": 0,
+  "red_line_violated": false,
+  "wall_minutes": 54,
+  "finding": "起草 1 份 plan 后停在 draft，未按状态机提升为 active；EXEC_PLANS 因此取到 0 个可执行 plan，引擎据此判定 mission 完成 —— 假完成",
+  "_measurement_note": "首版此字段误记为 1：grep 匹配到了 plan 正文里提及的 'Plan Status: active' 字样，而不是文件头部的状态行。实际状态行是 draft。**判定用的 grep 也要挑对锚点**，否则对比表里会混进假数。"
+}

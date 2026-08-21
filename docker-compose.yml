@@ -37,6 +37,11 @@ x-backend-defaults: &backend_defaults
   depends_on:
     configurator:
       condition: service_completed_successfully
+    # 等站点建完再起。见 system-baseline.md §14.2：建站耗时随机器速度变，
+    # 塞进 backend 探针的 start_period 会让超时值跟着机器猜、也让真坏掉的 backend 更晚翻红。
+    # 代价：本锚点为 backend 与三个 worker 共用，三个 worker 的启动时机被一并推迟。
+    create-site:
+      condition: service_completed_successfully
 
 # AI 能力：全部空默认值。缺失 = 「未配置」，不是错误。
 # 这些变量只做环境注入，**不出现在任何 healthcheck 或 command 的成败路径上**。
@@ -158,6 +163,16 @@ services:
     <<: *backend_defaults
     environment:
       <<: *ai_env
+    # Host 头不能省：gunicorn 按 Host 解析站点，打 127.0.0.1 会被当成一个叫 127.0.0.1 的站点而 404。
+    # 站点名与 create-site 的 --set-default、frontend 的 FRAPPE_SITE_NAME_HEADER 是同一个值。
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - 'curl -fsS --max-time 5 -H "Host: frontend" -o /dev/null http://127.0.0.1:8000/api/method/ping'
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 60s
 
   websocket:
     <<: *erpnext_image
@@ -165,6 +180,15 @@ services:
     command:
       - node
       - /home/frappe/frappe-bench/apps/frappe/socketio.js
+    # 根路径 / 实测不回应（curl 5 秒超时、0 字节），只有 socket.io 的握手端点可判活。
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - 'curl -fsS --max-time 5 -o /dev/null "http://127.0.0.1:9000/socket.io/?EIO=4&transport=polling"'
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 30s
     volumes:
       - sites:/home/frappe/frappe-bench/sites
       - logs:/home/frappe/frappe-bench/logs
@@ -214,17 +238,29 @@ services:
       UPSTREAM_REAL_IP_RECURSIVE: "off"
       PROXY_READ_TIMEOUT: "120"
       CLIENT_MAX_BODY_SIZE: 50m
+    # nginx 自己带 FRAPPE_SITE_NAME_HEADER，探针不用手加 Host 头。
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - 'curl -fsS --max-time 5 -o /dev/null http://127.0.0.1:8080/api/method/ping'
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 30s
     volumes:
       - sites:/home/frappe/frappe-bench/sites
       - logs:/home/frappe/frappe-bench/logs
     # 宿主 IP 字面写死 127.0.0.1 —— 见文件头「附带风险」说明。端口号可经变量覆盖，绑定地址不可。
     ports:
       - "127.0.0.1:${AGENERP_HTTP_PORT:-8080}:8080"
+    # 两个依赖都落了 healthcheck，故一律 service_healthy。
+    # service_started 只保证容器起来，实测会让 nginx 在 backend 可解析之前启动并逐字报
+    # `host not found in upstream "backend:8000"`，陷入重启循环。
     depends_on:
       backend:
-        condition: service_started
+        condition: service_healthy
       websocket:
-        condition: service_started
+        condition: service_healthy
 
 volumes:
   db-data:

@@ -1,6 +1,6 @@
 # 2026-08-21-1634-2 应用侧服务 healthcheck —— 让「全部服务 healthy」先变成可判定的
 
-> Plan Status: active
+> Plan Status: completed
 > Mission: p0-foundation
 > Work Item: 8. 零依赖启动进 CI（L2 慢门禁）—— **只做「healthy 可判定」这半，不解锁 L2 门禁，不做首页文案**
 > Last Reviewed: 2026-08-21
@@ -105,23 +105,23 @@
 
 ### Phase 1 - Explore：镜像里有什么探针、各服务怎么判活
 
-Status: planned
+Status: completed
 Targets: 无代码改动（只跑命令、只记录）
 Skill: `none`
 
 - Item Types: 全部 `Proof`（这一阶段只产出实测事实）
 - Prereqs: docker daemon 在跑
 
-- [ ] 起栈拿现场：`AGENERP_HTTP_PORT=18080 docker compose up -d` → 记录退出码；`docker compose ps -a` 抄下全表。
+- [x] 起栈拿现场：`AGENERP_HTTP_PORT=18080 docker compose up -d` → 记录退出码；`docker compose ps -a` 抄下全表。
   - Skill: `none`
-- [ ] **改动前的 `--wait` 基线**：在**未修改**的 `docker-compose.yml` 上跑
+- [x] **改动前的 `--wait` 基线**：在**未修改**的 `docker-compose.yml` 上跑
       `AGENERP_HTTP_PORT=18080 docker compose up -d --wait --wait-timeout 300` → 记录退出码与耗时。
       没有这个「之前」的数，Phase 4 若 `--wait` 非 0，就分不清是「我加的 healthcheck 写错了」还是
       「`--wait` 在本机 compose v5.0.2 + 本栈上从来就收敛不了」。
       顺带查实一个本 plan 依赖但**尚未验证**的假设：`--wait` 对 `configurator` / `create-site` 这两个
       跑完即退的一次性容器是当作 `completed successfully` 放行，还是会把它们判成失败。
   - Skill: `none`
-- [ ] **分支裁定（本 plan 的止损阀，不许跳过）**：若上一条的「改动前 `--wait` 基线」**非 0**，
+- [x] **分支裁定（本 plan 的止损阀，不许跳过）**：若上一条的「改动前 `--wait` 基线」**非 0**，
       先按裁判规则 3 原样复跑一次；仍非 0 就地归类，并按类走：
       · **A 类「一次性容器被判失败」**——`configurator` / `create-site` 明明 `Exited (0)` 却被 `--wait` 记成失败。
         这一类与本 plan 要加的应用侧 healthcheck **无关**，是编排面的既有缺口：
@@ -132,10 +132,10 @@ Skill: `none`
       · **C 类「非 0 的原因就是应用侧没有 healthcheck 可等」**——这正是本 plan 要修的，照常进 Phase 2。
       三类都不许猜：归类结论必须引用命令原文与输出片段；归不进任何一类就按 A 类处理（停下等人）。
   - Skill: `none`
-- [ ] 探针工具盘点：在 `backend` 容器里逐个试 `curl` / `wget` / `python3` 是否存在（`docker compose exec -T backend sh -lc 'command -v curl wget python3'`），
+- [x] 探针工具盘点：在 `backend` 容器里逐个试 `curl` / `wget` / `python3` 是否存在（`docker compose exec -T backend sh -lc 'command -v curl wget python3'`），
       **记录原文输出**。`frappe/erpnext:v15.119.3` 里有没有 curl 是事实问题，不是常识问题——不许照抄别处的 compose 模板假设它有。
   - Skill: `none`
-- [ ] 各服务的判活端点实测，每条都记命令原文 + 退出码 + 输出片段：
+- [x] 各服务的判活端点实测，每条都记命令原文 + 退出码 + 输出片段：
       `backend` → 容器内打 `http://127.0.0.1:8000/api/method/ping`。
       ⚠️ **这里有一个不是超时的坑，先说破**：Frappe 的 gunicorn 按 **Host 头**解析站点，
       容器内打 `127.0.0.1` 会被解析成一个名叫 `127.0.0.1` 的站点，那个站点不存在——
@@ -146,28 +146,28 @@ Skill: `none`
       `queue-short` / `queue-long` / `scheduler` → **没有监听端口**，先查清 `bench` 有没有可用的自检子命令、
       以及 rq worker 的心跳落在 redis 的哪个 key 上。
   - Skill: `none`
-- [ ] 收尾 `docker compose down -v` → 记录退出码；`docker ps -a` 确认那个无关的 `docker-frontend-1` 未受影响。
+- [x] 收尾 `docker compose down -v` → 记录退出码；`docker ps -a` 确认那个无关的 `docker-frontend-1` 未受影响。
   - Skill: `none`
 
 Exit Criteria:
 
-- [ ] 六个应用侧服务各有一条「可用的判活手段」或「查实没有可用手段」的结论，**每条都带命令原文与退出码**
-- [ ] 结论写进 `docs/logs/`；若某条实测失败，按裁判规则 3 原样复跑一次后如实记「复现 / 不可复现」，**不写猜测的根因**
-- [ ] 本机无关栈未受影响（`docker ps -a` 输出抄下）
-- [ ] **改动前的 `--wait` 基线有退出码原文**；若非 0，已完成 A/B/C 归类并留下证据
+- [x] 六个应用侧服务各有一条「可用的判活手段」或「查实没有可用手段」的结论，**每条都带命令原文与退出码**
+- [x] 结论写进 `docs/logs/`；若某条实测失败，按裁判规则 3 原样复跑一次后如实记「复现 / 不可复现」，**不写猜测的根因**
+- [x] 本机无关栈未受影响（`docker ps -a` 输出抄下）
+- [x] **改动前的 `--wait` 基线有退出码原文**；若非 0，已完成 A/B/C 归类并留下证据
       （落在 A 类或 B 类时本 plan **停在 Phase 1**，Phase 2–5 不启动，`STATE.md` §3 已追加 needs-human）
-- [ ] No owner-doc update required（本阶段只产出实测记录，判定口径的落盘在 Phase 2）
+- [x] No owner-doc update required（本阶段只产出实测记录，判定口径的落盘在 Phase 2）
 
 ### Phase 2 - Decision：本仓「全部服务 healthy」的定义
 
-Status: planned
+Status: completed
 Targets: `docs/architecture/system-baseline.md`（在 §14.1 之后追加 §14.2）
 Skill: `none`
 
 - Item Types: `Decision`
 - Prereqs: Phase 1
 
-- [ ] **Decision：无端口的三个 worker（`queue-short` / `queue-long` / `scheduler`）怎么判 healthy。**
+- [x] **Decision：无端口的三个 worker（`queue-short` / `queue-long` / `scheduler`）怎么判 healthy。**
       候选：
       (a) 不给它们 healthcheck，把定义收窄为「**有 healthcheck 的服务全部 healthy** + 其余长驻服务 running + 两个一次性容器 `Exited (0)`」；
       (b) 用 Phase 1 查到的 `bench` 自检子命令做 healthcheck；
@@ -179,7 +179,7 @@ Skill: `none`
       残余风险：选 (a) 会让工作项 8 的门禁将来只能断言一个收窄过的集合——**这条必须写进 owner doc 和门禁提案里**，
       否则将来有人会以为「全部 healthy」真的是全部。
   - Skill: `none`
-- [ ] **Decision：`interval` / `timeout` / `retries` / `start_period` 取值。**
+- [x] **Decision：`interval` / `timeout` / `retries` / `start_period` 取值。**
       约束是硬的：`create-site` 建站要跑一段时间，`backend` 在建站完成前打 ping 必然失败——
       `start_period` 给不够就会把「还没起完」误判成 unhealthy。取值要有理由，理由写进 owner doc。
       **候选不止「把 `start_period` 调大」一条**：`backend_defaults` 此刻只 `depends_on` `configurator`
@@ -191,7 +191,7 @@ Skill: `none`
       残余风险：本机与 CI runner 的机器速度不同，本机够用的 `start_period` 在 runner 上可能不够；
       这一条属工作项 8 剩下那一半的事，本 plan 只如实登记。
   - Skill: `none`
-- [ ] **Decision：零依赖红线怎么守住。**
+- [x] **Decision：零依赖红线怎么守住。**
       `docker-compose.yml` 文件头 `:10` 逐字写着「外部能力（LLM 等）缺失是『未配置』状态，不是错误状态 ——
       空默认值，且**不进 healthcheck/command 的成败路径**」，`:42` 又重复一次，且 `tests/unit/test_compose_zero_dep.py`
       有断言盯着。新增的 healthcheck **一个 AI 相关变量都不许出现在里面**。
@@ -200,24 +200,24 @@ Skill: `none`
 
 Exit Criteria:
 
-- [ ] 三条 Decision 有结论、有备选、有残余风险
-- [ ] `docs/architecture/system-baseline.md` 新增小节 **「§14.2 本仓栈的健康判定口径」**（接在既有 §14.1 之后；
+- [x] 三条 Decision 有结论、有备选、有残余风险
+- [x] `docs/architecture/system-baseline.md` 新增小节 **「§14.2 本仓栈的健康判定口径」**（接在既有 §14.1 之后；
       §3 是「分层架构」，健康判定塞进去会错位），
       写清：**哪些服务在「全部 healthy」的集合里、各自用什么探针、超时取值与理由、以及哪些服务的健康不可判**
-- [ ] `docs/logs/` 追加本阶段条目
+- [x] `docs/logs/` 追加本阶段条目
 
 ### Phase 3 - Add：落 healthcheck 并收紧依赖
 
-Status: planned
+Status: completed
 Targets: `docker-compose.yml`
 Skill: `none`
 
 - Item Types: `Add`
 - Prereqs: Phase 2
 
-- [ ] 按 Phase 2 的结论给应用侧服务补 `healthcheck`（能判的都补，判不了的按 (a) 明确不补并在文件里就地写一行注释说明为什么）。
+- [x] 按 Phase 2 的结论给应用侧服务补 `healthcheck`（能判的都补，判不了的按 (a) 明确不补并在文件里就地写一行注释说明为什么）。
   - Skill: `none`
-- [ ] `frontend.depends_on` **逐服务**收紧：**只有上一条里真的落了 healthcheck 的服务**才由
+- [x] `frontend.depends_on` **逐服务**收紧：**只有上一条里真的落了 healthcheck 的服务**才由
       `condition: service_started` 改成 `condition: service_healthy`；没落 healthcheck 的**保持 `service_started`**，
       并在该行就地写一行注释说明原因，同时记进 owner doc。
       ⚠️ 这个条件不能省：实测过一份合成 compose——`service_healthy` 指向一个没有 healthcheck 的服务时，
@@ -225,7 +225,7 @@ Skill: `none`
       会把 Phase 4 的判据卡死在超时上。
       这一条直接对应日志里实证过的 `host not found in upstream "backend:8000"` 重启循环。
   - Skill: `none`
-- [ ] 自检（先自检省一轮往返，全部对应 `tests/unit/test_compose_zero_dep.py` 的既有断言）：
+- [x] 自检（先自检省一轮往返，全部对应 `tests/unit/test_compose_zero_dep.py` 的既有断言）：
       新增内容里不出现任何 AI 相关变量；不新增顶层 `version:`；不引入 `latest` tag；不改任何已钉的镜像版本；
       不改 `ports` 的回环绑定写法。
       ⚠️ **最容易被手写探针字符串踩到的是插值那两条，单列出来**：
@@ -237,37 +237,37 @@ Skill: `none`
 
 Exit Criteria:
 
-- [ ] `env -i PATH="$PATH" HOME="$HOME" docker compose -f docker-compose.yml config -q`（**与门禁同口径**：`tests/gates/test_zero_dep_boot.py` 的 `CLEAN_ENV` 只留 `PATH` / `HOME`）→ exit 0
-- [ ] `python3 -m pytest tests/unit/test_compose_zero_dep.py -q` → exit 0
-- [ ] `python3 -m pytest tests/gates/test_zero_dep_boot.py -q` 的结果与改动前一致：
+- [x] `env -i PATH="$PATH" HOME="$HOME" docker compose -f docker-compose.yml config -q`（**与门禁同口径**：`tests/gates/test_zero_dep_boot.py` 的 `CLEAN_ENV` 只留 `PATH` / `HOME`）→ exit 0
+- [x] `python3 -m pytest tests/unit/test_compose_zero_dep.py -q` → exit 0
+- [x] `python3 -m pytest tests/gates/test_zero_dep_boot.py -q` 的结果与改动前一致：
       `test_compose_config_valid_with_empty_env` 仍绿，另两条仍以 **setup ERROR** 的形式红在
       `NotImplementedError: compose_stack 尚未实现 —— 见 docs/backlog/implementation-roadmap.md 的 P0 交付表（P0 · 零依赖启动 CI）`
       （**红因必须逐字一致**——若红因变了，说明本 plan 踩到了别的东西。注意它是 ERROR 不是 FAILED，
       整条命令的退出码是 1，`1 passed, 2 errors`）
-- [ ] No owner-doc update required（判定口径已在 Phase 2 落进 §14.2，其余写回集中在 Phase 5）
-- [ ] `docs/logs/` 追加本阶段条目
+- [x] No owner-doc update required（判定口径已在 Phase 2 落进 §14.2，其余写回集中在 Phase 5）
+- [x] `docs/logs/` 追加本阶段条目
 
 ### Phase 4 - Proof：起栈实证
 
-Status: planned
+Status: completed
 Targets: 无代码改动
 Skill: `none`
 
 - Item Types: `Proof`
 - Prereqs: Phase 3
 
-- [ ] `AGENERP_HTTP_PORT=18080 docker compose up -d --wait --wait-timeout 300` → 记录退出码与实际耗时。
+- [x] `AGENERP_HTTP_PORT=18080 docker compose up -d --wait --wait-timeout 300` → 记录退出码与实际耗时。
       **这条命令的退出码就是本 plan 的核心判据**：`--wait` 会等到所有带 healthcheck 的服务 healthy，
       任一 unhealthy 或超时即非 0。
       **`--wait-timeout` 必须给死**：不给上界时，一个卡在 `starting` 的探针会让命令无限期挂着，
       那不是「判据红了」，那是判据根本没给出结论。300 秒是起草时的取值，
       Phase 2 若把 `start_period` 定得更长，这里同步调大并在 owner doc 记下两者的关系。
   - Skill: `none`
-- [ ] `docker compose ps --format '{{.Service}}\t{{.State}}\t{{.Health}}'` → 抄下全表，逐行对照 Phase 2 定的集合。
+- [x] `docker compose ps --format '{{.Service}}\t{{.State}}\t{{.Health}}'` → 抄下全表，逐行对照 Phase 2 定的集合。
   - Skill: `none`
-- [ ] `curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:18080/api/method/ping` → 期望 200（与工作项 3 那次实测同口径，便于对照）。
+- [x] `curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:18080/api/method/ping` → 期望 200（与工作项 3 那次实测同口径，便于对照）。
   - Skill: `none`
-- [ ] **变异验证（判据有没有牙齿）**：临时把某个 healthcheck 的探测目标改成一个必然失败的地址 →
+- [x] **变异验证（判据有没有牙齿）**：临时把某个 healthcheck 的探测目标改成一个必然失败的地址 →
       `docker compose up -d --wait --wait-timeout 300` 应**非 0** 且能指出是哪个服务 unhealthy → 还原 →
       用**变异前**先记下的 `shasum -a 256 docker-compose.yml` 与**还原后**的同一条命令输出比对，确认逐字节还原。
       （Phase 3 的改动此刻未必已提交，`git diff` 非空是正常的、证明不了还原，所以判据取哈希对照而非 `git diff`。）
@@ -275,33 +275,33 @@ Skill: `none`
       调大并如实记录，**不要因为「等太久」就把这步跳过**。
       不做这步就不知道 `--wait` 是真在判还是空转。
   - Skill: `none`
-- [ ] 收尾：`docker compose down -v` → 退出码；`docker ps -a` 确认无关栈未受影响。
+- [x] 收尾：`docker compose down -v` → 退出码；`docker ps -a` 确认无关栈未受影响。
   - Skill: `none`
 
 Exit Criteria:
 
-- [ ] `AGENERP_HTTP_PORT=18080 docker compose up -d --wait --wait-timeout 300` → **exit 0**，命令原文、退出码与耗时抄进 `docs/logs/`
-- [ ] `docker compose ps` 全表落 `docs/logs/`，且与 Phase 2 定的「healthy 集合」逐行相符
-- [ ] 首页 `ping` → 200
-- [ ] 变异验证做过且如实记录（含**变异前 / 还原后两条 `shasum -a 256 docker-compose.yml` 的原文，且两者相同**）
-- [ ] No owner-doc update required（本阶段只产出实证记录，写回在 Phase 5）
-- [ ] 收尾 `down -v` 退 0，无关栈未受影响
-- [ ] `docs/logs/` 追加本阶段条目
+- [x] `AGENERP_HTTP_PORT=18080 docker compose up -d --wait --wait-timeout 300` → **exit 0**，命令原文、退出码与耗时抄进 `docs/logs/`
+- [x] `docker compose ps` 全表落 `docs/logs/`，且与 Phase 2 定的「healthy 集合」逐行相符
+- [x] 首页 `ping` → 200
+- [x] 变异验证做过且如实记录（含**变异前 / 还原后两条 `shasum -a 256 docker-compose.yml` 的原文，且两者相同**）
+- [x] No owner-doc update required（本阶段只产出实证记录，写回在 Phase 5）
+- [x] 收尾 `down -v` 退 0，无关栈未受影响
+- [x] `docs/logs/` 追加本阶段条目
 
 ### Phase 5 - 文档、roadmap 写回与交接
 
-Status: planned
+Status: completed
 Targets: `docs/architecture/system-baseline.md` ·`docs/backlog/p0-foundation-roadmap.md` ·`docs/context/project-context.md` ·`docs/masterplan/STATE.md`（**只追加**）·`docs/logs/`
 Skill: `none`
 
 - Item Types: `Add | Decision`
 - Prereqs: Phase 4
 
-- [ ] Add：`docs/context/project-context.md` 的 “Run app locally” 一行更新——
+- [x] Add：`docs/context/project-context.md` 的 “Run app locally” 一行更新——
       它此刻写着「『栈起得来且全部 healthy』**尚未验证**」。本 plan 把「起得来」与「有 healthcheck 的服务全 healthy」验了，
       **但没有解锁 L2 门禁**。改写时必须把这两件事分开说，不许写成「工作项 8 已验证」。
   - Skill: `none`
-- [ ] **Decision：roadmap 工作项 8 的状态怎么写。**
+- [x] **Decision：roadmap 工作项 8 的状态怎么写。**
       候选：(a) `todo` → `planned`（本 plan 是它的第一个 plan，已通过草案评审）；(b) 留 `todo`；(c) 写 `done`。
       **选 (a)**：(c) 是谎报（两条门禁一条没绿）；(b) 会让引擎下一轮把它当成没人做过的活再取一次——
       依据是 roadmap 自己的 `:18`「顺序即执行顺序，引擎取第一个 `todo`」与 `:33-34` 的状态值定义，
@@ -309,22 +309,22 @@ Skill: `none`
       落点：本 plan 自带幂等写入——工作项 4/5 的先例已证明没有任何引擎产物会替你写这一步。
       残余风险：工作项 8 会停在 `planned` 直到人处置 `STATE.md` §3 的红线决定 + 有人做完首页文案那一半。
   - Skill: `none`
-- [ ] Add：按红线 5 往 `STATE.md` §3 **追加**一行，登记本 plan 交出的两件事：
+- [x] Add：按红线 5 往 `STATE.md` §3 **追加**一行，登记本 plan 交出的两件事：
       ① 「healthy 已可判定，但门禁仍被 `compose_stack` 挡着」——指向已有那行 `[open]`，**不另开重复条目**，只补充新事实；
       ② 若 Phase 2 选了 (a)，登记「三个 worker 的健康不可判」这个收窄口径，供人在采纳门禁时知情。
   - Skill: `none`
-- [ ] Add：`docs/logs/` 写入本 plan 的聚合条目：五个阶段、每条命令原文 + 退出码 + 收尾 sha。
+- [x] Add：`docs/logs/` 写入本 plan 的聚合条目：五个阶段、每条命令原文 + 退出码 + 收尾 sha。
   - Skill: `none`
 
 Exit Criteria:
 
-- [ ] `system-baseline.md` **§14.2** 存在，含健康判定口径与「哪些不可判」；
+- [x] `system-baseline.md` **§14.2** 存在，含健康判定口径与「哪些不可判」；
       ⚠️ 写进 `docs/architecture/**` 的文字不得使用 `文件:行号` 形式的引用（`check-doc-references.mjs` 的 line-ref 规则），只按小节名引
-- [ ] `project-context.md` 的 “Run app locally” 行已更新，且**明确区分**「起栈已验证」与「工作项 8 门禁未解锁」
-- [ ] roadmap 工作项 8 由 `todo` → `planned`
-- [ ] `git diff --numstat docs/masterplan/STATE.md` 第二列为 **0**（只增不删）
-- [ ] `docs/logs/` 已更新
-- [ ] `bash tools/check-masterplan-links.sh` 与 `node tools/check-doc-references.mjs` 均退 0
+- [x] `project-context.md` 的 “Run app locally” 行已更新，且**明确区分**「起栈已验证」与「工作项 8 门禁未解锁」
+- [x] roadmap 工作项 8 由 `todo` → `planned`
+- [x] `git diff --numstat docs/masterplan/STATE.md` 第二列为 **0**（只增不删）
+- [x] `docs/logs/` 已更新
+- [x] `bash tools/check-masterplan-links.sh` 与 `node tools/check-doc-references.mjs` 均退 0
 
 ## Draft Review Record
 
@@ -364,20 +364,20 @@ Exit Criteria:
 
 ## Closure Gates
 
-- [ ] in-scope behavior is complete
-- [ ] relevant docs are aligned（`system-baseline.md` ·`project-context.md` ·roadmap ·`STATE.md` §3）
-- [ ] verification has run：`docker compose config -q`（空环境）·`AGENERP_HTTP_PORT=18080 docker compose up -d --wait` ·`docker compose ps` ·`curl … /api/method/ping` ·`python3 -m pytest tests/unit -q` ·`python3 -m pytest tests/gates/test_zero_dep_boot.py -q` ·`python3 tools/gates/check_expected_red.py` ·`bash tools/check-masterplan-links.sh` ·`node tools/check-doc-references.mjs`
-- [ ] **verification scope limited 已显式声明**：起栈实证只在**本机 compose v5.0.2** 上做过，
+- [x] in-scope behavior is complete
+- [x] relevant docs are aligned（`system-baseline.md` ·`project-context.md` ·roadmap ·`STATE.md` §3）
+- [x] verification has run：`docker compose config -q`（空环境）·`AGENERP_HTTP_PORT=18080 docker compose up -d --wait` ·`docker compose ps` ·`curl … /api/method/ping` ·`python3 -m pytest tests/unit -q` ·`python3 -m pytest tests/gates/test_zero_dep_boot.py -q` ·`python3 tools/gates/check_expected_red.py` ·`bash tools/check-masterplan-links.sh` ·`node tools/check-doc-references.mjs`
+- [x] **verification scope limited 已显式声明**：起栈实证只在**本机 compose v5.0.2** 上做过，
       CI runner 是 2.38.2，两者的版本差是 `2026-08-21-1022-1` 已登记的 watch-only residual。不得report为「CI 上也验证过」
-- [ ] **不得宣称工作项 8 的门禁转绿**：`expected-red.txt` 在本 plan 前后**逐字不变**
+- [x] **不得宣称工作项 8 的门禁转绿**：`expected-red.txt` 在本 plan 前后**逐字不变**
       （执行时跑 `git diff --numstat tools/gates/expected-red.txt` 并抄下输出，期望无变化）
-- [ ] 判据有牙齿：Phase 4 的变异验证做过并记录
-- [ ] no in-scope item downgraded to deferred/follow-up
-- [ ] independent draft review completed and recorded
-- [ ] text consistency verified: status, phases, gates, and log all agree
+- [x] 判据有牙齿：Phase 4 的变异验证做过并记录
+- [x] no in-scope item downgraded to deferred/follow-up
+- [x] independent draft review completed and recorded
+- [x] text consistency verified: status, phases, gates, and log all agree
 - [ ] closure audit was independent（独立子代理，fresh session）
-- [ ] closure evidence exists in files
-- [ ] `git diff --name-only` 对 `tests/gates/**`、`.github/workflows/**`、`missions/**` 全部零命中
+- [x] closure evidence exists in files
+- [x] `git diff --name-only` 对 `tests/gates/**`、`.github/workflows/**`、`missions/**` 全部零命中
 
 ## Deferred But Adjudicated
 
@@ -417,13 +417,31 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: <pending>
+Status Note: 五个阶段全部执行完毕并逐项打勾，`Plan Status` 置 `completed`。
+交付面只有 `docker-compose.yml` 一个代码文件（`healthcheck:` 由 3 处增至 6 处，
+`frontend.depends_on` 两条由 `service_started` 收紧为 `service_healthy`，
+`x-backend-defaults` 补 `create-site: condition: service_completed_successfully`），其余六个文件是文档写回。
+
+**本 plan 交出的是「healthy 可判定」，不是「门禁转绿」**——`tools/gates/expected-red.txt` 逐字未动
+（`git diff --numstat` 无输出），`test_stack_boots_and_all_services_healthy` 与
+`test_homepage_states_ai_disabled_instead_of_crashing` 两条仍在名单内，`compose_stack` 仍抛 `NotImplementedError`。
+Exit Criteria 从起草时就不含任何一条门禁转绿，收尾时也没有。
+
+⚠️ **`## Closure Gates` 里唯一未勾的是「closure audit was independent（独立子代理，fresh session）」——
+本次执行没有做独立关闭审计**，它属循环的 `CLOSURE_VERIFY` 步，由 fresh session 复跑判定。
+不自勾，也不把它记成已做。
 
 Closure Audit Evidence:
 
-- Auditor / Agent: <pending>
-- Evidence: <pending>
+- Auditor / Agent: <pending —— 待独立 fresh session 复跑>
+- Evidence: 本次执行期的命令原文、退出码与 `docker compose ps` 全表落在
+  `docs/logs/2026/08-21.md` 的五条 `EXECUTE` 条目里（Phase 1–5，倒序在最前）；
+  判定口径落在 `docs/architecture/system-baseline.md` **§14.2**；
+  交接与收窄口径落在 `docs/masterplan/STATE.md` §3 的追加行（`--numstat` 为 `5	0`，只增不删）。
 
 Follow-up:
 
-- <pending>
+- 工作项 8 的第二个 plan（首页「AI 能力未配置」文案 + CI 的 L2 docker job），
+  重开事件是人对 `STATE.md` §3 那条 `[open]` 的 (a)/(b)/(c)/(d) 作出选择。
+- 本批改动应经 PR 落地（compose 的 `healthcheck:` / `condition: service_healthy` 是 2.38.2 runner 上从未解析过的新键）。
+  **开 PR 属对外动作，本次未执行。**

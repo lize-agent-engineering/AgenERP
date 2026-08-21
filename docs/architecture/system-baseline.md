@@ -202,3 +202,81 @@ roadmap 工作项 3（plan `docs/plans/p0-foundation/2026-08-21-1022-1-zero-dep-
 一份写了硬失败插值的 compose，在**已经配了变量的机器上**照样退 0——红只会在别人 `git clone` 之后才出现。
 所以规则要有自己的、扫原始文本的判据。
 
+
+---
+
+## 14.2 本仓栈的健康判定口径（2026-08-21 追加）
+
+> 本节回答一个此前无人定义的问题：本仓说「全部服务 healthy」时，**到底指哪些服务**。
+> 出处是 plan `docs/plans/p0-foundation/2026-08-21-1634-2-compose-healthcheck-app-services.md`，
+> 结论全部由该 plan Phase 1 的容器内实测得出，命令原文与退出码在当天的 `docs/logs/` 里。
+
+### 「全部服务 healthy」= 有探针的服务全部 healthy + 其余长驻服务 running + 两个一次性容器 `Exited (0)`
+
+这是一个**收窄过的集合**，不是字面意义的「全部」。收窄的边界必须写明，否则将来采纳门禁的人会以为它覆盖了整个栈。
+
+| 服务 | 有无 healthcheck | 探针 | 判定 |
+|---|---|---|---|
+| `db` | 有（工作项 3 已有） | `mysqladmin ping` | 在集合内 |
+| `redis-cache` / `redis-queue` | 有（工作项 3 已有） | `redis-cli ping` | 在集合内 |
+| `backend` | 有 | 容器内 `curl` 打 `/api/method/ping`，**必须带 `Host: frontend` 头** | 在集合内 |
+| `websocket` | 有 | 容器内 `curl` 打 socket.io 的 polling 握手端点 | 在集合内 |
+| `frontend` | 有 | 容器内 `curl` 打 `:8080/api/method/ping`（经 nginx 转 backend） | 在集合内 |
+| `queue-short` / `queue-long` / `scheduler` | **无** | **查实没有可用探针** | **健康不可判**，只判 running |
+| `configurator` / `create-site` | 无（一次性容器） | 不适用 | 只判 `Exited (0)` |
+
+### 三个 worker 为什么不给探针（这不是漏项，是查实的结论）
+
+- `bench doctor` 与 `bench --site frontend scheduler status` 都**退 0**，而它们同时在输出里说
+  `Scheduler disabled / inactive for frontend`——`bench new-site` 建站时默认就把调度器关了。
+  拿这两条当探针等于**永远绿**，那是假判据，比不判更坏。它们还都是全栈级结论，不区分是哪个容器。
+- rq 侧确有真信号：worker 会把自己注册进 redis 的 `rq:workers`，每条 `rq:worker:<id>` 记录里的
+  `hostname` 与容器 hostname 逐字相符，可用来定位「本容器的 worker」。三条理由让它仍然不合适：
+  ① **`scheduler` 根本不是 rq worker**，不在名单里，这条路对它无效，覆盖面天然残缺；
+  ② **心跳分辨率是 7 分钟**——rq 的 `DEFAULT_WORKER_TTL` 是 420 秒，本仓实测两次心跳间隔 405 秒。
+     一个死掉的 worker 会继续「healthy」将近 8 分钟，这离假判据只有一步；
+  ③ 它是**跨服务探针**：worker 的健康会因为 redis 不可达而变红，把故障归错了服务。
+- 不采用 `pgrep` 之类的进程存活探针。进程活着不等于 worker 在消费队列，那是一条永远绿的假判据。
+
+**残余风险（采纳门禁时必须知情）**：`test_stack_boots_and_all_services_healthy` 将来被解锁后，
+它断言的是上表「在集合内」那六个，**不是十一个**。三个 worker 的健康在本仓此刻不可判。
+重开事件：Frappe/ERPNext 提供 worker 自检手段时，或控制循环需要判定 worker 可用性时。
+
+### 探针取值与理由
+
+| 服务 | interval | timeout | retries | start_period | 最迟翻红 |
+|---|---|---|---|---|---|
+| `backend` | 10s | 5s | 6 | 60s | ~120s |
+| `websocket` | 10s | 5s | 6 | 30s | ~90s |
+| `frontend` | 10s | 5s | 6 | 30s | ~90s |
+
+配套的 `--wait-timeout` 取 **300 秒**。两者的关系是硬的：`interval × retries + start_period`
+决定一个坏掉的服务多久才翻红，这个数**必须小于** `--wait-timeout`，否则 `--wait` 会先超时——
+那不是「判据红了」，那是判据根本没给出结论。上表最大值 ~120 秒，加上建站耗时仍在 300 秒内。
+
+**`start_period` 为什么不用调大到覆盖建站耗时**：本仓选的是另一条路——
+给 `x-backend-defaults` 补上 `create-site: condition: service_completed_successfully`，
+让 `backend` 与三个 worker **等站点建完再启动**。此前该锚点只等 `configurator`，
+于是 `backend` 与 `create-site` 并行起，`backend` 在站点存在之前必然探针失败，
+只能靠一个巨大的 `start_period` 兜住——而建站耗时是随机器速度变的（本机实测约 50 秒，CI runner 上会更久）。
+把它塞进 `start_period` 会同时产生两个坏结果：超时值要跟着机器猜，且一个**真的坏掉**的 backend
+也要等同样久才翻红，判据既慢又钝。改成编排层的次序约束之后，`start_period` 只需覆盖 gunicorn 自身启动。
+**代价照实记**：该锚点为 `backend` 与三个 worker 共用，这项改动一并推迟了三个 worker 的启动时机
+（它们现在也等站点建完），这是本次有意接受的编排语义变更。
+
+**探针写法上的三个坑，都是实测踩出来的**：
+
+- `backend` 的探针**必须带 `Host: frontend` 头**。Frappe 的 gunicorn 按 Host 头解析站点，
+  容器内直接打 `127.0.0.1` 会被当成一个名叫 `127.0.0.1` 的站点，返回 404 `does not exist`，
+  **再大的 `start_period` 也救不了**。站点名 `frontend` 与 `create-site` 的 `--set-default`、
+  `frontend` 服务的 `FRAPPE_SITE_NAME_HEADER` 是同一个值，改站点名要三处一起改。
+- `websocket` 的根路径 `/` **不回应**（实测 curl 5 秒超时、0 字节），不能拿来判活；
+  可用的是 socket.io 的 polling 握手端点，返回 200 与 engine.io 握手 JSON。
+- 所有探针都带 `--max-time`。不带上界时一个不回应的端点会把探针挂死到 healthcheck 自己的 `timeout`，
+  故障表现会变成「一直 starting」而不是「unhealthy」。
+
+### 零依赖红线在本节的落点
+
+新增的三条 healthcheck **一个 AI 相关变量都不出现**，也不引入任何 `${…}` 插值——
+这是 §14 规则 ② 的直接要求（外部能力缺失是「未配置」状态，不进 healthcheck / command 的成败路径），
+判据是 `tests/unit/test_compose_zero_dep.py` 的 `test_ai_variable_defaults_to_empty` 与两条插值断言。

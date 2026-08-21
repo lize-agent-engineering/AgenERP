@@ -24,7 +24,7 @@ P0 的目标一句话：**把「可验证」做出来。这一阶段不引入任
 - 5. 差集 apply 引擎（读包 → 求差 → **对差集执行删除**）: `planned`
 - 6. 定制包往返删除验证（活站点端到端）: `todo`
 - 7. 种子数据（确定性生成，内置 1,010 米积压这个已知业务荒谬）: `planned`
-- 8. 零依赖启动进 CI（L2 慢门禁）: `todo`
+- 8. 零依赖启动进 CI（L2 慢门禁）: `planned`
 
 ## Status values
 
@@ -45,7 +45,7 @@ P0 的目标一句话：**把「可验证」做出来。这一阶段不引入任
 | 5 | 差集 apply 引擎 | `test_customization_roundtrip_delete.py::test_removing_from_pack_actually_deletes_on_site` | L2 |
 | 6 | 定制包往返验证 | `test_customization_roundtrip_delete.py` 其余 3 条 + `test_snapshot_diff_structured.py::test_field_addition_shows_up_as_structured_change` | L2 |
 | 7 | 种子数据 | **仍然没有门禁**（这一格没有变松）。A 半（纯逻辑生成 + 自验）的判据是 `python3 -m agenerp.seed --seed 42 --verify` → exit 0（取自 `docs/masterplan/02-WBS.md` P0.6，⚠️ 不在 `missions/p0-foundation.json` 的 `commands.test` 里，`GATE_VERIFY` 复跑不到）+ `tests/unit/test_seed_deterministic.py` 31 条（这半 `GATE_VERIFY` 复跑得到）。B 半（装载进活站点 + 站点侧断言）**没有判据**，门禁提案见 [`gate-proposal-seed-dataset.md`](./gate-proposal-seed-dataset.md)，补它要人批 | — |
-| 8 | 零依赖启动进 CI | `test_zero_dep_boot.py` 其余 2 条 | L2 |
+| 8 | 零依赖启动进 CI | `test_zero_dep_boot.py` 其余 2 条（**两条都仍在 `expected-red.txt` 内，本次一条未划掉**）。2026-08-21 由 plan [`2026-08-21-1634-2-compose-healthcheck-app-services.md`](../plans/p0-foundation/2026-08-21-1634-2-compose-healthcheck-app-services.md) 交付了「healthy 可判定」这半：应用侧三个服务已落真实 healthcheck，`up -d --wait` 冷起实测 exit 0 且变异验证有牙齿，判定口径落在 `docs/architecture/system-baseline.md` §14.2。**剩下两半仍缺**：① `compose_stack` fixture 在 `tests/gates/conftest.py`（红线 1，等人处置，见 STATE §3）；② 首页「AI 能力未配置」文案 | L2 |
 
 ## 框架/平台复用
 
