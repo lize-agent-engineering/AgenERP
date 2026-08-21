@@ -598,7 +598,7 @@ Closure Audit Evidence:
 - 红线自查：`git diff --name-only` 不含 `tests/gates/`、`.github/workflows/`、`missions/`、
   `docs/masterplan/`；`tools/gates/expected-red.txt` 未变。本轮**未追加 STATE 证据行**——
   名单矛盾已由第 1 顺位登记进 STATE §3，本 plan 不重复登记。
-- commit sha：见本节末「Commit」行（关闭提交本身）。
+- commit sha：`e19b64f`（本 plan 的全部产物在这一个提交里；上述所有退出码均在该提交的工作树上取得）。
 
 Follow-up:
 
