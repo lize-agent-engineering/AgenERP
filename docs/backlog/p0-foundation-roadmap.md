@@ -22,9 +22,20 @@ P0 的目标一句话：**把「可验证」做出来。这一阶段不引入任
 - 3. 零依赖启动（compose 语法 + 首页 AI 未配置降级）: `done`
 - 4. 工具契约层 v0（先包 10 个只读工具）: `planned`
 - 5. 差集 apply 引擎（读包 → 求差 → **对差集执行删除**）: `planned`
-- 6. 定制包往返删除验证（活站点端到端）: `todo`
+- 6. 定制包往返删除验证（活站点端到端）: `planned`
 - 7. 种子数据（确定性生成，内置 1,010 米积压这个已知业务荒谬）: `planned`
 - 8. 零依赖启动进 CI（L2 慢门禁）: `planned`
+
+> **2026-08-21 新增一批 plan（三个，执行顺序 4 的 B 半 → 6 的导出 → 5 的删除）**：
+> 三个 fixture 已由人在 `ede5440` 写完（STATE §2 11:20Z），工作项 4/5 两个前驱 plan 登记的 deferred 重开事件因此满足。
+> 顺序与 roadmap 这张表的 4、5、6 不同，理由是判据自身的依赖：删除那条门禁的前四行代码要先能
+> `export_customizations` 才走得到 `apply_pack`。三个 plan 都**不划 `expected-red.txt`**（默认判定环境下 L2 恒红），
+> 因此工作项 4/5/6 均停在 `planned`，不置 `done`。
+> · 工作项 4 的 B 半：[`2026-08-21-1922-1-site-snapshot-source-live.md`](../plans/p0-foundation/2026-08-21-1922-1-site-snapshot-source-live.md)
+> · 工作项 6 的导出半：[`2026-08-21-1922-2-export-customizations-live.md`](../plans/p0-foundation/2026-08-21-1922-2-export-customizations-live.md)
+> · 工作项 5 的 B 半：[`2026-08-21-1922-3-execute-plan-site-delete.md`](../plans/p0-foundation/2026-08-21-1922-3-execute-plan-site-delete.md)
+> 工作项 6 剩下的 `test_no_orphan_column_left_behind`（`schema_drift`，要查物理表列，REST 面答不出）
+> 归它的第二个 plan，本批不做。
 
 ## Status values
 
