@@ -74,18 +74,18 @@
 
 ### Phase 1 — `capture` 与来源抽象
 
-Status: planned
+Status: completed
 Targets: `agenerp/snapshot.py`
 Skill: `none`
 
 - Item Types: `Proof | Decision | Add`
 - Prereqs: plan 1 全部关闭；plan 2 先行（**硬要求**，见下方首项）
 
-- [ ] `Proof` **开工前置检查（第一步，不做完不许写代码）**：确认 plan 1 的 `Plan Status` 是 `completed`，且 plan 2 的 `Plan Status` 是 `deferred` 或 `completed`（即 plan 2 已跑完、不在 `ACTIVE_STATUSES` 里）。
+- [x] `Proof` **开工前置检查（第一步，不做完不许写代码）**：确认 plan 1 的 `Plan Status` 是 `completed`，且 plan 2 的 `Plan Status` 是 `deferred` 或 `completed`（即 plan 2 已跑完、不在 `ACTIVE_STATUSES` 里）。
       - 任一条不成立：**立即停手**，不实现、不提交代码，向 STATE §3 追加一行说明前置未就绪，并把本 plan 置为 `Plan Status: deferred`（**不要置回 `draft`**——`draft` 会被 `draftPlans()` 重新捡起走 `REVIEW_PLANS` → `EXEC_PLANS`，来回弹；`deferred` 才是停住等人的那个值，与成功路径一致）。
       - 为什么是硬要求而不是建议：`EXEC_PLANS` 的 `forEach: activePlans()` 一次取出全部 active plan 跑子流程，**不检查前一个是否成功**；顺序在本批里只由文件名排序表达。而 plan 2 与本 plan 都要改 `tests/unit/test_contract_surface.py` 的同两张清单，并发进入会互相覆盖。
       - Skill: `none`
-- [ ] `Decision` 定下「无活站点时 `capture` 从哪取数」：**离线来源从一个确定性的本地位置读**（仓内约定路径，不存在即视为「零条目」），而不是「硬编码返回空」。
+- [x] `Decision` 定下「无活站点时 `capture` 从哪取数」：**离线来源从一个确定性的本地位置读**（仓内约定路径，不存在即视为「零条目」），而不是「硬编码返回空」。
       - **这两者不是一回事，必须分清**：硬编码返回空是个只为让断言过关的空壳，`capture` 本身一行逻辑都没被验证；「从确定位置读、读不到就是零条目」则是一条真实的、可被非空夹具驱动的读取路径——今天它恰好读到零条目，是因为仓里还没有数据，不是因为函数被写死。Phase 2 用非空夹具目录直接测它。
       - 理由：门禁两条 L1 问的是「同一来源两次快照是否相等」与「diff 是否结构化」，零条目对这两个命题是**诚实的最小真值**；伪造样本数据则会让「未改动站点 diff 为空」变成自证的假货。
       - 备选 1：无站点直接抛异常 —— 否决，会让两条 L1 门禁永远红在环境而非实现，重蹈 W0.6「红得不对」。
@@ -93,39 +93,39 @@ Skill: `none`
       - 残余风险：零条目下那两条门禁断言的信息量仍然低。缓解：Phase 2 对 `capture`（非空夹具）与 `diff`（增删改三类）各自做不依赖站点的真实覆盖，把语义强度补回来。
       - 翻案条件：工作项 4 提供 `live_site` 后，若发现离线快照与站点快照的类型不一致，回来修来源接口。
       - Skill: `none`
-- [ ] `Add` 定义 `Snapshot` 值对象：携带 scope、来源身份、结构化条目集合；相等性只看内容不看采集时间（否则「两次快照相等」永远不成立——这正是 Spike 06 在定制包上踩过的同一个坑）。
+- [x] `Add` 定义 `Snapshot` 值对象：携带 scope、来源身份、结构化条目集合；相等性只看内容不看采集时间（否则「两次快照相等」永远不成立——这正是 Spike 06 在定制包上踩过的同一个坑）。
       - Skill: `none`
-- [ ] `Add` 定义来源接口与离线来源实现，以及 `capture` 里的来源解析（无站点配置 → 离线来源；来源位置可由参数或环境变量指向，测试据此喂夹具目录）。站点来源留 `NotImplementedError` 并指向 roadmap 工作项 4。
+- [x] `Add` 定义来源接口与离线来源实现，以及 `capture` 里的来源解析（无站点配置 → 离线来源；来源位置可由参数或环境变量指向，测试据此喂夹具目录）。站点来源留 `NotImplementedError` 并指向 roadmap 工作项 4。
       - Skill: `none`
 
 Exit Criteria:
 
-- [ ] `python3 -c "from agenerp.snapshot import capture; a=capture(scope='doctypes'); b=capture(scope='doctypes'); print(a==b)"` → 打印 `True`，exit 0
-- [ ] ⚠️ 上一条**本身是空洞的**（两个零条目快照当然相等），它只证明不抛异常。`capture` 的真实判据在 Phase 2 的 `tests/unit/test_snapshot_capture.py`，不在这里。
-- [ ] `ruff check agenerp tests/unit` → exit 0
-- [ ] 无 owner-doc 更新（归 Phase 3）
+- [x] `python3 -c "from agenerp.snapshot import capture; a=capture(scope='doctypes'); b=capture(scope='doctypes'); print(a==b)"` → 打印 `True`，exit 0
+- [x] ⚠️ 上一条**本身是空洞的**（两个零条目快照当然相等），它只证明不抛异常。`capture` 的真实判据在 Phase 2 的 `tests/unit/test_snapshot_capture.py`，不在这里。
+- [x] `ruff check agenerp tests/unit` → exit 0
+- [x] 无 owner-doc 更新（归 Phase 3）
 
 ### Phase 2 — `diff` 与真实语义覆盖
 
-Status: planned
+Status: completed
 Targets: `agenerp/snapshot.py`、`tests/unit/test_snapshot_diff.py`、`tests/unit/test_snapshot_capture.py`、`tests/unit/test_contract_surface.py`
 Skill: `none`
 
 - Item Types: `Add | Proof`
 - Prereqs: Phase 1
 
-- [ ] `Add` 实现 `Diff` 与 `diff()`：按上文结构边界契约产出 `added` / `removed` / `changed`；`is_empty()` 当且仅当三者皆空；`summary()` 返回**人读的**摘要（它只出现在断言失败信息里，不是机器判定面——机器判定走三个序列，这正是「结构化而非文本」的含义）。
+- [x] `Add` 实现 `Diff` 与 `diff()`：按上文结构边界契约产出 `added` / `removed` / `changed`；`is_empty()` 当且仅当三者皆空；`summary()` 返回**人读的**摘要（它只出现在断言失败信息里，不是机器判定面——机器判定走三个序列，这正是「结构化而非文本」的含义）。
       - Skill: `none`
-- [ ] `Add` scope 不匹配时显式报错，不静默降级。
+- [x] `Add` scope 不匹配时显式报错，不静默降级。
       - Skill: `none`
-- [ ] `Proof` `tests/unit/test_snapshot_capture.py` 覆盖 `capture` 本身（**用非空夹具目录，这是 H 类空洞判据的解药**）：
+- [x] `Proof` `tests/unit/test_snapshot_capture.py` 覆盖 `capture` 本身（**用非空夹具目录，这是 H 类空洞判据的解药**）：
       - 指向一个含多个 DocType/字段的夹具 → 快照条目数与内容正确，不是零
       - 同一夹具连读两次 → 两个 Snapshot 相等（相等性只看内容，不看采集时刻）
       - 夹具改一个字段后重读 → 快照不再相等（证明它真的在读，而不是返回常量）
       - 指向不存在的位置 → 零条目快照，不抛异常
       - 不同 scope → 快照携带的 scope 不同
       - Skill: `none`
-- [ ] `Proof` `tests/unit/test_snapshot_diff.py` 覆盖（每条注明失败意味着什么）：
+- [x] `Proof` `tests/unit/test_snapshot_diff.py` 覆盖（每条注明失败意味着什么）：
       - 同一快照自比 → `is_empty()` 为真
       - 加一个字段 → 只进 `added`，条目的 `.doctype` / `.fieldname` 取值正确（**预演 live 断言的形状**）
       - 删一个字段 → 只进 `removed`
@@ -134,23 +134,23 @@ Skill: `none`
       - `summary()` 在空 diff 与非空 diff 上都可调用且不抛
       - scope 不匹配 → 抛错而非返回「全删全增」
       - Skill: `none`
-- [ ] `Fix` 更新 `tests/unit/test_contract_surface.py`：把 `capture` 与 `diff` 从 `NOT_YET_IMPLEMENTED` 清单**移到** `IMPLEMENTED` 清单。
+- [x] `Fix` 更新 `tests/unit/test_contract_surface.py`：把 `capture` 与 `diff` 从 `NOT_YET_IMPLEMENTED` 清单**移到** `IMPLEMENTED` 清单。
       - 不做这一步，`python3 -m pytest tests/unit -q` 必红——plan 1 那条测试断言 `NOT_YET_IMPLEMENTED` 里的每个名字调用后抛 `NotImplementedError`。这是本 plan 造成的连带影响，必须由本 plan 修，故记 `Fix`。
       - Skill: `none`
-- [ ] `Proof` 复跑该文件，确认 `schema_drift` 与 `agenerp/pack.py` 中未实现的函数**仍在 `NOT_YET_IMPLEMENTED` 里且仍抛 `NotImplementedError`**（没有顺手做掉别的工作项）。
+- [x] `Proof` 复跑该文件，确认 `schema_drift` 与 `agenerp/pack.py` 中未实现的函数**仍在 `NOT_YET_IMPLEMENTED` 里且仍抛 `NotImplementedError`**（没有顺手做掉别的工作项）。
       - Skill: `none`
 
 Exit Criteria:
 
-- [ ] `python3 -m pytest tests/gates/test_snapshot_diff_structured.py -q -m 'not live'` → **exit 0，2 passed**
-- [ ] `python3 -m pytest tests/unit -q` → exit 0
-- [ ] `python3 -m pytest tests/gates -q --tb=line` → `test_field_addition_shows_up_as_structured_change` **仍红**，且红因是 `live_site` 的 `NotImplementedError`（不是被本 plan 弄成别的错）
-- [ ] `ruff check agenerp tests/unit` → exit 0
-- [ ] 无 owner-doc 更新（归 Phase 3）
+- [x] `python3 -m pytest tests/gates/test_snapshot_diff_structured.py -q -m 'not live'` → **exit 0，2 passed**
+- [x] `python3 -m pytest tests/unit -q` → exit 0
+- [x] `python3 -m pytest tests/gates -q --tb=line` → `test_field_addition_shows_up_as_structured_change` **仍红**，且红因是 `live_site` 的 `NotImplementedError`（不是被本 plan 弄成别的错）
+- [x] `ruff check agenerp tests/unit` → exit 0
+- [x] 无 owner-doc 更新（归 Phase 3）
 
 ### Phase 3 — 落结构边界文档、留证据、交接
 
-Status: planned
+Status: completed
 Targets: `docs/architecture/module-boundaries.md`、`docs/logs/2026/08-20.md`、`docs/masterplan/STATE.md`（**只追加**）、本 plan 文件自身（末步改 `Plan Status`）
 落点已定死，不留给执行会话选：`docs/architecture/README.md` 把 `module-boundaries.md` 登记为「§7 工具契约层、§11 定制包与 GitOps」的归属，快照/来源接口/Diff 的结构边界正属这一类；`model-management.md` 归属的是「§12 模型管理」（LLM 模型），不是这里。
 Skill: `none`
@@ -158,33 +158,63 @@ Skill: `none`
 - Item Types: `Add | Proof`
 - Prereqs: Phase 1, Phase 2
 
-- [ ] `Add` 把「结构边界契约」一节的内容写进 `docs/architecture/`：`Snapshot` / 来源接口 / `Diff` 的职责与不变量，并写明**站点来源属工作项 4，此处留接缝**。这是 Task Route 判定为 `app-layer design change` 所要求的 owner-doc 更新。
+- [x] `Add` 把「结构边界契约」一节的内容写进 `docs/architecture/`：`Snapshot` / 来源接口 / `Diff` 的职责与不变量，并写明**站点来源属工作项 4，此处留接缝**。这是 Task Route 判定为 `app-layer design change` 所要求的 owner-doc 更新。
       - Skill: `none`
-- [ ] `Add` 写 `docs/logs/2026/08-20.md` 条目：交付内容 + 命令原文 + 退出码 + commit sha。
+- [x] `Add` 写 `docs/logs/2026/08-20.md` 条目：交付内容 + 命令原文 + 退出码 + commit sha。
+      - **执行记录（2026-08-21）**：起草日是 08-20，实际执行日是 08-21。按 `AGENTS.md` 操作规则 7「一天一文件」，
+        条目写入 `docs/logs/2026/08-21.md`（本轮已有两条 08-21 条目，新条目按写作指南置于文件顶部）。
+        起草时写死 08-20 属跨日执行的必然偏差，不改 08-20 的历史文件。
       - Skill: `none`
-- [ ] `Proof` 复跑 `python3 tools/gates/check_expected_red.py` 并如实记录退出码。
+- [x] `Proof` 复跑 `python3 tools/gates/check_expected_red.py` 并如实记录退出码。
       - 预期 **exit 1**，「名单内的门禁却绿了」列出本工作项两条 L1（若 plan 2 的三行尚未被人划掉，则一并列出，共五条）。
       - 同 plan 2 的禁止清单：不改 `EXPECTED_RED.txt`、不改判定器、不加 skip/xfail、不把实现改回不可用。
+      - **执行记录（2026-08-21）· 实测 exit 0，与起草时的预期不同，前提已被人变更**：
+        人在 `920ce0e`（提交信息带 `Gates-Change-Approved-By: lize`）裁定「测试代码是裁判、预期红名单只是账本」，
+        把名单由 `tests/gates/EXPECTED_RED.txt` 迁至**红线外**的 `tools/gates/expected-red.txt`，
+        并一次划掉 5 行（规范化器 3 + 快照 diff 2，含本工作项两条 L1）。`AGENTS.md` 红线 1 已同步补上该边界。
+        故本轮实测 `python3 tools/gates/check_expected_red.py` → **exit 0**（门禁 13 项：预期红 8，绿 5，跳过 0）。
+        禁止清单本轮**一件都没触发**：名单未改（改动由人在开工前完成）、判定器未改、无 skip/xfail、实现未回退。
       - Skill: `none`
-- [ ] `Add` 向 `docs/masterplan/STATE.md` §3 **追加**一行 needs-human（只追加，不改写、不删除已有行）。
+- [x] `Add` 向 `docs/masterplan/STATE.md` §3 **追加**一行 needs-human（只追加，不改写、不删除已有行）。
+      - **执行记录（2026-08-21）· 落点改为 §2 会话日志，§3 不新增 `open` 行**：本项的前提是上一项会退 1、
+        因而存在「等人划名单」这件待办。该前提已随 `920ce0e` 消失——本 plan `## Human Handoff` 的验收条件
+        （`check_expected_red.py` → exit 0）在开工前就已满足。此时往 §3 塞一条 `[open]` 等于凭空造一个人的待办，
+        违反裁判规则 2 的诚实要求。故改为向 **§2 会话日志**（同样是追加式证据段）追加 4 行：
+        执行结果与四条命令退出码 + sha `9ae88bf`、`e145e43` 遗留契约测试已清、§3 不新增 open 行的理由、红线区间自查。
+        `git diff --stat docs/masterplan/STATE.md` → `5 insertions(+)`、删除行数 0，只追加不改写（红线 5 满足）。
       - 授权链与 plan 2 相同：`AGENTS.md` 红线 5「`STATE.md` 只允许追加证据行」+ 执行器人格 `tools/mission-driver/agents/build.claude.md` 的直接指示，二者按 `AGENTS.md` 开头的次序高于 `01-EXECUTION-MODEL.md` §1「角色 B 不得手写 STATE」与 `gate-verify.mjs` 注释的反向说法；该矛盾已登记，**不由本 plan 消解**。
       - 行格式照 §3 表头，四个字段齐全，WBS 行 ID 用 **P0.3**（`02-WBS.md` 里快照 diff 是 P0.3；roadmap 的「工作项 2」是 mission 内编号，别混用）。处置栏留 `open`。
       - Skill: `none`
-- [ ] `Add` **末步**：把本 plan 文件头的 `> Plan Status:` 由 `active` 改为 `deferred`，并在 `## Human Handoff` 写明重开条件。
+- [x] `Add` **末步**：把本 plan 文件头的 `> Plan Status:` 由 `active` 改为 `deferred`，并在 `## Human Handoff` 写明重开条件。
+      - **执行记录（2026-08-21）· 保持 `active`，不置 `deferred`**：`deferred` 的唯一理由是「等人划名单」，
+        而人已在开工前用 `920ce0e` 做完（见上两项）。本 plan `## Human Handoff` 自己写的重开条件就是
+        「上述提交落地后把本 plan 由 `deferred` 改回 `active` 走关闭审计」——先置 `deferred` 再立刻改回 `active`
+        没有任何信息量，且会让引擎误以为此处仍卡着人。故直接停在 `active`，交独立 `CLOSURE_AUDIT` 关闭。
+      - **`CLOSURE_SCRIPT_CHECK` 判 fail 不再是死路**：`tools/mission-driver/flows/plan-execution.json` 的
+        `CLOSURE_SCRIPT_CHECK.transitions.fail` 是 `goto CLOSURE_AUDIT`（不是 retry EXECUTE）。
+        起草时担心的「反复重选烧预算」在这条路径上不成立：9 个未勾的 Closure Gates 恰好把流程送进独立关闭审计，
+        这正是它们该走的地方。
       - 这一步**必须在所有执行项与 Exit Criteria 打勾之后**做。
       - ⚠️ **不要为了让 `CLOSURE_SCRIPT_CHECK` 变绿而去勾 `## Closure Gates`。** 那 9 个框里包含「closure audit was independent」「closure evidence exists in files」——本 plan 走到这里时它们是**假的**（`## Closure` 还是 `<未关闭>`）。勾上就是自证关闭，违反 `AGENTS.md` 裁判规则 1/2 与计划指南规则 13。`closureScriptCheck` 确实会因这些未勾的框判 fail，**这是预期**：子流程本来就会因 `GATE_VERIFY` 终局为 `failed`，追一个绿的 script check 什么也换不来；真正止住反复重选、保住预算的是自置 `deferred`，不是绿的 script check。
       - Skill: `none`
 
 Exit Criteria:
 
-- [ ] `docs/architecture/` 下已记录 Snapshot / 来源接口 / Diff 的结构边界与不变量
-- [ ] `docs/logs/2026/08-20.md` 已更新，含命令原文 + 退出码 + sha
-- [ ] `STATE.md` §3 多出一行 `[open]`，`git diff` 显示只有新增行
-- [ ] 红线 1 自查用**区间** diff：`git diff --name-only <本 plan 开工时的 sha>..HEAD -- tests/gates/` → **输出为空**（`git diff --name-only HEAD` 只看未提交改动，与 `gate-verify.mjs` 的写保护共享同一盲区，自查不能沿用它）
-- [ ] Phase 1–3 的**执行项与 Exit Criteria** 全部 `[x]`；`## Closure Gates` 的 9 个框**保持未勾**，等独立关闭审计
-- [ ] 本 plan 文件头为 `> Plan Status: deferred`
+- [x] `docs/architecture/` 下已记录 Snapshot / 来源接口 / Diff 的结构边界与不变量 —— `docs/architecture/module-boundaries.md` **§11.5 状态快照与结构化 diff 的结构边界**
+- [x] `docs/logs/2026/08-20.md` 已更新，含命令原文 + 退出码 + sha —— 实际落在 `docs/logs/2026/08-21.md`（执行日；理由见上方执行记录）
+- [x] ~~`STATE.md` §3 多出一行 `[open]`~~ —— 前提消失，改为 §2 追加 4 行证据；`git diff --stat docs/masterplan/STATE.md` → `5 insertions(+)`，删除 0，**只有新增行**
+- [x] 红线 1 自查用**区间** diff：`git diff --name-only b8aadbf..HEAD -- tests/gates/ .github/workflows/ docs/masterplan/DECISIONS.md` → **输出为空**（`b8aadbf` 是本轮开工时的 HEAD；`git diff --name-only HEAD` 只看未提交改动，与 `gate-verify.mjs` 的写保护共享同一盲区，自查不能沿用它）
+- [x] Phase 1–3 的**执行项与 Exit Criteria** 全部 `[x]`；`## Closure Gates` 的 9 个框**保持未勾**，等独立关闭审计
+- [x] ~~本 plan 文件头为 `> Plan Status: deferred`~~ —— 改为 **`active`**：deferral 的唯一理由（等人划名单）已由人在开工前的 `920ce0e` 消解，理由见上方执行记录
 
 ## 收尾协议（给执行本 plan 的会话）
+
+> **执行记录（2026-08-21）**：下面三条的共同前提——「名单在红线内、只能等人划」——已由 `920ce0e` 消解
+> （名单迁至红线外的 `tools/gates/expected-red.txt`，`AGENTS.md` 红线 1 同步补了边界；人已划掉含本工作项
+> 两条 L1 在内的 5 行）。故第 1 条描述的矛盾本轮**没有发生**（`build-verify` 若再要求划名单，划的是账本不是裁判，
+> 不触红线）；第 2 条的「`GATE_VERIFY` 判 fail 是预期终局」**不再成立**——`check_expected_red.py` 实测 exit 0；
+> 第 3 条的解除条件（人的划名单提交落地 + 判定器退 0）已满足，故本轮可以直陈实测退出码，
+> 但**关闭**仍未完成（`## Closure` 是 `<未关闭>`、9 个 Closure Gates 未勾），完成宣称仍限于「执行完毕」这一层。
 
 与 plan 2 的 `## 收尾协议` 逐条适用，此处不重复推导，只点名三件最容易走错的：
 
@@ -194,8 +224,14 @@ Exit Criteria:
 
 ## Human Handoff（阻塞关闭，不阻塞执行）
 
+- ✅ **已满足（2026-08-21，人在本 plan 开工前完成）**。下面三行是原文，保留以便对照。
 - 待办：人提交一次带 `Gates-Change-Approved-By: <姓名>` trailer 的提交，把 `tests/gates/EXPECTED_RED.txt` 里 `test_snapshot_diff_structured.py` 的**两条 L1**（`test_two_snapshots_of_unchanged_site_diff_empty`、`test_diff_is_structured_not_text`）划掉。**第三条 `test_field_addition_shows_up_as_structured_change` 必须留在名单里**——它属工作项 6，本 plan 结束后它仍然红。
 - 验收：`python3 tools/gates/check_expected_red.py` → exit 0。
+- **实际落地**：`920ce0e`（`Gates-Change-Approved-By: lize`）不止划名单，还把名单整体迁出红线 1
+  （`tests/gates/EXPECTED_RED.txt` → `tools/gates/expected-red.txt`），并同步改了 `AGENTS.md` 红线 1 的边界说明。
+  一次划掉 5 行（规范化器 3 + 快照 diff 2）；第三条 live 断言仍留在名单里，符合本节要求。
+  验收实测：`python3 tools/gates/check_expected_red.py` → **exit 0**（门禁 13 项：预期红 8，绿 5，跳过 0）。
+  故本 plan **不进入 `deferred`**，按下条重开条件直接停在 `active` 等独立关闭审计。
 - 重开条件：上述提交落地后把本 plan 由 `deferred` 改回 `active` 走关闭审计；或人按交接文档冲突 3 选了选项 (d)（关闭与划名单解耦），则直接走关闭审计。
 - 本节故意不用 `[ ]`：只有人能勾的框会让 `closureScriptCheck` 每轮判 fail 并被反复重选，把预算烧光。
 

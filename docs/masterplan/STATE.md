@@ -140,6 +140,11 @@
 
 - 2026-08-21T02:04Z · 停机条件 · **新增第 5 条：认证失败即停机**。原四条（3 连败 / 碰门禁 / 成本超阈 / CI 两连红）都假设「失败是代码问题，重试有意义」，而认证过期重试一万次也没用且**只能由人修**。实现在 `tools/loopx-writeback.sh`：从运行输出匹配 `OAuth session expired` / `Failed to authenticate` / `401 unauthorized` / `authentication_error` → 落 `.mission-halt.json` 并标 todo blocked → 退 2 · 自测：认证特征命中；普通测试失败不误报
 
+
+- 2026-08-21T10:20Z · P0 第三轮 · 工作项 2（快照 diff）· plan-3 Phase 1–3 执行完毕：Phase 1 的 `agenerp/snapshot.py` 早在 `e145e43` 已落盘，本轮补完 Phase 2 的真实语义覆盖（`tests/unit/test_snapshot_capture.py` 9 条非空夹具 + `test_snapshot_diff.py` 11 条增删改语义）与 Phase 3 的结构边界文档（`docs/architecture/module-boundaries.md` §11.5）· `python3 -m pytest tests/unit -q` → **exit 0**（40 passed）· `python3 tools/gates/check_expected_red.py` → **exit 0**（门禁 13 项：预期红 8，绿 5，跳过 0）· `ruff check agenerp tests/unit` → **exit 0** · sha `9ae88bf` · 下一项：独立 `CLOSURE_AUDIT`
+- 2026-08-21T10:20Z · P0 第三轮 · 工作项 2 · **`e145e43` 自记的「已知遗留」已清**：`tests/unit/test_contract_surface.py` 把 `capture` / `diff` 由 `NOT_YET_IMPLEMENTED` 迁入 `IMPLEMENTED`。这正是 `2026-08-21T01:56Z` 那条记的「当前 `commands.test` → exit 1（契约测试过期），这正是下一轮的活」——**判定面补上单测后，循环这一轮自己看见并修掉了它**，验证了缺陷 ② 的修法有效 · `python3 -m pytest tests/unit/test_contract_surface.py -q` → **exit 0**（9 passed，其中 3 条仍断言 `schema_drift` / `export_customizations` / `apply_pack` 抛 `NotImplementedError`）
+- 2026-08-21T10:20Z · P0 第三轮 · 工作项 2 · **§3 本轮不新增 `open` 行，理由如实记录**：plan-3 的 Phase 3 原规定「追加一行 needs-human，处置栏留 `open`」，前提是 `check_expected_red.py` 会因名单过期退 1。而人已在 `920ce0e`（带 `Gates-Change-Approved-By: lize`）划掉含本工作项两条 L1 在内的 5 行，该判据**在执行前就已退 0**——本 plan `## Human Handoff` 的验收条件已满足，再登记一条 `open` 就是凭空造一个人的待办。plan 末步据此保持 `Plan Status: active`（而非 `deferred`）交独立关闭审计，偏差与授权链已写进 plan 与 `docs/logs/2026/08-21.md`
+- 2026-08-21T10:20Z · P0 第三轮 · 红线自查（区间 diff，非 `git diff HEAD`）· `git diff --name-only b8aadbf..HEAD -- tests/gates/ .github/workflows/ docs/masterplan/DECISIONS.md` → **输出为空**；`tests/gates/test_snapshot_diff_structured.py::test_field_addition_shows_up_as_structured_change` 仍红且红因仍是 `tests/gates/conftest.py:17` 的 `live_site` `NotImplementedError`（属工作项 4/6，未被本 plan 弄成别的错）
 ---
 
 ## §3 needs-human 队列

@@ -205,3 +205,45 @@ ERPNext 把标准工作台以 JSON fixture 装在 app 目录里（`erpnext/selli
 → 若成立，这是视图 DSL 的又一条独立论据：**DSL 存在 AgenERP 自己的表里，不参与 Frappe 的 fixture 覆盖循环。** 反之，视图 Agent 若直接改标准 Workspace，产物只有一次升级的寿命。
 
 ---
+
+### 11.5 状态快照与结构化 diff 的结构边界
+
+「可 diff、可回滚、可迁移」要求先有**可比较的状态**。`agenerp/snapshot.py` 交付这一层，
+三个部件的职责必须互不重叠——重叠一次，diff 就会开始骗人。
+
+| 部件 | 职责 | 不变量 |
+|---|---|---|
+| `Snapshot` | 承载「某一时刻某 scope 的结构化状态」 | 不可变值对象；**不持连接、不做 I/O 缓存**；相等性只看 `scope` + 条目内容 |
+| `SnapshotSource` | **唯一做 I/O 的接缝**：给定 scope 返回条目 | 位置不存在 → 空元组，不抛异常；`identity` 只是溯源串，不参与相等性 |
+| `diff` | 比较两份快照 | 纯函数：不读来源、不改入参；同样两份快照比两次结论必须相同 |
+
+#### 为什么相等性里不能有采集时刻
+
+带上采集时刻，「同一站点两次快照相等」就永远不成立，「未改动 → diff 为空」这条判据随之失效。
+这与 §11.3 的教训同源：**易变字段污染 diff**。所以离线来源读到的载荷先过 `agenerp.pack.normalize`
+（剥 modified / creation / owner / `_comments`、稳定排序）——快照的确定性与定制包用同一套口径，不该有第二份。
+
+#### 「结构化」的判定含义
+
+`Diff` 暴露 `added` / `removed` / `changed` 三个序列，元素统一携带 `.doctype` / `.fieldname`，
+`changed` 另带 `before` / `after`。**判定面是这三个序列**；`summary()` 只供人读（断言失败信息、日志），
+调用方不必解析任何文本就能回答「什么被加了 / 删了 / 改了」。条目身份是 `(doctype, fieldname)` 二元组，
+不是裸字段名——只按字段名去重会把两个 DocType 上的同名字段混成一个。
+
+#### 两条显式拒绝
+
+- **scope 不同的两份快照不许被 diff**：抛 `SnapshotScopeMismatch`，不静默降级成「全删全增」。
+  静默降级会让调用方以为站点被清空又重建。
+- **无活站点不等于错误**：无站点配置时走离线来源（仓内约定路径 `<root>/<scope>/*.json`，
+  位置不存在即零条目），而不是抛异常。让它抛异常，门禁就会永远红在环境而不是红在实现上。
+
+#### 留给工具契约层的接缝
+
+来源解析次序是 **显式来源 > 站点配置（`AGENERP_SITE`）> 离线来源（`AGENERP_SNAPSHOT_DIR`）**。
+`SiteSnapshotSource.read` 目前抛 `NotImplementedError`——**活站点来源属 roadmap 工作项 4（工具契约层 v0）**，
+此处只留接口。接上时只需提供该来源的实现，`capture` / `diff` 的签名与语义都不动。
+
+判据出处：`tests/gates/test_snapshot_diff_structured.py`（L1 两条）；真实语义覆盖在
+`tests/unit/test_snapshot_capture.py` 与 `tests/unit/test_snapshot_diff.py`，不依赖活站点。
+
+---
