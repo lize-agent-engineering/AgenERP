@@ -414,20 +414,20 @@ Exit Criteria:
 
 ### Phase 2 — 实现 + 单测（默认行为逐字节不变，由判据钉住）
 
-Status: planned
+Status: completed
 Targets: `tools/gates/check_expected_red.py` · `tests/unit/test_gate_verdict.py`（新建）
 Skill: `none`
 
 - Item Types: `Add | Proof`
 - Prereqs: Phase 1 完成
 
-- [ ] `Add` **把三态分类与判定逻辑抽成纯函数**。接口边界（结构性定义，按 Minimum Rule 6 写进 plan）：
+- [x] `Add` **把三态分类与判定逻辑抽成纯函数**。接口边界（结构性定义，按 Minimum Rule 6 写进 plan）：
       · `classify(junit_xml_text) -> dict[nodeid, "red"|"green"|"skipped"]` —— 只吃 junit 文本，不碰进程；
       · `verdict(outcomes, expected_red, live: bool) -> (exit_code, list[str])` —— 只吃分类结果与名单；
         **`live=True` 时 `expected_red` 参数不被读取**。
       `main()` 退化成「组装 + 打印」。**不改** `healed_env()`、pytest 调用参数、junit 文件名。
       - Skill: `none`
-- [ ] `Add` **live 模式实现**：`AGENERP_LIVE=1` 时走 `verdict(..., live=True)`，判据为「零 red、零 skipped」，
+- [x] `Add` **live 模式实现**：`AGENERP_LIVE=1` 时走 `verdict(..., live=True)`，判据为「零 red、零 skipped」，
       且**不调** `load_allowlist()`（免得名单缺失时在 live 模式误退 2）。
       **两种模式都打印模式行**，形如
       `判定模式：live（AGENERP_LIVE=1）—— 契约为全部门禁绿、零 skip，不读预期红名单` /
@@ -435,17 +435,17 @@ Skill: `none`
       **「逐字节不变」的契约收窄到判定行本身**（`门禁 N 项：…` 与四条判据的输出），
       模式行是新增的一行，不算违约——这一点必须写进 Phase 2 的实跑对照里，免得对照时自相矛盾。
       - Skill: `none`
-- [ ] `Proof` **单测钉住两模式共八态**（`tests/unit/test_gate_verdict.py`，新建）。
+- [x] `Proof` **单测钉住两模式共八态**（`tests/unit/test_gate_verdict.py`，新建）。
       默认模式：名单内红 → 0 / 名单外红 → 1 / 名单内绿 → 1 / 出现 skip → 1。
       live 模式：全绿 → 0 / 任意一条红 → 1 / 任意一条 skip → 1 / 名单内那条绿了 → 0（不再报错）。
       输入用**手写的 junit XML 片段**，不起 pytest 子进程。
       - Skill: `none`
-- [ ] `Proof` **默认判定环境前后逐字对照**：`python3 tools/gates/check_expected_red.py` →
+- [x] `Proof` **默认判定环境前后逐字对照**：`python3 tools/gates/check_expected_red.py` →
       期望 **exit 0**，判定行仍为 `门禁 19 项：预期红 7，绿 12，跳过 0` / `✅ 与预期红名单完全一致`
       （多出的模式行按上一项的收窄口径不计）。**判定行有一个字不同就算行为改变，回来改实现。**
       再跑 `python3 -m pytest tests/unit -q` 与 `ruff check agenerp tests/unit tests/contracts`，退出码抄进 plan。
       - Skill: `none`
-- [ ] `Proof` **`GATE_VERIFY` 那条命令的端到端实跑 + 负向对照**（独立评审 B6，采纳）。
+- [x] `Proof` **`GATE_VERIFY` 那条命令的端到端实跑 + 负向对照**（独立评审 B6，采纳）。
       跑 mission 里那条**字面命令**：
       `python3 tools/gates/check_expected_red.py && python3 -m pytest tests/unit -q` → 期望 exit 0。
       **负向对照**：临时把 `agenerp/pack.py` 的 `normalize` 改成恒等返回
@@ -453,25 +453,158 @@ Skill: `none`
       期望该组合命令 **exit 1** 且判定器逐字点名那几条；**复原并复跑确认回到 exit 0**。
       两次退出码与输出都抄进 plan。⚠️ 变异只许改 `agenerp/**`，不得触碰 `tests/gates/**`（红线 1）。
       - Skill: `none`
-- [ ] `Proof` **循环联动冒烟**：`bash tools/gates/smoke-loop-wiring.sh` → 期望 exit 0。
+- [x] `Proof` **循环联动冒烟**：`bash tools/gates/smoke-loop-wiring.sh` → 期望 exit 0。
       **理由更正（独立评审 B6）**：该脚本把 `commands.test` 写成 `true` / `exit 1`，
       **它从不调用判定器**，所以它证明不了「判定器改动后 `GATE_VERIFY` 仍然接着」。
       跑它的真实理由只有一个：**回归守卫**——确认本 plan 没有把循环联动碰坏。
       「判定器仍然接着」由上一项的端到端实跑 + 负向对照负责，不由这一项负责。
       - Skill: `none`
 
+#### Phase 2 执行记录（2026-08-22）
+
+**纯函数接缝落地**（`tools/gates/check_expected_red.py`）：
+
+- `classify(junit_xml: str) -> dict[nodeid, "red"|"green"|"skipped"]` —— 只吃 junit **文本**，不碰进程。
+  `run_pytest()` 相应改为返回 junit 文本（`ET.parse(路径)` → `ET.fromstring(文本)`）。
+- `verdict(outcomes, expected_red, live) -> (exit_code, lines)` —— 只吃分类结果与名单，
+  不读文件、不起子进程、不打印；**`live=True` 时 `expected_red` 一次都不被读取**
+  （判据 `test_live_ignores_the_allowlist_entirely`：连一份根本对不上的名单也不影响 live 判定）。
+- `main()` 退化成「组装 + 打印」：选模式 → 打印模式行 → `load_allowlist()`（live 下跳过）→
+  `classify(run_pytest(sys.argv[1:]))` → `verdict(...)` → 逐行打印 → 返回退出码。
+- **未改**：`healed_env()`、pytest 调用参数（含 `sys.argv[1:]` 透传，所以 `--ignore=` 仍原样到达 pytest）、
+  junit 文件名 `.pytest-gates.xml`。
+
+**live 模式**：`AGENERP_LIVE=1` 选中（`os.environ.get("AGENERP_LIVE") == "1"`，
+与 `tests/gates/conftest.py` 的 `_require_live()` 的 `!= "1"` **逐字互补**，两者不可能各判各的）；
+判据为「零 red、零 skipped」；**不调 `load_allowlist()`**（免得名单缺失时在 live 模式误退 2）。
+两种模式都打印模式行：
+`判定模式：live（AGENERP_LIVE=1）—— 契约为全部门禁绿、零 skip，不读预期红名单` /
+`判定模式：default —— 按 tools/gates/expected-red.txt 判定`。
+**「逐字节不变」的契约收窄到判定行本身**（`门禁 N 项：…` 与四条判据的输出）；
+模式行是新增的一行，按 Phase 2 第 2 项定的口径**不计**，下面的前后对照按这个口径读。
+
+**单测**（`tests/unit/test_gate_verdict.py`，新建，12 条，输入全是手写 junit XML 片段，不起 pytest 子进程）：
+`classify` 两条（三态映射 + nodeid 重建；`<error>` 也算 red）·
+default 四态（名单内红 → 0 / 名单外红 → 1 / 名单内绿 → 1 / **出现 skip → 1**）·
+live 四态（全绿 → 0 / 任意一条红 → 1 / **任意一条 skip → 1** / 名单内那条绿了 → 0）·
+两条接缝性质（live 忽略名单、空输入下两模式都退 0）。
+
+**默认判定环境前后逐字对照**（判定行）：
+
+| | 开工前（`084c9c4`，`docs/logs/2026/08-22.md` 与 Phase 1 收尾复跑） | 本阶段实现之后 |
+|---|---|---|
+| 判定行 1 | `门禁 19 项：预期红 7，绿 12，跳过 0` | `门禁 19 项：预期红 7，绿 12，跳过 0` |
+| 判定行 2 | `✅ 与预期红名单完全一致` | `✅ 与预期红名单完全一致` |
+| 退出码 | 0 | 0 |
+| 新增 | —— | `判定模式：default —— 按 tools/gates/expected-red.txt 判定`（模式行，按上面的口径不计） |
+
+```
+$ python3 tools/gates/check_expected_red.py
+判定模式：default —— 按 tools/gates/expected-red.txt 判定
+门禁 19 项：预期红 7，绿 12，跳过 0
+✅ 与预期红名单完全一致
+$ echo $?
+0
+
+$ ruff check agenerp tests/unit tests/contracts
+All checks passed!
+$ echo $?
+0
+```
+
+**`GATE_VERIFY` 字面命令的端到端实跑 —— 正向**：
+
+```
+$ python3 tools/gates/check_expected_red.py && python3 -m pytest tests/unit -q
+判定模式：default —— 按 tools/gates/expected-red.txt 判定
+门禁 19 项：预期红 7，绿 12，跳过 0
+✅ 与预期红名单完全一致
+205 passed in 0.55s
+$ echo $?
+0
+```
+
+（`193 passed` → `205 passed`：新增的 12 条就是本阶段那份单测。）
+
+**负向对照（变异窗口一，`agenerp/pack.py` 的 `normalize` 改成恒等返回）**：
+
+```
+$ python3 tools/gates/check_expected_red.py && python3 -m pytest tests/unit -q
+判定模式：default —— 按 tools/gates/expected-red.txt 判定
+门禁 19 项：预期红 10，绿 9，跳过 0
+
+❌ 名单外的门禁红了（真的坏了）：
+   tests/gates/test_normalizer_idempotent.py::test_normalize_is_stable_across_reexport
+   tests/gates/test_normalizer_idempotent.py::test_normalize_orders_deterministically
+   tests/gates/test_normalizer_idempotent.py::test_normalize_strips_volatile_fields
+$ echo $?
+1
+```
+
+判定器**逐字点名**了那三条，且组合命令在判定器这一段就短路（`&&` 右边没跑）。**变异只改了 `agenerp/pack.py`，
+`tests/gates/**` 一个字节没碰。**
+
+**复原并复跑确认回到基线**：
+
+```
+$ git checkout -- agenerp/pack.py
+$ python3 tools/gates/check_expected_red.py && python3 -m pytest tests/unit -q
+判定模式：default —— 按 tools/gates/expected-red.txt 判定
+门禁 19 项：预期红 7，绿 12，跳过 0
+✅ 与预期红名单完全一致
+205 passed in 0.51s
+$ echo $?
+0
+
+$ git diff --stat 084c9c4..HEAD -- agenerp/pack.py     # 输出为空
+$ git status --porcelain -- agenerp/pack.py            # 输出为空
+```
+
+**循环联动冒烟（回归守卫，不是「证明判定器接着」）**：
+
+```
+$ bash tools/gates/smoke-loop-wiring.sh
+A · commands.test 通过 → GATE_VERIFY pass
+  ✓ 引擎退出码 0
+  ✓ GATE_VERIFY 判 pass
+B · commands.test 退非 0 → GATE_VERIFY fail → retry EXECUTE
+  ✓ GATE_VERIFY 判 fail
+  ✓ 失败后回到 EXECUTE 重试
+C · 改动 tests/gates/** → 停机
+  ✓ 引擎退出码 2（停机）
+  ✓ 落下停机记录
+  ✓ 记录写明触发条件
+  ✓ 停机记录还在时拒绝启动（退 2）
+  ✓ 人处置后可重启（退 0）
+----
+✅ 循环联动三条链全通
+$ echo $?
+0
+```
+
+该脚本把 `commands.test` 写成 `true` / `exit 1`，**它从不调用判定器**——跑它的理由只有一个：
+确认本阶段没有把循环联动碰坏。「判定器仍然接着」由上面那条端到端实跑 + 负向对照负责。
+
+**实现未偏离 Phase 1 的 `Decision`**（`AGENERP_LIVE=1` 开关 · 契约写死为全绿 · 不读名单 · 两种模式都打印模式行），
+因此 `## 14.4` 无需再改。
+
+**本阶段那个改判定器的提交自愿带 `Gates-Change-Approved-By:` trailer**（Phase 1 第三项定的
+空窗期内唯一带牙齿的控制）：它不是本仓要求的（判定器不在任何 job 的路径清单里），
+但让这次改动在 `git log` 里可被检索。
+
+
 Exit Criteria:
 
-- [ ] 纯函数接缝落地，`main()` 不再内联分类逻辑
-- [ ] live 模式可用；两种模式都打印模式行
-- [ ] 新单测覆盖两模式共八态，其中 skip 态两条
-- [ ] 默认环境**判定行**与开工前逐字一致（两次实跑输出都抄进 plan）
-- [ ] `GATE_VERIFY` 字面命令的正向（exit 0）与负向（变异后 exit 1、复原后回 exit 0）各有实测输出，
+- [x] 纯函数接缝落地，`main()` 不再内联分类逻辑
+- [x] live 模式可用；两种模式都打印模式行
+- [x] 新单测覆盖两模式共八态，其中 skip 态两条
+- [x] 默认环境**判定行**与开工前逐字一致（两次实跑输出都抄进 plan）
+- [x] `GATE_VERIFY` 字面命令的正向（exit 0）与负向（变异后 exit 1、复原后回 exit 0）各有实测输出，
       且 `agenerp/pack.py` 已复原 —— **用开工 sha，不用裸 `git diff`**（本 plan 第 174 行自己定的规矩）：
       `git diff --stat <开工 sha>..HEAD -- agenerp/pack.py` **与** `git status --porcelain -- agenerp/pack.py`
       两条都为空
-- [ ] `smoke-loop-wiring.sh` exit 0，且 plan 里写的是「回归守卫」而非「证明判定器接着」
-- [ ] 判定方式节（`## 14.4`）无需再改；若实现偏离 Phase 1 的 `Decision`，回去改它再收尾
+- [x] `smoke-loop-wiring.sh` exit 0，且 plan 里写的是「回归守卫」而非「证明判定器接着」
+- [x] 判定方式节（`## 14.4`）无需再改；若实现偏离 Phase 1 的 `Decision`，回去改它再收尾
 
 ### Phase 3 — live 实测、三条变异验证与收尾
 
