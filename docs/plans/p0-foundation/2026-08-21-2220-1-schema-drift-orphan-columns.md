@@ -475,8 +475,8 @@ Exit Criteria:
 - [x] no in-scope item downgraded to deferred/follow-up
 - [x] independent draft review completed and recorded
 - [x] text consistency verified: status, phases, gates, and log all agree
-- [ ] closure audit was independent
-- [ ] closure evidence exists in files
+- [x] closure audit was independent
+- [x] closure evidence exists in files
 
 ## Deferred But Adjudicated
 
@@ -532,11 +532,75 @@ Status Note: **三个 Phase 全部执行完毕，判据面四条在 live 环境�
 
 Closure Audit Evidence:
 
-- Auditor / Agent: **待填** —— 独立关闭审计尚未进行。本轮是 `EXECUTE` 步骤，
-  独立子代理的关闭审计归 `CLOSURE_VERIFY` 步骤，不由执行步骤自审
-  （自审等于让被裁判者当裁判，与本仓反复强调的那条原则冲突）。
-- Evidence: 待填。可复跑的证据入口：本文件 Phase 1/2/3 各项的命令原文与退出码 ·
-  `docs/logs/2026/08-21.md` 的三条 `EXECUTE` 记录 · `docs/masterplan/STATE.md` §2 的证据行 · commit `e1c9104`。
+- Auditor / Agent: **独立关闭审计已完成** —— mission-driver `CLOSURE_VERIFY` 步骤，
+  会话 `2026-08-21-191514-mission-driver`，**不是执行步骤自审**（执行侧留的「待填」由本轮填掉）。
+  审计基线 sha **`4c4133c`**（`docs/plans` 之外的树与执行收尾时一致）。
+- Evidence: 审计**没有采信 plan 里已抄的退出码，而是把承重命令逐条原样复跑了一遍**，
+  下列每条都是本轮审计现场的输出：
+  - `AGENERP_HTTP_PORT=18080 AGENERP_LIVE=1 AGENERP_SITE=frontend AGENERP_SITE_URL=http://127.0.0.1:18080 AGENERP_ADMIN_PASSWORD=admin python3 -m pytest tests/gates/test_customization_roundtrip_delete.py -q`
+    → **exit 0**，`4 passed in 8.40s`（栈是热的，`docker compose ps` 九个服务 running）。
+    **与执行侧记的 `4 passed in 10.29s` 是两次独立运行**，结论一致。
+  - `python3 -m pytest tests/unit -q` → **exit 0** `189 passed`；
+    `python3 -m pytest tests/contracts -q` → **exit 0** `151 passed`；
+    `ruff check agenerp tests/unit tests/contracts` → **exit 0** `All checks passed!`。
+  - 默认环境（不带 `AGENERP_LIVE`）`python3 tools/gates/check_expected_red.py` → **exit 0**，
+    「门禁 19 项：预期红 7，绿 12，跳过 0 / ✅ 与预期红名单完全一致」。
+  - **红线核对**（`git diff --stat 3fed439..HEAD -- tests/gates .github/workflows docs/masterplan/DECISIONS.md tools/gates/expected-red.txt missions`）
+    → **无输出**；`git diff --numstat 3fed439..HEAD -- docs/masterplan/STATE.md` → **`9 0`**（只追加，零删除）。
+  - **Anti-Hollow 现场核对**：`agenerp/snapshot.py:325-353` 的 `schema_drift` 已是实现、返回
+    `tuple[str, ...]`，原 `raise NotImplementedError` 整条不在了；
+    `agenerp/apply.py:251` 的 `execute_plan` 在删完 Custom Field 后**真的调**
+    `drop_orphan_columns`（`apply.py:253-305`），后者按交集清列并对两类跳过各发一条 WARNING；
+    `agenerp/oob.py` 三个公开入口（`run_json` / `read_site_config` / `drop_columns`）全有实体，
+    无空函数体、无 `return None` 占位、无吞异常分支。
+  - **判据面不是纸面**：`tests/unit/test_schema_drift.py` 17 条、`tests/unit/test_apply_execute.py`
+    新增 9 条（交集内才删 / 空交集不发 DDL / 两类跳过各有日志断言 / `schema_drift` 抛错时
+    `execute_plan` 也抛 / 列名白名单外被拒 / DDL 用单引号 / 库名来自 `site_config` / 先删字段再删列），
+    且 `OOB_WRITE_METHOD_ALLOWLIST` 与 `test_site_client.py` 的 `WRITE_METHOD_ALLOWLIST` 同形，
+    「又多了一个写方法」确实要付一次 diff。
+- **执行侧点名要求复核的三处，逐条给结论**：
+  ① **变异验证一的因果结论写准了**——plan Phase 3、`STATE.md` §2 证据行、roadmap「6 现状」、
+     `project-context.md:57` 四处口径一致，都写的是「**假绿**，本门禁对巡检坏掉零覆盖」，
+     没有一处被写成「清除有效」。
+  ② **`agenerp/oob.py` 与红线 7 的界线靠机制立住，不是靠散文**——现场读码确认
+     `ALLOWED_CALLS` 是「函数名 → 钉死 kwargs」映射且**钉死项最后合并**
+     （`kwargs = {"doctype": …, **pinned}`，调用方给不了 `dry_run=False`）；
+     `run_json` 的签名只收 `function` + `doctype`，全树没有「调用方给整条 SQL / 任意 kwargs」的入口；
+     `drop_columns` 不共用 `ALLOWED_CALLS`，标识符两道白名单；模块不装任何站点态。
+  ③ **作用域收窄确实只删了交集**——审计现场直接调
+     `AGENERP_SITE=frontend python3 -c "from agenerp.snapshot import schema_drift; print(schema_drift('Item'))"`
+     → `('agenerp_explore_probe', 'agenerp_explore_probe2', 'agenerp_gate_probe', 'agenerp_probe_orphan', 'agenerp_scope_probe_item')`
+     —— **恰好是执行侧登记的那 5 条历史孤儿列，一条不少；`agenerp_gate_roundtrip` 已消失**。
+     方向是「减少」，且没有顺手多删。
+- **五点一致性核对通过**：`Plan Status: completed` · Phase 1/2/3 全 `Status: completed` 且
+  执行项与 Exit Criteria 无一条 `[ ]` · Closure Gates 全 `[x]` · `docs/logs/2026/08-21.md`
+  三条 `EXECUTE` 记录（Phase 1/2/3）· `docs/masterplan/STATE.md` §2 证据行 · roadmap
+  「5 现状」「6 现状」· `docs/context/project-context.md:57-58` —— 结论互不打架。
+- **Deferred 诚实性核对通过**：四条 `Deferred But Adjudicated` 无一条藏着在范围内的活缺陷——
+  两条落在红线 1（`tests/gates/conftest.py`，loop 无权改）并已在
+  `docs/backlog/gate-fixtures-pollute-the-live-site.md` 落盘且写明触发条件，
+  一条是 P2 successor，一条沿用人在 `STATE.md` §2（11:20Z）的既有裁定。
+  确认的 owner-doc 漂移（四处「唯一」）是**就地改准**的，没有被降级成 follow-up：
+  `agenerp/site.py:1-5` 已改成「唯一经 HTTP/REST」并点名 `oob.py` 是第二条传输；
+  `module-boundaries.md:577` 改成「唯一 HTTP 传输落点（物理层那条在 §11.8）」；
+  `:339` 新增「站点侧**物理列**删除的唯一出口」与 `:338` 的字段出口并列；§11.8 已落地（`:630-696`）。
+- **落盘前第三次独立复跑（CLOSURE 落盘步，2026-08-21，基线 sha `4c4133c` + 未提交的本文件改动）**：
+  把上面每条承重命令**又原样跑了一遍**，退出码单独取 `$?`，不引用上一段的数字：
+  `python3 tools/gates/check_expected_red.py` → **0**（门禁 19 项：预期红 7，绿 12，跳过 0 · ✅ 与预期红名单完全一致）·
+  `python3 -m pytest tests/unit -q` → **0**（189 passed in 0.61s）·
+  `python3 -m pytest tests/contracts -q` → **0**（151 passed in 0.07s）·
+  `ruff check agenerp tests/unit tests/contracts` → **0**（All checks passed!）·
+  `AGENERP_HTTP_PORT=18080 AGENERP_LIVE=1 AGENERP_SITE=frontend AGENERP_SITE_URL=http://127.0.0.1:18080 AGENERP_ADMIN_PASSWORD=admin python3 -m pytest tests/gates/test_customization_roundtrip_delete.py -q`
+  → **0**，`4 passed in 9.64s`（`docker compose ps` 九个服务 running）——**与上一段记的 `8.40s`、执行侧记的 `10.29s` 是三次彼此独立的运行，三次同为 exit 0**。
+  `AGENERP_SITE=frontend python3 -c "from agenerp.snapshot import schema_drift; print(schema_drift('Item'))"`
+  → **0**，回 `('agenerp_explore_probe', 'agenerp_explore_probe2', 'agenerp_gate_probe', 'agenerp_probe_orphan', 'agenerp_scope_probe_item')`
+  —— 逐字复现上一段的作用域结论（5 条历史孤儿列在、`agenerp_gate_roundtrip` 不在）。
+  红线 diff 与 `STATE.md` `9 0` 亦本步亲自复核，结论同上。
+  **一处如实修正**：`agenerp/apply.py:236` 仍有一条 `NotImplementedError`，读码确认是
+  `creates`/`updates` 的显式 deferred 守卫（裁定见 `module-boundaries.md` §11.6 裁定 3），
+  不在本 plan 交付面内；上一段「`raise NotImplementedError` 不在了」只对 `snapshot.py` 成立，此处补明界线。
+- **审计范围声明（不与全量验证混同）**：上述 live 复跑**仍只在本机做过（compose 栈 18080，热栈），
+  CI 未验证**——这与执行侧的声明一致，本轮审计没有扩大过这个范围。
 - **需要审计特别复核的三处**（执行侧自己点名，不藏）：
   ① 变异验证一的因果结论是否写准了「假绿」（门禁对巡检坏掉零覆盖），而不是被读成「清除有效」；
   ② `agenerp/oob.py` 与红线 7 的界线是否真的靠机制立住（`ALLOWED_CALLS` 钉到参数一级、
