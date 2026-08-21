@@ -174,3 +174,31 @@ required variable COHERE_API_KEY is missing a value
 零依赖启动不能以默认可用凭据为代价。
 
 ---
+
+## 14.1 §14 三条规则在本仓的落点（2026-08-21 追加）
+
+> 本节**只记落点，不改写 §14 任何一行**。§14 是 Spike 10 的结论出处，后继 plan 还要引它。
+
+roadmap 工作项 3（plan `docs/plans/p0-foundation/2026-08-21-1022-1-zero-dep-boot-compose.md`）
+把 §14 的规则从散文变成了可执行判据。落点如下：
+
+| §14 出处 | 落在哪 | 判据文件 |
+|---|---|---|
+| 规则 ① 禁止硬失败插值，一律 `${VAR:-默认值}` | `docker-compose.yml` 全文 | `tests/unit/test_compose_zero_dep.py::test_no_hard_fail_interpolation` · `::test_every_interpolation_has_a_default` |
+| 规则 ② 外部能力缺失是「未配置」不是错误 | compose 里 AI 变量全部空默认值，且不进 healthcheck / command 的成败路径 | `tests/unit/test_compose_zero_dep.py::test_ai_variable_defaults_to_empty` |
+| 规则 ③ 前置检查属于 verify 脚本，不属于启动路径 | **没有落点** | **无判据** —— 见下 |
+| ⚠️ 附带风险：默认口令必须配合强制改密**或**仅监听回环 | 取「仅监听回环」：所有 `ports:` 的宿主 IP **字面写死** `127.0.0.1` | `tests/unit/test_compose_zero_dep.py::test_published_ports_bind_loopback_literally` · `::test_ports_use_short_syntax_only` |
+
+两处必须写明的事实，免得后继当成漏项：
+
+- **规则 ③ 现在没有对象。** 本仓此刻既没有 verify 脚本，也没有任何启动路径上的前置检查。
+  给一条无对象的规则写断言只能写成同义反复，那是假判据，比没有更坏。
+  重开事件：仓里第一次出现 verify / 就绪检查脚本时（或工作项 8 给 `compose_stack` 加启动前置检查时）。
+- **回环绑定的 IP 必须字面写死，不许写成 `${BIND:-127.0.0.1}`。** 判据是对 compose 的**静态文本扫描**，
+  而仓根的 `.env` 能在 `docker compose config` 时把变量改掉（实测：`AGENERP_HTTP_PORT=9999` 会把
+  `published` 改成 9999）。变量驱动的绑定地址会出现「单测绿、真实绑到 `0.0.0.0`」——默认弱口令就此暴露。
+
+判据为什么不复用门禁：门禁 `test_compose_config_valid_with_empty_env` 只判「空环境下 `config -q` 退 0」。
+一份写了硬失败插值的 compose，在**已经配了变量的机器上**照样退 0——红只会在别人 `git clone` 之后才出现。
+所以规则要有自己的、扫原始文本的判据。
+

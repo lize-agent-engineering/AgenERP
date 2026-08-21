@@ -44,7 +44,7 @@ This file is the AI entry point. The following `docs/context/` companions are re
 | Purpose                   | Command                                       |
 | ------------------------- | --------------------------------------------- |
 | Install dependencies      | `python3 -m pip install pytest`                |
-| Run app locally           | `none`（无 `docker-compose.yml`；roadmap 工作项 3「零依赖启动」的交付物） |
+| Run app locally           | `docker compose up -d`（仓根 `docker-compose.yml`，roadmap 工作项 3 交付。**验证到哪一步**：`docker compose config -q` 在空环境下已绿并由门禁把守；「栈起得来且全部 healthy」**尚未验证**，归工作项 8，起栈尝试的原文与退出码见 `docs/logs/2026/08-21.md`） |
 | Typecheck / compile check | `none`（mypy 未安装；装机后由人接进 mission commands） |
 | Build                     | `none`（纯 Python 包，无构建步骤）              |
 | Lint / static check       | `ruff check agenerp tests/unit`                |

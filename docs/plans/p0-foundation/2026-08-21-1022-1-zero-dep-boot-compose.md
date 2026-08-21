@@ -176,14 +176,14 @@ Exit Criteria:
 
 ### Phase 2 — 把三条规则固化成判据，并划名单
 
-Status: planned
+Status: completed
 Targets: `tests/unit/test_compose_zero_dep.py`、`tools/gates/expected-red.txt`
 Skill: `none`
 
 - Item Types: `Proof`-heavy（5 项中 4 项为 `Proof`，另 1 项为 `Fix`：划名单）
 - Prereqs: Phase 1
 
-- [ ] `Proof` 写 `tests/unit/test_compose_zero_dep.py`，**只用标准库**（理由见 `## Current Baseline`：不给本机判定面新增任何依赖），
+- [x] `Proof` 写 `tests/unit/test_compose_zero_dep.py`，**只用标准库**（理由见 `## Current Baseline`：不给本机判定面新增任何依赖），
       按原始文本扫描，每条断言都写明失败意味着什么：
       - 全文件无 `${VAR:?}` 形式（规则 1；这正是 Spike 10 的成因）
       - 每个 `${…}` 插值都带 `:-` 默认值（「零必填」的正面表述，比只禁 `:?` 更严）
@@ -196,44 +196,44 @@ Skill: `none`
         - 短语法（`- "127.0.0.1:8080:8080"`）与长语法（`host_ip: 127.0.0.1`）**只允许用短语法**，判据据此写；Phase 1 若因某服务不得不用长语法，回来改这条判据，不许在执行时临时放宽
       - 无 `image: …:latest`（tag 必须写死，来自 Phase 1 的 Decision）
       - Skill: `none`
-- [ ] `Proof` 再加一条**与实现无关的元测试**：`docker-compose.yml` 存在于仓库根目录且非空。
+- [x] `Proof` 再加一条**与实现无关的元测试**：`docker-compose.yml` 存在于仓库根目录且非空。
       - 失败意味着有人挪走了它——门禁会红在「文件不存在」，与今天的红因一模一样，这条能先一步指出去哪找。
       - **仓根用 `Path(__file__).resolve().parents[2]` 解析，不用 cwd**：门禁那条本来就是 cwd 相关的，这条元测试的价值恰恰在于不跟着 cwd 一起坏。
       - Skill: `none`
-- [ ] `Fix` 从 `tools/gates/expected-red.txt` 划掉 `tests/gates/test_zero_dep_boot.py::test_compose_config_valid_with_empty_env` 一行，**与实现同一个提交**。
+- [x] `Fix` 从 `tools/gates/expected-red.txt` 划掉 `tests/gates/test_zero_dep_boot.py::test_compose_config_valid_with_empty_env` 一行，**与实现同一个提交**。
       - **授权依据（必须逐条核对，不许凭印象）**：该文件已于 `920ce0e` 迁出 `tests/gates/`，不在红线 1 范围内；
         人在 `docs/masterplan/STATE.md` §3 的 `[resolved]` 行里裁定「账本允许 loop 在同一提交里划掉已转绿的行」；
         CI 的 `expected-red-ratchet` job 只拦**变长**。名单 8 → 7 是变短，放行。
       - **不得**顺手动另外两行（工作项 8 的），它们仍红。
       - Skill: `none`
-- [ ] `Proof` 复跑 `python3 tools/gates/check_expected_red.py`，**如实记录退出码与输出原文**。
+- [x] `Proof` 复跑 `python3 tools/gates/check_expected_red.py`，**如实记录退出码与输出原文**。
       - 预期：**exit 0**，计数变为「预期红 7，绿 6，跳过 0」。
       - 若退 1 且报「名单内的门禁却绿了」→ 说明还漏划；若报「名单外的门禁红了」→ 说明本 plan 弄坏了别的门禁，**先原样复跑那条命令再说，不许猜根因**。
       - Skill: `none`
-- [ ] `Proof` 确认本 plan **没有让工作项 8 的两条意外变绿或变成别的红因**：它们必须仍红在
+- [x] `Proof` 确认本 plan **没有让工作项 8 的两条意外变绿或变成别的红因**：它们必须仍红在
       `tests/gates/conftest.py:29` 的 `compose_stack` `NotImplementedError`。
       - Skill: `none`
 
 Exit Criteria:
 
-- [ ] `python3 -m pytest tests/unit -q` → **exit 0**
-- [ ] `python3 tools/gates/check_expected_red.py` → **exit 0**，输出计数为「预期红 7，绿 6，跳过 0」
-- [ ] `git diff <本 plan 开工时的 sha>..HEAD -- tools/gates/expected-red.txt` 显示**只删了一行**，且删的是本 plan 转绿的那一行
+- [x] `python3 -m pytest tests/unit -q` → **exit 0**
+- [x] `python3 tools/gates/check_expected_red.py` → **exit 0**，输出计数为「预期红 7，绿 6，跳过 0」
+- [x] `git diff <本 plan 开工时的 sha>..HEAD -- tools/gates/expected-red.txt` 显示**只删了一行**，且删的是本 plan 转绿的那一行
       - **必须用区间 diff**：裸 `git diff` 只看未提交改动，本轮改动一提交它就输出为空，判据静音（Phase 3 的红线自查同理，理由一致）
-- [ ] `python3 -m pytest tests/gates/test_zero_dep_boot.py -q --tb=line` 的两条 error 仍逐字指向 `compose_stack` `NotImplementedError`
-- [ ] `ruff check agenerp tests/unit` → exit 0
-- [ ] 无 owner-doc 更新（归 Phase 3）
+- [x] `python3 -m pytest tests/gates/test_zero_dep_boot.py -q --tb=line` 的两条 error 仍逐字指向 `compose_stack` `NotImplementedError`
+- [x] `ruff check agenerp tests/unit` → exit 0
+- [x] 无 owner-doc 更新（归 Phase 3）
 
 ### Phase 3 — 起栈尝试（证据）、文档、日志
 
-Status: planned
+Status: completed
 Targets: `docs/context/project-context.md`、`docs/architecture/system-baseline.md`（**只在 §14 后追加一小节**）、`docs/backlog/p0-foundation-roadmap.md`、`docs/logs/2026/08-21.md`
 Skill: `none`
 
 - Item Types: `Proof | Fix | Add`
 - Prereqs: Phase 1, Phase 2
 
-- [ ] `Add` 在 `docs/logs/2026/08-21.md` 与本 plan 的 `## Deferred But Adjudicated` 里**写死落地方式**：
+- [x] `Add` 在 `docs/logs/2026/08-21.md` 与本 plan 的 `## Deferred But Adjudicated` 里**写死落地方式**：
       **本批改动必须经 PR 落地，不得直推 `main`。**
       - 依据：`.github/workflows/gates.yml` 的 `on:` 含 `pull_request`，所以 PR 会让 `gates-l1` **在真正的 2.38.2 runner 上先跑一遍**；
         而划名单不可由 loop 回退（放回名单属变长，`expected-red-ratchet` 无 `Gates-Change-Approved-By:` 即拦）。
@@ -247,14 +247,14 @@ Skill: `none`
       - **并写明一个连带事实**：那个 PR 会**一并带上前几个 plan 的未推送提交**，所以 `gates-l1` 的首次实跑覆盖的不只是本批的活；
         结果无论红绿都要回写进 log，红的那部分要分清是本批引入的还是存量的。
       - Skill: `none`
-- [ ] `Fix` 修 `docs/backlog/p0-foundation-roadmap.md` 里三处**确认存在的 owner-doc 漂移**：
+- [x] `Fix` 修 `docs/backlog/p0-foundation-roadmap.md` 里三处**确认存在的 owner-doc 漂移**：
       `:13`、`:35`、`:78` 仍写着从 `tests/gates/EXPECTED_RED.txt` 划掉，而该文件已于 `920ce0e` 迁至 `tools/gates/expected-red.txt`（`ls tests/gates/EXPECTED_RED.txt` → 不存在）。
       - **为什么是本 plan 的活**：roadmap 是本 plan 的 `Source` 与 Owner Doc，而本 plan 正是第一个真的要去划名单的 plan。
         照着 `:78` 执行的会话会去写 `tests/gates/**` 下的文件——那是红线 1 事件。确认存在的 owner-doc 漂移按计划指南规则 14 不可降级为 follow-up，故记 `Fix`。
       - 只改这三处指向，**不动 `## Work Item Status` 块的任何一行**：
         `todo → planned` 已在 Phase 1 首项第 4 点做完（幂等复核），`planned → done` 归 `## Closure Gates`（理由见下一条记录的产物冲突）。
       - Skill: `none`
-- [ ] `Proof` **不在本阶段**把工作项 3 置为 `done`，并把这处产物冲突如实记进 log（**冲突由人消解，不由本 plan 消解**）：
+- [x] `Proof` **不在本阶段**把工作项 3 置为 `done`，并把这处产物冲突如实记进 log（**冲突由人消解，不由本 plan 消解**）：
       - `tools/mission-driver/prompts/execute.md:11` 要求 `EXECUTE` 步在 plan 完成时就去改 roadmap 的工作项；
         而 `docs/backlog/p0-foundation-roadmap.md:9` 写着该文件「由引擎在 **closure 审计通过后**回写」，`:35` 又把 `done` 定义为「完成，**且通过 closure 审计**」。
         Phase 3 跑在 `EXECUTE` 内、在独立关闭审计**之前**——照 `execute.md:11` 做就等于在审计前宣称通过审计。
@@ -264,22 +264,22 @@ Skill: `none`
       - 依据 §对照表，工作项 3 只绑定 `test_compose_config_valid_with_empty_env` 一条（标题里的「首页降级」划给工作项 8），所以审计通过后置 `done` 是成立的。
       - 附注（不属本 plan 范围）：工作项 1 至今仍是 `todo` 而它的门禁早已转绿并划掉，那是 plan `…-2341-2` 停在 `deferred` 未走关闭审计的后果，**不由本 plan 处置**。
       - Skill: `none`
-- [ ] `Proof` 在本机跑一次 `docker compose up -d`，**无论结果如何都如实记录命令原文与退出码**，随后 `docker compose down -v` 清理。
+- [x] `Proof` 在本机跑一次 `docker compose up -d`，**无论结果如何都如实记录命令原文与退出码**，随后 `docker compose down -v` 清理。
       - **这条的交付物是「记录」，不是「绿」**：镜像拉取可能因体积/网络而失败或超时，那也是要写下来的事实。
       - 判定归属写清楚：「起得来且全部 healthy」是**工作项 8** 的门禁（`test_stack_boots_and_all_services_healthy`），
         本 plan 不拿它当 Exit Criteria，也**不得**因为它没绿就去改 compose 以外的任何判据。
       - 失败时的处置：按 `AGENTS.md` 裁判规则 3，原样复跑一次；仍失败则记「未起栈成功 + 原文错误」，并在 Phase 3 的 log 里点名它归工作项 8 处理。**不猜根因、不改门禁。**
       - Skill: `none`
-- [ ] `Fix` 更新 `docs/context/project-context.md` 的 `Run app locally` 一行：由 `none（无 docker-compose.yml；…）`
+- [x] `Fix` 更新 `docs/context/project-context.md` 的 `Run app locally` 一行：由 `none（无 docker-compose.yml；…）`
       改为真命令 `docker compose up -d`，并按该文件自己的规矩注明它此刻验证到哪一步（`config` 已绿 / 起栈证据见 log）。
       - 这是一处确认存在的活漂移（该行明写「工作项 3 的交付物」，交付后不改就是过期文档），按计划指南规则 14 记 `Fix`。
       - Skill: `none`
-- [ ] `Add` 在 `docs/architecture/system-baseline.md` §14 之后**追加**一小节，记录三条规则在本仓的落点与判据文件名。
+- [x] `Add` 在 `docs/architecture/system-baseline.md` §14 之后**追加**一小节，记录三条规则在本仓的落点与判据文件名。
       - **只追加，不改写 §14 已有任何一行**（该文件不在 `docs/masterplan/`，但同一份 Spike 10 结论是后继 plan 的依据，改写等于销毁出处）。
       - Skill: `none`
-- [ ] `Add` 按 `docs/logs/00-log-writing-guide.md` 写 `docs/logs/2026/08-21.md` 条目：交付内容 + 每条验证命令原文 + 退出码 + commit sha。
+- [x] `Add` 按 `docs/logs/00-log-writing-guide.md` 写 `docs/logs/2026/08-21.md` 条目：交付内容 + 每条验证命令原文 + 退出码 + commit sha。
       - Skill: `none`
-- [ ] `Proof` 红线自查，用**区间 diff**（不用 `git diff HEAD`，那只看未提交改动，把改动提交掉就静音了）：
+- [x] `Proof` 红线自查，用**区间 diff**（不用 `git diff HEAD`，那只看未提交改动，把改动提交掉就静音了）：
       `git diff --name-only <本 plan 开工时的 sha>..HEAD -- tests/gates/ .github/workflows/ missions/ docs/masterplan/DECISIONS.md tools/gates/check_expected_red.py tools/gates/gate-verify.mjs` → **输出必须为空**；
       再单查一次 `docs/masterplan/`，两条都要是空输出：
       `git diff --name-only <sha>..HEAD -- docs/masterplan/ | grep -v '^docs/masterplan/STATE\.md$' | wc -l` → **0**（除 STATE 外无文件被改）、
@@ -296,17 +296,17 @@ Skill: `none`
 
 Exit Criteria:
 
-- [ ] `docs/context/project-context.md` 的 `Run app locally` 不再是 `none`，且未引入 `<fill real command>` 占位符
-- [ ] `git diff <本 plan 开工时的 sha>..HEAD -- docs/architecture/system-baseline.md` 显示**只有新增行**（区间 diff，理由同上）
-- [ ] `docs/logs/2026/08-21.md` 已更新，含命令原文 + 退出码 + sha，**且写明「本批改动必须经 PR 落地，不得直推 `main`」及其理由**
-- [ ] 区间红线自查输出为空
-- [ ] `! grep -q 'EXPECTED_RED' docs/backlog/p0-foundation-roadmap.md` → **exit 0**（三处漂移已修）
+- [x] `docs/context/project-context.md` 的 `Run app locally` 不再是 `none`，且未引入 `<fill real command>` 占位符
+- [x] `git diff <本 plan 开工时的 sha>..HEAD -- docs/architecture/system-baseline.md` 显示**只有新增行**（区间 diff，理由同上）
+- [x] `docs/logs/2026/08-21.md` 已更新，含命令原文 + 退出码 + sha，**且写明「本批改动必须经 PR 落地，不得直推 `main`」及其理由**
+- [x] 区间红线自查输出为空
+- [x] `! grep -q 'EXPECTED_RED' docs/backlog/p0-foundation-roadmap.md` → **exit 0**（三处漂移已修）
       - **模式不带路径前缀**：`:35` 写的是「并从 EXPECTED_RED 划掉」，没有 `tests/gates/` 前缀，带前缀的模式扫不到它（`grep -c 'EXPECTED_RED' …` 今日为 **3**，带前缀只有 2）。
       - **判据写成 `! grep -q`**：`grep -c` 无命中时自身退 1，`… → 0` 的成功态是 exit 1，与 Phase 1 那条已修的缺陷同类。
-- [ ] roadmap `## Work Item Status` 第 3 项为 `planned`（起草步已写、Phase 1 首项第 4 点复核过；
+- [x] roadmap `## Work Item Status` 第 3 项为 `planned`（起草步已写、Phase 1 首项第 4 点复核过；
       `planned → done` 归 `## Closure Gates`，理由见上一项记录的产物冲突）
-- [ ] owner doc 已更新：`docs/context/project-context.md`、`docs/architecture/system-baseline.md`、`docs/backlog/p0-foundation-roadmap.md`
-- [ ] 收尾复跑：`python3 tools/gates/check_expected_red.py && python3 -m pytest tests/unit -q` → **exit 0**
+- [x] owner doc 已更新：`docs/context/project-context.md`、`docs/architecture/system-baseline.md`、`docs/backlog/p0-foundation-roadmap.md`
+- [x] 收尾复跑：`python3 tools/gates/check_expected_red.py && python3 -m pytest tests/unit -q` → **exit 0**
 
 ## `Plan Status` 由谁写（写死，免得烧循环）
 
@@ -447,6 +447,9 @@ Exit Criteria:
 - Successor Required: `no`
 - 重开事件：首次 push 后 `gates-l1` 的实跑结果出来时（**无论红绿都要回写进 log**）；若红，恢复需人带 `Gates-Change-Approved-By:` 把该行放回名单。
   ⚠️ 那次实跑会**一并覆盖前几个 plan 的未推送提交**（本地 `main` 已积压若干），所以回写时要分清红的是本批引入的还是存量的。
+  - **执行期更正（2026-08-21，Phase 3 实测）**：这个前提已经过期。`git fetch origin` 后
+    `git log --oneline origin/main..HEAD` **只有本批的 `ba7bdae` 一条**，`origin/main` 已在 `f4fe0ce`——
+    前几个 plan 的提交都推过了。所以那次 `gates-l1` 实跑**只覆盖本批**，红了就是本批引入的，不必再分辨存量。
 
 ## Closure
 
