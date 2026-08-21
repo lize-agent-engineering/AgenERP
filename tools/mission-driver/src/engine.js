@@ -739,7 +739,45 @@ export class FlowEngine {
     // safety upper bound when audits keep surfacing P0/P1 work. The `auditRound
     // >= 1` guard preserves "audit at least once before completing" (cold start
     // with an already-empty roadmap still enters DEEP_AUDIT once first).
+    // --- 补丁 P6（AgenERP fork）------------------------------------------
+    // 被 Review Hold 扣住的 draft plan 也是「还有活」。
+    //
+    // 实测（2026-08-21 跨模型对照）：codex/sol 臂按上游 plan-review prompt 的
+    // escape hatch 正确处理了一份受阻 plan —— 写了 `> Review Hold:` 行、连做 15 轮
+    // 独立评审、每轮实时核对仓库事实，判定外部阻塞无法在评审内解除，保持 draft。
+    // 协议守得一丝不苟。但本函数只问 activePlans()／openAudits()，draft 不在其中，
+    // 于是 mission 被判 `completed` —— 工作项推进 0 项，门禁一条未动，状态却是完成。
+    //
+    // 「没有活可干」与「活被扣住了」在终局判定里必须是两回事：前者是完成，
+    // 后者是**需要人**。混为一谈，等于让阻塞悄无声息地变成成功。
+    const held = this._heldDraftPlans();
+    if (held.length > 0) {
+      this._log(
+        `  audit-gate: 有 ${held.length} 份 plan 被 Review Hold 扣住，` +
+        `不判 completed（这是「需要人」，不是「没活了」）：`,
+      );
+      for (const h of held) this._log(`    - ${h}`);
+      return false;
+    }
+    // --- 补丁 P6 结束 -------------------------------------------------------
     return max > 0 && round >= 1 && ap.length === 0 && oa.length === 0;
+  }
+
+  /** 补丁 P6：列出带 `> Review Hold:` 的 draft plan（受阻，不等于无事可做）。 */
+  _heldDraftPlans() {
+    try {
+      const drafts = this.expressionFuncs?.draftPlans?.() || [];
+      const out = [];
+      for (const f of drafts) {
+        const path = typeof f === "string" ? f : f?.path || f?.file;
+        if (!path || !existsSync(path)) continue;
+        const text = readFileSync(path, "utf8");
+        if (/^>\s*Review Hold\s*:/im.test(text)) out.push(path);
+      }
+      return out;
+    } catch {
+      return [];   // 读不到就不拦 —— 本补丁只负责把「受阻」从「完成」里摘出来，不引入新的失败源
+    }
   }
 
   _templateVar(str, vars) {

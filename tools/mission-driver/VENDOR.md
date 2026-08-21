@@ -18,6 +18,8 @@
 |---|---|---|---|
 | P1 | `src/flow-loader.js` | `SCRIPT_REGISTRY` 可从 mission.json 的 `scripts` 字段扩展 | **是**（通用改动） |
 | P3 | `flows/plan-execution.json` | `BUILD_VERIFY` 之后插入 `GATE_VERIFY` 独立判定步 | 否（项目侧策略） |
+| P7 | `tools/gates/gate-verify.mjs` | GATE 判失败时把 plan 的 `Plan Status: completed` 降回 `active` —— 门禁红着时文件不许声称完成 | 否（项目侧策略） |
+| P6 | `src/engine.js` | 终局判定排除「被 `Review Hold` 扣住的 draft plan」——受阻 ≠ 没活干 | **是**（通用改动） |
 | P5 | `src/config.js` · `src/main.js` | 新增 `--driver codex`（跨模型对照用）：AGENTS.md 原生加载故不下发人格，prompt 走 stdin | 可考虑（driver 层通用） |
 | P4 | `src/config.js` · `src/runner.js` · `agents/build.claude.md` · `agents/claude-loop.settings.json` | 新增 `--driver claude`（D-3）：settings 关 hooks/自带技能，persona 经 `--append-system-prompt` 显式下发 | 可考虑（driver 层通用） |
 

@@ -15,8 +15,8 @@
  * 由引擎 append 进下一轮 prompt —— 让模型看见真实报错，而不是自己想象的报错。
  */
 import { spawnSync } from "node:child_process";
-import { writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { writeFileSync, readFileSync, existsSync } from "node:fs";
+import { join, isAbsolute } from "node:path";
 
 const MAX_OUTPUT = 4000; // 单条命令回灌进 prompt 的输出上限，防止把上下文撑爆
 const PROTECTED = ["tests/gates/"];
@@ -49,7 +49,11 @@ export default function gateVerify(delegates, flowVars) {
   const fail = (reason, details) => {
     flowVars?.set?.("GATE_VERIFY_RESULT", "FAIL");
     flowVars?.set?.("GATE_VERIFY_DETAILS", reason);
-    return { marker: "fail", text: `GATE_VERIFY FAILED — ${reason}\n${details}` };
+    const demoted = demotePlanIfClosed(delegates, flowVars, cwd);
+    return {
+      marker: "fail",
+      text: `GATE_VERIFY FAILED — ${reason}\n${details}` + (demoted ? `\n\n${demoted}` : ""),
+    };
   };
 
   // 0. 写保护：改裁判是**停机条件**，不是普通失败。
@@ -139,4 +143,37 @@ export default function gateVerify(delegates, flowVars) {
       ...ran.map((r) => `  ✓ ${r.cmd}  (exit 0, ${(r.ms / 1000).toFixed(1)}s)`),
     ].join("\n"),
   };
+}
+
+/**
+ * 补丁 P7（AgenERP fork）：门禁红着的时候，plan 文件不许声称自己完成。
+ *
+ * 缺陷由跨模型对照实验中的 codex/sol 臂指出（它把这列为拒绝转 active 的两个
+ * Review Hold 之一）：流程是 EXECUTE → CLOSURE_SCRIPT_CHECK → BUILD_VERIFY →
+ * GATE_VERIFY，也就是 **plan 先被写成 completed，门禁才开跑**。GATE 失败退回
+ * EXECUTE，而磁盘上那份 plan 已经写着 completed —— 这正是本项目通篇要挡的
+ * 「AI 自报通过」，只不过换成了文件形态。
+ *
+ * 处置：判失败时把状态降回 active，并留一行为什么。判定权归退出码，
+ * 文件状态必须跟着退出码走，而不是反过来。
+ */
+function demotePlanIfClosed(delegates, flowVars, cwd) {
+  const planFile = flowVars?.get?.("PLAN_FILE") || delegates?.vars?.PLAN_FILE;
+  if (!planFile) return "";
+  const abs = isAbsolute(planFile) ? planFile : join(cwd, planFile);
+  if (!existsSync(abs)) return "";
+  try {
+    const text = readFileSync(abs, "utf8");
+    const m = text.match(/^>\s*\*{0,2}(?:Plan\s+)?Status\*{0,2}\s*:\s*\*{0,2}completed\*{0,2}\s*$/im);
+    if (!m) return "";
+    const stamp = new Date().toISOString();
+    const next = text.replace(
+      m[0],
+      `> Plan Status: active\n> Gate Demotion: ${stamp} —— GATE_VERIFY 判失败，状态由 completed 降回 active（门禁红着时 plan 不得声称完成）`,
+    );
+    writeFileSync(abs, next);
+    return `已把 ${planFile} 的 Plan Status 由 completed 降回 active —— 门禁没过，文件不许先声称完成。`;
+  } catch {
+    return "";
+  }
 }
