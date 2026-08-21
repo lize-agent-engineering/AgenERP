@@ -166,6 +166,12 @@
 - 2026-08-21T11:03Z · 跨模型对照 · P6/P7 双向实测通过；引擎回归与主干失败集合逐条一致。中途 `Monitor` 那条一度多挂，单独跑 84 全过、全量复跑不复现 → **全量并发下的抖动，不是补丁所致**（差点误记成自己打坏的）
 - 2026-08-21T11:03Z · 主干 · 循环在 `module-boundaries.md` 写了行号引用 `...pre-build-validation.md:143`，触发引擎自带的 `mdc-1 R3`（架构文档禁行号引用，行号会烂）→ 改为按节名引用，`check-doc-references` exit 0
 
+- 2026-08-21T11:13Z · 门禁 · **三个 fixture 已由人写完**（`compose_stack` / `live_site` / `pack_repo`，`tests/gates/conftest.py`）。三条规矩写在文件最前：绝不伪装成功（环境不具备就 `fail`，不许 `skip`）、不碰不属于自己的东西（栈本来就跑着就不拆，探针字段 teardown 删干净）、默认不跑（需 `AGENERP_LIVE=1`，否则快门禁每轮拉一次 ERPNext 循环没法用）
+- 2026-08-21T11:13Z · 门禁 · `pack_repo` 刻意**不复用** `agenerp` 的读写函数：fixture 是判据的一部分，与被测实现共用解析代码的话，实现里的口径错误会在两边同时发生、互相抵消而测不出来
+- 2026-08-21T11:13Z · 门禁 · 快门禁不变（6 绿 / 7 预期红，判定器一致），但**红的理由变了**：从「实现不存在」变成「本轮没打算跑 L2」。L2 真跑命令：`AGENERP_LIVE=1 python3 -m pytest tests/gates -m live -q`
+- 2026-08-21T11:13Z · 红线 · **红线 1 的三层拆分暂不做**（断言体=人 / fixture=接缝 / 新增门禁=加严）。理由是它自带前置：在工作项 8（CI 真跑 L2）落地之前，**没有任何东西能戳穿一个假 fixture**。在能抓住滥用的机制存在之前放宽红线等于白放。绑在 item 8，届时再议
+- 2026-08-21T11:13Z · 梳理 · `feat/codex-driver` 与 `feat/planstate-guard` 已并入 main 并删除（worktree 一并清）。`ab/codex-sol` **不并主干**——它带两个 `Review Hold` 的 draft plan，而刚做的 P6 会让带 hold 的 draft 阻止 mission 判完成，并进去等于立刻卡死主循环；已推 `origin/ab/codex-sol` 留作实验记录
+
 ---
 
 ## §3 needs-human 队列
