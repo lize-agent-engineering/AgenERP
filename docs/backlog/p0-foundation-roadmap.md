@@ -1,6 +1,6 @@
 # P0 · 地基 — mission roadmap
 
-> Last updated: 2026-08-20
+> Last updated: 2026-08-21
 > Sources: [`docs/backlog/implementation-roadmap.md`](./implementation-roadmap.md) 的 P0 节（判据的真相源）·
 > [`tests/gates/`](../../tests/gates/README.md)（判据的可执行形式）
 
@@ -10,17 +10,17 @@
 全局阶段索引（P0–P5 谁做完了）在 [`implementation-roadmap.md`](./implementation-roadmap.md)，由人维护——**两者别搞混**。
 
 P0 的目标一句话：**把「可验证」做出来。这一阶段不引入任何 LLM。**
-每个工作项都绑定一条**先红着**的门禁测试；工作项关闭 = 那条测试转绿 + 从 `tests/gates/EXPECTED_RED.txt` 划掉。
+每个工作项都绑定一条**先红着**的门禁测试；工作项关闭 = 那条测试转绿 + 从 `tools/gates/expected-red.txt` 划掉。
 
 ## Work Item Status
 
 > **这是唯一的动态状态块。** 状态只在这里改。
 > 顺序即执行顺序，引擎取第一个 `todo`。前三项是纯逻辑，不需要活站点或 docker，先做。
 
-- 1. 定制包规范化器（剥易变字段 + 稳定排序）: `todo`
+- 1. 定制包规范化器（剥易变字段 + 稳定排序）: `done`
 - 2. 状态快照与结构化 diff: `done`
-- 3. 零依赖启动（compose 语法 + 首页 AI 未配置降级）: `todo`
-- 4. 工具契约层 v0（先包 10 个只读工具）: `todo`
+- 3. 零依赖启动（compose 语法 + 首页 AI 未配置降级）: `planned`
+- 4. 工具契约层 v0（先包 10 个只读工具）: `planned`
 - 5. 差集 apply 引擎（读包 → 求差 → **对差集执行删除**）: `todo`
 - 6. 定制包往返删除验证（活站点端到端）: `todo`
 - 7. 种子数据（确定性生成，内置 1,010 米积压这个已知业务荒谬）: `todo`
@@ -32,7 +32,7 @@ P0 的目标一句话：**把「可验证」做出来。这一阶段不引入任
 | --- | --- |
 | `todo` | 未开始，没有 plan |
 | `planned` | 已有执行 plan 且通过草案评审 |
-| `done` | 完成，且通过 closure 审计（对应门禁测试已转绿并从 EXPECTED_RED 划掉） |
+| `done` | 完成，且通过 closure 审计（对应门禁测试已转绿并从预期红名单划掉） |
 
 ## 工作项 → 门禁测试对照
 
@@ -75,5 +75,6 @@ P0 的目标一句话：**把「可验证」做出来。这一阶段不引入任
 
 - **判据先行**：任何工作项开工前，先确认它有绑定的门禁测试。没有就先补一条红的（补测试要人批，走 `Gates-Change-Approved-By:`）。
 - **一个工作项 = 1–2 个 plan。** 超过两个说明工作项拆得不够细，回来改这张表。
-- **关闭工作项的同一个提交里**，必须把对应测试从 `tests/gates/EXPECTED_RED.txt` 划掉——名单只能变短，CI 的棘轮会盯着。
+- **关闭工作项的同一个提交里**，必须把对应测试从 `tools/gates/expected-red.txt` 划掉——名单只能变短，CI 的棘轮会盯着。
+  （2026-08-21 `920ce0e` 起名单已迁出 `tests/gates/`：测试代码是裁判受红线 1 保护，名单只是账本，允许在同一提交里划短。）
 - 不许为了让测试变绿去改测试。改判据走 needs-human 五步。
