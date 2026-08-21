@@ -303,5 +303,55 @@ ERPNext 把标准工作台以 JSON fixture 装在 app 目录里（`erpnext/selli
 
 判据出处：`tests/gates/test_snapshot_diff_structured.py`（L1 两条）；真实语义覆盖在
 `tests/unit/test_snapshot_capture.py` 与 `tests/unit/test_snapshot_diff.py`，不依赖活站点。
+### 11.6 差集 apply 引擎在本仓的落点（A 半，2026-08-21）
+
+§11.1「三个必须自建的部件」第二行的**前半边**已落地：读包 → 与站点现状求差 → 产出含**删除计划**的
+`ApplyPlan`。切分依据只有一条：**算出删除集是纯逻辑，执行删除才需要活站点。**
+
+| 落点 | 职责 | 状态 |
+|---|---|---|
+| `agenerp/apply.py` · `read_pack(path, scope=PACK_SCOPE)` | 定制包目录 → `Snapshot` | 已实现 |
+| `agenerp/apply.py` · `ApplyPlan` | 不可变值对象：`creates` / `updates` / `deletes` | 已实现 |
+| `agenerp/apply.py` · `plan_apply(desired, current)` | 纯函数求差 | 已实现 |
+| `agenerp/apply.py` · `execute_plan(plan, site)` | **对站点执行，B 半的唯一落点** | `raise`，归工作项 6 |
+| `agenerp/pack.py` · `apply_pack(path, site)` | 委派链的入口，签名与导入路径不变 | 已委派 |
+| `agenerp/snapshot.py` · `schema_drift(doctype)` | 物理表孤儿列巡检（§11.1 第三个部件） | `raise`，与 B 半同一 successor |
+
+**方向约定**（写反了不报错、只会把「删」算成「建」，所以写在这里）：`plan_apply(desired, current)` 的
+`desired` = 定制包、`current` = 站点现状；而 `snapshot.diff(before, after)` 的 `added` = 只在 `after`、
+`removed` = 只在 `before`。因此内部正确调用是 `diff(before=current, after=desired)`——**与 `plan_apply`
+自己的形参顺序相反**。映射 `added→creates` / `removed→deletes` / `changed→updates`，
+函数内另有方向不变量把守，`tests/unit/test_apply_plan.py` 有互换用例。
+
+**定制包目录布局：取 `<root>/<scope>/<DocType>.json`。** 三个候选与取舍：
+
+| 候选 | 说明 | 结论 |
+|---|---|---|
+| (a) `<root>/custom/<DocType>.json` | 贴 Frappe `export_customizations` 的 `<app>/<module>/custom/` 惯例 | 未取：`custom` 是写死的单层，装不下「快照 scope」这个维度 |
+| (b) `<root>/<scope>/<DocType>.json` | 贴仓内既有 `OfflineSnapshotSource` 的布局 | **取此** |
+| (c) 单文件 `<root>/pack.json` | 最省事 | 未取：一个 DocType 一个文件才有可读的 git diff，这正是 §11.2 要的东西 |
+
+取 (b) 的理由是**口径同源**：`read_pack` 与 `OfflineSnapshotSource.read` 走同一个
+`snapshot.read_scope_dir`（其中的载荷解析是同一个 `entries_from_payload`）。两套口径会让
+「包里读到的」与「站点快照读到的」在同一份 JSON 上得出不同条目，求差结果随之失真。
+
+**残余风险**：`export_customizations`（工作项 6）尚未实现，包的真实产出形状还没有活证据；
+本布局若被它推翻，代价是改 `read_pack` 一处 + 其单测，**`plan_apply` 的形状不受影响**。
+
+**未让任何门禁转绿（如实记录）。** 工作项 5 绑定的
+`tests/gates/test_customization_roundtrip_delete.py::test_removing_from_pack_actually_deletes_on_site`
+要 `live_site` / `pack_repo` 两个 fixture，全在 `tests/gates/conftest.py`（`AGENTS.md` 红线 1），
+loop 无权实现。该文件四条仍红且红在 fixture 层（`4 errors`，`ERROR at setup`），
+`tools/gates/expected-red.txt` 一行未动，roadmap 工作项 5 停在 `planned`。
+A 半的判据全部落在 `tests/unit/test_apply_plan.py`（`missions/p0-foundation.json` 的
+`commands.test` 复跑得到）。
+
+**`apply_pack` 现在红在哪**：委派后它先跑完读包与求差，随后红在站点侧——逐字是
+`SiteSnapshotSource.read`（工作项 4 的 B 半：没有活站点就答不出「站点现状是什么」），
+它接上之后才轮到 `execute_plan`（工作项 6）。**站点侧有这两个落点，不是一个**；
+B 半的 successor 两处都要接。
+
+`agenerp.apply` 在 `apply_pack` 的**函数体内**导入：`apply` 顶层导入 `snapshot`，`snapshot` 顶层
+导入 `pack.normalize`，提到顶层就是 `pack` ↔ `apply` 循环导入。两种导入次序各有一个子进程判据。
 
 ---

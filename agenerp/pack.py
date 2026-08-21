@@ -69,5 +69,19 @@ def export_customizations(doctype: str, into: str) -> None:
 
 
 def apply_pack(path: str, site: str) -> None:
-    """把定制包 `path` 应用到站点 `site`，**含对差集执行删除**。"""
-    raise NotImplementedError(f"apply_pack {_TODO}（工作项 5 · 差集 apply 引擎）")
+    """把定制包 `path` 应用到站点 `site`，**含对差集执行删除**。
+
+    委派给 `agenerp.apply`：读包 → 求差 → 执行。**求差这一半已经实现**（工作项 5 的 A 半），
+    红因因此从「求差不存在」挪到了站点侧——先是 `SiteSnapshotSource.read`（工作项 4 的 B 半，
+    要活站点才答得出「站点现状是什么」），随后才是 `execute_plan`（工作项 6）。
+
+    `agenerp.apply` 在**函数体内**导入：`apply` 顶层已经导入 `snapshot`，而 `snapshot` 顶层
+    导入本模块的 `normalize`；把它提到顶层就是 `pack` ↔ `apply` 循环导入。
+    判据在 `tests/unit/test_apply_plan.py::test_import_order_does_not_deadlock`。
+    """
+    from agenerp.apply import PACK_SCOPE, execute_plan, plan_apply, read_pack
+    from agenerp.snapshot import SiteSnapshotSource, capture
+
+    desired = read_pack(path)
+    current = capture(PACK_SCOPE, source=SiteSnapshotSource(site))
+    execute_plan(plan_apply(desired=desired, current=current), site)

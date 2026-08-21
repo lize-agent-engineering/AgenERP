@@ -291,6 +291,44 @@ def test_execute_plan_is_the_single_landing_spot_for_the_site_half():
     assert "STATE.md" in message, f"红因没有指向等人的那行 [open]：{message}"
 
 
+def test_apply_pack_really_runs_the_pure_half():
+    """`apply_pack` 必须真的走进 `read_pack` —— 一个原地 `raise` 的假委派过不了这条。
+
+    包里放一个缺 `fieldname` 的条目：报错必须来自读包这一步（`ValueError`），
+    而不是站点侧的 `NotImplementedError`。
+    """
+    import tempfile
+
+    from agenerp.pack import apply_pack
+
+    with tempfile.TemporaryDirectory() as tmp:
+        _write_pack_doctype(Path(tmp), "Item", [{"fieldtype": "Data"}])
+
+        with pytest.raises(ValueError, match="fieldname"):
+            apply_pack(tmp, site="dev.localhost")
+
+
+def test_apply_pack_reds_on_the_site_half_not_on_diffing(tmp_path):
+    """门禁逐字 `from agenerp.pack import apply_pack`：导入路径与签名一字不改。
+
+    红因已经从「求差不存在」挪到站点侧。**当前逐字是 `SiteSnapshotSource.read`**
+    （工作项 4 的 B 半：没有活站点就答不出「站点现状是什么」），它接上之后才轮到
+    `execute_plan`（工作项 6）。两处都在站点侧，A 半在它们之前已经跑完。
+    """
+    from agenerp.pack import apply_pack
+
+    with pytest.raises(NotImplementedError) as excinfo:
+        apply_pack(str(tmp_path), site="dev.localhost")
+
+    message = str(excinfo.value)
+    assert "apply_pack" not in message, (
+        f"红因还停在 apply_pack 自己身上，说明委派没接上：{message}"
+    )
+    assert "SiteSnapshotSource.read" in message or "execute_plan" in message, (
+        f"红因不在站点侧的两个落点上：{message}"
+    )
+
+
 # --- 零依赖与导入方向（**必须在全新子进程里测**） -----------------------------------
 # 不许在当前 pytest 进程里对 `sys.modules` 前后求差：`agenerp.apply` 可能已被本文件
 # 或别的测试模块导入，差集恒为空，断言就成了永远绿的假判据。

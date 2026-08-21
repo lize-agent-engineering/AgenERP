@@ -164,26 +164,26 @@ Exit Criteria:
 
 ### Phase 2 — 把行为固化成判据（`tests/unit/`）
 
-Status: planned
+Status: completed
 Targets: `tests/unit/test_apply_plan.py`
 Skill: `none`
 
 - Item Types: `Proof`（5/5 全为 Proof）
 - Prereqs: Phase 1
 
-- [ ] `Proof` **反 upsert 回归（承重条款）**：构造「包里没有、站点上有」的字段 → 断言它出现在 `plan.deletes` 中。
+- [x] `Proof` **反 upsert 回归（承重条款）**：构造「包里没有、站点上有」的字段 → 断言它出现在 `plan.deletes` 中。
       这条断言的失败信息必须点名 §11.1 的实测结论（`sync_customizations` 纯 upsert、revert 无效），
       让将来读到红的人一眼知道它守的是什么。
       - Skill: `none`
-- [ ] `Proof` 方向不可颠倒：同一对快照互换 `desired` / `current`，`creates` 与 `deletes` 必须互换而不是同时为空。
+- [x] `Proof` 方向不可颠倒：同一对快照互换 `desired` / `current`，`creates` 与 `deletes` 必须互换而不是同时为空。
       - Skill: `none`
-- [ ] `Proof` 幂等与空计划：`plan_apply(s, s).is_empty()` 为真；scope 不同抛 `SnapshotScopeMismatch`；
+- [x] `Proof` 幂等与空计划：`plan_apply(s, s).is_empty()` 为真；scope 不同抛 `SnapshotScopeMismatch`；
       `plan_apply` 不改入参（调用前后两个 `Snapshot` 仍相等）。
       - Skill: `none`
-- [ ] `Proof` `read_pack` 的三条边界：目录不存在 → 零条目；易变字段（`modified` / `creation` / `owner` / `_comments`）
+- [x] `Proof` `read_pack` 的三条边界：目录不存在 → 零条目；易变字段（`modified` / `creation` / `owner` / `_comments`）
       **不进条目**（与 `normalize` 同口径）；条目缺 `fieldname` → 显式报错。
       - Skill: `none`
-- [ ] `Proof` 零依赖与导入方向。⚠️ **必须在全新子进程里测，不许在当前 pytest 进程里做模块集合求差**——
+- [x] `Proof` 零依赖与导入方向。⚠️ **必须在全新子进程里测，不许在当前 pytest 进程里做模块集合求差**——
       同一进程里 `agenerp.apply` 可能已被别的测试模块导入，`sys.modules` 前后求差会恒为空，
       断言就成了本仓反复禁止的**假判据**（永远绿、什么也没测）。落法：
       `subprocess.run([sys.executable, "-c", ...], capture_output=True)`，子进程里 import 后
@@ -196,12 +196,12 @@ Skill: `none`
 
 Exit Criteria:
 
-- [ ] `python3 -m pytest tests/unit -q` 退 0，且新文件的断言数 > 0（把实际条数记进日志，不写死在本行）
-- [ ] `ruff check agenerp tests/unit tests/contracts` 退 0
-- [ ] **变异实测**：至少对 `plan_apply` 的删除分支做一次真改文件的反向变异（如把 `deletes` 恒置空），
+- [x] `python3 -m pytest tests/unit -q` 退 0，且新文件的断言数 > 0（把实际条数记进日志，不写死在本行）
+- [x] `ruff check agenerp tests/unit tests/contracts` 退 0
+- [x] **变异实测**：至少对 `plan_apply` 的删除分支做一次真改文件的反向变异（如把 `deletes` 恒置空），
       确认新判据**真的转红**，再 `git checkout` 还原并用 `git diff --quiet` 证明还原干净。命令原文与退出码进日志
-- [ ] `No owner-doc update required`（文档在 Phase 3）
-- [ ] `docs/logs/` 更新
+- [x] `No owner-doc update required`（文档在 Phase 3）
+- [x] `docs/logs/` 更新
 
 ### Phase 3 — 委派链、文档、roadmap 写入、日志
 
