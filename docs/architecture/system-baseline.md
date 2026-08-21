@@ -378,16 +378,76 @@ roadmap 工作项 3（plan `docs/plans/p0-foundation/2026-08-21-1022-1-zero-dep-
 **必须且只能是字面的 `./tools/bootstrap`**。与 §14.1「回环 IP 必须字面写死」是同一条理由的第三次应用——
 **凡是判据依赖的路径，都必须字面写死**，否则判据扫的东西和真正跑起来的东西不是同一个。
 
-### L2 门禁在 CI 上的判定方式，与它换来的残余风险
+---
 
-`.github/workflows/gates.yml` 的 `gates-l2` job 在 runner 上把栈拉起来跑
-`tests/gates/test_zero_dep_boot.py` 三条。它**不跑** `tools/gates/check_expected_red.py`，
-而是直接对 `pytest` 的退出码做判定。理由是两个判定环境不同：默认环境没有 `AGENERP_LIVE`，
-L2 在那里恒红，预期红名单如实登记着它们；而这个 job 在 live 判定环境下跑，那几条是绿的，
-判定器会报「名单内的门禁却绿了」并退 1——两个 job 会互相拆台。
+## 14.4 门禁判定器的两种判定模式，与判定器自身的保护现状（2026-08-22 追加）
 
-**残余风险照实记：这几条门禁在 CI 上不受预期红名单棘轮保护。**
-有人把它们改绿而不改实现，棘轮不会响。**代偿控制**：`gates-untouched` job 仍然拦着对
-`tests/gates/**` 的无批准改动，而那几条断言就在 `tests/gates/**` 内。
-真正的修法是给判定器加一份「live 名单」，那属判据设施改造，超出工作项 8 的范围；
-重开事件是**CI 的 L2 覆盖面扩到 `test_zero_dep_boot.py` 之外时**（届时逐条手写退出码断言不再可行）。
+> 本节此前是 `## 14.3` 之下一个不带编号的三级标题
+> （`### L2 门禁在 CI 上的判定方式，与它换来的残余风险`），属**误归档**——
+> 14.3 讲的是首页「AI 能力未配置」的表达口径，与 CI 判定方式无关。
+> 2026-08-22 由 plan `docs/plans/p0-foundation/2026-08-22-0027-1-live-mode-gate-verdict.md`
+> 提升为独立的 `## 14.4` 并改写。
+> **本节只写判定契约本身，不写「CI 怎么用」**——CI 消费面归 plan `2026-08-22-0027-2`，写早了是假陈述。
+
+### 两个判定环境给出相反判定，这是本节要解决的那个矛盾
+
+`tools/gates/check_expected_red.py` 是本仓**唯一**的门禁判定器
+（roadmap「框架/平台复用」表：「已就绪，别再写第二个判定器」）。它被两处消费：
+`missions/p0-foundation.json` 的 `commands.test`（`GATE_VERIFY` 子进程复跑的就是它）与
+`.github/workflows/gates.yml` 的 `gates-l1` job。
+
+默认判定环境没有 `AGENERP_LIVE`，`tests/gates/conftest.py` 的 `_require_live()` 直接 `pytest.fail`
+（**不是 skip**），所以 L2 那几条在那里**恒红**，预期红名单如实登记着它们
+（人在 `docs/masterplan/STATE.md` §2（2026-08-21T11:20Z）裁定的口径：**「名单必须反映判定器实际看到的」**）。
+而在 live 判定环境下它们都是绿的，同一个判定器会报「名单内的门禁却绿了」并退 1。
+两个判定环境用同一份名单，必然互相拆台。
+
+`gates.yml` 的 `gates-l2` job 因此**绕开了判定器**，直接对 `pytest` 的退出码做判定。
+**那样做漏掉的唯一硬洞是 skip / xfail**：`pytest` 对全部 skip 的一轮照样退 0，判定器不然；
+`tests/gates/conftest.py` 开头逐字写着「不许 `skip`」，而 L2 那条路上没有任何东西在执行这句话。
+另外三条（收集期错误的表现不同、两套判定约定、本机 live 跑法是三串手敲 env）是
+「难用、易错、口径分裂」，**不是判据失效**，别夸大。
+
+### 判定契约：`AGENERP_LIVE=1` 选中 live 模式，契约为「全部绿、零 red、零 skip」
+
+- **模式选择用环境变量 `AGENERP_LIVE=1`**，与 `conftest.py` 的 `_require_live()` **同一个开关**——
+  两者不可能各判各的。没选用命令行参数 `--live` 是因为判定器把 `sys.argv[1:]` 原样透传给 pytest，
+  加位置参数与透传语义打架；没选「探测栈是否起着」是因为那是隐式判定，
+  会让「栈碰巧起着」悄悄改变判定口径。
+  **残余风险**：默认环境误设 `AGENERP_LIVE=1` 且栈没起 → 要求全绿 → 退 1。
+  这是**更严的失败**而非假绿，可接受；但输出必须逐字标明判定模式，否则会被误读成实现回归。
+  因此**两种模式都打印一行模式行**，只在 live 打的话，日志答不出「这条绿是谁判的」。
+- **live 模式不读 `tools/gates/expected-red.txt`**，也不建第二份「live 名单」文件。
+  **这一条偏离了本节改写前逐字写着的修法建议**（「真正的修法是给判定器加一份『live 名单』」），
+  偏离照实记在这里：① 可推定 live 下 19 条应当全绿，那份文件落地后**内容为空**，
+  与「全绿」是同一个契约；② 加一份名单就要给它再配一条棘轮，而棘轮是 `.github/workflows/**` 的改动。
+  **不声称「写死更紧」**——把逃生口从一份有棘轮的文本文件挪进代码，不是变紧而是**换了个位置**
+  （判定器此刻的保护现状见下一小节）。写死的真实优点只有两条：省一个可被写长的面、不需要动 CI。
+- **残余风险**：将来若真出现「live 下也必须红」的门禁，写死的契约会把它变成硬阻塞，需要人改判定器。
+  届时应当把契约从「全绿」改成「读一份 live 名单」，**并同时给那份名单配棘轮**——
+  两件事必须一起做，只加名单不加棘轮是净放松。
+
+### 判定器自身的保护现状，与那段还没闭合的空窗期
+
+2026-08-22 逐条实测：**三层既有保护没有一层覆盖判定器**——
+`gates-untouched` job 只 diff `tests/gates/**`；`tools/gates/gate-verify.mjs` 的
+`PROTECTED = ["tests/gates/"]`；`expected-red-ratchet` job 只数 `expected-red.txt` 的行数。
+而 `gates-l1` job 跑的**就是判定器本身**：判定器被改废之后会在 CI 上**自证为绿**。
+
+已落地的加严是**文档级**的：`docs/context/ai-autonomy-policy.md` 的 Protected Areas 表新增了
+`tools/gates/check_expected_red.py` 一行（`plan-first`），边界写明**不覆盖 `expected-red.txt`**
+（账本允许在同一提交里划短，出处是 `AGENTS.md` 红线 1 的「边界」句与该表第 2 行；
+把账本圈进守卫会让每一次合法的划短在 CI 上失败）。
+
+**空窗期照实记**：文档级约束对拿着 shell 的执行器没有强制力，真正带牙齿的是 CI 侧守卫
+（把 diff 范围扩到 `tools/gates/check_expected_red.py` 的 `verdict-tool-untouched` job），
+它由 plan `2026-08-22-0027-2-ci-l2-full-live-gate-coverage.md` 承接，**本节写下时还没上线**。
+空窗期内唯一带牙齿的控制是**自愿**在改判定器的提交上带一行 `Gates-Change-Approved-By:` trailer——
+它不是本仓要求的（判定器不在 `gates-untouched` 的路径里，没有任何 job 会检查它），
+但它让这次改动在 `git log` 里**可被检索**。
+
+### L2 门禁在 CI 上不受预期红名单棘轮保护（既有残余风险，原样保留）
+
+`gates-l2` job 的那几条门禁在 CI 上不受预期红名单棘轮保护：有人把它们改绿而不改实现，棘轮不会响。
+**代偿控制**：`gates-untouched` job 仍然拦着对 `tests/gates/**` 的无批准改动，
+而那几条断言就在 `tests/gates/**` 内。这条风险的收口归工作项 9 的 CI 半（plan `2026-08-22-0027-2`）。

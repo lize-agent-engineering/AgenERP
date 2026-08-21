@@ -25,6 +25,7 @@ P0 的目标一句话：**把「可验证」做出来。这一阶段不引入任
 - 6. 定制包往返删除验证（活站点端到端）: `planned`
 - 7. 种子数据（确定性生成，内置 1,010 米积压这个已知业务荒谬）: `planned`
 - 8. 零依赖启动进 CI（L2 慢门禁）: `planned`
+- 9. L2 门禁的判定与 CI 覆盖（把「只在本机验证过」补成 CI 可复跑）: `planned`
 
 > **2026-08-21 新增一批 plan（三个，执行顺序 4 的 B 半 → 6 的导出 → 5 的删除）**：
 > 三个 fixture 已由人在 `ede5440` 写完（STATE §2 11:20Z），工作项 4/5 两个前驱 plan 登记的 deferred 重开事件因此满足。
@@ -64,6 +65,7 @@ P0 的目标一句话：**把「可验证」做出来。这一阶段不引入任
 | 7 | 种子数据 | `test_seed_dataset_absurdity.py`（6 条：确定性 ×2、1,010 米/6,450 元精确值、积压对规则可见、不含图片、无第三方权利）—— **2026-08-21 由人补齐**，此前这一格是「仍然没有门禁」。实跑全绿：实现先于门禁存在，属特征化门禁而非 TDD | L1 |
 | 8 | 零依赖启动进 CI | `test_zero_dep_boot.py` 其余 2 条（**两条都仍在 `expected-red.txt` 内，本次一条未划掉**）。2026-08-21 由 plan [`2026-08-21-1634-2-compose-healthcheck-app-services.md`](../plans/p0-foundation/2026-08-21-1634-2-compose-healthcheck-app-services.md) 交付了「healthy 可判定」这半：应用侧三个服务已落真实 healthcheck，`up -d --wait` 冷起实测 exit 0 且变异验证有牙齿，判定口径落在 `docs/architecture/system-baseline.md` §14.2。**两半均已落地**（下见「8 现状」行） | L2 |
 | 8 现状 | **2026-08-21 补记，保持 `planned`**（假陈述更正 + 实测结论）。**假陈述更正**：此前本行写「剩下两半仍缺：① `compose_stack` fixture 在 `tests/gates/conftest.py`（红线 1，等人处置，见 STATE §3）」——**①是错的**，fixture 已由人在 `ede5440` 实现（实测 `grep -c NotImplementedError tests/gates/conftest.py` → `0`），阻塞已在 `3fed439` 关闭，STATE §3 此刻一条 `[open]` 都没有。**实测结论**：② 首页文案与 CI 那半由 plan [`2026-08-21-2220-2`](../plans/p0-foundation/2026-08-21-2220-2-homepage-ai-not-configured.md) 交付——compose 一次性服务 `bootstrap-homepage` 把「AI 能力未配置」写进 `Website Settings.banner_html`，`down -v` 冷起后 `up -d --wait --wait-timeout 300` → exit 0（62 秒）、`GET /` → 200 且含该文案、重复 `up -d` 幂等；`gates.yml` 新增 `gates-l2` job，**CI 上真跑了一次 L2**（结论见该 plan 的 Phase 4 留痕）。**为什么仍是 `planned` 而不是 `done`**：置 `done` 的条件是「从 `tools/gates/expected-red.txt` 划掉」，而本 plan 选的方案（CI 的 L2 job 直接对 pytest 退出码判定、不跑判定器）**对名单零改动**——默认判定环境没有 `AGENERP_LIVE`，L2 在那里恒红，人裁定过「名单必须反映判定器实际看到的」（STATE §2 11:20Z）。与工作项 4/5/6/7 同一情形。**代价照实记**：这几条门禁在 CI 上不受棘轮保护，代偿控制是 `gates-untouched` job | L2 |
+| 9 | L2 门禁的判定与 CI 覆盖 | **没有属于自己的门禁测试** —— 它交付的是**判据设施**（判定器的 live 判定模式）与 **CI 覆盖面**，两者都不是某一条 `tests/gates/**` 断言的实现面。mission 规则「判据先行：任何工作项开工前，先确认它有绑定的门禁测试」对它**在字面上不可满足**，与**工作项 4**（绑的是「提供 `live_site` fixture」）和**工作项 7**（人补齐 L1 门禁之前压根没有门禁）同一情形。**不引工作项 8 / WBS P0.7 作先例**——那两处确实绑着 `test_zero_dep_boot.py` 的具体断言，不是同一情形。**关闭判据**：`gates.yml` 上存在一个 job，在 live 判定环境下用 `tools/gates/check_expected_red.py` 对 `tests/gates` **全部 19 条**判定并 `success`。**与工作项 8 的包含关系（两行必须连着读，否则会被读成互相矛盾）**：工作项 9 的关闭判据（CI 上判 19 条）**覆盖面包含**工作项 8 的 CI 判据（`gates-l2` job 直接对 `test_zero_dep_boot.py` 三条的 pytest 退出码判定）；9 绿不代表 8 可置 `done`（8 的 `done` 仍卡在「从预期红名单划掉」上），但 9 一旦落地，8 那三条就同时被判定器的 live 判据覆盖一次 | L2 |
 
 ## 框架/平台复用
 

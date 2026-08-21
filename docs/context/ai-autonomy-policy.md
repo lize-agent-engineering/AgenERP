@@ -70,7 +70,8 @@ If this table still contains placeholders, AI must treat payment, auth/permissio
 
 本项目此刻**没有**支付面，也没有自有认证/权限面（权限由 Frappe / ERPNext 宿主承担）。
 下表前八条全部照抄 `AGENTS.md` 的红线表——**此处不新增、不放宽任何一条**；
-第九条是 2026-08-21 新增的**加严**行（本仓第一次出现对活站点的破坏性写实现面，见其 Required Evidence）。
+「对活站点的破坏性写」那一行是 2026-08-21 新增的**加严**行（本仓第一次出现对活站点的破坏性写实现面，见其 Required Evidence）；
+最后一行「门禁判定器本体」是 2026-08-22 新增的**加严**行（见表下说明）。
 
 | Area | Rule | Required Evidence |
 | --- | --- | --- |
@@ -84,6 +85,20 @@ If this table still contains placeholders, AI must treat payment, auth/permissio
 | 运行时 Server Script 生成 | blocked | 等同 RCE，产品上不做（红线 7） |
 | `missions/*.json` | blocked | 角色 B 禁区（`docs/masterplan/01-EXECUTION-MODEL.md` §1 禁止项 ③），由人编辑 |
 | 对活站点的破坏性写（删除 Custom Field：`agenerp/site.py` · `SiteClient.delete_custom_field`、`agenerp/apply.py` · `execute_plan` 的删除路径） | plan-first | 独立草案评审 + 独立关闭审计 + **实跑前后全量 `capture` 对照**（差集必须只含本次探针）。2026-08-21 由 plan `2026-08-21-1922-3-execute-plan-site-delete.md` 补行——该 plan 落地前本表此行不存在，本行是**加严**（此前默认 `implement`） |
+| `tools/gates/check_expected_red.py`（**门禁判定器本体**） | plan-first | 独立草案评审 + 独立关闭审计 + **「默认判定环境输出逐字节不变」的前后两次实跑** + **判定器自身的变异验证**（改坏它必须让 `tests/unit` 红）。2026-08-22 由 plan `2026-08-22-0027-1-live-mode-gate-verdict.md` 补行，本行是**加严**（此前默认 `implement`）。**边界：本行只覆盖 `check_expected_red.py`，不覆盖 `tools/gates/expected-red.txt`** —— 账本允许在同一提交里划短，出处是 `AGENTS.md` 红线 1 的「边界」句（「预期红名单 `tools/gates/expected-red.txt` 不在此列——它是账本不是裁判，测试转绿时应当在同一提交里划掉对应行（只能变短）」）与本表第 2 行（`allowed（只能变短）`，名单**变长**才需 `Gates-Change-Approved-By:`，服务端控制是 `expected-red-ratchet` job）。把账本圈进守卫会让每一次合法的划短在 CI 上失败 |
+
+**为什么「门禁判定器本体」这一行此前不存在，以及它此刻还缺什么（照实记，不粉饰）**：
+2026-08-22 逐条实测过三层既有保护，**没有一层覆盖判定器**——
+`gates-untouched` job 只 diff `tests/gates/**`；`tools/gates/gate-verify.mjs:22` 的
+`PROTECTED = ["tests/gates/"]`；`expected-red-ratchet` job 只数 `tools/gates/expected-red.txt` 的行数。
+而 `gates.yml` 的 `gates-l1` job 跑的**就是判定器本身**——判定器被改废之后会在 CI 上**自证为绿**。
+`AGENTS.md` 裁判规则 1 把「测试过没过」的裁定权交给 `GATE_VERIFY` 的退出码，
+产出那个退出码的脚本却三层皆无保护。本行先在**文档层**加严。
+**残余风险**：文档级约束对拿着 shell 的执行器没有强制力，真正的强制力在 CI 侧守卫，
+而它由 plan `2026-08-22-0027-2-ci-l2-full-live-gate-coverage.md` 承接（新增 `verdict-tool-untouched` job），
+**在本行落地时还没上线**。这段空窗期写在 `docs/architecture/system-baseline.md` §14.4，不藏着。
+**不夸大本行**：它列的 Required Evidence 恰好就是补行那个 plan 自己已经在做的事，
+因此它对**那一次**改动没有增量约束，只对**将来的会话**有约束。
 
 支付、认证/权限：`none`（本项目当前无自有实现面）。将来出现时，先在本表补行再动手。
 **数据删除**：不再是 `none` —— 2026-08-21 起本仓有了自有实现面（上表最后一行）。它删的是**结构定制**（Custom Field），不是业务数据；业务数据删除面仍为 `none`。
