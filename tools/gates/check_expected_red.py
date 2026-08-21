@@ -17,6 +17,10 @@ _require_live() 是同一个开关，两者不可能各判各的）：
   2  跑不起来（pytest 自身出错、名单文件缺失）
 
 这个脚本是 GATE_VERIFY 与 CI 共用的判定器。它只读退出结果，不读 AI 的说法。
+
+junit 报告（.pytest-gates.xml）判定完**留在盘上**，它是这一轮红因的唯一载体
+（`-q --tb=no` + `capture_output=True` 之下，红因不在任何一处终端输出里）。
+把它读出来的是 tools/gates/explain_last_gate_failures.py（只读，不删）。
 """
 import os
 import subprocess
@@ -27,6 +31,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 ALLOWLIST = ROOT / "tools/gates/expected-red.txt"
 JUNIT = ROOT / ".pytest-gates.xml"
+
+NO_MESSAGE = "<该条 junit 记录没有 message 属性>"
+NO_BODY = "<该条 junit 记录没有正文>"
 
 # 判定器跑在谁的环境里，不由判定器决定：launchd、CI、人手敲的 shell，PATH 各不相同。
 # 已装载的 launchd plist 半路改不了（要 unload/load，等于杀掉正在跑的循环），
@@ -66,27 +73,55 @@ def load_allowlist() -> set[str]:
 def run_pytest(extra: list[str]) -> str:
     cmd = [sys.executable, "-m", "pytest", "tests/gates", "-q", "--tb=no",
            f"--junitxml={JUNIT}", *extra]
+    # 先删再跑，不是跑完再删：报告是这一轮红因的唯一载体，判定完必须留在盘上给
+    # tools/gates/explain_last_gate_failures.py 读。而「pytest 自己没跑起来就不写报告」
+    # 这条是现成的（未知参数 → 参数解析即失败），若不在起 pytest 之前清掉上一轮的报告，
+    # 下面 `if not JUNIT.exists()` 的 FATAL 分支就会被旧报告顶掉，判出一个根本没发生过的结果。
+    JUNIT.unlink(missing_ok=True)
     proc = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True, env=healed_env())
     if not JUNIT.exists():
         print("FATAL: pytest 没产出 junit 报告，它自己就跑挂了：", file=sys.stderr)
         print(proc.stdout[-2000:], proc.stderr[-2000:], file=sys.stderr)
         sys.exit(2)
-    junit_xml = JUNIT.read_text()
-    JUNIT.unlink(missing_ok=True)
-    return junit_xml
+    return JUNIT.read_text()
+
+
+def nodeid(testcase: ET.Element) -> str:
+    """junit 的 (classname, name) → pytest nodeid。判定与取证共用这一套拼法，不开第二套口径。"""
+    return f"{testcase.get('classname', '').replace('.', '/')}.py::{testcase.get('name')}"
 
 
 def classify(junit_xml: str) -> dict[str, str]:
     outcomes: dict[str, str] = {}
     for tc in ET.fromstring(junit_xml).iter("testcase"):
-        nodeid = f"{tc.get('classname', '').replace('.', '/')}.py::{tc.get('name')}"
+        node = nodeid(tc)
         if tc.find("failure") is not None or tc.find("error") is not None:
-            outcomes[nodeid] = "red"
+            outcomes[node] = "red"
         elif tc.find("skipped") is not None:
-            outcomes[nodeid] = "skipped"
+            outcomes[node] = "skipped"
         else:
-            outcomes[nodeid] = "green"
+            outcomes[node] = "green"
     return outcomes
+
+
+def failure_details(junit_xml: str) -> dict[str, str]:
+    """每条红的原文：nodeid → `<failure>`/`<error>` 的 message 与正文。
+
+    纯函数，不碰进程也不碰文件。`--tb=no` 不影响这些内容——它只压 pytest 自己的终端回显，
+    junit 里的 message 与正文照写。正文/message 缺失时给显式占位，不给空串：
+    空串会让「这条没留下正文」长得像「取证出口坏了」。
+    """
+    details: dict[str, str] = {}
+    for tc in ET.fromstring(junit_xml).iter("testcase"):
+        node = tc.find("failure")
+        if node is None:
+            node = tc.find("error")
+        if node is None:
+            continue
+        message = node.get("message") or NO_MESSAGE
+        body = (node.text or "").strip() or NO_BODY
+        details[nodeid(tc)] = f"<{node.tag}> {message}\n{body}"
+    return details
 
 
 def verdict(outcomes: dict[str, str], expected_red: set[str],

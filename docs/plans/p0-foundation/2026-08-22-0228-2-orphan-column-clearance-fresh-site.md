@@ -1,6 +1,6 @@
 # 2026-08-22-0228-2 孤儿列清除面在**全新站点**上不成立：先取证复现，再修 `agenerp`
 
-> Plan Status: draft
+> Plan Status: active
 > Mission: p0-foundation
 > Work Item: 6. 定制包往返删除验证（活站点端到端）—— 承接 `::test_no_orphan_column_left_behind`
 > Last Reviewed: 2026-08-22
@@ -64,7 +64,8 @@
 1. **先证明红因，再动代码。** 拿到 `::test_no_orphan_column_left_behind` 在**全新站点**上的红因原文
    （断言原文 / 异常类型 / `agenerp.apply` 的 WARNING），写成可复述的事实，**不猜**。
 2. **修 `agenerp` 侧那一处**，让该门禁在**全新站点**上稳定绿。
-3. **不迁就 runner**：修完之后本机**常驻站点**上的 live 整目录判定必须仍绿。
+3. **不迁就 runner**：修完之后本机**多轮累积站点**（非空表）上的 live 整目录判定必须仍绿——
+   只在空站点绿说明修法可能只对空表成立。
 4. **带上 `0027-2` 指名要的证据**：实跑前后**全量 `capture` 对照**，证明这次 apply 的影响面
    恰好只有探针，方向是「减少」不是「新增」。
 
@@ -76,12 +77,16 @@
 - **不置任何 roadmap 工作项为 `done`**：`done` 要求「从预期红名单划掉」，该条件在此不可满足
   （与工作项 4/5/7/8/9 同一情形）。
 - **不合并 PR #1**（人决定），不补 `0027-2` 欠的 `verdict-tool-untouched` 三次变异实证。
-- **不动 `tools/gates/check_expected_red.py`**（前驱已改完，本 plan 只消费）。
+- **不动 `tools/gates/check_expected_red.py` 与 `tools/gates/explain_last_gate_failures.py`**：
+  这两个文件归前驱 `0228-1`（本轮实测它是 `Plan Status: active`，**尚未执行**，
+  `explain_last_gate_failures.py` 还不存在）。它落地了本 plan 就消费，没落地也**不代它改**。
 - **不改 `.github/workflows/**` 一行**（`ai-autonomy-policy.md:84` 定级 `blocked | 人工批准`）。
   本 plan 只往既有分支推 `agenerp/**` 的提交，不新增/不修改任何 job、step、触发面。
 - **不推 `main`**（本机 `main` 领先 `origin/main` 6 个提交，推不推由人决定）。
-- 不顺手清理本机站点上那 5 条历史孤儿列——它们归
-  `docs/backlog/gate-fixtures-pollute-the-live-site.md`。
+- 不顺手清理门禁 fixture 留下的孤儿列，也**不**把「站点被 `down -v` 清空」当成对它的修复——
+  那条 backlog 要的是让 fixture 不再留残留，归
+  `docs/backlog/gate-fixtures-pollute-the-live-site.md`（⚠️ Baseline 里那 5 条冷起前的历史孤儿列
+  会随 Phase 1 的 `down -v` 一起消失，这是冷起的副作用，不是本 plan 交付的清理）。
 
 ## Task Route
 
@@ -99,11 +104,18 @@
   `compose_stack` 有端口预检会直接 fail）。
 - live 门禁 env 四件套：`AGENERP_LIVE=1` / `AGENERP_SITE=frontend` /
   `AGENERP_SITE_URL=http://127.0.0.1:18080` / `AGENERP_ADMIN_PASSWORD=admin`。
-- **冷起前先备份**：`docker compose -f docker-compose.yml exec -T backend bench --site frontend backup`
-  （DDL 不可逆）。
+- **冷起前先备份，并把备份拷出容器**：
+  `docker compose -f docker-compose.yml exec -T backend bench --site frontend backup`，
+  再 `docker compose -f docker-compose.yml cp backend:/home/frappe/frappe-bench/sites/frontend/private/backups ./.backups-<日期>`。
+  **拷出这一步不能省**：备份落在 `sites` 卷里，而本 plan 要跑的 `down -v` 会**连卷一起删**，
+  不拷出来等于没备份。
 - `gh` 已认证；推 `ci/0027-2-l2-full-live-gate` 的权限。
-- 回滚策略：`agenerp/**` 的改动是纯代码，回滚 = `git revert`。站点侧只做 `down -v` 冷起，
-  不对**常驻**站点做破坏性操作；若必须动，先跑上面那条 `bench backup`。
+- 回滚策略：`agenerp/**` 的改动是纯代码，回滚 = `git revert`。
+  **⚠️ 站点侧不可回滚，照实写**：本仓的 compose 栈**就是**那个常驻站点（本轮实测 `Up 6 hours`），
+  `docker compose down -v` 会把它连同 5 卷一起删掉，**Baseline 里那 5 条历史孤儿列随之永久消失**。
+  这是本 plan 有意为之（全新站点是复现 runner 条件的唯一本机等价物），不是意外——
+  但因此 Phase 1 必须**先**在冷起之前把常驻站点的证据取全（见 Phase 1 第 1 项），
+  Phase 3 的「常驻站点」与「历史孤儿列」两条判据也按冷起后的实际情况定义，不写成拿不到的证据。
 
 ## Execution Plan
 
@@ -113,11 +125,18 @@ Status: planned
 Targets: 无代码改动
 Skill: `bug-diagnosis-prompt.md`
 
-- Item Types: `Proof`（本阶段 5 项全部 `Proof`，按 Minimum Rule 7 在阶段层声明）
+- Item Types: `Proof`（本阶段 6 项全部 `Proof`，按 Minimum Rule 7 在阶段层声明）
 - Prereqs: 无硬前置。前驱 `0228-1` 若已落地，本机 `tools/gates/explain_last_gate_failures.py` 可直接打出红因原文，
   少走一次手工 `-vv` 复跑；未落地也不阻塞——本阶段的取证主路是本机冷起 + `pytest -vv`。
 
-- [ ] `Proof`：**本机冷起复现**——`docker compose -f docker-compose.yml down -v` 后
+- [ ] `Proof`：**冷起之前，先把常驻站点的证据取全**（`down -v` 之后这些证据就不存在了）——
+      ① `bench backup` 并按 Infra 那条把备份**拷出容器**；
+      ② 记录常驻站点当前的孤儿列全集：`information_schema` 直查 `tabItem` 的列
+      + `schema_drift("Item")` 各一份，逐字抄下（Baseline 说是 5–6 条，以本轮实测为准）；
+      ③ 在常驻站点上跑一次 live 整目录判定，抄下退出码与输出，作为「冷起前的本机基线」。
+      这一项做完再往下走；顺序颠倒就再也补不回来。
+- [ ] `Proof`：**本机冷起复现**——`docker compose -f docker-compose.yml down -v`
+      （**破坏性：删 5 个卷，上一项那些历史孤儿列到此为止**）后
       `AGENERP_HTTP_PORT=18080 docker compose -f docker-compose.yml up -d --wait --wait-timeout 300`，
       再单跑该文件：`… python3 -m pytest tests/gates/test_customization_roundtrip_delete.py -vv`。
       全新站点是 runner 条件在本机最接近的等价物。抄下退出码与**完整** traceback。
@@ -142,6 +161,7 @@ Exit Criteria:
 
 - [ ] 红因被归入 (a)/(b)/(c) 之一，依据是命令原文 + 退出码 + 输出，不是推断
 - [ ] 前后全量 `capture` 对照 + `information_schema` 交叉验证两份证据在案
+- [ ] **冷起前**的常驻站点证据三件（备份已拷出 · 孤儿列全集 · live 整目录判定退出码）在案
 - [ ] No owner-doc update required（本阶段不改行为）
 - [ ] `docs/logs/2026/08-22.md` 更新
 
@@ -172,7 +192,7 @@ Exit Criteria:
 - [ ] `docs/architecture/module-boundaries.md` §11.6 或 §11.8 追加实测结论（**追加，不改写**）
 - [ ] `docs/logs/2026/08-22.md` 更新
 
-### Phase 3 - 三面证明（全新站点 / 常驻站点 / 变异）
+### Phase 3 - 三面证明（全新站点 / 多轮累积站点 / 变异）
 
 Status: planned
 Targets: 无代码改动
@@ -184,19 +204,27 @@ Skill: `none`
 - [ ] `Proof`：**全新站点**——`down -v` 冷起后跑 live 整目录判定
       `… python3 tools/gates/check_expected_red.py` → 期望 `门禁 19 项：红 0，绿 19，跳过 0` / exit 0，
       **连跑 3 次全绿**（前驱 `0027-1` 实测过这条门禁有间歇性，1 跑不算数）。
-- [ ] `Proof`：**常驻站点**——不 `down -v`，在已跑过多轮的站点上跑同一条命令 → exit 0。
-      这一条是「不迁就 runner」的判据：只在全新站点绿说明修法可能只对空表成立。
-- [ ] `Proof`：**变异验证**——把 Phase 2 的修复点改回改动前的形态 → 该门禁必须**逐字转红**
+- [ ] `Proof`：**多轮累积站点**（Baseline 里说的「常驻站点」在 Phase 1 冷起时已被 `down -v` 删掉，
+      因此这一条按冷起后的实际情况定义，不写成拿不到的证据）——
+      在**上一项连跑 3 次之后、不再 `down -v`** 的那个站点上跑同一条命令 → exit 0。
+      此时站点已积累了至少 3 轮门禁 fixture 的残留，正是「非空表」条件。
+      这一条是「不迁就 runner」的判据：只在**空**站点绿说明修法可能只对空表成立。
+- [ ] `Proof`：**变异验证**（**必须在 `down -v` 冷起后的全新站点上做**——红只在全新站点稳定复现，
+      在多轮累积站点上做变异，不红也说明不了问题）——把 Phase 2 的修复点改回改动前的形态 → 该门禁必须**逐字转红**
       且点名集合恰好多出 `::test_no_orphan_column_left_behind` 一条；复原后复跑回 exit 0。
       牙齿在这里；变异不红就说明修的不是红因。
 - [ ] `Proof`：**物理列的独立证据**——修复后再做一次 `information_schema` 查询，
-      确认探针列确实不在 `tabItem` 上，且**本机那 5 条历史孤儿列一条不少**（作用域方向是「减少」不是「扩大」）。
+      确认探针列确实不在 `tabItem` 上；**作用域方向判据按冷起后的集合算**：
+      拿本阶段第 1 项冷起**之后**首跑前记录的孤儿列集合作基准，
+      修复后该集合**只许减少本次探针列、不许多删一条、不许新增**。
+      （Baseline 里那 5 条冷起前的历史孤儿列已随 `down -v` 消失，**不得**把它们写进本条判据——
+      写了就是拿不到的证据。）
 
 Exit Criteria:
 
-- [ ] 全新站点 3 跑全绿、常驻站点 1 跑绿，命令原文与退出码在案
-- [ ] 变异验证有牙齿，点名集合精确
-- [ ] 历史孤儿列未被误删（列表前后对照在案）
+- [ ] 全新站点 3 跑全绿、多轮累积站点 1 跑绿，命令原文与退出码在案
+- [ ] 变异验证有牙齿（在全新站点上做），点名集合精确
+- [ ] 作用域方向是「减少」：冷起后孤儿列集合的前后对照在案，只少了本次探针列
 - [ ] `docs/logs/2026/08-22.md` 更新
 
 ### Phase 4 - CI 实跑与回写（**硬上限 2 次实跑**）
@@ -206,7 +234,12 @@ Targets: `docs/backlog/p0-foundation-roadmap.md` · `docs/masterplan/STATE.md`�
 Skill: `none`
 
 - Item Types: 共 6 项 —— `Decision` 1、`Fix` 3、`Proof` 2
-- Prereqs: **Phase 3 三面证明全绿**（硬前置，未全绿不得推分支）
+- Prereqs: **Phase 3 三面证明全绿**（硬前置，未全绿不得推分支）;
+  **PR #1 必须仍是 `OPEN`**（硬前置）——Baseline 实测：往该分支 `push` **不触发任何运行**
+  （`on: push` 限定 `branches: [main]`），CI 只由开着的 PR 的 `pull_request` 事件触发。
+  推之前先 `gh pr view 1 --json state,baseRefOid` 确认 `state=OPEN` 且 `baseRefOid` 仍是 `7b0f585`；
+  任一条不成立则**不推**，按 `## Deferred But Adjudicated` 的固定处置停机等人
+  （PR 被关掉或 base 被移动都属于人的动作，loop 不替人重开 PR）。
 
 - [ ] `Decision`（**草案评审阶段已裁定，执行时照做**）：本阶段跑 CI 是**合法**的，理由是它逐字满足
       STATE §3 那条 `[open]` 停机行自己写死的重开条件（「successor 修好 `agenerp` 侧清除面后，
@@ -219,7 +252,7 @@ Skill: `none`
       **不得 merge / rebase `main` 进分支**（会点亮 `verdict-tool-untouched`，见 Baseline）。
       推之前实跑 `git diff --name-only 7b0f585 <branch-head> -- tools/gates/check_expected_red.py tools/gates/gate-verify.mjs`
       确认**无输出**，把命令与输出抄进本 plan。
-- [ ] `Proof`：推分支触发 CI，读 `gates-l2-live` 的结论。**上限 2 次实跑**（首跑 + 必要时 1 次原样复跑）。
+- [ ] `Proof`：推分支（PR #1 的 `pull_request` synchronize 事件）触发 CI，读 `gates-l2-live` 的结论。**上限 2 次实跑**（首跑 + 必要时 1 次原样复跑）。
       绿：记 run id / job id / sha。红：**先原样复跑一次**（裁判规则 3），仍红则按固定处置停机，
       **不猜根因**，把前驱取证步骤打出的红因原文追加进 STATE §3。
 - [ ] `Fix`：绿之后**就地改准**两处已确认的 owner-doc 漂移（Minimum Rule 14，不降级）——
@@ -234,6 +267,7 @@ Skill: `none`
 
 Exit Criteria:
 
+- [ ] 推之前 `gh pr view 1 --json state,baseRefOid` 实测为 `OPEN` / `7b0f585`，命令与输出在案
 - [ ] `gates-l2-live` 在 CI 上 `success`，或红且已按固定处置停机并留痕（run id / job id / sha 三件套在案）
 - [ ] `verdict-tool-untouched` 仍 `success`；`git diff --name-only 7b0f585 <branch-head> -- tools/gates/check_expected_red.py tools/gates/gate-verify.mjs` 无输出
 - [ ] CI 实跑次数 ≤ 2（`gh run list --branch ci/0027-2-l2-full-live-gate` 前后条数差在案）
@@ -244,13 +278,36 @@ Exit Criteria:
 
 ## Draft Review Record
 
-- Independent draft review iteration 1: <pending>
+- Independent draft review iteration 1: `needs revision → 已就地修复，accept`（MISSION_DRIVER 评审步骤，2026-08-22）。
+  逐条复核了 Baseline 的每一条事实，**全部实测对得上**：`gh pr view 1` → PR #1 `state=OPEN`、
+  `baseRefOid=7b0f585f7c…`（与 plan 写的 `7b0f585` 一致）；`agenerp/pack.py` 的 `apply_pack` 委派链、
+  `agenerp/apply.py:245` 的 `if not plan.deletes: return` 与 `:251` 的 `drop_orphan_columns`、
+  `agenerp/snapshot.py` `schema_drift` 的「答不上话抛 `OobError` 不返回空元组」、
+  `tools/gates/check_expected_red.py` 的 `capture_output=True` + `JUNIT.unlink()`，逐一核对无误；
+  STATE §3 第 88 行的重开条件与 roadmap「5/6 现状」两行的漂移表述也与 plan 的引用一致；
+  禁用词扫描零命中，`Status: completed` + 未勾框扫描为空。
+  **修掉 1 个 Blocker**：本仓 compose 栈**就是**那个常驻站点（本轮 `docker compose ps` 实测 `Up 6 hours`），
+  而原 Phase 1 第一项直接 `down -v`——它会连 5 卷一起删掉，于是原 Phase 3 的「常驻站点 1 跑绿」
+  和「本机那 5 条历史孤儿列一条不少」**两条退出判据在自己的 Phase 1 执行后即不可满足**，
+  Infra 那句「不对常驻站点做破坏性操作」也与之直接矛盾。已改为：Phase 1 新增冷起**前**的取证首项
+  （备份并拷出卷 · 孤儿列全集 · 冷起前基线判定），Phase 3 两条判据改按冷起后的实际集合定义，
+  Infra 的回滚段照实改写为「站点侧不可回滚」。
+  **修掉 4 个 Major**：① 备份落在 `sites` 卷里而 `down -v` 删卷，补上 `docker compose cp` 拷出步骤；
+  ② Phase 3 变异验证未钉死站点形态，补上「必须在冷起后的全新站点上做」；
+  ③ Phase 4 漏了硬前置「PR #1 仍 `OPEN`」——Baseline 自己写着 `push` 不触发任何运行、只有 `pull_request` 触发，
+  PR 一旦被关掉推上去就是静默无事件，已补前置检查与对应退出判据；
+  ④ Non-Goals 写「前驱已改完」比证据强——`0228-1` 实测是 `active` 未执行、`explain_last_gate_failures.py` 尚不存在，
+  已改准并与 Phase 1 Prereqs 的「若已落地」口径统一。
+  **修掉 1 个 Minor**：`## Deferred But Adjudicated` 第一条缺 `重开事件`（Anti-Slacking Rule 要求），已补。
+  Phase 4 那条 `Decision` 自称「草案评审阶段已裁定」——**本次评审确认该裁定成立**：
+  它逐字满足 STATE §3 第 88 行自己写死的重开条件，且 Phase 3 三面证明为硬前置、CI 实跑硬上限 2 次，
+  备选（等人显式解停机线）会让那条停机行永远等不到它自己写的重开事件，予以排除。
 
 ## Closure Gates
 
 - [ ] in-scope behavior is complete
 - [ ] relevant docs are aligned（roadmap 三行 · `project-context.md` · `module-boundaries.md` · STATE · `0027-2` 追加行）
-- [ ] verification has run：本机冷起 3 跑 live 整目录判定 · 常驻站点 1 跑 · 变异验证 · `pytest tests/unit` · `pytest tests/contracts` · `ruff` · CI `gates-l2-live`
+- [ ] verification has run：本机冷起 3 跑 live 整目录判定 · 多轮累积站点 1 跑 · 变异验证（冷起站点）· `pytest tests/unit` · `pytest tests/contracts` · `ruff` · CI `gates-l2-live`
 - [ ] scoped verification is not conflated with full verification —— 本仓无全量套件，须显式写明「verification scope limited」
 - [ ] no in-scope item downgraded to deferred/follow-up
 - [ ] independent draft review completed and recorded
@@ -258,6 +315,7 @@ Exit Criteria:
 - [ ] closure audit was independent
 - [ ] closure evidence exists in files
 - [ ] **`0027-2` 指名的证据在案**：实跑前后全量 `capture` 对照 + 修完后本机 live 整目录判定仍绿
+- [ ] 冷起**前**的常驻站点证据三件在案（备份已拷出卷 · 孤儿列全集 · 冷起前基线判定退出码）
 - [ ] `git diff` 未触及 `tests/gates/**`、`tools/gates/expected-red.txt`、`docs/masterplan/DECISIONS.md`、`missions/**`
 
 ## Deferred But Adjudicated
@@ -269,6 +327,8 @@ Exit Criteria:
 - 处置逐字：记录所有已跑命令与输出 → 追加进 STATE §3（不改写既有行）→ 本 plan 置 `deferred`
   并在文件头写明重开条件 → **不改一行 `agenerp/`**、**不猜根因**。
 - Successor Required: `no`
+- 重开事件：**人解开 `0228-1` 的 `## Human Handoff`（出 `Gates-Change-Approved-By:` trailer 或直接授权跑 CI 取证）**，
+  使 CI 侧的红因原文可得；或本机冷起在后续任一轮里复现出该红。二者任一发生即重开本 plan。
 
 ### 本机站点上那 5 条历史孤儿列
 

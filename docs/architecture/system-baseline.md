@@ -521,3 +521,39 @@ env 为 `AGENERP_LIVE=1` · `AGENERP_ADMIN_PASSWORD=admin` · `AGENERP_SITE=fron
 **这条风险的收口方案是上面的 `gates-l2-live`，但它尚未在 `main` 上生效**（PR #1 未合并）（它走判定器，live 契约比棘轮更紧，且覆盖面是 `gates-l2` 的超集）；
 本小节原样保留，是因为 `gates-l2` 那条绕开判定器的路径**仍然存在**——
 它只是不再是本仓对 L2 的唯一服务端判定。
+
+### 判定器的取证出口：junit 报告不再被丢弃（2026-08-22 追加，plan `2026-08-22-0228-1` 交付）
+
+**要解决的失效逐字记在这里**：CI run `32509351108`（job `96857746484`）失败步骤的**全部**日志，
+只有判定器那几行加一条 nodeid —— 没有断言原文、没有异常类型、没有 `agenerp.apply` 的 WARNING。
+本机同样取不到。原因不是采集不足，而是**判定器把唯一的取证载体删了**：
+它以 `-q --tb=no --junitxml=<JUNIT>` + `capture_output=True` 起 pytest，
+红因**只**存在于 junit 报告里，而报告解析完就被 `unlink`。
+`--tb=no` 不影响 junit —— 它只压 pytest 自己的终端回显，`<failure>` 的 message 与正文照写。
+
+**口径一：`unlink` 前移，不是删掉。** 报告现在在**起 pytest 之前**被清掉，判定完留在盘上。
+不能简单删掉那句 `unlink`：pytest 收到未知参数时参数解析就失败、**不写**新报告，
+上一轮的报告会原样留在盘上（`timestamp=` 不变）。
+「pytest 没写报告 → `exit 2` FATAL」这条保命闸此前正是靠 `unlink` 保证的；
+若只是去掉它，判定器会拿**上一轮**的报告判出一个根本没发生过的结果，可能打出
+`✅ 与预期红名单完全一致` 并 exit 0。触发路径是现成的：`main()` 把 `sys.argv[1:]` **原样转发**给 pytest。
+前移之后保命闸不但没削弱，还覆盖了「盘上留着旧报告」这一路（实测：旧报告在盘上时仍 exit 2）。
+
+**口径二：取证出口是独立只读小工具 `tools/gates/explain_last_gate_failures.py`。**
+它 `from check_expected_red import failure_details` 复用**同一套** nodeid 拼法（`nodeid()`），
+不开第二套口径。没有做成判定器的 `--explain-last` 子命令：判定器把 `sys.argv[1:]` 原样转发给 pytest，
+加自有开关就要在转发面上开例外，而那正是保命闸的触发路径 —— 等于在受保护面上加风险。
+
+**口径三：陈旧必须可见。** 报告长期驻盘之后，「拿旧证当新证」取代了「取不到证」成为新的失效面：
+`explain_last_gate_failures.py` 无法凭「文件在不在」区分「刚才那轮的证」与「三天前那轮的证」。
+因此它的**第一行恒为出处行**：报告路径 + junit 的 `timestamp=` + 文件 mtime；
+`timestamp` 缺失时打显式占位，**不静默省略该行**。同理，报告不存在时它**报错并退 2**，
+绝不打印「没有失败」—— 那会让「取不到证」长得像「没红」，正是本节要消灭的那类失效。
+它**只读**：不写、不删 `.pytest-gates.xml`（删了就等于把取证载体再丢一次）。
+
+**残余风险，照实记**：CI 侧还没有消费者 —— 让红因进 CI 日志需要在 `gates-l2-live` 上加一个
+`if: failure()` 取证步骤，那是 `.github/workflows/**` 的改动（`ai-autonomy-policy.md` 定级 `blocked`），
+且停机线在生效中。**本次改动零 CI 消耗，全部判据在本机**：
+`tests/unit/test_gate_verdict.py` 的取证面判据**全部建在合成 junit 字符串上**——
+本机默认判定环境的 7 条预期红是 `failed on setup with "Failed: compose_stack 需要 AGENERP_LIVE=1`
+这类 setup error，里面根本没有断言原文，冒充不了这些判据。

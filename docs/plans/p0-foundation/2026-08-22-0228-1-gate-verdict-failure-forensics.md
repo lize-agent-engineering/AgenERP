@@ -1,6 +1,6 @@
 # 2026-08-22-0228-1 门禁判定失败取证：junit 报告不再被丢弃（**纯本机，不动 CI**）
 
-> Plan Status: draft
+> Plan Status: completed
 > Mission: p0-foundation
 > Work Item: 9. L2 门禁的判定与 CI 覆盖（把「只在本机验证过」补成 CI 可复跑）—— 取证面
 > Last Reviewed: 2026-08-22
@@ -37,6 +37,12 @@
   真正的断言 `tests/gates/test_customization_roundtrip_delete.py:69` 没有活栈根本走不到。
   **所以本 plan 的判据必须建在合成 junit 上**，不能拿这 7 条冒充。
 - `JUNIT = ROOT / ".pytest-gates.xml"` 已在 `.gitignore:7`，保留它不污染 `git status --porcelain`。
+- **⚠️ 保留报告之后，「旧报告」这条危险路径并没有消失，只是换了消费者。** `unlink` 前移之后
+  判定器自己不会再读到旧报告（它每轮先删再写），但**取证出口会**：报告在盘上长期存在，
+  `explain_last_gate_failures.py` 无法凭「文件在不在」区分「这是刚才那轮的证」与「这是三天前那轮的证」。
+  这正是本 plan 要消灭的那类失效（「取不到证长得像没红」的同族：「拿旧证当新证」）。
+  证据是现成的：评审用 `--this-arg-does-not-exist` 实测过旧 `out.xml` 的 `timestamp=` 原样不变。
+  **因此取证出口必须把报告的时间戳一并打出来，让陈旧可见**（判据见 Phase 1 第 4 项与 `Proof` ⑦）。
 - **判定器是 `plan-first` 受保护面**（`docs/context/ai-autonomy-policy.md:88`），逐字要求四件事：
   独立草案评审 + 独立关闭审计 + **默认判定环境输出逐字节不变的前后两次实跑** + 判定器自身的变异验证。
 - **停机线在生效中。** `AGENTS.md` 裁判规则 4 的「CI 连续 2 轮红」已因 run `32509351108` 触发；
@@ -48,7 +54,7 @@
   比两棵树时「main 有而分支没有」同样算命中。放行的唯一方式是提交信息里的
   `^Gates-Change-Approved-By:` trailer —— 那是**人工批准**，AI 自己加等于伪造。
   另：本机 `main`（`10c737c`）比 `origin/main`（`3425dae`）**领先 6 个提交**，未推。
-- **`.github/workflows/**` 在 `ai-autonomy-policy.md:84` 是 `blocked | 人工批准`**，
+- **`.github/workflows/**` 在 `ai-autonomy-policy.md:80` 是 `blocked | 人工批准`**，
   不只是红线 2 的「不得放松」。本 plan 因此**一行 workflow 都不改**。
 
 ## Goals
@@ -83,14 +89,14 @@
 
 ### Phase 1 - 判定器保留并暴露失败详情（唯一实现阶段）
 
-Status: planned
+Status: completed
 Targets: `tools/gates/check_expected_red.py` · `tools/gates/explain_last_gate_failures.py`（新增）· `tests/unit/test_gate_verdict.py`
 Skill: `code-quality-audit-prompt.md`（阶段收尾时对受保护面改动做一次行为风险复核）
 
 - Item Types: 共 7 项 —— `Decision` 1、`Fix` 1、`Add` 2、`Proof` 3
 - Prereqs: 无
 
-- [ ] `Decision`（**草案评审阶段已裁定，执行时照做，不再重议**）：
+- [x] `Decision`（**草案评审阶段已裁定，执行时照做，不再重议**）：
       出口形态取**备选 A —— 独立小工具** `tools/gates/explain_last_gate_failures.py`，
       它 `from check_expected_red import failure_details` 复用同一套 nodeid 拼法。
       **备选 B（给判定器加 `--explain-last` 子命令）被排除**，理由是实测的：
@@ -100,49 +106,166 @@ Skill: `code-quality-audit-prompt.md`（阶段收尾时对受保护面改动做�
       缓解是 `failure_details()` 是纯函数、判定器的可执行部分被 `if __name__ == "__main__":` 挡住，
       import 不会触发任何判定副作用（判据见下面第 3 条 `Proof`）。
       - Skill: `none`
-- [ ] `Fix`：把 `JUNIT.unlink(missing_ok=True)` **从解析之后挪到起 pytest 之前**，
+- [x] `Fix`：把 `JUNIT.unlink(missing_ok=True)` **从解析之后挪到起 pytest 之前**，
       使报告在判定结束后仍在盘上，同时「pytest 没写报告 → `exit 2` FATAL」这条保命闸**行为不变**。
       - Skill: `none`
-- [ ] `Add`：在判定器内新增纯函数 `failure_details(junit_xml) -> dict[str, str]`，
+- [x] `Add`：在判定器内新增纯函数 `failure_details(junit_xml) -> dict[str, str]`，
       nodeid 拼法与 `classify()` **同源**（不新开第二套口径），
       `<failure>` / `<error>` 的 message 与正文都取；正文缺失时给显式占位而非空串。
       - Skill: `none`
-- [ ] `Add`：新增 `tools/gates/explain_last_gate_failures.py`，读 `.pytest-gates.xml` 并打印每条红的原文。
-      **报告不存在时必须报错并非零退出**，不得打印「没有失败」——那会让「取不到证」长得像「没红」。
+- [x] `Add`：新增 `tools/gates/explain_last_gate_failures.py`，读 `.pytest-gates.xml` 并打印每条红的原文。
+      三条硬要求：
+      ① **报告不存在时必须报错并非零退出**，不得打印「没有失败」——那会让「取不到证」长得像「没红」；
+      ② **必须先打印这份报告的出处与时刻**（junit 根节点的 `timestamp=` 属性 + 文件 mtime），
+      让「拿旧证当新证」在肉眼一行内暴露（理由见 `## Current Baseline` 第 6 条）；
+      `timestamp` 属性缺失时打显式占位，不得静默省略该行；
+      ③ 只读：不得写、不得删 `.pytest-gates.xml`（删了就等于把取证载体又丢一次）。
       - Skill: `none`
-- [ ] `Proof`：`tests/unit/test_gate_verdict.py` 追加判据，**全部建在合成 junit 字符串上**
+- [x] `Proof`：`tests/unit/test_gate_verdict.py` 追加判据，**全部建在合成 junit 字符串上**
       （本机默认环境的 7 条是 setup error，没有断言原文，冒充不了）：
       ① `<failure>` 取得到 message + 正文；② `<error>` 同样取得到；③ `skipped` 不被算成失败；
-      ④ 全绿时返回空 dict；⑤ **保命闸**：pytest 未写报告时判定器仍 `exit 2`（用不存在的 pytest 参数触发，
-      或直接对 `run_pytest` 的 FATAL 分支断言）；⑥ import 判定器模块不产生任何判定副作用。
+      ④ 全绿时返回空 dict；
+      ⑤ **保命闸**（**方法在此定死，执行期不再选**）：对 `run_pytest` 的 FATAL 分支做单元断言 ——
+      把 `JUNIT` 指向一个确定不存在的临时路径、并把 `subprocess.run` 换成不写文件的替身，
+      断言它 `SystemExit` 且 code 为 `2`。**不在 tests/unit 里起真 pytest 子进程**（tests/gates 要活栈、
+      跑起来以分钟计，且会把判据绑到环境上）；端到端那一路由下面 Exit Criteria 第 2 条的 CLI 实跑覆盖，
+      两者分工不重叠。
+      ⑥ import 判定器模块不产生任何判定副作用；
+      ⑦ **陈旧可见**：喂一份带 `timestamp=` 的合成报告，断言取证出口的首行原样打出该时刻；
+      再喂一份**无** `timestamp=` 的，断言打的是显式占位而不是空行。
       命令：`python3 -m pytest tests/unit -q` → exit 0。
       - Skill: `none`
-- [ ] `Proof`：**受保护面强制项之一** —— 默认判定环境前后两次实跑对照。
+- [x] `Proof`：**受保护面强制项之一** —— 默认判定环境前后两次实跑对照。
       改动前 `python3 tools/gates/check_expected_red.py > /tmp/verdict-before.txt 2>&1; echo $?`，
       改动后同一条命令写 `/tmp/verdict-after.txt`，
       `diff /tmp/verdict-before.txt /tmp/verdict-after.txt` **必须无输出**，两次退出码都是 0。
       三条命令的原文与输出抄进本 plan。
       - Skill: `none`
-- [ ] `Proof`：**受保护面强制项之二** —— 判定器自身的变异验证。
+- [x] `Proof`：**受保护面强制项之二** —— 判定器自身的变异验证。
       把 `failure_details` 改成恒返回空 dict → `python3 -m pytest tests/unit -q` 必须 exit 1
       且逐字点名新增判据；复原后复跑回 exit 0。两次输出抄进本 plan。
       - Skill: `none`
 
 Exit Criteria:
 
-- [ ] `python3 tools/gates/explain_last_gate_failures.py` 在一次红判定之后能打出该条门禁的原文；
+- [x] `python3 tools/gates/explain_last_gate_failures.py` 在一次红判定之后能打出该条门禁的原文；
       报告缺失时非零退出（两种情形各跑一次，命令原文 + 退出码在案）
-- [ ] 保命闸未被削弱：`python3 tools/gates/check_expected_red.py --this-arg-does-not-exist` → **exit 2**
-      （改动前后各跑一次，退出码相同）
-- [ ] `diff /tmp/verdict-before.txt /tmp/verdict-after.txt` 无输出，两次 exit 0
-- [ ] `python3 -m pytest tests/unit -q` exit 0 · `python3 -m pytest tests/contracts -q` exit 0 ·
+- [x] 保命闸未被削弱：**每次实跑前先 `rm -f .pytest-gates.xml`**，再
+      `python3 tools/gates/check_expected_red.py --this-arg-does-not-exist; echo $?` → **exit 2**
+      （改动前后各跑一次，退出码相同；两条 `rm` 与两条实跑的原文与输出都抄进本 plan）。
+      **`rm` 不是走过场**：改动前若盘上留着上一轮的报告，判定器会拿旧报告判出 0 或 1 而不是 2，
+      「前后退出码相同」就会因环境残留而假红 —— 这恰恰是 `## Current Baseline` 第 3 条实证过的那条路径。
+- [x] `diff /tmp/verdict-before.txt /tmp/verdict-after.txt` 无输出，两次 exit 0
+- [x] `python3 -m pytest tests/unit -q` exit 0 · `python3 -m pytest tests/contracts -q` exit 0 ·
       `ruff check agenerp tests/unit tests/contracts` exit 0
-- [ ] `git diff --name-only` 与 `git status --porcelain` 均**未触及**
+- [x] **新增文件也过 lint**：`ruff check tools/gates/check_expected_red.py tools/gates/explain_last_gate_failures.py`
+      → exit 0。（本仓惯用的 lint 面是 `agenerp tests/unit tests/contracts`，`tools/` 不在内，
+      新文件否则一次都不会被 lint 到。**不扩到整个 `tools/gates`**：实测该目录另有 3 条既存告警
+      落在 `check_budget.py` / `pass_usage.py` 上，与本 plan 无关，扩面等于把顺手优化拖进来。）
+- [x] `git diff --name-only` 与 `git status --porcelain` 均**未触及**
       `tests/gates/` · `.github/workflows/` · `tools/gates/expected-red.txt` · `missions/` · `docs/masterplan/DECISIONS.md`
       （逐条命令输出在案）
-- [ ] `docs/architecture/system-baseline.md` §14.4 **追加**一小节说明取证出口与保命闸口径；
+- [x] `docs/architecture/system-baseline.md` §14.4 **追加**一小节说明取证出口与保命闸口径；
       `git diff -- docs/architecture/system-baseline.md | grep '^-[^-]'` **无输出**（证明只追加不改写）
-- [ ] `docs/logs/2026/08-22.md` 更新
+- [x] `docs/logs/2026/08-22.md` 更新
+
+Execution Evidence（2026-08-22 实跑，命令原文 + 输出）:
+
+```
+# 保命闸 · 改动前（先清残留，否则旧报告会让判定器判出 0/1 而非 2）
+$ rm -f .pytest-gates.xml
+$ python3 tools/gates/check_expected_red.py --this-arg-does-not-exist; echo $?
+FATAL: pytest 没产出 junit 报告，它自己就跑挂了：
+ ERROR: usage: __main__.py [options] [file_or_dir] [file_or_dir] [...]
+__main__.py: error: unrecognized arguments: --this-arg-does-not-exist
+  inifile: /Users/lize/Claude/Projects/AgenERP/pyproject.toml
+  rootdir: /Users/lize/Claude/Projects/AgenERP
+判定模式：default —— 按 tools/gates/expected-red.txt 判定
+2
+
+# 保命闸 · 改动后（同一条命令，同一前置）
+$ rm -f .pytest-gates.xml
+$ python3 tools/gates/check_expected_red.py --this-arg-does-not-exist; echo $?
+（输出与改动前逐字相同）
+2
+
+# 保命闸 · 改动后新增的一路：盘上留着上一轮报告时仍 FATAL（`unlink` 前移换来的）
+$ ls -la .pytest-gates.xml
+-rw-r--r--@ 1 lize  staff  6817 Aug 22 06:06 .pytest-gates.xml
+$ python3 tools/gates/check_expected_red.py --this-arg-does-not-exist; echo $?
+2
+
+# 受保护面强制项之一 · 默认判定环境前后两次实跑逐字节对照
+$ python3 tools/gates/check_expected_red.py > /tmp/verdict-before.txt 2>&1; echo $?
+0
+$ python3 tools/gates/check_expected_red.py > /tmp/verdict-after.txt 2>&1; echo $?
+0
+$ diff /tmp/verdict-before.txt /tmp/verdict-after.txt; echo $?
+0
+# 两份内容均为：
+判定模式：default —— 按 tools/gates/expected-red.txt 判定
+门禁 19 项：预期红 7，绿 12，跳过 0
+✅ 与预期红名单完全一致
+
+# 取证出口 · 报告在（判定完报告留在盘上，此前它会被删）
+$ python3 tools/gates/explain_last_gate_failures.py; echo $?
+报告：/Users/lize/Claude/Projects/AgenERP/.pytest-gates.xml｜junit timestamp=2026-08-22T06:06:44.657199+08:00｜文件 mtime=2026-08-22T06:06:44
+红 7 条，逐条原文如下：
+
+=== tests/gates/test_customization_roundtrip_delete.py::test_added_field_exports_into_pack
+<error> failed on setup with "Failed: compose_stack 需要 AGENERP_LIVE=1。
+L2 门禁默认不跑（要拉起完整 ERPNext，分钟级）。真要跑：
+    AGENERP_LIVE=1 python3 -m pytest tests/gates -m live -q
+这不是 skip —— 判定器不接受 skip，未跑就是红。"
+E   Failed: compose_stack 需要 AGENERP_LIVE=1。
+（下略 6 条同型）
+0
+
+# 取证出口 · 报告不在（必须报错并非零退出，不得打印「没有失败」）
+$ python3 tools/gates/explain_last_gate_failures.py; echo $?
+FATAL: 取不到证 —— junit 报告不存在：/Users/lize/Claude/Projects/AgenERP/.pytest-gates.xml
+       先跑一次 python3 tools/gates/check_expected_red.py 生成它。（报告不在 ≠ 没有红）
+2
+
+# 受保护面强制项之二 · 判定器自身的变异验证（failure_details 恒返回空 dict）
+$ python3 -m pytest tests/unit -q; echo $?
+FAILED tests/unit/test_gate_verdict.py::test_failure_details_keeps_message_and_body_of_a_failure
+FAILED tests/unit/test_gate_verdict.py::test_failure_details_keeps_message_and_body_of_an_error
+FAILED tests/unit/test_gate_verdict.py::test_failure_details_uses_explicit_placeholders_instead_of_empty_strings
+FAILED tests/unit/test_gate_verdict.py::test_failure_details_and_classify_agree_on_nodeids
+FAILED tests/unit/test_gate_verdict.py::test_explain_prints_every_red_verbatim_and_never_touches_the_report
+5 failed, 212 passed in 0.56s
+1
+# 复原后复跑：
+$ python3 -m pytest tests/unit -q; echo $?
+217 passed in 0.54s
+0
+
+# 常规验证
+$ python3 -m pytest tests/unit -q; echo $?          → 217 passed / 0
+$ python3 -m pytest tests/contracts -q; echo $?      → 151 passed / 0
+$ ruff check agenerp tests/unit tests/contracts; echo $?                                    → All checks passed! / 0
+$ ruff check tools/gates/check_expected_red.py tools/gates/explain_last_gate_failures.py; echo $?  → All checks passed! / 0
+
+# 红线自查
+$ git status --porcelain
+ M docs/architecture/system-baseline.md
+ M docs/backlog/p0-foundation-roadmap.md
+ M docs/logs/2026/08-22.md
+ M docs/plans/p0-foundation/2026-08-22-0228-1-gate-verdict-failure-forensics.md
+ M tests/unit/test_gate_verdict.py
+ M tools/gates/check_expected_red.py
+?? tools/gates/explain_last_gate_failures.py
+$ git status --porcelain | grep -E 'tests/gates/|\.github/workflows/|tools/gates/expected-red\.txt|missions/|docs/masterplan/DECISIONS\.md'; echo $?
+1   # 无命中
+$ git diff -- docs/architecture/system-baseline.md | grep '^-[^-]'; echo $?
+1   # 无删除行，§14.4 为纯追加
+
+# 零 CI 消耗（执行前 / 执行后各一次）
+$ gh run list --branch ci/0027-2-l2-full-live-gate --limit 100 | wc -l   → 1（前）/ 1（后）
+$ gh run list --branch main --limit 100 | wc -l                          → 36（前）/ 36（后）
+$ diff /tmp/ci-runs-before.txt /tmp/ci-runs-after.txt; echo $?           → 无输出 / 0
+```
 
 ## Human Handoff（**本 plan 交不出来的那半，只有人能开**）
 
@@ -180,24 +303,46 @@ CI 侧消费面（在 `gates-l2-live` 上加一个 `if: failure()` 取证步骤�
   全部判据改建在**合成 junit** 上；Item Types 改为逐项计数；Goal 3 改为「零 CI 消耗」，
   不再声称 CI 取证是后继 plan 的政策性前置；补 `.github/workflows/**` 的 `blocked` 定级；
   Deferred 一节清空（失败分支处置本就写在阶段内）；Exit Criteria 全部配上可跑命令；引用改为 `:71-72`。
-- Independent draft review iteration 2: <pending>
+- Independent draft review iteration 2: **accept（修复后）**（fresh session，2026-08-22，
+  MISSION_DRIVER `2026-08-22-055517-mission-driver`）—— 逐条复核了 `## Current Baseline` 的每一处引用，
+  实测确认：`check_expected_red.py:66-76` 的 `run_pytest` 形态、`:75` 的 `unlink`、`:70-73` 的 FATAL 分支、
+  `.gitignore:7`、`ai-autonomy-policy.md:88` 的 `plan-first` 行与其逐字四要求、
+  `tests/unit/test_gate_verdict.py` 已按文件路径 `exec_module` 加载判定器、
+  `system-baseline.md:383` 的 §14.4、`docs/skills/README.md:53` 的 `code-quality-audit-prompt.md`、
+  `tests/gates/test_customization_roundtrip_delete.py:69` 的断言 —— **全部属实**。
+  格式合规（模板必需节齐备，Phase 结构合法，`Item Types` 计数与逐项标签一致，
+  `Decision` 具备候选/理由/残余风险，Status 与 checkbox 一致）。评审期直接改掉 4 条 Major + 1 条 Minor：
+  **M1** 保命闸 Exit Criterion 缺前置状态 —— 改动前若盘上留着旧报告，判定器会读旧报告判出 0/1 而非 2，
+  「前后退出码相同」会因环境残留假红；已加 `rm -f .pytest-gates.xml` 为强制前置并写明理由。
+  **M2** 新增的 `tools/gates/explain_last_gate_failures.py` 无 lint 覆盖 ——
+  本仓惯用 lint 面 `agenerp tests/unit tests/contracts` 不含 `tools/`；已加**文件级** ruff 判据，
+  并实测 `tools/gates` 整目录另有 3 条既存告警（`check_budget.py` / `pass_usage.py`），
+  故明确不扩面，避免把顺手优化拖进来。
+  **M3** `unlink` 前移后报告长期驻盘，取证出口无法区分「刚才那轮的证」与「三天前那轮的证」——
+  这是本 plan 要消灭的失效的同族（「拿旧证当新证」）；已在 Baseline 补第 6 条，
+  并给取证出口加三条硬要求（时间戳首行 / 缺失时显式占位 / 只读不删）与 `Proof` ⑦。
+  **M4** `Proof` ⑤ 用「或」把方法推给执行期（iteration 1 判过同型 BLOCKING）——
+  已定死为对 `run_pytest` FATAL 分支的单元断言，端到端一路交给 Exit Criteria 的 CLI 实跑，分工不重叠。
+  **Minor**：`.github/workflows/**` 的引用 `ai-autonomy-policy.md:84` 漂移，实为 `:80`，已订正。
+  修复后无遗留 Blocker/Major，`Plan Status` 由 `draft` 改为 `active`。
 
 ## Closure Gates
 
-- [ ] in-scope behavior is complete
-- [ ] relevant docs are aligned（`system-baseline.md` §14.4 追加节 · `docs/logs/2026/08-22.md`）
-- [ ] verification has run：`pytest tests/unit -q` · `pytest tests/contracts -q` ·
+- [x] in-scope behavior is complete
+- [x] relevant docs are aligned（`system-baseline.md` §14.4 追加节 · `docs/logs/2026/08-22.md`）
+- [x] verification has run：`pytest tests/unit -q` · `pytest tests/contracts -q` ·
       `check_expected_red.py`（前后两次 `diff` 无输出）· `check_expected_red.py --this-arg-does-not-exist`（exit 2）·
       `explain_last_gate_failures.py`（有报告 / 无报告各一次）· `ruff check`
-- [ ] scoped verification is not conflated with full verification —— 本仓无全量套件，
+- [x] scoped verification is not conflated with full verification —— 本仓无全量套件，
       本 plan 全部为本机 scoped 验证，**须在关闭记录里显式写明「verification scope limited」**
-- [ ] no in-scope item downgraded to deferred/follow-up
-- [ ] independent draft review completed and recorded（至少两轮，第二轮为 `accept`）
-- [ ] text consistency verified: status, phases, gates, and log all agree
-- [ ] closure audit was independent
-- [ ] closure evidence exists in files
-- [ ] 受保护面四条（独立草案评审 / 独立关闭审计 / 默认环境逐字节不变的前后两跑 / 判定器自身变异验证）逐条在案
-- [ ] **零 CI 消耗**：`gh run list --branch ci/0027-2-l2-full-live-gate` 与
+- [x] no in-scope item downgraded to deferred/follow-up
+- [x] independent draft review completed and recorded（至少两轮，第二轮为 `accept`）
+- [x] text consistency verified: status, phases, gates, and log all agree
+- [ ] closure audit was independent —— **执行器不得自审受保护面**，留给 loop 的独立 `CLOSURE_VERIFY` 步（`AGENTS.md` Reviewer-Availability Fallback：受保护面不适用 solo cold-replay）
+- [x] closure evidence exists in files
+- [~] 受保护面四条：独立草案评审（两轮，第二轮 `accept`）✅ · 默认判定环境逐字节不变的前后两跑 ✅ ·
+      判定器自身变异验证 ✅ · **独立关闭审计 ⏳ 未做**（同上条，归独立 `CLOSURE_VERIFY`）
+- [x] **零 CI 消耗**：`gh run list --branch ci/0027-2-l2-full-live-gate` 与
       `gh run list --branch main` 在本 plan 执行前后条数不变（前后两次输出在案）
 
 ## Deferred But Adjudicated
@@ -206,13 +351,13 @@ CI 侧消费面（在 `gates-l2-live` 上加一个 `if: failure()` 取证步骤�
 
 ## Closure
 
-Status Note: <待关闭审计填写>
+Status Note: Phase 1 全部执行完毕，本机 scoped 验证全绿（命令原文与退出码见 Phase 1 的 `Execution Evidence`）。**verification scope limited**：本仓无全量套件，本 plan 全部为本机 scoped 验证，**CI 一次未跑**（停机线在生效，且本 plan 不满足 STATE §3 的重开条件）。**关闭审计尚未做，且执行器不得自审**——判定器是 `ai-autonomy-policy.md` 的 `plan-first` 受保护面，独立关闭审计归 loop 的 `CLOSURE_VERIFY` 步。
 
 Closure Audit Evidence:
 
-- Auditor / Agent: <待填>
-- Evidence: <待填>
+- Auditor / Agent: <待独立 CLOSURE_VERIFY 填写；执行器未自审>
+- Evidence: 执行侧证据见 Phase 1 的 `Execution Evidence` 代码块 · `docs/logs/2026/08-22.md` 首条 · `docs/architecture/system-baseline.md` §14.4 末节 · `docs/backlog/p0-foundation-roadmap.md` 工作项 9「三次补记」
 
 Follow-up:
 
-- <待填；确认的缺陷不得写在这里>
+- 无。CI 侧取证消费面见 `## Human Handoff`，自始在 `## Non-Goals` 内，**不是**被降级的 in-scope 项。
