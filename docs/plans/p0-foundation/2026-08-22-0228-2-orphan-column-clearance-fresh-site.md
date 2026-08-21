@@ -483,18 +483,57 @@ Exit Criteria:
 
 ## Closure Gates
 
-- [ ] in-scope behavior is complete
-- [ ] relevant docs are aligned（roadmap 三行 · `project-context.md` · `module-boundaries.md` · STATE · `0027-2` 追加行）
-- [ ] verification has run：本机冷起 3 跑 live 整目录判定 · 多轮累积站点 1 跑 · 变异验证（冷起站点）· `pytest tests/unit` · `pytest tests/contracts` · `ruff` · CI `gates-l2-live`
-- [ ] scoped verification is not conflated with full verification —— 本仓无全量套件，须显式写明「verification scope limited」
-- [ ] no in-scope item downgraded to deferred/follow-up
-- [ ] independent draft review completed and recorded
-- [ ] text consistency verified: status, phases, gates, and log all agree
-- [ ] closure audit was independent
-- [ ] closure evidence exists in files
-- [ ] **`0027-2` 指名的证据在案**：实跑前后全量 `capture` 对照 + 修完后本机 live 整目录判定仍绿
-- [ ] 冷起**前**的常驻站点证据三件在案（备份已拷出卷 · 孤儿列全集 · 冷起前基线判定退出码）
-- [ ] `git diff` 未触及 `tests/gates/**`、`tools/gates/expected-red.txt`、`docs/masterplan/DECISIONS.md`、`missions/**`
+> 以下十二框由**独立 `CLOSURE_VERIFY` 审计步**在 2026-08-22 逐条实测后回填，执行器本轮一个未勾（见 `## Closure`）。
+> 每框后面跟的是审计**自己复跑**得到的证据，不是抄 plan 正文。
+
+- [x] in-scope behavior is complete —— 审计实读落地面：`agenerp/oob.py` 有 `_FalsyResult` / `FALSY_RESULT`（:81、:84）
+      与 `run_json` 的 `return FALSY_RESULT`（:214，条件是退出码 0 且 stdout 全空）；消费端
+      `agenerp/snapshot.py:22` 导入、`:351` `if columns is FALSY_RESULT: return ()`。**不是空壳**：
+      哨兵在唯一的巡检落点 `schema_drift` 上被真消费，`schema_drift` 又被 `agenerp/apply.py`
+      `drop_orphan_columns` 在运行时调用；`grep -rn FALSY_RESULT agenerp tests` 命中 4 处产品代码 + 5 处判据。
+      非零退出仍由 `_run` 抛 `OobError`、非 list / 非 str 列名仍抛——无吞异常、无 `{}` 空体、无 `return None` 占位。
+- [x] relevant docs are aligned —— 审计实测：`module-boundaries.md` §11.8 追加了「『不伪装成功』的唯一例外」整段
+      （`git show 578eb8f -- docs/architecture/module-boundaries.md` 为 `27 insertions`，零删除）；
+      `grep -c 32533449466` → roadmap **3** · `project-context.md` **2** · STATE **3**；
+      `0027-2` 的 `Closure Audit Log` 第五条已在案且 `grep -c '^-[^-]'` → **0**（纯追加）。
+      日志侧本审计补齐了 Phase 4 那半（见下一条 Follow-up 与 `docs/logs/2026/08-22.md`）。
+- [x] verification has run —— 审计**在干净树上原样复跑**了可复跑的四条：
+      `python3 -m pytest tests/unit -q` → **exit 0**（`221 passed in 0.54s`）·
+      `ruff check agenerp tests/unit tests/contracts` → **exit 0**（`All checks passed!`）·
+      `python3 -m pytest tests/contracts -q` → **exit 0**（`151 passed in 0.06s`）·
+      `gh run view 32533449466 --json status,conclusion,headSha` → 逐字
+      `{"conclusion":"success","headSha":"c2c688b7f6bc49a96d1e89a3582014334ba8fb71","status":"completed"}`，
+      `gh run view 32533449466 --json jobs` 列出**九个 job 全部 `success`**。
+      站点侧四跑与变异 A/B 属一次性现场证据（站点已被后续 `down -v` 冷起覆盖），审计不重复破坏站点，
+      按 CI 侧同形态绿（run `32533449466` 的 `gates-l2-live`）交叉支撑。
+- [x] scoped verification is not conflated with full verification —— `## Closure` 的 Status Note 逐字写着
+      **verification scope limited**，并列明本仓无 build、无 typecheck；审计确认该措辞在案且未把 scoped 说成 full。
+- [x] no in-scope item downgraded to deferred/follow-up —— 审计逐条读了四个 `## Deferred But Adjudicated`：
+      ①「取证拿不到时的固定处置」是失败分支的写死处置，前提未发生（冷起 3/3 红，红因已得）；
+      ②「历史孤儿列」③「巡检面零覆盖」的修法都要动 `tests/gates/**`（红线 1）；④「PR #1 未合并」是人的决定。
+      **无一是本 plan 范围内的已确认缺陷或契约漂移**；两处确认漂移（roadmap 三行 · `project-context.md` 两行）
+      按 Minimum Rule 14 走的是 `Fix` 就地改准，不在 Follow-up 里。
+- [x] independent draft review completed and recorded —— `## Draft Review Record` 有 iteration 1，
+      记了 1 Blocker + 4 Major + 1 Minor 的具体修法与结论 `accept`。
+- [x] text consistency verified —— 审计实跑 `grep -B5 '\- \[ \]' <plan> | grep 'Status: completed'` → **无输出**；
+      `Plan Status: completed` 与 Phase 1/2/3/4 四个 `Status: completed`、四组 Exit Criteria 全 `[x]`、
+      本节十二框、`docs/logs/2026/08-22.md` 的 `0228-2` 条目四者一致。
+- [x] closure audit was independent —— 由 `CLOSURE_VERIFY` 步的独立审计者执行（非本 plan 的执行器会话），
+      结论与证据见 `## Closure` 的 `Closure Audit Evidence`。
+- [x] closure evidence exists in files —— 证据落在仓库里可复查：`docs/logs/2026/08-22.md` 的 `0228-2` 条目 ·
+      `docs/masterplan/STATE.md` §2 的 `2026-08-22T14:40Z` 行与 §3 的 `[resolved]` 行 ·
+      `docs/architecture/module-boundaries.md` §11.8 追加段 · `0027-2` 的 `Closure Audit Log` 第五条 ·
+      提交 `578eb8f`（实现 + 判据 + 文档）与 `d27c9a2`（回写）· 分支 `ci/0027-2-l2-full-live-gate` 上的 `c2c688b`
+      （`git ls-remote origin ci/0027-2-l2-full-live-gate` 实测 head = `c2c688b7f6…`）。
+- [x] **`0027-2` 指名的证据在案** —— 前后全量 `capture` 对照两侧站点各一次（全新站点与非空累积站点，
+      均 `entries added/removed: []` / `columns added/removed: []`）写在 Phase 1 第 4 项与 Phase 3 第 2 项；
+      修完后本机 live 整目录判定 4 跑全 exit 0，且 CI 侧 `gates-l2-live` 同形态 `success`。
+- [x] 冷起**前**的常驻站点证据三件在案 —— Phase 1 第 1 项：`bench backup` exit 0 +
+      `docker compose cp` exit 0（817012 字节 `.sql.gz`）· 孤儿列全集实测 `["agenerp_gate_probe"]`（1 条，
+      与 Baseline 的「5–6 条」不符处已照实改准）· 冷起前 live 整目录判定 exit 0 / `红 0，绿 19，跳过 0`。
+- [x] `git diff` 未触及红线面 —— 审计实跑 `git diff --name-only 508c75b HEAD -- tests/gates tools/gates/expected-red.txt docs/masterplan/DECISIONS.md missions .github/workflows`
+      → **无输出**；本 plan 自己的两个提交 `git show --stat 578eb8f d27c9a2` 共 11 个文件，无一落在红线面。
+      STATE 纯追加实测 `git diff 0cfd3bd HEAD -- docs/masterplan/STATE.md | grep -c '^-[^-]'` → **0**。
 
 ## Deferred But Adjudicated
 
@@ -534,11 +573,46 @@ Exit Criteria:
 
 Status Note: 四个 Phase 全部执行完毕，逐项证据写在各 Phase 项下（命令原文 + 退出码 + sha）。**verification scope limited**：本仓无全量套件（无 build、无 typecheck），本 plan 覆盖的是 `ruff` · `pytest tests/unit`（221 passed）· `pytest tests/contracts`（151 passed）· 默认判定环境判定器 · 本机 live 整目录判定（冷起全新站点 3 跑 + 多轮累积站点 1 跑，均 exit 0）· 变异验证（冷起全新站点，A/B 各一次）· CI run `32533449466`（九个 job 全绿）。交付 sha：`main` 上 `578eb8f`（**未推**）、分支 `ci/0027-2-l2-full-live-gate` 上 `c2c688b`（已推）。**`## Closure Gates` 十二框本轮一个未勾，`Closure Audit Evidence` 亦留空——本 plan 头 `Audit: required`，且它触及 `ai-autonomy-policy.md` Protected Areas 的 `agenerp/apply.py` 删除路径一族，关闭审计须由执行器之外的独立 `CLOSURE_VERIFY` 步做；执行器自勾即自审，等于伪造独立性。**（与 `2026-08-22-0228-1` 的处置一致：那份的十四框也是由独立审计回填的。）
 
+**独立关闭审计已完成（2026-08-22），结论：可关闭。** 上面那段是执行器留的话，审计确认其处置正确——
+十二框确由本审计步回填，执行器未自勾。审计另**就地补齐了一处真实的文档漂移**：Phase 4 的
+`docs/logs/2026/08-22.md` 更新 那条退出判据本已勾上，但 `d27c9a2`（Phase 4 回写轮）实际**没有触碰日志文件**
+（`git show --stat d27c9a2` 五个文件里无 `docs/logs/`），日志里的 `0228-2` 条目只覆盖到 Phase 3。
+审计按 AGENTS.md 的 `docs/logs/` 同步要求把 Phase 4 那半（CI run 三件套 · 两处漂移就地改准 · 三处只追加不改写 ·
+停机解除且「重开条件满足 ≠ `0027-2` 可关闭」）补进该条目，使判据与文件一致。这是文档同步补齐，不是新缺陷。
+
 Closure Audit Evidence:
 
-- Auditor / Agent: <待填>
-- Evidence: <待填>
+- Auditor / Agent: 独立 `CLOSURE_VERIFY` 审计步（非本 plan 的执行器会话，`MISSION_DRIVER:2026-08-22-055517`）。
+- Evidence:
+  - **自己复跑的命令与退出码**（不是抄正文）：`python3 -m pytest tests/unit -q` → **exit 0**（`221 passed in 0.54s`）·
+    `ruff check agenerp tests/unit tests/contracts` → **exit 0**（`All checks passed!`）·
+    `python3 -m pytest tests/contracts -q` → **exit 0**（`151 passed in 0.06s`）。
+  - **CI 侧独立核实**：`gh run view 32533449466 --json status,conclusion,headSha` → 逐字
+    `{"conclusion":"success","headSha":"c2c688b7f6bc49a96d1e89a3582014334ba8fb71","status":"completed"}`；
+    `gh run view 32533449466 --json jobs` → 九个 job（含 `L2 全量 live 判定（19 条）` job `96929876654`
+    与 `判定器未被改动` job `96929876658`）**全部 `success`**；
+    `git ls-remote origin ci/0027-2-l2-full-live-gate` → head `c2c688b7f6…`（与 plan 记的 sha 一致）；
+    `git diff --name-only 7b0f585 c2c688b -- tools/gates/check_expected_red.py tools/gates/gate-verify.mjs` → **无输出**。
+  - **反空壳核实**（`grep` + 实读，不看签名看调用链）：`FALSY_RESULT` 定义在 `agenerp/oob.py:84`，
+    产出点 `agenerp/oob.py:214`，**唯一消费点** `agenerp/snapshot.py:351` 翻译成 `()`；
+    `schema_drift` 是孤儿列巡检的唯一落点，运行时由 `agenerp/apply.py` `drop_orphan_columns` 调用。
+    `tests/unit/test_schema_drift.py` 新增 4 条判据（`::test_empty_stdout_means_the_callee_returned_a_falsy_value`
+    等）在 221 passed 里真跑。无空函数体、无 `return None` 占位、无被吞的异常。
+  - **红线自查（审计侧独立实跑）**：`git diff --name-only 508c75b HEAD -- tests/gates tools/gates/expected-red.txt docs/masterplan/DECISIONS.md missions .github/workflows`
+    → **无输出**；`git diff 0cfd3bd HEAD -- docs/masterplan/STATE.md | grep -c '^-[^-]'` → **0**（纯追加）；
+    `git show d27c9a2 -- docs/plans/…0027-2….md | grep -c '^-[^-]'` → **0**（对 `0027-2` 只追加）。
+  - **五点一致性**：`Plan Status: completed` · 四个 Phase `Status: completed` · 四组 Exit Criteria 全 `[x]` ·
+    十二框全 `[x]` · `docs/logs/2026/08-22.md` 的 `0228-2` 条目（Phase 4 那半由本审计补齐后）—— 五者一致；
+    `grep -B5 '\- \[ \]' <plan> | grep 'Status: completed'` → 无输出。
+  - **未由审计复跑的部分，照实说明**：站点侧的冷起 4 跑、变异 A/B、前后 `capture` 对照是一次性现场证据
+    （那些站点已被后续 `down -v` 覆盖），审计**不重复破坏站点**去复跑，改以 CI run `32533449466` 的
+    `gates-l2-live` 同形态绿 + `tests/unit` 里 4 条对着红因的判据作交叉支撑。这一点算 **residual**，不掩盖。
 
 Follow-up:
 
-- <待填；确认的缺陷不得写在这里>
+- **PR #1 是否合并、`main` 上领先 `origin/main` 的提交是否推送** —— 归人决定（`## Deferred But Adjudicated` 已登记）。
+  触发条件：人明确表态合并或推送时。
+- **`0027-2` 是否 Reopen 续跑** —— 其 `Reopen When` 已被本 plan 逐字满足，但它自己欠的守卫三次变异实证
+  仍无 run id，19 个 `[ ]` 仍是真未做。触发条件：人裁定 Reopen。本 plan 未代它改任何一勾。
+- **STATE §3 那条 `[open]` 行给人的处置 (a)（driver 选取逻辑排除 `deferred` plan）仍未做** ——
+  不因本次转绿而消失。触发条件：人裁定 driver 侧改法。
