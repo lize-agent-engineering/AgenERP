@@ -130,13 +130,7 @@ class OfflineSnapshotSource:
         return f"offline:{self.root}"
 
     def read(self, scope: str) -> tuple[SnapshotEntry, ...]:
-        scope_dir = self.root / scope
-        if not scope_dir.is_dir():
-            return ()
-        entries: list[SnapshotEntry] = []
-        for path in sorted(scope_dir.glob("*.json")):
-            entries.extend(_entries_from_payload(json.loads(path.read_text()), path.stem))
-        return tuple(sorted(entries, key=lambda entry: entry.key))
+        return read_scope_dir(self.root, scope)
 
 
 @dataclass(frozen=True)
@@ -155,7 +149,23 @@ class SiteSnapshotSource:
         )
 
 
-def _entries_from_payload(payload: Any, default_doctype: str) -> list[SnapshotEntry]:
+def read_scope_dir(root: Path, scope: str) -> tuple[SnapshotEntry, ...]:
+    """按 `<root>/<scope>/*.json` 读出该 scope 的全部条目，一个 DocType 一个文件。
+
+    **目录布局与解析口径的唯一落点**：离线来源与 `agenerp.apply.read_pack` 都走这里，
+    不许各自再写一遍——两套口径会让「包里读到的」和「站点快照读到的」在同一份 JSON 上
+    得出不同条目，求差结果随之失真。位置不存在返回空元组，不抛。
+    """
+    scope_dir = root / scope
+    if not scope_dir.is_dir():
+        return ()
+    entries: list[SnapshotEntry] = []
+    for path in sorted(scope_dir.glob("*.json")):
+        entries.extend(entries_from_payload(json.loads(path.read_text()), path.stem))
+    return tuple(sorted(entries, key=lambda entry: entry.key))
+
+
+def entries_from_payload(payload: Any, default_doctype: str) -> list[SnapshotEntry]:
     if not isinstance(payload, dict):
         raise ValueError(f"快照文件必须是 JSON 对象，读到 {type(payload).__name__}")
     normalized = normalize(payload)
