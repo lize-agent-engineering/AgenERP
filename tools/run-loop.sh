@@ -12,11 +12,16 @@
 set -uo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
+# 两个 pidfile 必须分开：监督器会检查 loop.pid 判断「有没有单趟在跑」，
+# 若把监督器自己的 pid 也写进 loop.pid，它开机就会看见自己、等自己结束 —— 自引用死锁（实测踩过）。
 PIDFILE="$ROOT/_tmp/loop.pid"
+SUPFILE="$ROOT/_tmp/supervisor.pid"
 LOGFILE="$ROOT/_tmp/loop.log"
 mkdir -p "$ROOT/_tmp"
 
-alive() { [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; }
+alive_f() { [ -f "$1" ] && kill -0 "$(cat "$1")" 2>/dev/null; }
+alive()   { alive_f "$PIDFILE"; }
+alive_sup(){ alive_f "$SUPFILE"; }
 
 case "${1:-status}" in
   start)
@@ -48,11 +53,38 @@ PY
     echo "已启动（pid $(cat "$PIDFILE")）· 日志 $LOGFILE"
     echo "看进度：tools/run-loop.sh log    停止：tools/run-loop.sh stop"
     ;;
+  supervise)
+    # 连续模式：起监督器（配额自动续跑 + 日预算闸），而不是单趟。
+    # launchd 那条路被 macOS TCC 挡着（仓库在 ~/Documents 下），在那之前用这个。
+    shift
+    MISSION="${1:?用法: tools/run-loop.sh supervise <mission> <todo-id>}"
+    TODO="${2:?用法: tools/run-loop.sh supervise <mission> <todo-id>}"
+    if alive_sup; then echo "监督器已在运行（pid $(cat "$SUPFILE")）"; exit 1; fi
+    if alive; then echo "有单趟在跑（pid $(cat "$PIDFILE")），等它结束或先 stop"; exit 1; fi
+    if [ -f "$ROOT/.mission-halt.json" ]; then
+      echo "拒绝启动：存在未处置的停机记录"; cat "$ROOT/.mission-halt.json"; exit 2
+    fi
+    : > "$LOGFILE"
+    AGENERP_MISSION="$MISSION" AGENERP_TODO="$TODO" \
+    LOOPX_BIN="${LOOPX_BIN:-$HOME/Library/Python/3.12/bin/loopx}" \
+    python3 - "$ROOT" "$LOGFILE" > "$SUPFILE" <<'PY'
+import os, subprocess, sys
+root, logfile = sys.argv[1:3]
+log = open(logfile, "ab", buffering=0)
+p = subprocess.Popen(["bash", os.path.join(root, "tools/loop-supervisor.sh")],
+                     cwd=root, stdout=log, stderr=log, stdin=subprocess.DEVNULL,
+                     start_new_session=True)
+print(p.pid)
+PY
+    sleep 2
+    echo "监督器已启动（pid $(cat "$SUPFILE")）· 日志 $LOGFILE"
+    ;;
   status)
+    if alive_sup; then echo "监督器运行中（pid $(cat "$SUPFILE")）"; fi
     if alive; then
-      echo "运行中（pid $(cat "$PIDFILE")）"
+      echo "单趟运行中（pid $(cat "$PIDFILE")）"
       tail -3 "$LOGFILE" 2>/dev/null
-    else
+    elif ! alive_sup; then
       echo "未运行"
       [ -f "$LOGFILE" ] && { echo "--- 最后几行 ---"; tail -5 "$LOGFILE"; }
     fi
@@ -63,6 +95,12 @@ PY
     exit 0
     ;;
   stop)
+    if alive_sup; then
+      SPID=$(cat "$SUPFILE")
+      kill -TERM -"$SPID" 2>/dev/null || kill -TERM "$SPID" 2>/dev/null
+      sleep 2; alive_sup && kill -KILL -"$SPID" 2>/dev/null
+      echo "监督器已停止（pid $SPID）"; rm -f "$SUPFILE"
+    fi
     if alive; then
       PID=$(cat "$PIDFILE")
       # 杀整个进程组，否则引擎 spawn 的 claude 子进程会变孤儿
@@ -76,5 +114,5 @@ PY
     rm -f "$PIDFILE"
     ;;
   log) tail -"${2:-40}" "$LOGFILE" 2>/dev/null || echo "还没有日志" ;;
-  *) echo "用法: tools/run-loop.sh {start <mission> <todo-id> [参数...]|status|stop|log [行数]}"; exit 1 ;;
+  *) echo "用法: tools/run-loop.sh {start <mission> <todo-id> [参数...]|supervise <mission> <todo-id>|status|stop|log [行数]}"; exit 1 ;;
 esac
