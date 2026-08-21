@@ -58,6 +58,29 @@ const CLAUDE_DEFAULTS = Object.freeze({
 });
 // --- 补丁 P4 结束 -----------------------------------------------------------
 
+// --- 补丁 P5（AgenERP fork）------------------------------------------------
+// codex driver：接 OpenAI Codex CLI，用于跨模型对照（同一批门禁判同一个工作项）。
+//
+// 与 claude driver 的三处不同，都是实测出来的：
+//  1. **不需要下发红线人格**。实测 `codex exec` 原生读项目根的 AGENTS.md ——
+//     问它「红线第 1 条是什么」，它一字不差引出来。Claude 那边不会，只能显式注入。
+//  2. **prompt 走 stdin**（codex exec 未给位置参数时从 stdin 读），与 pi 同。
+//  3. 沙箱：用 --dangerously-bypass-approvals-and-sandbox 与 claude driver 的
+//     bypassPermissions 对齐，好让对照实验只差模型这一个变量。codex 自带的
+//     workspace-write 沙箱其实更严，是将来可以收紧的一个杠杆 —— 但本项目挡越界
+//     靠的是 gate-verify + 停机闸 + CI，不是沙箱。
+//
+// ⚠️ 待观察：codex 会把本机启用的 skills / 未成熟特性（chronicle）塞进上下文，
+//    实测有 "skill descriptions were shortened" 的警告。这与 Claude 那边的 hooks
+//    泄漏是同类问题 —— 每轮输入不再只由 prompt 决定。要收紧看 --disable / --ignore-user-config。
+const CODEX_DEFAULTS = Object.freeze({
+  driverArgs: "exec -m {model} --skip-git-repo-check --dangerously-bypass-approvals-and-sandbox",
+  promptMode: "stdin",
+  agentFile: null,     // AGENTS.md 原生加载，无需附带文件
+  personaFile: null,   // 同上：不注入人格，红线已在 AGENTS.md 里
+});
+// --- 补丁 P5 结束 -----------------------------------------------------------
+
 // Apply driver defaults to driverArgs/promptMode/agentFile. `driverArgs` and
 // `promptMode` are the values after args/env/mission fallback (may be undefined).
 // promptMode is ALWAYS returned concrete (never undefined) so runner.js's
@@ -68,13 +91,17 @@ function resolveDriverFields(driver, driverArgs, promptMode) {
   const isPi = driver === "pi";
   const isCline = driver === "cline";
   const isClaude = driver === "claude"; // 补丁 P4
-  const defaults = isPi ? PI_DEFAULTS : (isCline ? CLINE_DEFAULTS : (isClaude ? CLAUDE_DEFAULTS : null));
+  const isCodex = driver === "codex";   // 补丁 P5
+  const defaults = isPi ? PI_DEFAULTS
+    : (isCline ? CLINE_DEFAULTS
+    : (isClaude ? CLAUDE_DEFAULTS
+    : (isCodex ? CODEX_DEFAULTS : null)));
   return {
     driverArgs: driverArgs !== undefined ? driverArgs : (defaults ? defaults.driverArgs : undefined),
     promptMode: promptMode !== undefined
       ? promptMode
       : (defaults ? defaults.promptMode : "arg"),
-    agentFile: defaults ? resolve(TOOL_ROOT, defaults.agentFile) : undefined,
+    agentFile: defaults && defaults.agentFile ? resolve(TOOL_ROOT, defaults.agentFile) : undefined,
     // 补丁 P4：claude 专用，persona 与 settings 是两个文件，各走各的槽位
     personaFile: defaults && defaults.personaFile ? resolve(TOOL_ROOT, defaults.personaFile) : undefined,
   };
