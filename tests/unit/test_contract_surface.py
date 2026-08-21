@@ -16,17 +16,19 @@ import importlib
 
 import pytest
 
+from agenerp.snapshot import Snapshot
+
 # 已实现、有真实行为的契约面。
 IMPLEMENTED: list[str] = [
     "agenerp.pack:normalize",
+    "agenerp.snapshot:capture",
+    "agenerp.snapshot:diff",
 ]
 
 # 签名已定稿、行为未实现（调用即 NotImplementedError）的契约面。
 NOT_YET_IMPLEMENTED: list[str] = [
     "agenerp.pack:export_customizations",
     "agenerp.pack:apply_pack",
-    "agenerp.snapshot:capture",
-    "agenerp.snapshot:diff",
     "agenerp.snapshot:schema_drift",
 ]
 
@@ -36,7 +38,7 @@ CALL_ARGS: dict[str, tuple[tuple, dict]] = {
     "agenerp.pack:export_customizations": ((), {"doctype": "Item", "into": "/nonexistent"}),
     "agenerp.pack:apply_pack": (("/nonexistent",), {"site": "gate.invalid"}),
     "agenerp.snapshot:capture": ((), {"scope": "doctypes"}),
-    "agenerp.snapshot:diff": (({}, {}), {}),
+    "agenerp.snapshot:diff": ((Snapshot(scope="doctypes"), Snapshot(scope="doctypes")), {}),
     "agenerp.snapshot:schema_drift": ((), {"doctype": "Item"}),
 }
 
