@@ -118,6 +118,64 @@ ERP 中大量字段是**用户可写的自由文本**——备注、评论、异
 | 审计 | 检出疑似注入即记录，并回溯写入者与写入时间 |
 | 红线 | 任何来自工具结果的文本，**永远不能**改变权限判定、风险档位或审批要求（与 §8.4 记忆红线同源） |
 
+
+### 7.6 契约层 v0 在本仓的落点（声明面，2026-08-21）
+
+本节只记**已落盘的声明面**（工作项 4 的 A 半），plan `docs/plans/p0-foundation/2026-08-21-1022-2-tool-contract-layer-v0.md`。
+接活站点的 B 半未做，工作项 4 因此仍是 `planned`，不是 `done`。
+
+| 落点 | 内容 |
+|---|---|
+| `agenerp/contracts.py` | 契约的**声明格式**（`ToolContract` / `Returns` / `Condition`）与**校验器**（`validate` / `check` / `validate_registry`），外加前置条件与后置断言的**求值面**（`Condition.evaluate` 对注入进来的 `ReadOnlyContext` 求值，**不连任何站点**） |
+| `agenerp/tools_readonly.py` | 十个只读工具的契约声明（`READONLY_CONTRACTS`） |
+| `tests/contracts/` | 判据文件：格式组 / 前置条件组 / 后置断言组 / 十工具清单与实测硬约束回归 |
+
+**运行时表达形式是纯 Python 而不是 YAML。** §7.1 的 YAML 是文档呈现形式：CI 的 `gates-l1` 只 `pip install pytest`，
+`import yaml` 会红在缺依赖上。校验器接受的是**已解析的数据结构**，将来外挂一个 YAML → dict 加载器不改变本层任何签名。
+
+**十个工具的清单与选法**（owner doc 只写「10 个只读工具」，没给过清单；这是 plan 的 `Decision`，写在这里供人复核）：
+
+| 来源 | 工具 |
+|---|---|
+| `docs/design/agents-and-roles.md` §5.1 解释 Agent | `query.read`、`schema.search`、`snapshot.read`、`lineage.trace`、`rule.lookup`、`system.overview`、`permission.scope` |
+| §5.0 ① 证据充分性门禁与 `docs/design/context-and-memory.md` §8.1 结构化导航 | `doc.get`、`doc.links`、`meta.fields` |
+
+排除项与理由：`anomaly.scan` / `benchmark.compare` 属洞察 Agent，依赖行业包规则（P1 才有）；
+`dsl.schema` / `field.catalog` / `dsl.validate` / `dsl.preview` 属视图 Agent，依赖视图 DSL（P2 才有）。
+选法是「P0 阶段就有真实约束可写的只读工具」，不是随手凑十个。
+**换清单的代价很低**：改 `agenerp/tools_readonly.py` 的声明与 `tests/contracts/` 的清单断言，契约格式本身不受影响。
+
+**哪些实测硬约束被表达成了可断言的东西**（写在声明里而不是注释里——注释不可测）：
+
+| 约束 | 出处 | 表达为 |
+|---|---|---|
+| `permission.scope` 必须逐个调 `frappe.has_permission`，禁止从 DocPerm 反推 | §5.1 实现约束 1 | 后置断言 `permission_probe_method == "has_permission"` |
+| `permission.scope` 必须按 app 过滤框架 DocType（83/61 → 34/12） | §5.1 实现约束 2、§7.3.1 | `returns.trim_rules` |
+| `permission.scope` 由控制循环开场自动注入 | §5.1 Spike 02 复测 | 后置断言 `injected_at_session_start` |
+| `doc.links` 必须保留 `from_is_submittable` | §7.3.1 | `returns.must_keep` + 后置断言 |
+| `lineage.trace` 必须同时扫主表级与子表级 Link 并回溯父单据 | §5.1「硬约束」 | 三条后置断言 |
+| `doc.get` 裁掉 `_comments` / `_liked_by` 一类框架字段 | §7.3.1 | `returns.trim_rules` |
+| `doc.get` 会返回用户可写自由文本 | §7.5 | `returns.user_writable_free_text = True`（**声明位**） |
+| 证据充分性门禁 L1/L2 | §5.0 ① | 作答类工具（`query.read` / `snapshot.read`）的 `preconditions` |
+
+门禁挂在作答类工具而不是 `doc.get` / `doc.links` 上，是因为后两者本身就是 L1/L2 要求的**取证步骤**——
+拿门禁去卡取证步骤是循环依赖（L1 卡住第一次 `doc.links` 就再也调不出 `doc.links`）。
+
+**哪些没有被表达**（v0 只有声明面，运行时部件不在内）：
+
+- §7.4 的**权限拒绝熔断**（N=5）与 §7.5 的**数据边界标记包裹动作**——二者是控制循环的运行时部件，
+  `docs/masterplan/02-WBS.md` 的 P0 段没有任何一行对应它们，且 P0 还没有控制循环去消费它们。
+  §7.5 在 v0 里只留**声明位**，包裹动作归 P1。处置见 plan 的 `## Deferred But Adjudicated`。
+- **接活站点的一切**：`live_site` fixture、`SiteSnapshotSource.read`（§11.5 留下的接缝）。见 `docs/masterplan/STATE.md` §3 那条 `[open]`。
+
+**一处 owner-doc 字段名漂移，就地裁定**：本文件 §7.3.1（行 82）写 `from_is_submittable`，
+`docs/analysis/2026-08-19-pre-build-validation.md:143` 写 `is_submittable`。
+**架构文档是 owner，实现取 `from_is_submittable`**；`docs/analysis/` 那份是历史分析记录，**不改它**（改它等于销毁证据）。
+接活站点实现 `doc.links` 时以 Frappe 的真实返回字段名为准复核；若两者都不对，回来改本文件——那是人的动作。
+
+**判据缺口，如实记在这里**：`python3 -m pytest tests/contracts -q` **不在** `missions/p0-foundation.json` 的 `commands.test` 里
+（那条是 `python3 tools/gates/check_expected_red.py && python3 -m pytest tests/unit -q`），因此 `GATE_VERIFY` 复跑不到它。
+`missions/**` 是角色 B 禁区，loop 无权自己补。代偿控制是独立关闭审计。人要补上，把该命令加进 `commands.test` 即可。
 ---
 
 ## 11. 定制包与 GitOps

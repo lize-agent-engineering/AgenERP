@@ -190,14 +190,14 @@ Exit Criteria:
 
 ### Phase 2 — 10 个只读工具的声明 + `tests/contracts/`
 
-Status: planned
+Status: completed
 Targets: `agenerp/tools_readonly.py`、`tests/contracts/`（新目录）
 Skill: `none`
 
 - Item Types: `Decision | Add | Proof`
 - Prereqs: Phase 1
 
-- [ ] `Decision` 定下**哪十个**，并写明选法——这是本 plan 自己的选择，owner doc 没给过清单（评审校正）。
+- [x] `Decision` 定下**哪十个**，并写明选法——这是本 plan 自己的选择，owner doc 没给过清单（评审校正）。
       - 选法（写进 plan 与文档，供人复核）：取 `agents-and-roles.md` §5.1 **解释 Agent** 的七个
         （`query.read`、`schema.search`、`snapshot.read`、`lineage.trace`、`rule.lookup`、`system.overview`、`permission.scope`），
         加上 §5.0① 与 `docs/design/context-and-memory.md:59` 在**证据充分性门禁**里点名的三个（`doc.get`、`doc.links`、`meta.fields`）。
@@ -209,31 +209,31 @@ Skill: `none`
         **可逆性由本 plan 自己写明**：人若换清单，改的是 `agenerp/tools_readonly.py` 的声明与 `tests/contracts/` 的清单断言，**契约格式本身不受影响**。
       - 若实现中发现某个名字在 owner doc 里指的其实是别的东西 → **停手**，追加登记，**不自行改名**。
       - Skill: `none`
-- [ ] `Add` 声明这十个工具的契约，名字逐字取自 owner doc。
+- [x] `Add` 声明这十个工具的契约，名字逐字取自 owner doc。
       - Skill: `none`
-- [ ] `Add` 把每条实测硬约束**写进契约声明本身**（写在注释里不算数，注释不可测）：
+- [x] `Add` 把每条实测硬约束**写进契约声明本身**（写在注释里不算数，注释不可测）：
       - `permission.scope`：`returns` 声明「按 app 过滤框架 DocType」的裁剪规则；契约里显式记下「**逐个 `has_permission`，禁止从 DocPerm 反推**」这条来源约束，并使其可被断言。
       - `doc.links`：`returns` 的「必须保留」含 **`from_is_submittable`**（架构文档是 owner；与分析文档 `is_submittable` 的差异按 Phase 3 登记）；下游筛选规则表达为「排除已取消」而非「只要已提交」。
       - `lineage.trace`：表达「必须同时扫主表级与子表级 Link 并回溯父单据」。
       - `doc.get`：`returns` 裁剪规则剔除 `_comments` / `_liked_by` 一类框架字段；§7.5 声明位置 `true`（它会返回用户可写自由文本）。
       - 证据充分性门禁 L1/L2 表达为作答类工具的 `preconditions`（§5.0① 明确它属于「什么时候允许停下来」）。
       - Skill: `none`
-- [ ] `Proof` 建 `tests/contracts/`，使 `python3 -m pytest tests/contracts -q` → exit 0，**结构上分三组**，每组写明失败意味着什么：
+- [x] `Proof` 建 `tests/contracts/`，使 `python3 -m pytest tests/contracts -q` → exit 0，**结构上分三组**，每组写明失败意味着什么：
       1. **格式组**：校验器对每种非法结构各红一次。失败 = 校验器放行了不合法契约。
       2. **前置条件组**：对构造出来的只读上下文求值，满足与不满足**各至少一例**。失败 = 前置条件不可独立测试，WBS P0.2 判据不成立。
       3. **后置断言组**：同上，构造「成立」与「不成立」两种结果。失败 = 后置断言不可独立测试。
       - Skill: `none`
-- [ ] `Proof` 为每条实测硬约束各写一条回归断言（这些是本项目付过学费的点，不能只靠 review 记住）：
+- [x] `Proof` 为每条实测硬约束各写一条回归断言（这些是本项目付过学费的点，不能只靠 review 记住）：
       十个工具清单完整且名字逐字相符、`doc.links` 的「必须保留」含 `from_is_submittable`、`permission.scope` 的裁剪规则存在、
       `lineage.trace` 声明扫子表、`doc.get` 的 §7.5 声明位为 `true`。
       - Skill: `none`
-- [ ] `Proof` 确认 `tests/contracts/` **不污染既有判定面**：
+- [x] `Proof` 确认 `tests/contracts/` **不污染既有判定面**：
       `check_expected_red.py` 内部固定跑 `pytest tests/gates`，新目录不在其范围；
       `pyproject.toml` 的 `testpaths=["tests"]` 会让裸 `pytest` 把三个目录一起收——**必须避免与 `tests/unit` 出现同名文件**
       （评审实测：跨目录同 basename 会产生 `import file mismatch` 并 `Interrupted: 1 error during collection`）。
       - 判法要写准：`pytest tests -q` **本来就退非 0**（还有 8 条预期红门禁），所以判据是**grep 输出里没有 `import file mismatch`**，不是「退出码为 0」。
       - Skill: `none`
-- [ ] `Proof` **预先裁定**：本 plan **不需要**改 `tests/unit/test_contract_surface.py`。
+- [x] `Proof` **预先裁定**：本 plan **不需要**改 `tests/unit/test_contract_surface.py`。
       - 依据（评审实测，不是猜）：该文件是两张**显式清单 + 参数化**（`tests/unit/test_contract_surface.py:22-33`），**没有穷尽性断言**，
         且两张清单只管 `agenerp.pack` / `agenerp.snapshot` 的六个名字。新增 `agenerp/contracts.py` 不会让它变红（本机实测仍 40 passed）。
       - 执行时**复跑一次确认**；若确实变红，那说明该文件在本 plan 之前已被别人改过——按 Phase 1 第 6 点停手处置，不要顺手改它。
@@ -241,15 +241,15 @@ Skill: `none`
 
 Exit Criteria:
 
-- [ ] `python3 -m pytest tests/contracts -q` → **exit 0**（WBS P0.2 的验收命令原文）
-- [ ] `python3 -m pytest tests/unit -q` → exit 0（且**未修改** `tests/unit/test_contract_surface.py`）
-- [ ] `! python3 -m pytest tests -q --tb=no 2>&1 | grep -q 'import file mismatch'` → **exit 0**
+- [x] `python3 -m pytest tests/contracts -q` → **exit 0**（WBS P0.2 的验收命令原文）
+- [x] `python3 -m pytest tests/unit -q` → exit 0（且**未修改** `tests/unit/test_contract_surface.py`）
+- [x] `! python3 -m pytest tests -q --tb=no 2>&1 | grep -q 'import file mismatch'` → **exit 0**
       - **不写成 `| grep -c … → 0`**：`grep -c` 无命中时自身退 1，成功态是 exit 1，属本仓已抓过两次的判据反转。
       - 判的是这个 grep，**不是 pytest 的退出码**——`pytest tests` 本来就退非 0（还有预期红门禁在）。
-- [ ] `ruff check agenerp tests/unit tests/contracts` → exit 0（**`tests/contracts/` 必须已存在**，ruff 对不存在的路径直接报错）
-- [ ] `python3 tools/gates/check_expected_red.py` → exit 0，计数与开工时实测一致
-- [ ] `docs/masterplan/STATE.md` **本阶段不被改动**（十工具选法就地裁定，见 Phase 2 首项）
-- [ ] 其余 owner-doc 更新归 Phase 3
+- [x] `ruff check agenerp tests/unit tests/contracts` → exit 0（**`tests/contracts/` 必须已存在**，ruff 对不存在的路径直接报错）
+- [x] `python3 tools/gates/check_expected_red.py` → exit 0，计数与开工时实测一致
+- [x] `docs/masterplan/STATE.md` **本阶段不被改动**（十工具选法就地裁定，见 Phase 2 首项）
+- [x] 其余 owner-doc 更新归 Phase 3
 
 ### Phase 3 — 文档、B 半交接、收尾
 
