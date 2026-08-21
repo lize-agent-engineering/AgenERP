@@ -58,6 +58,18 @@
 >     再次**拒绝**驱动脚本「把每个 `[ ]` 改成 `[x]`」的要求：守卫三次变异实验没有任何 run id，
 >     打勾等于自报通过（红线：过没过由 `GATE_VERIFY` 退出码裁定）。
 >     阻塞方仍是**人 / successor plan**（`agenerp` 侧清除面未修，`docs/plans/p0-foundation/` 下仍无 successor）。
+>   - 2026-08-22 · 第四次 `EXECUTE` 派发（停机后第 4 次）· 结论**与前三条一致：不可关闭，维持 `deferred`**，
+>     **一个勾未改**。本轮不再重复前三条已经抄过的实测流水账，只记两件事：
+>     ① 复核仍为真：`git log --oneline -1` → `79cd1f2`，`git status --porcelain` → 空；
+>     `git show main:.github/workflows/gates.yml | grep -nE '^  [a-z0-9-]+:'` → 仍 7 个 job 键；
+>     同文件 `grep -cE 'gates-l2-live|verdict-tool-untouched'` → `0`（退出码 1）；
+>     `python3 tools/gates/check_expected_red.py` → exit 0，`python3 -m pytest tests/unit -q` → exit 0（`205 passed`）；
+>     `node tools/mission-driver/src/plan-check.mjs <plan> --strict` → exit 1（`planStatus: deferred` / `totalUnchecked: 19`）。
+>     ② **新事实（本条存在的唯一理由）**：停机后已空转 4 轮，每轮产出都是同一份拒绝执行。
+>     这已经在往裁判规则 4 的另一条停机线上撞——「单 mission 累计成本超阈值」。
+>     处置选项仍是 STATE §3 那条补充事实行里写死的 (a)/(b)/(c)，**loop 不替人选**；
+>     在人给出裁定之前，后续每一轮的正确产出都是「拒绝执行 + 不写新东西」，
+>     **包括不再往本 Log 追加第五条**——继续追加只是把空转记成了工作量。
 
 ## 术语约定：本 plan 说的「判定方式节」在哪
 
