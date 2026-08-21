@@ -134,12 +134,18 @@
 
 - 2026-08-21T01:59Z · W0.0 · **成本阈值按实测校准**：原 `maxTotalSteps: 120` 基于冒烟的 1.6M token/循环，而真实工作实测 **约 1,500 万/循环**，估偏近十倍 → 改为 **60**（≈7–8 循环 ≈\$110 当量）。教训记在这：**用「什么都不干」的空转数字去定「干活时」的阈值，必然定松**
 
+- 2026-08-21T02:00Z · P0 第二轮 · **13 秒即死在 step 1**：`Failed to authenticate: OAuth session expired and could not be refreshed` → mission 退出码 1，零提交、工作区干净。写回闸判定正确（无 `.mission-halt.json` → 非红线停机 → 保持 open）
+- 2026-08-21T02:00Z · P0 第二轮 · 复跑确认：`claude -p --settings ...` 直接回同一句认证错误 · Keychain 里 `Claude Code-credentials` 条目仍在但已过期 · **监督会话（桌面端）不受影响**——它自己持有并刷新 token，无头子进程用的是钥匙串那份
+- 2026-08-21T02:00Z · P0 第二轮 · **暴露 7×24 的一个真空白**：订阅 OAuth 会过期，而**刷新只能由人完成**（登录属认证动作，AI 不得代做）。循环撞上这个只会一路 `failed`，且写回闸会把它当成普通失败保持 open、下一轮继续撞。**没有任何机制把「认证过期」与「代码有问题」区分开** —— 记为待补的停机条件
+
 ---
 
 ## §3 needs-human 队列
 
 > 格式：`[状态] 日期 · 触发条件 · WBS行ID · 最后一条失败命令原文 + 退出码 · sha · 处置`
 > 状态只有 `open` / `resolved`。**resolved 的行保留不删。**
+
+- [open] 2026-08-21T02:00Z · 触发：Claude Code 订阅 OAuth 过期，无头执行器全部起不来 · P0 第二轮 · `claude -p ...` → `Failed to authenticate: OAuth session expired and could not be refreshed`；mission 退 1，13 秒死在 step 1 · sha `ec759ba` · **处置只能由人做**：在交互式终端跑 `claude login` 重新登录（AI 不得代做认证动作）。恢复后验收：`claude -p "ping"` 返回非空 → 重跑 `tools/loopx-writeback.sh p0-foundation todo_175c903f50e3`
 
 - [resolved] 2026-08-20 · 触发：W0.7 需要建 GitHub 远程仓才能验证「push 触发 CI」 · W0.7 · 处置：人选定**先建私有仓**，`lize-agent-engineering/AgenERP` 已建并 push，CI 已实跑。公开时机留待 P2 有演示价值时由人再定
 
