@@ -1,21 +1,244 @@
 """站点状态快照与结构化 diff。
 
-与 agenerp.pack 同一约定：此刻只有签名，没有行为。
+三个部件，职责互不重叠（结构边界见 `docs/architecture/module-boundaries.md` §11.5）：
+
+- `Snapshot`：不可变值对象，只承载「某一时刻某 scope 的结构化状态」。不持连接、不做 I/O 缓存。
+- 来源（`SnapshotSource`）：唯一做 I/O 的地方。本模块交付**离线来源**；
+  站点来源属 roadmap 工作项 4（工具契约层 v0），此处只留接缝。
+- `diff`：纯函数，不碰来源，产出机器可判定的 added / removed / changed。
+
+「结构化」的含义：调用方靠三个序列回答「什么被加/删/改了」，不必解析 `summary()` 的文本。
+`summary()` 只供人读（断言失败信息、日志），**不是判定面**。
 """
 
-from typing import Any
+from __future__ import annotations
+
+import json
+import os
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Any, Protocol
+
+from agenerp.pack import normalize
 
 _TODO = "尚未实现 —— 见 docs/backlog/p0-foundation-roadmap.md 的工作项对照表"
 
+# 离线来源的约定根目录：仓内 `.agenerp/snapshots/<scope>/*.json`。
+# 目录不存在 = 零条目快照，**不是错误**——今天仓里还没有快照数据，这条读取路径本身是真的。
+OFFLINE_ROOT_ENV = "AGENERP_SNAPSHOT_DIR"
+_DEFAULT_OFFLINE_ROOT = Path(__file__).resolve().parents[1] / ".agenerp" / "snapshots"
 
-def capture(scope: str) -> Any:
+# 有站点配置时走站点来源（工作项 4 才提供实现）。
+SITE_ENV = "AGENERP_SITE"
+
+# 离线快照文件里承载字段清单的键，与 `agenerp.pack` 的定制导出同名。
+_ENTRIES_KEY = "custom_fields"
+_IDENTITY_KEY = "fieldname"
+_DOCTYPE_KEY = "doctype"
+
+
+class SnapshotScopeMismatch(ValueError):
+    """两个 scope 不同的快照被 diff。
+
+    静默地当成「全删全增」会让调用方以为站点被清空又重建，
+    所以这里必须显式报错而不是降级。
+    """
+
+
+@dataclass(frozen=True)
+class SnapshotEntry:
+    """快照里的一个条目：某个 DocType 上的某个字段。
+
+    形状由 `tests/gates/test_snapshot_diff_structured.py` 的 live 断言定稿
+    （`c.doctype == "Item" and c.fieldname == "agenerp_gate_probe"`），
+    工作项 6 接手时不需要改这里。
+    """
+
+    doctype: str
+    fieldname: str
+    attributes: dict[str, Any] = field(default_factory=dict)
+
+    @property
+    def key(self) -> tuple[str, str]:
+        return (self.doctype, self.fieldname)
+
+
+@dataclass(frozen=True)
+class ChangedEntry:
+    """一个既没被加也没被删、但属性变了的条目。前后值都带出来，调用方不必回头再查快照。"""
+
+    doctype: str
+    fieldname: str
+    before: dict[str, Any] = field(default_factory=dict)
+    after: dict[str, Any] = field(default_factory=dict)
+
+    @property
+    def key(self) -> tuple[str, str]:
+        return (self.doctype, self.fieldname)
+
+
+@dataclass(frozen=True)
+class Snapshot:
+    """某一时刻、某 scope 下的结构化状态。
+
+    **相等性只看 scope 与条目内容**：`source` 只是溯源信息（`compare=False`），
+    且这里根本不携带采集时刻——带了它，「同一站点两次快照相等」永远不成立，
+    这正是 Spike 06 在定制包上踩过的坑（易变字段污染 diff）。
+    """
+
+    scope: str
+    entries: tuple[SnapshotEntry, ...] = ()
+    source: str = field(default="", compare=False)
+
+    def __len__(self) -> int:
+        return len(self.entries)
+
+    def by_key(self) -> dict[tuple[str, str], SnapshotEntry]:
+        return {entry.key: entry for entry in self.entries}
+
+
+class SnapshotSource(Protocol):
+    """快照的数据来源。**唯一做 I/O 的接缝**——`capture` 与 `diff` 都不碰外部世界。
+
+    `identity` 是人读的溯源串（路径 / 站点名），只进 `Snapshot.source`，不参与相等性。
+    """
+
+    identity: str
+
+    def read(self, scope: str) -> tuple[SnapshotEntry, ...]:
+        """返回该 scope 下的全部条目。位置不存在时返回空元组，不抛异常。"""
+        ...
+
+
+@dataclass(frozen=True)
+class OfflineSnapshotSource:
+    """从仓内约定位置读快照：`<root>/<scope>/*.json`，一个 DocType 一个文件。
+
+    文件形状（`doctype` 缺省时取文件名）::
+
+        {"doctype": "Item", "custom_fields": [{"fieldname": "brand_code", "fieldtype": "Data"}]}
+
+    读到的载荷先过 `agenerp.pack.normalize`：剥掉 modified / creation / owner 等易变字段，
+    否则「什么都没改重新导出」也会 diff 出差异——快照的确定性与定制包是同一条要求，
+    不该有第二套口径。
+    """
+
+    root: Path
+
+    @property
+    def identity(self) -> str:
+        return f"offline:{self.root}"
+
+    def read(self, scope: str) -> tuple[SnapshotEntry, ...]:
+        scope_dir = self.root / scope
+        if not scope_dir.is_dir():
+            return ()
+        entries: list[SnapshotEntry] = []
+        for path in sorted(scope_dir.glob("*.json")):
+            entries.extend(_entries_from_payload(json.loads(path.read_text()), path.stem))
+        return tuple(sorted(entries, key=lambda entry: entry.key))
+
+
+@dataclass(frozen=True)
+class SiteSnapshotSource:
+    """活站点来源。属 roadmap 工作项 4（工具契约层 v0），此处只留接缝。"""
+
+    site: str
+
+    @property
+    def identity(self) -> str:
+        return f"site:{self.site}"
+
+    def read(self, scope: str) -> tuple[SnapshotEntry, ...]:
+        raise NotImplementedError(
+            f"SiteSnapshotSource.read {_TODO}（工作项 4 · 工具契约层 v0）"
+        )
+
+
+def _entries_from_payload(payload: Any, default_doctype: str) -> list[SnapshotEntry]:
+    if not isinstance(payload, dict):
+        raise ValueError(f"快照文件必须是 JSON 对象，读到 {type(payload).__name__}")
+    normalized = normalize(payload)
+    doctype = str(normalized.get(_DOCTYPE_KEY, default_doctype))
+    rows = normalized.get(_ENTRIES_KEY, [])
+    if not isinstance(rows, list):
+        raise ValueError(f"{doctype} 的 {_ENTRIES_KEY} 必须是列表，读到 {type(rows).__name__}")
+    entries = []
+    for row in rows:
+        if not isinstance(row, dict) or _IDENTITY_KEY not in row:
+            raise ValueError(f"{doctype} 的条目缺少 {_IDENTITY_KEY}：{row!r}")
+        attributes = {k: v for k, v in row.items() if k != _IDENTITY_KEY}
+        entries.append(SnapshotEntry(doctype, str(row[_IDENTITY_KEY]), attributes))
+    return entries
+
+
+def resolve_source(source: SnapshotSource | None = None) -> SnapshotSource:
+    """定下这次快照从哪读：显式来源 > 站点配置 > 离线来源。
+
+    没有站点配置时走离线来源，而**不是**抛异常——否则两条 L1 门禁会永远红在环境上，
+    而不是红在实现上（W0.6「红得不对」的同一个坑）。
+    """
+    if source is not None:
+        return source
+    site = os.environ.get(SITE_ENV, "").strip()
+    if site:
+        return SiteSnapshotSource(site)
+    root = os.environ.get(OFFLINE_ROOT_ENV, "").strip()
+    return OfflineSnapshotSource(Path(root) if root else _DEFAULT_OFFLINE_ROOT)
+
+
+def capture(scope: str, source: SnapshotSource | None = None) -> Snapshot:
     """对当前站点在 `scope` 范围内打一次状态快照。"""
-    raise NotImplementedError(f"capture {_TODO}（工作项 2 · 状态快照与结构化 diff）")
+    resolved = resolve_source(source)
+    return Snapshot(scope=scope, entries=tuple(resolved.read(scope)), source=resolved.identity)
 
 
-def diff(before: Any, after: Any) -> Any:
-    """比较两次快照，给出结构化的 added / removed / changed。"""
-    raise NotImplementedError(f"diff {_TODO}（工作项 2 · 状态快照与结构化 diff）")
+@dataclass(frozen=True)
+class Diff:
+    """两次快照之间的结构化差异。三个序列是判定面，`summary()` 只给人看。"""
+
+    scope: str
+    added: tuple[SnapshotEntry, ...] = ()
+    removed: tuple[SnapshotEntry, ...] = ()
+    changed: tuple[ChangedEntry, ...] = ()
+
+    def is_empty(self) -> bool:
+        return not (self.added or self.removed or self.changed)
+
+    def summary(self) -> str:
+        if self.is_empty():
+            return f"scope={self.scope}：无差异"
+        parts = [
+            f"{label} {len(items)}：{', '.join(f'{e.doctype}.{e.fieldname}' for e in items)}"
+            for label, items in (
+                ("新增", self.added),
+                ("删除", self.removed),
+                ("变更", self.changed),
+            )
+            if items
+        ]
+        return f"scope={self.scope} · " + " · ".join(parts)
+
+
+def diff(before: Snapshot, after: Snapshot) -> Diff:
+    """比较两次快照，给出结构化的 added / removed / changed。
+
+    纯函数：不读来源、不改入参。scope 不同的两个快照**不许**被比较。
+    """
+    if before.scope != after.scope:
+        raise SnapshotScopeMismatch(
+            f"两个快照的 scope 不同（{before.scope!r} vs {after.scope!r}），"
+            "拒绝把它当成「全删全增」"
+        )
+    old, new = before.by_key(), after.by_key()
+    added = tuple(new[key] for key in sorted(new.keys() - old.keys()))
+    removed = tuple(old[key] for key in sorted(old.keys() - new.keys()))
+    changed = tuple(
+        ChangedEntry(*key, before=old[key].attributes, after=new[key].attributes)
+        for key in sorted(old.keys() & new.keys())
+        if old[key].attributes != new[key].attributes
+    )
+    return Diff(scope=before.scope, added=added, removed=removed, changed=changed)
 
 
 def schema_drift(doctype: str) -> Any:
