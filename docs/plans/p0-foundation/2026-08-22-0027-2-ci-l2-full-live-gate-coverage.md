@@ -22,6 +22,17 @@
 >   `2026-08-21-2220-2-homepage-ai-not-configured.md`（现有 `gates-l2` job 的交付者，也是本 plan 红线 2 纪律的先例）·
 >   `docs/backlog/gate-fixtures-pollute-the-live-site.md`（本 plan 触发它的重开条件）
 > Audit: required
+> Closure Audit Log（只追加，不改上面任何一行）:
+>   - 2026-08-22 · 独立关闭审计（fresh session）· 结论 **不可关闭，维持 `deferred`**。
+>     实测复核：`main` 上 `.github/workflows/gates.yml` 的 job 键仍是 7 个
+>     （`gates-untouched` / `expected-red-ratchet` / `gates-l1` / `masterplan-links` / `roadmap-parseable` /
+>     `loop-wiring` / `gates-l2`），**没有 `gates-l2-live`、没有 `verdict-tool-untouched`** ——
+>     两个新 job 确实只在分支 `ci/0027-2-l2-full-live-gate` 上，与 STATE §3 那条 `[open]` 行一致。
+>     19 个未勾项**不是漏勾，是真没做**：Phase 2「守卫 job 的变异实证」三次实验从未跑过（无 run id），
+>     Phase 3「前驱两条 Deferred 记为了结」未落地，`## Closure Gates` 十四框按本 plan
+>     §「`Plan Status` 由谁写」的归属规则本就该保持未勾。审计**不代打勾**（打勾即伪造证据）。
+>     阻塞方：**人 / successor plan** —— 重开条件（`agenerp` 侧清除面被修好）此刻未满足，
+>     `docs/plans/p0-foundation/` 下无承接该面的 successor。
 
 ## 术语约定：本 plan 说的「判定方式节」在哪
 
