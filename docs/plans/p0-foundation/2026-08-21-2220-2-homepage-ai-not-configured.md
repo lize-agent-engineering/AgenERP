@@ -731,6 +731,7 @@ Closure Audit Evidence:
     `gates-l2` `15:44:57Z → 15:48:34Z`，门禁 step 逐字 **`3 passed in 2.68s`**，
     引导日志逐字「引导：首页横幅已写入（AI 能力状态）」，runner `28.0.4` / `Compose v2.38.2`。
     **plan 引的时间、通过数、版本号与日志逐条相符。**
+- **修完之后的第二次 CI 复跑**（关闭审计的改动自己也上了 CI）：sha `bd32959`，run **`32501003150`**，`conclusion=success`，**七个 job 全绿**，含新增判据后的 `gates-l1` 与再跑一遍的 `gates-l2`。
 - 审计轮次结论：iteration 1 `needs revision`（3 blocking + 5 nit）→ **三条 blocking 与 nit 1 全部就地修掉，
   一条都没有降级成 follow-up**；处置明细见 `## Closure Audit Record` 的 revision 段。
 
