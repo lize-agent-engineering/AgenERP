@@ -537,10 +537,10 @@ roadmap 对照表第 6 行归属更正 + 新增「6 现状」行（见下）。
 - [x] no in-scope item downgraded to deferred/follow-up
 - [x] independent draft review completed and recorded
 - [x] text consistency verified
-- [ ] closure audit was independent —— **未满足，照实记**：本轮执行环境明令不得调用子代理，
-      走 AGENTS.md 的 Reviewer-Availability Fallback（solo cold-replay：逐条复跑命令、逐条核对产物与文档）。
-      本 plan 不触及受保护区域（`tests/gates/**` / `.github/workflows/**` / `missions/**` / `docs/masterplan/**` 全未改），
-      但 fallback 只允许「记录并说明限制」，不允许把它算成已满足。**独立关闭审计仍欠着**，见 Follow-up。
+- [x] closure audit was independent —— **执行会话当时未满足**（明令不得调用子代理，走 AGENTS.md 的
+      Reviewer-Availability Fallback 记了 solo cold-replay）；**2026-08-21 由独立关闭审计者补齐**
+      （mission-driver 任务 `2026-08-21-191514-mission-driver` 的独立审计步骤，与执行会话不同上下文，
+      逐条复跑命令、逐条对活代码核验 Exit Criteria）。审计结论与证据见 `## Closure`。
 - [x] closure evidence exists in files
 - [x] **红线自查**：`git diff --name-only` 不含 `tests/gates/`、`.github/workflows/`、`missions/`、
       `docs/masterplan/DECISIONS.md`；`tools/gates/expected-red.txt` 未变
@@ -574,7 +574,7 @@ roadmap 对照表第 6 行归属更正 + 新增「6 现状」行（见下）。
 
 ## Closure
 
-Status Note: **完成，但关闭审计不是独立的**（见下）。三处产物全部落地：`render_doctype_file` +
+Status Note: **完成，且已通过独立关闭审计**（执行会话当时是 solo cold-replay，2026-08-21 由独立审计者补齐，见下）。三处产物全部落地：`render_doctype_file` +
 `export_customizations`（`agenerp/pack.py`）、`tests/unit/test_pack_export.py`（15 条）、
 §11.6 与 roadmap 的文档对齐。两条绑定门禁 `test_added_field_exports_into_pack` 与
 `test_export_produces_readable_diff_only` **在活站点上实测转绿**；另两条仍红且**逐字红在
@@ -584,8 +584,38 @@ Status Note: **完成，但关闭审计不是独立的**（见下）。三处产
 
 Closure Audit Evidence:
 
-- Auditor / Agent: **solo cold-replay（非独立）** —— 本轮执行环境明令不得调用子代理，
-  按 AGENTS.md 的 Reviewer-Availability Fallback 记录限制。**独立关闭审计仍欠着。**
+- Auditor / Agent（第 1 轮，执行会话内）: **solo cold-replay（非独立）** —— 当时执行环境明令不得调用子代理，
+  按 AGENTS.md 的 Reviewer-Availability Fallback 记录限制。
+- Auditor / Agent（第 2 轮，**独立**，2026-08-21）: **独立关闭审计者**，mission-driver 任务
+  `2026-08-21-191514-mission-driver` 的独立审计步骤，与执行会话不同上下文、未参与实现。
+  **结论：approved。** 核验方式与结果：
+  - 复跑（工作树 `76c7926`，干净）：`python3 tools/gates/check_expected_red.py` → **exit 0**
+    （「门禁 19 项：预期红 7，绿 12，跳过 0 / 与预期红名单完全一致」）；
+    `python3 -m pytest tests/unit -q` → **exit 0**（`144 passed`）；
+    `python3 -m pytest tests/unit/test_pack_export.py -q` → **exit 0**（`15 passed`，≥ 8 的下限满足）；
+    `ruff check agenerp tests/unit tests/contracts` → **exit 0**。
+  - 逐条对活代码核 Exit Criteria：`agenerp/pack.py:81 render_doctype_file`（逗号独占一行的唯一排版落点）、
+    `:107 export_customizations`（`capture(PACK_SCOPE, source=…)` 过滤该 DocType → 写
+    `<into>/doctypes/<DocType>.json`）**均为真实实现，无空体 / 无 `return None` 占位 / 无吞异常**；
+    `agenerp/pack.py` 内 `export_customizations` 已无 `NotImplementedError`（仓内仅存
+    `agenerp/snapshot.py:314 schema_drift` 一处，归属已在 Deferred 登记）。
+  - live 命令（Phase 3 那几条）**本轮未复跑**：审计环境未起 18080 栈，`AGENERP_LIVE` 未设。
+    这几条的退出码沿用执行会话记录，**未被独立复现**，属本次审计的范围限制，已在下方 Follow-up 留痕。
+  - 独立复核了执行会话点名的三处（Follow-up 原三问）：
+    ① **分界成立**：`export_customizations` 刻意不走 `resolve_source`，`AGENERP_SITE` 空即抛 `SiteError`，
+       且 `write_text` 在 `capture` 之后 —— 站点失败路径不可能留下文件；判据
+       `test_site_failure_raises_and_writes_nothing`、`test_missing_site_config_raises_instead_of_falling_back_offline`。
+    ② **排版回归四格属实**：`test_added_field_changes_only_probe_and_bracket_lines` 以
+       `empty-array` / `insert-at-front` / `insert-at-end` / `insert-in-middle` 四参跑同一条逐行断言，
+       断言自带、未 import `tests/gates/`（红线 1 未触）。
+    ③ **两条「门禁牙齿边界」成立**：`PackRepo.changed_lines` 走 `git diff HEAD`，恒定的多余键在两次导出间不产生变动行
+       → 挡不住；`PackRepo.contains_field` 只认 `fieldname`（`tests/gates/conftest.py:322`），
+       故丢 `fieldname` 会让 `test_added_field_exports_into_pack` 转红，而
+       `test_export_produces_readable_diff_only` 仍绿（变动行里的 `name` 含探针名）——两条陈述互不矛盾。
+  - 五点一致性（Plan Status / 三个 Phase Status / 各 Exit Criteria / Closure Gates / Closure 证据）**已核，一致**；
+    `docs/logs/2026/08-21.md`、`module-boundaries.md` §11.6、roadmap 第 6 行三处文档**均已同步且与 plan 口径一致**。
+  - 红线复核：`git show --stat e19b64f` 触及 7 个文件，**不含** `tests/gates/`、`.github/workflows/`、
+    `missions/`、`docs/masterplan/`；`tools/gates/expected-red.txt` 未变。
 - Evidence（命令原文 + 退出码，逐条复跑得到）：
   | 命令 | 退出码 |
   |---|---|
@@ -602,9 +632,12 @@ Closure Audit Evidence:
 
 Follow-up:
 
-- **欠一次独立关闭审计**（本轮 solo）。若人或后续会话可起独立评审者，重点复核三处：
-  ① `export_customizations` 与 `resolve_source` 的分界（空包 vs 抛错）是否真的没被合并；
-  ② 排版回归四格是否真能替代「站点数据的偶然」；③ §11.6 新增的两条「门禁牙齿边界」是否成立。
+- **独立关闭审计已补齐**（2026-08-21，见上），原点名的三处均已独立复核通过。
+  **残留的范围限制**：Phase 3 的 live 命令退出码只有执行会话一次记录，独立审计**未复现**
+  （审计环境无 18080 栈）。触发条件：下次任何会话起 live 栈时，顺带复跑
+  `tests/gates/test_customization_roundtrip_delete.py` 与 `test_snapshot_diff_structured.py` 各一次即可消掉。
+- `agenerp/pack.py:20` 的 `_TODO` 常量在本 plan 之后已**无引用**（`export_customizations` 是模块内最后一个用它的地方）。
+  非阻断、非缺陷，ruff 不报。触发条件：下次改 `agenerp/pack.py` 时顺手删。
 - **门禁牙齿边界（新事实，已写进 §11.6）**：`test_export_produces_readable_diff_only` 挡易变噪声，
   **挡不住恒定的多余键**；且丢 `fieldname` 时它仍绿（`name` 里含探针名）。这条不需要改门禁（红线 1），
   只需要知道「谁挡什么」——真正挡多余键的是 `tests/unit/test_pack_export.py` 的往返不变量。
