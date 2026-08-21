@@ -338,10 +338,12 @@ CI 侧消费面（在 `gates-l2-live` 上加一个 `if: failure()` 取证步骤�
 - [x] no in-scope item downgraded to deferred/follow-up
 - [x] independent draft review completed and recorded（至少两轮，第二轮为 `accept`）
 - [x] text consistency verified: status, phases, gates, and log all agree
-- [ ] closure audit was independent —— **执行器不得自审受保护面**，留给 loop 的独立 `CLOSURE_VERIFY` 步（`AGENTS.md` Reviewer-Availability Fallback：受保护面不适用 solo cold-replay）
+- [x] closure audit was independent —— 由 loop 的独立 `CLOSURE_VERIFY` 步（fresh session，MISSION_DRIVER
+      `2026-08-22-055517-mission-driver`）执行，**执行器未自审**（`AGENTS.md` Reviewer-Availability Fallback：
+      受保护面不适用 solo cold-replay）。审计侧复跑命令与退出码见 `## Closure`。
 - [x] closure evidence exists in files
-- [~] 受保护面四条：独立草案评审（两轮，第二轮 `accept`）✅ · 默认判定环境逐字节不变的前后两跑 ✅ ·
-      判定器自身变异验证 ✅ · **独立关闭审计 ⏳ 未做**（同上条，归独立 `CLOSURE_VERIFY`）
+- [x] 受保护面四条：独立草案评审（两轮，第二轮 `accept`）✅ · 默认判定环境逐字节不变的前后两跑 ✅ ·
+      判定器自身变异验证 ✅ · **独立关闭审计 ✅ 已做**（同上条，由独立 `CLOSURE_VERIFY` 完成并自行复跑了变异验证）
 - [x] **零 CI 消耗**：`gh run list --branch ci/0027-2-l2-full-live-gate` 与
       `gh run list --branch main` 在本 plan 执行前后条数不变（前后两次输出在案）
 
@@ -351,12 +353,37 @@ CI 侧消费面（在 `gates-l2-live` 上加一个 `if: failure()` 取证步骤�
 
 ## Closure
 
-Status Note: Phase 1 全部执行完毕，本机 scoped 验证全绿（命令原文与退出码见 Phase 1 的 `Execution Evidence`）。**verification scope limited**：本仓无全量套件，本 plan 全部为本机 scoped 验证，**CI 一次未跑**（停机线在生效，且本 plan 不满足 STATE §3 的重开条件）。**关闭审计尚未做，且执行器不得自审**——判定器是 `ai-autonomy-policy.md` 的 `plan-first` 受保护面，独立关闭审计归 loop 的 `CLOSURE_VERIFY` 步。
+Status Note: Phase 1 全部执行完毕，本机 scoped 验证全绿（命令原文与退出码见 Phase 1 的 `Execution Evidence`），**独立关闭审计已完成并接受关闭**。**verification scope limited**：本仓无全量套件，本 plan 全部为本机 scoped 验证，**CI 一次未跑**（停机线在生效，且本 plan 不满足 STATE §3 的重开条件；`git log --oneline origin/main -1` → `508c75b`，交付提交 `57ad6d5` **未推送**，因此审计期同样零 CI 消耗）。判定器是 `ai-autonomy-policy.md` 的 `plan-first` 受保护面，关闭审计由**执行器之外**的独立 `CLOSURE_VERIFY` 步做，执行器未自审。
 
 Closure Audit Evidence:
 
-- Auditor / Agent: <待独立 CLOSURE_VERIFY 填写；执行器未自审>
-- Evidence: 执行侧证据见 Phase 1 的 `Execution Evidence` 代码块 · `docs/logs/2026/08-22.md` 首条 · `docs/architecture/system-baseline.md` §14.4 末节 · `docs/backlog/p0-foundation-roadmap.md` 工作项 9「三次补记」
+- Auditor / Agent: 独立 `CLOSURE_VERIFY` 步（fresh session，MISSION_DRIVER `2026-08-22-055517-mission-driver`），
+  非本 plan 的执行器；审计期不改任何交付文件，只复跑命令并回填本节与 `## Closure Gates` 两条。
+- Evidence（执行侧）: Phase 1 的 `Execution Evidence` 代码块 · `docs/logs/2026/08-22.md` 首条 ·
+  `docs/architecture/system-baseline.md` §14.4 末节（`git show 57ad6d5 -- docs/architecture/system-baseline.md | grep '^-[^-]'` → 无输出，exit 1，纯追加）·
+  `docs/backlog/p0-foundation-roadmap.md` 工作项 9「三次补记」· 交付提交 `57ad6d5`（8 files，+615/-68）
+- Evidence（审计侧复跑，2026-08-22，命令原文 + 退出码）:
+  - `python3 -m pytest tests/unit -q` → `217 passed`，exit 0
+  - `python3 -m pytest tests/contracts -q` → `151 passed`，exit 0
+  - `ruff check agenerp tests/unit tests/contracts` → `All checks passed!`，exit 0
+  - `ruff check tools/gates/check_expected_red.py tools/gates/explain_last_gate_failures.py` → `All checks passed!`，exit 0
+  - 保命闸：`rm -f .pytest-gates.xml && python3 tools/gates/check_expected_red.py --this-arg-does-not-exist` → exit 2
+  - 取证出口 · 报告不在：`python3 tools/gates/explain_last_gate_failures.py` → `FATAL: 取不到证 …（报告不在 ≠ 没有红）`，exit 2
+  - 端到端：`python3 tools/gates/check_expected_red.py` → exit 0（`门禁 19 项：预期红 7，绿 12，跳过 0`）；
+    紧接 `python3 tools/gates/explain_last_gate_failures.py` → exit 0，首行为
+    `报告：…/.pytest-gates.xml｜junit timestamp=2026-08-22T06:12:19.520045+08:00｜文件 mtime=2026-08-22T06:12:19`，
+    其后 `红 7 条，逐条原文如下：` 并逐条打出 `<error> failed on setup with "Failed: compose_stack 需要 AGENERP_LIVE=1。…` 原文
+  - **审计自行复跑的变异验证**（不采信执行器的抄录）：把 `failure_details()` 首行改成恒 `return details`
+    → `python3 -m pytest tests/unit -q` → `5 failed, 212 passed`，逐字点名
+    `test_failure_details_keeps_message_and_body_of_a_failure` / `…_of_an_error` /
+    `…_uses_explicit_placeholders_instead_of_empty_strings` / `test_failure_details_and_classify_agree_on_nodeids` /
+    `test_explain_prints_every_red_verbatim_and_never_touches_the_report`；复原后 `217 passed`，exit 0，
+    `git status --porcelain` 无输出（工作区已还原）
+- Anti-Hollow: `failure_details()` 被 `explain_last_gate_failures.py` 的 `report_lines()` 实调用（非注册即孤儿），
+  端到端实跑已打出真实红因原文；`unlink` 前移后 FATAL 分支实测仍 exit 2，无空函数体 / `return null` 占位 / 吞异常。
+- 红线自查（审计侧独立复核）: `git show --stat 57ad6d5` 的 8 个文件**未触及**
+  `tests/gates/` · `.github/workflows/` · `tools/gates/expected-red.txt` · `missions/` · `docs/masterplan/DECISIONS.md`；
+  `git status --porcelain` 在审计结束时为空。
 
 Follow-up:
 
