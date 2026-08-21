@@ -168,8 +168,8 @@ ERP 中大量字段是**用户可写的自由文本**——备注、评论、异
   §7.5 在 v0 里只留**声明位**，包裹动作归 P1。处置见 plan 的 `## Deferred But Adjudicated`。
 - **接活站点的一切**：`live_site` fixture、`SiteSnapshotSource.read`（§11.5 留下的接缝）。见 `docs/masterplan/STATE.md` §3 那条 `[open]`。
 
-**一处 owner-doc 字段名漂移，就地裁定**：本文件 §7.3.1（行 82）写 `from_is_submittable`，
-`docs/analysis/2026-08-19-pre-build-validation.md:143` 写 `is_submittable`。
+**一处 owner-doc 字段名漂移，就地裁定**：本文件 §7.3.1 写 `from_is_submittable`，
+`docs/analysis/2026-08-19-pre-build-validation.md 的「五、未排除的残余风险」节` 写 `is_submittable`。
 **架构文档是 owner，实现取 `from_is_submittable`**；`docs/analysis/` 那份是历史分析记录，**不改它**（改它等于销毁证据）。
 接活站点实现 `doc.links` 时以 Frappe 的真实返回字段名为准复核；若两者都不对，回来改本文件——那是人的动作。
 

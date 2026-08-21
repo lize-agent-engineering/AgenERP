@@ -161,6 +161,11 @@
 - 2026-08-21T07:11Z · 7×24 · **launchd 代理已上线**：`com.agenerp.loop`，`RunAtLoad` + `KeepAlive.Crashed`（只在真崩溃时重拉——撞停机条件是正常退出，重拉等于绕过停机闸）。监督器 pid 35188、PPID=1，已过三道闸开跑
 - 2026-08-21T07:11Z · 7×24 · 堵掉一个并发隐患：launchd 起的监督器原本不写 pidfile，`run-loop.sh supervise` 会再起第二个 → 改为监督器自己认领 `_tmp/supervisor.pid`，两个入口共用同一份真相。自测：再叫一次 supervise → 被拒（「监督器已在运行」）
 
+- 2026-08-21T11:03Z · 跨模型对照 · **首版结论更正**：codex/sol 臂并未违反协议。它按上游 plan-review 的 escape hatch 正确处理受阻 plan —— 写 `> Review Hold:`、连做 **15 轮**独立评审、每轮实时核对仓库事实（`STATE.md` harness 项仍 `[open]`、`tests/support/live_site.py` 不存在），判定外部阻塞无法在评审内合法解除，保持 draft。**我第一版直接把「停在 draft」读成「没按协议提升」，没去看有没有 Review Hold 行 —— 看到反常先查协议允不允许，别先假定对方错**
+- 2026-08-21T11:03Z · 跨模型对照 · codex 臂**指出两个真缺陷，都已修**：① 引擎终局判定只问 activePlans/openAudits，被 Review Hold 扣住的 draft 不在其中 → 「活被扣住」被判成「没活干」（**补丁 P6**：`_heldDraftPlans()`，有受阻 plan 时拒判 completed）；② 流程是 EXECUTE → CLOSURE → BUILD → GATE，**plan 先写成 completed 门禁才开跑**，GATE 失败退回 EXECUTE 时磁盘那份已声称完成 —— 「AI 自报通过」的文件形态（**补丁 P7**：判失败时降回 active 并留时间戳原因）
+- 2026-08-21T11:03Z · 跨模型对照 · P6/P7 双向实测通过；引擎回归与主干失败集合逐条一致。中途 `Monitor` 那条一度多挂，单独跑 84 全过、全量复跑不复现 → **全量并发下的抖动，不是补丁所致**（差点误记成自己打坏的）
+- 2026-08-21T11:03Z · 主干 · 循环在 `module-boundaries.md` 写了行号引用 `...pre-build-validation.md:143`，触发引擎自带的 `mdc-1 R3`（架构文档禁行号引用，行号会烂）→ 改为按节名引用，`check-doc-references` exit 0
+
 ---
 
 ## §3 needs-human 队列
