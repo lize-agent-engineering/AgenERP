@@ -253,27 +253,27 @@ Exit Criteria:
 
 ### Phase 3 — 文档、B 半交接、收尾
 
-Status: planned
+Status: completed
 Targets: `docs/architecture/module-boundaries.md`（**只追加**）、`docs/context/project-context.md`、`docs/masterplan/STATE.md`（**只追加 §3**）、`docs/logs/2026/08-21.md`、本 plan 文件自身（末步）
 Skill: `none`
 
 - Item Types: `Add | Fix | Proof`
 - Prereqs: Phase 1, Phase 2
 
-- [ ] `Add` 在 `docs/architecture/module-boundaries.md` §7 之后**追加**一小节（不改写 §7 已有任何一行），记录契约层 v0 声明面在本仓的落点：
+- [x] `Add` 在 `docs/architecture/module-boundaries.md` §7 之后**追加**一小节（不改写 §7 已有任何一行），记录契约层 v0 声明面在本仓的落点：
       模块路径、十个工具的清单**与选法**、判据文件、哪些实测硬约束被表达成了可断言的东西，以及**哪些没有**（熔断、数据边界包裹动作 → 指向 `## Deferred But Adjudicated`）。
       - Skill: `none`
-- [ ] `Fix` 登记 `doc.links` 字段名的 owner-doc 漂移：`module-boundaries.md:82` 写 `from_is_submittable`，
+- [x] `Fix` 登记 `doc.links` 字段名的 owner-doc 漂移：`module-boundaries.md:82` 写 `from_is_submittable`，
       `docs/analysis/2026-08-19-pre-build-validation.md:143` 写 `is_submittable`。
       - 处置：**架构文档是 owner，实现取 `from_is_submittable`**；在上一条追加的小节里写明这处差异、取舍理由与出处行号。
         **不占 `[open]` 行**（同 Phase 1 缺口 #1 的裁定，理由见那里；且这是一处已有明确 owner 可裁的命名差异）；`## Deferred But Adjudicated` 记 `watch-only residual` 并带重开事件。
       - **不改 `docs/analysis/` 那份**——它是历史分析记录，改它等于销毁证据。确认存在的 owner-doc 漂移按计划指南规则 14 不可降级，故记 `Fix`。
       - Skill: `none`
-- [ ] `Fix` 更新 `docs/context/project-context.md` 的 Verification Commands 表：新增一行 `python3 -m pytest tests/contracts -q`。
+- [x] `Fix` 更新 `docs/context/project-context.md` 的 Verification Commands 表：新增一行 `python3 -m pytest tests/contracts -q`。
       - 该文件自己的规矩：**只准写本机实测跑得出退出码的真命令**，不许留占位符。
       - 同时注明它**不在 `commands.test` 里**（`GATE_VERIFY` 复跑不到），并指向 Phase 1 那条就地裁定（缺口 #1）——否则读者会以为它已被判定面覆盖。
       - Skill: `none`
-- [ ] `Add` 向 `docs/masterplan/STATE.md` §3 **追加一行**，登记 **B 半的红线障碍**。
+- [x] `Add` 向 `docs/masterplan/STATE.md` §3 **追加一行**，登记 **B 半的红线障碍**。
       **这是本 plan 唯一的一行 `[open]`**（缺口 #1、十工具选法、字段名漂移都已就地裁定，理由各自写在对应项里）。为什么这一条必须占一行：
       它要的是一个**红线决定**——`tests/gates/**` 改不改、hook 级绕道禁不禁——按红线 1 只有人能做。
       §3 是给人的议程队列（引擎不读它），这一条正是该上议程的那种事；另外三件低代价可逆的已就地裁定，不占位、不淹没它。
@@ -294,7 +294,7 @@ Skill: `none`
         (c) 维持现状——**代价要写明**：工作项 5/6/8 的判据将永远不可达；
         (d) **明确禁止（或授权）hook 级绕道**。本 plan 的建议是**明确禁止并写进红线说明**，因为它能让门禁绿而实现不到位——但**这是人的决定，不是本 plan 的**。
       - Skill: `none`
-- [ ] `Add` 按 `docs/logs/00-log-writing-guide.md` 写 `docs/logs/2026/08-21.md` 条目：交付内容 + 每条验证命令原文 + 退出码 + commit sha，
+- [x] `Add` 按 `docs/logs/00-log-writing-guide.md` 写 `docs/logs/2026/08-21.md` 条目：交付内容 + 每条验证命令原文 + 退出码 + commit sha，
       并**点明本 plan 只交付工作项 4 的 A 半、工作项 4 停在 `planned`（不是 `done`）**，B 半的前置与障碍指向上一条登记。
       - **同时把与 `tools/mission-driver/prompts/execute.md` 的两处冲突逐字记下**（本仓的惯例是把偏差与授权链写进 plan，见 `STATE.md` 2026-08-21T10:20Z 那条）：
         `:10` 「a. Update the plan's `Plan Status` to `completed`」——要执行会话在关闭审计**之前**就自称完成，与 `AGENTS.md` 裁判规则 1/2（「无权自报通过」）冲突，**裁判规则胜出**；
@@ -311,12 +311,12 @@ Skill: `none`
         留 `planned` 而不是 `todo` 的理由：留 `todo` 会让下一轮 `DRAFT_PLANS` 把 A 半再起草一遍，白烧一个循环；
         B 半的接续由 `## Deferred But Adjudicated` 的 successor 条目承担（`draft-from-roadmap` 明写会考虑前序 plan 的 deferred 项），**不靠 `todo` 这个信号，也不靠那行 `[open]`**。
       - Skill: `none`
-- [ ] `Proof` 红线自查，用**区间 diff**（裸 `git diff` 只看未提交改动，改动一提交就静音）：
+- [x] `Proof` 红线自查，用**区间 diff**（裸 `git diff` 只看未提交改动，改动一提交就静音）：
       `git diff --name-only <本 plan 开工时的 sha>..HEAD -- tests/gates/ .github/workflows/ missions/ tools/gates/` → **输出必须为空**；
       `git diff <本 plan 开工时的 sha>..HEAD -- docs/masterplan/STATE.md` → **只有新增行**，且 `docs/masterplan/` 下无其他文件被改。
       - `tools/gates/` 整目录都查：本 plan 连 `expected-red.txt` 都不该动。
       - Skill: `none`
-- [ ] `Proof` **末步：本阶段不改 `Plan Status`，把它留给 `CLOSURE_AUDIT` 步**——并把「谁写、写什么」说死，否则会烧循环。
+- [x] `Proof` **末步：本阶段不改 `Plan Status`，把它留给 `CLOSURE_AUDIT` 步**——并把「谁写、写什么」说死，否则会烧循环。
       - 事实（评审复核 `flows/plan-execution.json` 的步序）：`EXECUTE → CLOSURE_SCRIPT_CHECK →（fail）CLOSURE_AUDIT → BUILD_VERIFY → GATE_VERIFY`。
         独立关闭审计是**同一子流程里更靠后的一步**，所以在 `EXECUTE` 内部「审计已通过」**永远为假**——把状态切换写在 Phase 3 里，等于写了一条永远走不到的分支。
       - 因此归属如下：
@@ -332,14 +332,14 @@ Skill: `none`
 
 Exit Criteria:
 
-- [ ] `module-boundaries.md` 的区间 diff 显示**只有新增行**
-- [ ] `docs/context/project-context.md` 含 `pytest tests/contracts` 且未新增 `<fill real command>` 占位符
-- [ ] `docs/masterplan/STATE.md` §3 共多出**一行** `[open]`（仅 B 半红线障碍），区间 diff 只有新增行
-- [ ] `docs/logs/2026/08-21.md` 已更新，含命令原文 + 退出码 + sha，且写明「只交付 A 半、工作项 4 停在 `planned`（不是 `done`）」
-- [ ] 区间红线自查两条输出均符合要求
-- [ ] owner doc 已更新：`docs/architecture/module-boundaries.md`、`docs/context/project-context.md`
-- [ ] 收尾复跑：`python3 tools/gates/check_expected_red.py && python3 -m pytest tests/unit -q` → **exit 0**；`python3 -m pytest tests/contracts -q` → **exit 0**
-- [ ] Phase 1–3 的执行项与 Exit Criteria 全部 `[x]`；`## Closure Gates` 九框**保持未勾**，等独立关闭审计
+- [x] `module-boundaries.md` 的区间 diff 显示**只有新增行**
+- [x] `docs/context/project-context.md` 含 `pytest tests/contracts` 且未新增 `<fill real command>` 占位符
+- [x] `docs/masterplan/STATE.md` §3 共多出**一行** `[open]`（仅 B 半红线障碍），区间 diff 只有新增行
+- [x] `docs/logs/2026/08-21.md` 已更新，含命令原文 + 退出码 + sha，且写明「只交付 A 半、工作项 4 停在 `planned`（不是 `done`）」
+- [x] 区间红线自查两条输出均符合要求
+- [x] owner doc 已更新：`docs/architecture/module-boundaries.md`、`docs/context/project-context.md`
+- [x] 收尾复跑：`python3 tools/gates/check_expected_red.py && python3 -m pytest tests/unit -q` → **exit 0**；`python3 -m pytest tests/contracts -q` → **exit 0**
+- [x] Phase 1–3 的执行项与 Exit Criteria 全部 `[x]`；`## Closure Gates` 九框**保持未勾**，等独立关闭审计
       （**这一条最后勾**——它是对其余各条的汇总自检，先勾就是空话）
 
 ## 判据缺口登记
