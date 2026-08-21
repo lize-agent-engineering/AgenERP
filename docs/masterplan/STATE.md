@@ -12,7 +12,7 @@
 |---|---|
 | 阶段 | **Day -1**（主计划自身制作） |
 | 当前 mission | 无（mission-driver 尚未接管，Day 0 之后才有） |
-| **下一个未阻塞工作项** | **P0 工作项 3 · 零依赖启动**（plan 已由循环起草并置 planned）（此字段**只填一个 ID**，不写「但实际前置是…」这类歧义——T1 实测：会让接手会话先做一次推理才敢动手） |
+| **下一个未阻塞工作项** | **P0 工作项 4 · 工具契约层 v0**（plan 已起草置 planned；等额度恢复后继续）（此字段**只填一个 ID**，不写「但实际前置是…」这类歧义——T1 实测：会让接手会话先做一次推理才敢动手） |
 | 该项验收命令 | `--driver claude` 能跑通一次最小 prompt 往返，且**不泄漏本仓 CLAUDE.md / hooks / skills**（对策见 `REF:SPIKE02-MODELS`） |
 | 阻塞 | 无。**T1–T4 四条全过**（2026-08-20） |
 | 成本 | 未开始计量（阈值待 `W0.0` 定出） |
@@ -149,12 +149,20 @@
 - 2026-08-21T03:32Z · P0 第二轮 · 成本：4 个无头会话 / 268 条助手消息 / 输入 **42,972,116** / 输出 368,181 / ≈**\$35.6**
 - 2026-08-21T03:32Z · 基础设施 · **7×24 的第一个前提之前不成立**：循环挂在交互会话的后台任务下，会话一退子进程即被杀。新增 `tools/run-loop.sh`（`setsid` + `nohup` 双管齐下脱离进程组，带 pidfile / status / stop / log），停止时杀整个进程组以免引擎 spawn 的 claude 变孤儿
 
+- 2026-08-21T03:52Z · 7×24 · 监督器与预算闸就位：`tools/loop-supervisor.sh`（五道闸：停机记录 / 日预算 / LoopX 配额 / 跑一趟 / 退 2 即停）· `tools/gates/pass_usage.py` 按趟计量 · `tools/gates/check_budget.py` 读台账判 24h 用量。**这补上了「单 mission 累计成本超阈值」此前只有步数代理、没有真计量器的空缺**
+- 2026-08-21T03:52Z · 7×24 · 计量方式的一个坑：不能靠 `entrypoint` 之类标记区分循环会话与人的会话——**实测循环起的 `claude -p` 继承父进程的 `CLAUDE_CODE_ENTRYPOINT`，49 个会话全标成 `claude-desktop`**。改用文件集差分（跑前拍快照，跑完新出现的即本趟产生）
+- 2026-08-21T03:52Z · 7×24 · **launchd 开机自启受阻于 macOS TCC**：代理起来即 `Operation not permitted`。探针确认 —— launchd 代理**读不了 `~/Documents` 下的仓库**，而家目录普通子目录与 `/tmp` 都能读。不是脚本问题，是仓库位置问题
+- 2026-08-21T03:52Z · P0 · 停机前的进度：**工作项 1、2、3 均 `done`**（规范化器 / 快照与结构化 diff / 零依赖启动），工作项 4（工具契约层）plan 已起草置 `planned`。`commands.test` → exit 0。docker 实为 29.2.1 已装（先前报「没有」是我的检查命令引号写错）
+- 2026-08-21T03:52Z · 用户指令 · **暂停等额度**：已 `tools/run-loop.sh stop`、`install-loop-agent.sh uninstall`，无残留进程，工作区已提交推送
+
 ---
 
 ## §3 needs-human 队列
 
 > 格式：`[状态] 日期 · 触发条件 · WBS行ID · 最后一条失败命令原文 + 退出码 · sha · 处置`
 > 状态只有 `open` / `resolved`。**resolved 的行保留不删。**
+
+- [open] 2026-08-21T03:52Z · 触发：launchd 开机自启被 macOS TCC 拦（仓库在 `~/Documents` 下）· 7×24 基础设施 · 探针实测：launchd 代理读 `~/Documents/claude/AgenERP` → `Operation not permitted`；读家目录普通子目录与 `/tmp` → 正常 · sha `dab4ca5` · **两条出路，都需人决**：① 把仓库迁到 `~/Documents` 之外（如 `~/agenerp`），一条 `git clone` 即可，之后 launchd 直接可用；② 在系统设置里给 `/bin/bash` 完全磁盘访问权限（授权面很宽，不推荐）。**在此之前 7×24 只能靠 `tools/run-loop.sh start` 手动起**——它能扛住终端关闭，但扛不住重启
 
 - [resolved] 2026-08-21T02:00Z · 触发：Claude Code 订阅 OAuth 过期，无头执行器全部起不来 · P0 第二轮 · `claude -p ...` → `Failed to authenticate: OAuth session expired and could not be refreshed`；mission 退 1，13 秒死在 step 1 · sha `ec759ba` · **处置只能由人做**：在交互式终端跑 `claude login` 重新登录（AI 不得代做认证动作）。恢复后验收：`claude -p "ping"` 返回非空 → 重跑 `tools/loopx-writeback.sh p0-foundation todo_175c903f50e3` · **处置（2026-08-21T02:04Z）**：人已 `claude login` 重新登录；`claude -p` 复验返回「在线」。并补上第五条停机条件：写回闸从运行输出识别认证失败特征 → 落 `.mission-halt.json`（`condition: auth-expired`）→ 拒绝后续重启。自测：认证特征命中、普通测试失败不误报
 
