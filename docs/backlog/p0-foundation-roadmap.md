@@ -23,7 +23,7 @@ P0 的目标一句话：**把「可验证」做出来。这一阶段不引入任
 - 4. 工具契约层 v0（先包 10 个只读工具）: `planned`
 - 5. 差集 apply 引擎（读包 → 求差 → **对差集执行删除**）: `planned`
 - 6. 定制包往返删除验证（活站点端到端）: `todo`
-- 7. 种子数据（确定性生成，内置 1,010 米积压这个已知业务荒谬）: `todo`
+- 7. 种子数据（确定性生成，内置 1,010 米积压这个已知业务荒谬）: `planned`
 - 8. 零依赖启动进 CI（L2 慢门禁）: `todo`
 
 ## Status values
@@ -44,7 +44,7 @@ P0 的目标一句话：**把「可验证」做出来。这一阶段不引入任
 | 4 | 工具契约层 v0 | 提供 `live_site` fixture，解锁 L2 各项 | — |
 | 5 | 差集 apply 引擎 | `test_customization_roundtrip_delete.py::test_removing_from_pack_actually_deletes_on_site` | L2 |
 | 6 | 定制包往返验证 | `test_customization_roundtrip_delete.py` 其余 3 条 + `test_snapshot_diff_structured.py::test_field_addition_shows_up_as_structured_change` | L2 |
-| 7 | 种子数据 | 尚无门禁——**开工前先补一条**，否则这一项没有判据（见下方规则） |
+| 7 | 种子数据 | **仍然没有门禁**（这一格没有变松）。A 半（纯逻辑生成 + 自验）的判据是 `python3 -m agenerp.seed --seed 42 --verify` → exit 0（取自 `docs/masterplan/02-WBS.md` P0.6，⚠️ 不在 `missions/p0-foundation.json` 的 `commands.test` 里，`GATE_VERIFY` 复跑不到）+ `tests/unit/test_seed_deterministic.py` 31 条（这半 `GATE_VERIFY` 复跑得到）。B 半（装载进活站点 + 站点侧断言）**没有判据**，门禁提案见 [`gate-proposal-seed-dataset.md`](./gate-proposal-seed-dataset.md)，补它要人批 | — |
 | 8 | 零依赖启动进 CI | `test_zero_dep_boot.py` 其余 2 条 | L2 |
 
 ## 框架/平台复用
@@ -69,7 +69,8 @@ P0 的目标一句话：**把「可验证」做出来。这一阶段不引入任
   门禁的红因因此从 `ModuleNotFoundError` 变成 `NotImplementedError`——**没有任何一条门禁因此转绿**，
   下面 8 个工作项的状态一项未动。
 - 没有 `docker-compose.yml`，没有活站点，`live_site` / `pack_repo` / `compose_stack` 三个 fixture 都还抛 `NotImplementedError`
-- 工作项 7（种子数据）**没有门禁测试**
+- 工作项 7（种子数据）**仍然没有门禁测试**。2026-08-21 由 plan [`2026-08-21-1634-1-seed-dataset-deterministic.md`](../plans/p0-foundation/2026-08-21-1634-1-seed-dataset-deterministic.md) 交付了 A 半（`agenerp.seed` 确定性生成器 + 自验 CLI + 31 条单测），**A/B 切分的责任在那个 plan 自己**：B 半要 `live_site`，该 fixture 在 `tests/gates/conftest.py`（红线 1）。
+  因此工作项 7 置 `planned` 而非 `done`——roadmap 对 `done` 的定义是「对应门禁测试已转绿并从预期红名单划掉」，而它压根没有门禁测试，这个定义在字面上不可满足。门禁提案已写在红线外（[`gate-proposal-seed-dataset.md`](./gate-proposal-seed-dataset.md)），判据缺口已登记进 `docs/masterplan/STATE.md` 的 needs-human 队列，等人从三个处置项里选。
 
 ## 本 mission 的规则
 

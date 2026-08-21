@@ -51,10 +51,11 @@ This file is the AI entry point. The following `docs/context/` companions are re
 | Lint / static check       | `ruff check agenerp tests/unit tests/contracts` |
 | Unit tests                | `python3 -m pytest tests/unit -q`              |
 | Contract tests            | `python3 -m pytest tests/contracts -q`（工具契约层 v0 的判据，取自 `docs/masterplan/02-WBS.md` P0.2 的验收列。⚠️ **它不在 `missions/p0-foundation.json` 的 `commands.test` 里**，`GATE_VERIFY` 复跑不到它——该缺口由 plan `2026-08-21-1022-2-tool-contract-layer-v0.md` 就地裁定，代偿控制是独立关闭审计；`missions/**` 是角色 B 禁区，要补得由人把这条命令加进 `commands.test`） |
+| Seed dataset acceptance   | `python3 -m agenerp.seed --seed 42 --verify`（roadmap 工作项 7 的验收命令，取自 `docs/masterplan/02-WBS.md` P0.6 的验收列。语义：同种子两次生成 `diff` 为空**且**内置荒谬场景的断言全过 → 退 0。⚠️ WBS 原文写的是 `python -m …`，本机没有 `python` 这个可执行名，实际形态是 `python3`。⚠️ **它不在 `missions/p0-foundation.json` 的 `commands.test` 里**，`GATE_VERIFY` 复跑不到它——与上面 Contract tests 那一行同样的处理，理由相同（`missions/**` 是角色 B 禁区，要补由人做）；代偿控制是变异验证 + 独立关闭审计，见 `docs/architecture/module-boundaries.md` §12.7） |
 | E2E / integration tests   | `python3 tools/gates/check_expected_red.py`（门禁判定器，L1；L2 live 门禁需活站点/docker，属 P0 交付物） |
 
 **这就是当前可跑的全部**：本仓此刻没有全量套件（无 build、无 typecheck，L2 门禁未解锁）。
-不要把上面五条可跑命令的绿说成「全量验证通过」——那是 scoped verification。
+不要把上面几条可跑命令的绿说成「全量验证通过」——那是 scoped verification。
 
 门禁的判定权归 `tools/gates/check_expected_red.py`：名单内红 = 正常，名单内绿 = 名单过期，
 名单外红 = 真的坏了，出现 skip = 有人放松裁判。ruff 与它无关，且 `tests/gates/**` 已按红线 1
@@ -64,13 +65,19 @@ This file is the AI entry point. The following `docs/context/` companions are re
 
 Mark only the optional layers this project actually maintains.
 
-- [ ] `docs/discussions/`
-- [ ] `docs/audits/`
-- [ ] `docs/testing/`
-- [ ] `docs/skills/`
-- [ ] `docs/analysis/`
-- [ ] `docs/retrospectives/`
-- [ ] `docs/lessons/`
+- [x] `docs/discussions/`
+- [x] `docs/audits/`
+- [x] `docs/testing/`
+- [x] `docs/skills/`
+- [x] `docs/analysis/`
+- [x] `docs/retrospectives/`
+- [x] `docs/lessons/`
+
+**本仓七个可选层均在用**，一个未勾也没有。2026-08-21 实测各层文件数：
+`discussions` 2 / `audits` 4 / `testing` 3 / `skills` 16 / `analysis` 3 / `retrospectives` 2 / `lessons` 1。
+此前七格全部未勾是**起模板时留下的漂移**，不是「这些层没在用」的声明——
+`docs/skills/README.md` 的 Skill Routing Rule、`docs/audits/` 的关闭审计记录、
+`docs/analysis/2026-08-19-pre-build-validation.md` 都已是被其他文档正式引用的真相源。
 
 ## AI Block Conditions
 
