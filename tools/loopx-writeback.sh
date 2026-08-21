@@ -15,6 +15,16 @@ set -uo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
+# PATH 自愈：已装载的 launchd plist 改不了（改了要 unload/load，等于半路杀掉正在跑的循环），
+# 所以每趟开跑前在这里补齐系统标准路径。漏 /usr/local/bin 的代价是实打实的：
+# Docker Desktop 的 CLI 软链在那儿，缺了它零依赖启动门禁会以
+# `FileNotFoundError: 'docker'` 假红——判据没问题、实现没问题，是环境少了一段 PATH。
+# （2026-08-21 迁 launchd 后实测；见 tools/install-loop-agent.sh 的 plist 模板。）
+for d in /usr/local/bin /usr/local/sbin; do
+  case ":$PATH:" in *":$d:"*) ;; *) PATH="$PATH:$d" ;; esac
+done
+export PATH
+
 MISSION="${1:?用法: tools/loopx-writeback.sh <mission> <todo-id> [传给引擎的额外参数...]}"
 TODO_ID="${2:?用法: tools/loopx-writeback.sh <mission> <todo-id> [传给引擎的额外参数...]}"
 shift 2

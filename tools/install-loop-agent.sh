@@ -11,6 +11,8 @@
 #     不能被 launchd 拉起来——那等于绕过停机闸。只有真崩溃才重来。
 #   · PATH 写死绝对路径。launchd 的环境几乎是空的，继承不到登录 shell 的 PATH，
 #     不写死就会在开机自启时找不到 node / claude / loopx。
+#     /usr/local/bin 必须在里面：Docker Desktop 的 CLI 就挂在那儿（软链到 Docker.app），
+#     漏掉它，零依赖启动门禁会以 FileNotFoundError: 'docker' 假红 —— 2026-08-21 实测踩过。
 set -uo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 LABEL="com.agenerp.loop"
@@ -43,7 +45,7 @@ case "${1:-status}" in
   <key>StandardErrorPath</key><string>$ROOT/_tmp/supervisor.log</string>
   <key>EnvironmentVariables</key>
   <dict>
-    <key>PATH</key><string>$HOME/.local/bin:$HOME/Library/Python/3.12/bin:/Library/Frameworks/Python.framework/Versions/3.12/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+    <key>PATH</key><string>$HOME/.local/bin:$HOME/Library/Python/3.12/bin:/Library/Frameworks/Python.framework/Versions/3.12/bin:/opt/homebrew/bin:/usr/local/bin:/usr/local/sbin:/usr/bin:/bin:/usr/sbin:/sbin</string>
     <key>HOME</key><string>$HOME</string>
     <key>AGENERP_MISSION</key><string>$MISSION</string>
     <key>AGENERP_TODO</key><string>$TODO</string>
