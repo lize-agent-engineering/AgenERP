@@ -205,28 +205,28 @@ Exit Criteria:
 
 ### Phase 3 — 委派链、文档、roadmap 写入、日志
 
-Status: planned
+Status: completed
 Targets: `agenerp/pack.py`（仅 `apply_pack` 函数体）、`docs/architecture/module-boundaries.md`（**只在 §11 末尾追加一小节**）、`docs/backlog/p0-foundation-roadmap.md`、`docs/logs/2026/08-21.md`、`docs/masterplan/STATE.md`（**仅停手分支追加 §3 一行**）
 Skill: `none`
 
 - Item Types: `Add | Proof | Decision`
 - Prereqs: Phase 1、Phase 2
 
-- [ ] `Add` 把 `agenerp/pack.py` 的 `apply_pack` 改成委派（函数体内导入 `agenerp.apply`），
+- [x] `Add` 把 `agenerp/pack.py` 的 `apply_pack` 改成委派（函数体内导入 `agenerp.apply`），
       **签名与导入路径一字不改**。判据：`python3 -c "from agenerp.pack import apply_pack"` 退 0；
       且门禁 `test_removing_from_pack_actually_deletes_on_site` 的红因仍在 fixture 层
       （`live_site` 的 `NotImplementedError`），**不是**被本改动改成了别的红。
       - Skill: `none`
-- [ ] `Proof` 红线自查（区间 diff，基线取本 plan 开工前的 sha）：
+- [x] `Proof` 红线自查（区间 diff，基线取本 plan 开工前的 sha）：
       `git diff --name-only <base>..HEAD -- tests/gates/ .github/workflows/ missions/ tools/gates/ docs/masterplan/DECISIONS.md` → **必须为空**；
       `git diff --numstat <base>..HEAD -- docs/masterplan/` → 若非空则只允许 `STATE.md` 且删除行数为 0。
       命令原文与退出码进日志。
       - Skill: `none`
-- [ ] `Add` `docs/architecture/module-boundaries.md` §11 末尾**追加**一小节「差集 apply 引擎在本仓的落点（A 半）」：
+- [x] `Add` `docs/architecture/module-boundaries.md` §11 末尾**追加**一小节「差集 apply 引擎在本仓的落点（A 半）」：
       落点表、包布局裁定与备选、方向约定、`execute_plan` 接缝归属、**以及「本 plan 未让任何门禁转绿」这一事实**。
       只追加，不改已有行。
       - Skill: `none`
-- [ ] `Decision | Add` **自带 roadmap 写入落点**：把 `docs/backlog/p0-foundation-roadmap.md:24` 的工作项 5
+- [x] `Decision | Add` **自带 roadmap 写入落点**：把 `docs/backlog/p0-foundation-roadmap.md:24` 的工作项 5
       置 **`planned`**（若起草步已置则为空操作，**幂等**）。**不得置 `done`**：其绑定门禁被红线 1 挡着。
       起草评审时逐字复核过两处引擎产物，结论要写准，不许含糊：
       `docs/skills/closure-audit-prompt.md` 里 `roadmap` 出现 **0 次**（`grep -c` 实测），关闭审计**不**被指示写 roadmap；
@@ -234,25 +234,25 @@ Skill: `none`
       「change the work item from ❌ to ✅」——**那一条本 plan 不执行**，理由与下节 `Plan Status` 同源（见「`Plan Status` 由谁写」）。
       本项落的是 `planned`，不是 ✅。
       - Skill: `none`
-- [ ] `Proof` 判据可达性如实复核：跑 `python3 -m pytest tests/gates/test_customization_roundtrip_delete.py -q --tb=line`，
+- [x] `Proof` 判据可达性如实复核：跑 `python3 -m pytest tests/gates/test_customization_roundtrip_delete.py -q --tb=line`，
       把「四条仍红、红在 fixture 的 `NotImplementedError`」的原文与退出码记进日志。
       **起草评审时实跑过一次，基线形态是 `4 errors`（`ERROR at setup`，逐字 `NotImplementedError: live_site 尚未实现 …`），
       不是 `4 failed`**；若执行时看到的形态与此不同，那是漂移，按红因变化处理而不是照抄本行——
       这是「本 plan 没有偷偷让判据变绿、也没有伪装成关闭了工作项」的证据。
       - Skill: `none`
-- [ ] `Add` `docs/logs/2026/08-21.md` 追加条目：命令原文 + 退出码 + commit sha，写明**只交付 A 半、工作项 5 停在 `planned`**。
+- [x] `Add` `docs/logs/2026/08-21.md` 追加条目：命令原文 + 退出码 + commit sha，写明**只交付 A 半、工作项 5 停在 `planned`**。
       - Skill: `none`
-- [ ] `Proof` **停手分支（条件触发，不触发就明确写「未触发」）**：若执行中发现 A 半也需要碰 `tests/gates/**` 才能自证，
+- [x] `Proof` **停手分支（条件触发，不触发就明确写「未触发」）**：若执行中发现 A 半也需要碰 `tests/gates/**` 才能自证，
       **立刻停手**，往 `docs/masterplan/STATE.md` §3 **追加**一行（不改已有行），置 `Plan Status: deferred` 并写明重开条件。
       - Skill: `none`
 
 Exit Criteria:
 
-- [ ] `apply_pack` 已委派且导入路径不变；roundtrip 门禁四条仍红且红在 fixture 层（有命令原文与退出码为证）
-- [ ] 红线自查三条命令输出如实记录，`tests/gates/**` 与 `tools/gates/expected-red.txt` 零改动
-- [ ] `docs/architecture/module-boundaries.md` 只追加（`git diff --numstat` 的删除列为 0）
-- [ ] roadmap 工作项 5 = `planned`（不是 `done`）
-- [ ] `docs/logs/` 更新，含命令原文 + 退出码 + sha
+- [x] `apply_pack` 已委派且导入路径不变；roundtrip 门禁四条仍红且红在 fixture 层（有命令原文与退出码为证）
+- [x] 红线自查三条命令输出如实记录，`tests/gates/**` 与 `tools/gates/expected-red.txt` 零改动
+- [x] `docs/architecture/module-boundaries.md` 只追加（`git diff --numstat` 的删除列为 0）
+- [x] roadmap 工作项 5 = `planned`（不是 `done`）
+- [x] `docs/logs/` 更新，含命令原文 + 退出码 + sha
 
 ## `Plan Status` 由谁写（写死，免得烧循环）
 
