@@ -773,7 +773,7 @@ Closure Audit Evidence:
   - `ruff check agenerp tests/unit tests/contracts` → **0**（All checks passed!）
   - `python3 -m pytest tests/contracts -q` → **0**（151 passed）
   - live 七条命令的原文与退出码见 `## 实测回填` 的 Phase 3 节
-  - commit sha: <关闭提交时回填>
+  - commit sha: `a69542e`（`feat(p0-foundation): execute_plan 对活站点真的删除（工作项 5 的 B 半）`）
 - 红线自查: `git status --porcelain -- tests/gates/ .github/workflows/ missions/ docs/masterplan/ tools/gates/expected-red.txt`
   → **输出为空**
 
