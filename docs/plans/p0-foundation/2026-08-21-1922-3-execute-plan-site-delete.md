@@ -697,12 +697,12 @@ git diff --numstat tools/gates/expected-red.txt → 无输出（名单一行未�
 - [x] no in-scope item downgraded to deferred/follow-up
 - [x] independent draft review completed and recorded（三轮，见 `## Draft Review Record`）
 - [x] text consistency verified
-- [ ] closure audit was independent，且**额外套一轮 `open-ended-audit-prompt.md`**（破坏性路径）——
-      **执行会话未满足**：本轮执行环境明令不得调用子代理，按 `AGENTS.md` 的
-      Reviewer-Availability Fallback 记 solo cold-replay 并**如实留空**。
-      本 plan 属**保护区**（`ai-autonomy-policy.md` 新增的「对活站点的破坏性写」行，规则 `plan-first`，
-      Required Evidence 含「独立关闭审计」），该 Fallback **不足以替代**独立审计 ——
-      这一格必须由 `CLOSURE_VERIFY` 的独立审计者补齐，补齐前不得报成「已独立审计」。
+- [x] closure audit was independent，且**额外套一轮 `open-ended-audit-prompt.md`**（破坏性路径）——
+      **执行会话当时未满足**（本轮执行环境明令不得调用子代理，按 `AGENTS.md` 的
+      Reviewer-Availability Fallback 记 solo cold-replay 并如实留空），
+      **已于 2026-08-21 由 `CLOSURE_VERIFY` 的独立关闭审计者补齐**：
+      独立会话，未参与本 plan 的任何实现，逐条重读活代码 + 本机复跑四条判定命令 + 一轮开放式审计。
+      证据见 `## Closure` 的 Closure Audit Evidence 第二条。
 - [x] closure evidence exists in files（`## 实测回填` 的 Phase 1/2/3 三节 + `docs/logs/2026/08-21.md` 三条）
 - [x] **红线自查**：`git status --porcelain -- tests/gates/ .github/workflows/ missions/ docs/masterplan/ tools/gates/expected-red.txt`
       → **输出为空**（零命中）；`tools/gates/expected-red.txt` 一行未变
@@ -747,7 +747,8 @@ git diff --numstat tools/gates/expected-red.txt → 无输出（名单一行未�
 
 ## Closure
 
-Status Note: **三个 Phase 全部执行完毕、验证全绿；独立关闭审计尚缺一轮（见 Closure Gates 第 8 格）。**
+Status Note: **三个 Phase 全部执行完毕、验证全绿；独立关闭审计（含开放式一轮）已于 2026-08-21 补齐，
+Closure Gates 十格全绿，本 plan 可关闭。**
 
 交付：`SiteClient.delete_custom_field`（站点侧删除的唯一出口）、`pack_doctypes` / `narrow_deletes`
 （作用域收窄 + 不静默的 WARNING）、`execute_plan` 的删除路径（建/改显式拒绝）、
@@ -764,9 +765,47 @@ Status Note: **三个 Phase 全部执行完毕、验证全绿；独立关闭审�
 
 Closure Audit Evidence:
 
-- Auditor / Agent: **solo cold-replay（非独立）** —— 本轮执行环境明令不得调用子代理，
+- Auditor / Agent（执行会话当时）: **solo cold-replay（非独立）** —— 该轮执行环境明令不得调用子代理，
   按 `AGENTS.md` 的 Reviewer-Availability Fallback 记录该限制。**本 plan 属保护区，
-  该 Fallback 不足以替代独立审计**，独立那一轮由 `CLOSURE_VERIFY` 补。
+  该 Fallback 不足以替代独立审计**，独立那一轮由 `CLOSURE_VERIFY` 补 —— **现已补齐（下一条）**。
+- Auditor / Agent（独立关闭审计，2026-08-21，`CLOSURE_VERIFY`）: **独立会话、未参与本 plan 的任何实现**，
+  按 `docs/skills/closure-audit-prompt.md` 逐条核 Exit Criteria 与活代码，并**额外套一轮
+  `docs/skills/open-ended-audit-prompt.md`**（保护区/破坏性路径要求）。结论：**passes open-ended audit**。
+  - 逐条核过的活代码（不信 `[x]`，全部重读）：`agenerp/apply.py`（`ApplyDirectionError` 已是显式
+    `raise`、`pack_doctypes` 按**目录里存在的文件**算管辖面且经 `doctype_from_payload` 与条目面同源、
+    `narrow_deletes` 双路 WARNING 不静默、`execute_plan` 按 `key` 排序逐条删且 `creates`/`updates`
+    显式抛并指名 successor、空删除集不构造客户端）、`agenerp/pack.py::apply_pack`（委派链确为
+    读包 → 求差 → **收窄** → 执行，签名未变）、`agenerp/site.py::SiteClient.delete_custom_field`
+    （唯一写出口，`custom_field_name` 单一落点，成败沿用 `200 <= status < 300`，无通用删除方法）、
+    `agenerp/snapshot.py::doctype_from_payload`（与 `entries_from_payload` 共用 `_normalized_payload`）。
+  - **反空壳（anti-hollow）**：新代码全部接在运行时链路上，无空函数体、无 `return None` 占位、
+    无吞异常分支；`grep -rn "^\s*assert " agenerp/` **零命中**（裸 `assert` 确已清干净，
+    `python -O` 下方向闸门不会消失，`test_direction_invariant_survives_python_dash_O` 有覆盖）。
+  - **`is_system_generated` 排除的取数面复核**：`plan.deletes` 来自 `diff` 的 `removed`，即
+    **站点侧**条目，故 `entry.attributes` 里的该标记读的是站点真相而非包内文本——裁定 2 的判据面成立。
+  - 本机复跑（命令原文 + 退出码，退出码单独取 `$?`；**非 CI**）：
+    - `python3 tools/gates/check_expected_red.py` → **0**（门禁 19 项：预期红 7，绿 12，跳过 0 · ✅ 与预期红名单完全一致）
+    - `python3 -m pytest tests/unit -q` → **0**（**164 passed**；`tests/unit/test_apply_execute.py` 实测
+      `def test_` **19 条**，plan 要求 ≥ 8）
+    - `ruff check agenerp tests/unit tests/contracts` → **0**（All checks passed!）
+    - `python3 -m pytest tests/contracts -q` → **0**（151 passed）
+    - `git status --porcelain` → **无输出**（工作区干净）；`git log --oneline -1` → `b6bd6d5`
+  - **红线复核（不信 plan 自述，直接查提交内容）**：`git show --stat a69542e` 的 12 个文件里
+    **没有** `tests/gates/`、`.github/workflows/`、`missions/`、`docs/masterplan/`、
+    `tools/gates/expected-red.txt` 任何一项；`docs/masterplan/DECISIONS.md` 最近一次改动是 `ede5440`（人）。
+  - **文档同步复核**：`module-boundaries.md` §11.6 落点表四行「已实现（B 半）」在位（`:334`–`:338`）、
+    §11.1 已补实测反证（`:215`）；`docs/backlog/p0-foundation-roadmap.md:58` 的「5 现状」行在位且保持
+    `planned`；`docs/context/ai-autonomy-policy.md:86` 的「对活站点的破坏性写」加严行在位；
+    `docs/logs/2026/08-21.md` 三条 Phase 记录在位。
+  - **五点一致性**：Plan Status `completed` / 三个 Phase `Status: completed` / 全部 Exit Criteria `[x]` /
+    Closure Gates 十格 `[x]` / Closure 证据与日志 —— 逐项相符，无 `- [ ]` 残留。
+  - **Deferred 诚实性**：四条 Deferred 无一是在场活缺陷或契约漂移——建/改未实现是**显式抛**而非静默、
+    孤儿列是独立门禁（红因已确认挪到 `schema_drift`）、事务语义由 `02-WBS.md` 划给 P3.1、
+    「删文件表达清空」偏保守方向。均带重开事件，符合 Anti-Slacking Rule。
+  - **残余未知（仍需盯着，不构成阻塞）**：① live 实跑只在本机做过，**CI 未验证**（plan 已明写
+    「verification scope limited」，本审计确认该口径未被夸大）；② `expected-red.txt` 在 live 下会退 1，
+    处置权在 `STATE.md` §3 的 needs-human，未被本 plan 私自处理；③ 站点侧回滚只能手工重建，
+    「物理列仍在故数据很可能还在」未在本仓实测，plan 已明写「不得当成保证」。
 - Evidence（本机复跑，命令原文 + 退出码，退出码单独取 `$?`；**非 CI**）:
   - `python3 tools/gates/check_expected_red.py && python3 -m pytest tests/unit -q` → **0**
     （「门禁 19 项：预期红 7，绿 12，跳过 0 · ✅ 与预期红名单完全一致」/ **164 passed**）
@@ -779,6 +818,5 @@ Closure Audit Evidence:
 
 Follow-up:
 
-- **独立关闭审计（含 `open-ended-audit-prompt.md` 一轮）** —— 唯一未闭合的 Closure Gate。
 - `schema_drift` / 孤儿列（`test_no_orphan_column_left_behind`）—— 工作项 6 的第二个 plan，重开事件已到。
 - `creates` / `updates` 的执行 —— `## Deferred But Adjudicated` 第一条，重开事件未到（P2 或更早的真实调用方）。
