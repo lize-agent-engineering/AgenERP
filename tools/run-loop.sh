@@ -29,11 +29,21 @@ case "${1:-status}" in
       echo "拒绝启动：存在未处置的停机记录"; cat "$ROOT/.mission-halt.json"; exit 2
     fi
     : > "$LOGFILE"
-    # setsid 脱离进程组，nohup 挡 SIGHUP —— 两者都要，缺一个都会被会话退出带走
-    setsid nohup env LOOPX_BIN="${LOOPX_BIN:-$HOME/Library/Python/3.12/bin/loopx}" \
-      bash "$ROOT/tools/loopx-writeback.sh" "$MISSION" "$TODO" "$@" \
-      >> "$LOGFILE" 2>&1 &
-    echo $! > "$PIDFILE"
+    # macOS 没有 setsid（实测 command not found）。用 Python 的 start_new_session=True
+    # 起一个新会话+新进程组的子进程 —— 语义等同 setsid，且本机一定有 python3。
+    # 不这么做的话，父会话退出时整组被杀，7×24 第一天就断（第二轮就是这样死的）。
+    LOOPX_BIN="${LOOPX_BIN:-$HOME/Library/Python/3.12/bin/loopx}" \
+    python3 - "$ROOT" "$LOGFILE" "$MISSION" "$TODO" "$@" > "$PIDFILE" <<'PY'
+import os, subprocess, sys
+root, logfile, mission, todo, *extra = sys.argv[1:]
+log = open(logfile, "ab", buffering=0)
+p = subprocess.Popen(
+    ["bash", os.path.join(root, "tools/loopx-writeback.sh"), mission, todo, *extra],
+    cwd=root, stdout=log, stderr=log, stdin=subprocess.DEVNULL,
+    start_new_session=True,   # ← 关键：新会话，父进程死了也不受牵连
+)
+print(p.pid)
+PY
     sleep 1
     echo "已启动（pid $(cat "$PIDFILE")）· 日志 $LOGFILE"
     echo "看进度：tools/run-loop.sh log    停止：tools/run-loop.sh stop"
@@ -46,7 +56,11 @@ case "${1:-status}" in
       echo "未运行"
       [ -f "$LOGFILE" ] && { echo "--- 最后几行 ---"; tail -5 "$LOGFILE"; }
     fi
-    [ -f "$ROOT/.mission-halt.json" ] && { echo "--- 停机记录 ---"; cat "$ROOT/.mission-halt.json"; }
+    if [ -f "$ROOT/.mission-halt.json" ]; then
+      echo "--- 停机记录 ---"; cat "$ROOT/.mission-halt.json"
+    fi
+    # status 是查询，不该因为「没有停机记录」而返回非 0（会被误读成出问题了）
+    exit 0
     ;;
   stop)
     if alive; then
