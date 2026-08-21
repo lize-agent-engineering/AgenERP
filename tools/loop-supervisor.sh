@@ -39,7 +39,17 @@ PY
   log "停机（$1）：$2"
 }
 
-log "监督器启动 · mission=$MISSION todo=$TODO"
+# 自己认领 pidfile —— 两个入口（launchd 与 tools/run-loop.sh supervise）必须共用同一份真相，
+# 否则 launchd 起的这个不写 pid，run-loop 就会再起第二个，两个监督器并发跑同一个 mission。
+SUPFILE="$ROOT/_tmp/supervisor.pid"
+if [ -f "$SUPFILE" ] && kill -0 "$(cat "$SUPFILE")" 2>/dev/null && [ "$(cat "$SUPFILE")" != "$$" ]; then
+  log "已有监督器在跑（pid $(cat "$SUPFILE")），本进程退出"
+  exit 0
+fi
+mkdir -p "$ROOT/_tmp"; echo $$ > "$SUPFILE"
+trap 'rm -f "$SUPFILE"' EXIT
+
+log "监督器启动 · mission=$MISSION todo=$TODO（pid $$）"
 
 # 若已有一趟在跑（tools/run-loop.sh 起的），等它跑完再接管，别并发
 if [ -f "$ROOT/_tmp/loop.pid" ] && kill -0 "$(cat "$ROOT/_tmp/loop.pid")" 2>/dev/null; then

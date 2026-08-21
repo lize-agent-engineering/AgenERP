@@ -117,14 +117,14 @@
 
 ### Phase 1 — 开工前置、判据缺口登记、契约声明格式
 
-Status: planned
+Status: completed
 Targets: `agenerp/contracts.py`、`docs/backlog/p0-foundation-roadmap.md`（仅第 5 点的幂等兜底可能写它）、`docs/masterplan/STATE.md`（**仅第 6 点的停手分支会追加 §3**）
 Skill: `none`
 
 - Item Types: `Proof | Decision | Add`
 - Prereqs: 无硬前置（软前置见 `## Infrastructure And Config Prereqs`）
 
-- [ ] `Proof` **开工前置检查（第一步，不做完不许写代码）**：
+- [x] `Proof` **开工前置检查（第一步，不做完不许写代码）**：
       1. 重新实测并记录三条基线的**今日**退出码：`python3 tools/gates/check_expected_red.py`、`python3 -m pytest tests/unit -q`、`ruff check agenerp tests/unit`。
          **记退出码与输出原文，不许照抄 Current Baseline 里的计数**——`…-1` plan 一旦落地，名单计数就变了。
       2. **记下本 plan 的开工 sha**（`git rev-parse HEAD`）并写进 `docs/logs/`——Phase 3 的三条区间 diff 判据全靠它，不记就没法复核。
@@ -137,7 +137,7 @@ Skill: `none`
       6. 任一「停手」条件成立时：不实现、不提交代码，向 `docs/masterplan/STATE.md` §3 **追加一行**说明，
          并把本 plan 置为 `Plan Status: deferred`（**不要置 `draft`**——`draftPlans()` 会把 `draft` 重新捡起走 `REVIEW_PLANS` → `EXEC_PLANS`，来回弹；`deferred` 才是停住等人的值）。
       - Skill: `none`
-- [ ] `Decision` **就地裁定判据缺口 #1，不把它写成 `STATE.md` §3 的 `[open]` 行**（独立评审 NEW-5 逼出来的选择，理由必须写进 plan）：
+- [x] `Decision` **就地裁定判据缺口 #1，不把它写成 `STATE.md` §3 的 `[open]` 行**（独立评审 NEW-5 逼出来的选择，理由必须写进 plan）：
       - 缺口是真的：`pytest tests/contracts -q` 不在 `commands.test` 里，`GATE_VERIFY` 复跑不到它，本 plan 的主判据没有外部裁判。
       - **但它不该占一行 `[open]`**——理由是**议程不该被淹没**，不是「会停机」（独立评审 NEW-6 校正了这一点，原稿把后果说重了）：
         实测 `tools/mission-driver/` 下没有任何 flow / script / 表达式读 `STATE.md`（唯一命中是人格文本 `agents/build.claude.md:16`）；
@@ -156,37 +156,37 @@ Skill: `none`
         `docs/logs/` 与 `module-boundaries.md` 的追加小节各记一次，`## Deferred But Adjudicated` 带重开事件。
       - 翻案条件：人把 `python3 -m pytest tests/contracts -q` 接进 `commands.test`（一行的事，`missions/**` 是角色 B 禁区，loop 无权动），或批准补一条红门禁。
       - Skill: `none`
-- [ ] `Decision` 定下契约的**运行时表达形式**：纯 Python 声明式对象（`dataclass`，frozen），**不引 PyYAML**。
+- [x] `Decision` 定下契约的**运行时表达形式**：纯 Python 声明式对象（`dataclass`，frozen），**不引 PyYAML**。
       - 备选：(a) YAML 文件 + 解析器；(b) 纯 Python 声明。
       - 否决 (a) 的理由是实测约束不是口味：CI 的 `gates-l1` 只 `pip install pytest`，`import yaml` 会红在缺依赖；
         `docs/context/project-context.md` 的技术基线已把「零第三方依赖可导入」写死。§7.1 的 YAML 是**文档呈现**，不是运行时格式。
       - 残余风险：将来行业包若要让非开发者写契约，可能需要 YAML 入口。缓解——校验器接受的是**已解析的数据结构**，外挂一个 YAML → dict 加载器不改变本层任何签名。
       - 翻案条件：行业包需要外部可编辑契约文件时。
       - Skill: `none`
-- [ ] `Add` 实现契约结构，字段逐条对齐 §7.1 + §7.3.1，**一个都不许省**：
+- [x] `Add` 实现契约结构，字段逐条对齐 §7.1 + §7.3.1，**一个都不许省**：
       `tool` / `target` / `risk` / `requires_permission` / `preconditions` / `postconditions` / `returns` / `on_violation` / `approval`。
       - `returns` 段按 §7.3.1 的三项要求成形：**裁剪规则**、**上限条数**、**必须保留什么**；另加 §7.5 的**声明位**：本工具是否会返回用户可写自由文本。
       - Skill: `none`
-- [ ] `Add` 实现校验器：拒绝结构不合法的契约，**每种拒绝都有独立可测的失败模式**（缺必填段、`risk` 取值非法、`returns` 缺「必须保留什么」、只读工具声明了写副作用等）。
+- [x] `Add` 实现校验器：拒绝结构不合法的契约，**每种拒绝都有独立可测的失败模式**（缺必填段、`risk` 取值非法、`returns` 缺「必须保留什么」、只读工具声明了写副作用等）。
       - **失败要报得准**：错误消息必须指出是哪个工具的哪一段不合法，否则 10 个契约里错一个要人肉找。
       - Skill: `none`
-- [ ] `Add` 实现**前置条件与后置断言的求值面**，使二者可脱离活站点被独立测试（WBS P0.2 判据的字面要求）：
+- [x] `Add` 实现**前置条件与后置断言的求值面**，使二者可脱离活站点被独立测试（WBS P0.2 判据的字面要求）：
       条件对一个**注入进来的只读上下文**求值，返回「满足 / 不满足 + 原因」，**不自己去连任何站点**。
       - 这正是「独立可测」的机制：测试构造上下文即可，不需要 ERPNext。
       - Skill: `none`
 
 Exit Criteria:
 
-- [ ] `python3 -c "import agenerp.contracts"` → exit 0
-- [ ] 零第三方依赖判据 —— **写成「导入前后的增量」，不是「导入后的全集」**（独立评审实测：全集写法在本机必红，
+- [x] `python3 -c "import agenerp.contracts"` → exit 0
+- [x] 零第三方依赖判据 —— **写成「导入前后的增量」，不是「导入后的全集」**（独立评审实测：全集写法在本机必红，
       `sys.modules` 里本来就有 `__main__`、`_distutils_hack` 与 site-packages `.pth` 注入的 `__editable___*_finder`，
       且它们在 CI 与本机不一样。**一条在合规模块上也会红的判据是假判据**）：
       取 `import agenerp.contracts` **前后**的顶层模块集合求差，差集中不属于 `sys.stdlib_module_names` 且不是 `agenerp` 的应为空 → exit 0
       （评审已用现有 stdlib-only 模块验证该写法退 0）
-- [ ] `ruff check agenerp tests/unit` → exit 0
-- [ ] `python3 tools/gates/check_expected_red.py` → **exit 0**，且门禁计数**与本 plan 开工时实测的那组数字一致**（本 plan 不让任何门禁转绿也不弄红；**不写死数字**，因为 `…-1` 会改变它）
-- [ ] `docs/masterplan/STATE.md` **本阶段不被改动**（缺口 #1 就地裁定，不占 `[open]` 行；只有 Phase 1 首项的「停手」分支才会追加）
-- [ ] 其余 owner-doc 更新归 Phase 3
+- [x] `ruff check agenerp tests/unit` → exit 0
+- [x] `python3 tools/gates/check_expected_red.py` → **exit 0**，且门禁计数**与本 plan 开工时实测的那组数字一致**（本 plan 不让任何门禁转绿也不弄红；**不写死数字**，因为 `…-1` 会改变它）
+- [x] `docs/masterplan/STATE.md` **本阶段不被改动**（缺口 #1 就地裁定，不占 `[open]` 行；只有 Phase 1 首项的「停手」分支才会追加）
+- [x] 其余 owner-doc 更新归 Phase 3
 
 ### Phase 2 — 10 个只读工具的声明 + `tests/contracts/`
 

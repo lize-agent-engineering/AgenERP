@@ -12,8 +12,8 @@
 |---|---|
 | 阶段 | **Day -1**（主计划自身制作） |
 | 当前 mission | 无（mission-driver 尚未接管，Day 0 之后才有） |
-| **下一个未阻塞工作项** | **P0 工作项 4 · 工具契约层 v0**（plan 已起草置 planned；等额度恢复后继续）（此字段**只填一个 ID**，不写「但实际前置是…」这类歧义——T1 实测：会让接手会话先做一次推理才敢动手） |
-| 该项验收命令 | `--driver claude` 能跑通一次最小 prompt 往返，且**不泄漏本仓 CLAUDE.md / hooks / skills**（对策见 `REF:SPIKE02-MODELS`） |
+| **下一个未阻塞工作项** | **P0.2 · 工具契约层 v0**（此字段**只填一个 ID**，不写「但实际前置是…」这类歧义——T1 实测：会让接手会话先做一次推理才敢动手） |
+| 该项验收命令 | `python3 tools/gates/check_expected_red.py && python3 -m pytest tests/unit -q` → exit 0 |
 | 阻塞 | 无。**T1–T4 四条全过**（2026-08-20） |
 | 成本 | 未开始计量（阈值待 `W0.0` 定出） |
 | CI | 未配置（`W0.7`） |
@@ -155,6 +155,12 @@
 - 2026-08-21T03:52Z · P0 · 停机前的进度：**工作项 1、2、3 均 `done`**（规范化器 / 快照与结构化 diff / 零依赖启动），工作项 4（工具契约层）plan 已起草置 `planned`。`commands.test` → exit 0。docker 实为 29.2.1 已装（先前报「没有」是我的检查命令引号写错）
 - 2026-08-21T03:52Z · 用户指令 · **暂停等额度**：已 `tools/run-loop.sh stop`、`install-loop-agent.sh uninstall`，无残留进程，工作区已提交推送
 
+- 2026-08-21T07:11Z · 迁库 · `~/Documents/claude/AgenERP` → **`/Users/lize/Claude/Projects/AgenERP`**（整目录 `mv`，保住 `.env`/`.loopx`/`.codex`/`_tmp` 等未跟踪文件）· 迁后自检：git 完好（remote 在、0 改动）、引擎 `--help` exit 0、`commands.test` exit 0、断链 exit 0、证据仓指针仍可达
+- 2026-08-21T07:11Z · 迁库 · **TCC 确已解开**：launchd 探针在新路径下 cd／读仓库／跑 git／跑引擎**四项全可**（旧路径下四项全被 `Operation not permitted`）。这是迁库的唯一理由，已证实
+- 2026-08-21T07:11Z · 迁库 · 两处需手工修正：① `.loopx/registry.json` 的 `repo` 仍指旧路径 → 已改；② STATE §1「下一项」原写「P0 工作项 4」不是 WBS 行 ID，一致性检查退 1 → 改填 **`P0.2`**。顺带把 WBS 的 P0 行与循环实际进度对齐（P0.1/P0.3/P0.4 置 done，P0.2 in progress）
+- 2026-08-21T07:11Z · 7×24 · **launchd 代理已上线**：`com.agenerp.loop`，`RunAtLoad` + `KeepAlive.Crashed`（只在真崩溃时重拉——撞停机条件是正常退出，重拉等于绕过停机闸）。监督器 pid 35188、PPID=1，已过三道闸开跑
+- 2026-08-21T07:11Z · 7×24 · 堵掉一个并发隐患：launchd 起的监督器原本不写 pidfile，`run-loop.sh supervise` 会再起第二个 → 改为监督器自己认领 `_tmp/supervisor.pid`，两个入口共用同一份真相。自测：再叫一次 supervise → 被拒（「监督器已在运行」）
+
 ---
 
 ## §3 needs-human 队列
@@ -162,7 +168,7 @@
 > 格式：`[状态] 日期 · 触发条件 · WBS行ID · 最后一条失败命令原文 + 退出码 · sha · 处置`
 > 状态只有 `open` / `resolved`。**resolved 的行保留不删。**
 
-- [open] 2026-08-21T03:52Z · 触发：launchd 开机自启被 macOS TCC 拦（仓库在 `~/Documents` 下）· 7×24 基础设施 · 探针实测：launchd 代理读 `~/Documents/claude/AgenERP` → `Operation not permitted`；读家目录普通子目录与 `/tmp` → 正常 · sha `dab4ca5` · **两条出路，都需人决**：① 把仓库迁到 `~/Documents` 之外（如 `~/agenerp`），一条 `git clone` 即可，之后 launchd 直接可用；② 在系统设置里给 `/bin/bash` 完全磁盘访问权限（授权面很宽，不推荐）。**在此之前 7×24 只能靠 `tools/run-loop.sh start` 手动起**——它能扛住终端关闭，但扛不住重启
+- [resolved] 2026-08-21T03:52Z · 触发：launchd 开机自启被 macOS TCC 拦（仓库在 `~/Documents` 下）· 7×24 基础设施 · 探针实测：launchd 代理读 `~/Documents/claude/AgenERP` → `Operation not permitted`；读家目录普通子目录与 `/tmp` → 正常 · sha `dab4ca5` · **两条出路，都需人决**：① 把仓库迁到 `~/Documents` 之外（如 `~/agenerp`），一条 `git clone` 即可，之后 launchd 直接可用；② 在系统设置里给 `/bin/bash` 完全磁盘访问权限（授权面很宽，不推荐）。**在此之前 7×24 只能靠 `tools/run-loop.sh start` 手动起**——它能扛住终端关闭，但扛不住重启 · **处置（2026-08-21T07:11Z）**：人选定出路 ① —— 仓库迁至 `/Users/lize/Claude/Projects/AgenERP`。launchd 探针复验四项全可，代理已装载运行。未采用「给 /bin/bash 完全磁盘访问」那条，授权面太宽
 
 - [resolved] 2026-08-21T02:00Z · 触发：Claude Code 订阅 OAuth 过期，无头执行器全部起不来 · P0 第二轮 · `claude -p ...` → `Failed to authenticate: OAuth session expired and could not be refreshed`；mission 退 1，13 秒死在 step 1 · sha `ec759ba` · **处置只能由人做**：在交互式终端跑 `claude login` 重新登录（AI 不得代做认证动作）。恢复后验收：`claude -p "ping"` 返回非空 → 重跑 `tools/loopx-writeback.sh p0-foundation todo_175c903f50e3` · **处置（2026-08-21T02:04Z）**：人已 `claude login` 重新登录；`claude -p` 复验返回「在线」。并补上第五条停机条件：写回闸从运行输出识别认证失败特征 → 落 `.mission-halt.json`（`condition: auth-expired`）→ 拒绝后续重启。自测：认证特征命中、普通测试失败不误报
 

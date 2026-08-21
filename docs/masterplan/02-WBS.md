@@ -60,10 +60,10 @@
 
 | ID | 工作项 | 前置 | 验收 | 状态源 |
 |---|---|---|---|---|
-| P0.1 | 零依赖启动（compose 语法修法） | Day 0 出口 | 🔴 `tests/gates/test_zero_dep_boot.py` | `MD:p0-foundation` |
-| P0.2 | 工具契约层 v0：契约声明格式 + 10 个只读工具 | P0.1 | `pytest tests/contracts -q` 退 0（前置条件/后置断言可独立测试） | `MD:p0-foundation` |
-| P0.3 | 状态快照与 diff（任意时刻快照 + 两快照 diff + 断言 DSL） | P0.2 | 🔴 `tests/gates/test_snapshot_diff_structured.py` | `MD:p0-foundation` |
-| P0.4 | 定制包规范化器（剥离 `modified`/`creation`/`owner`/`_comments` 并稳定排序） | P0.3 | 🔴 `tests/gates/test_normalizer_idempotent.py` | `MD:p0-foundation` |
+| P0.1 | 零依赖启动（compose 语法修法） | Day 0 出口 | 🔴 `tests/gates/test_zero_dep_boot.py` | **done** 2026-08-21T07:05Z · 零依赖启动 · compose 7.4KB，门禁 `test_compose_config_valid_with_empty_env` 转绿 |
+| P0.2 | 工具契约层 v0：契约声明格式 + 10 个只读工具 | P0.1 | `pytest tests/contracts -q` 退 0（前置条件/后置断言可独立测试） | **in progress** · plan 已起草，声明面 320 行已落盘，循环执行中 |
+| P0.3 | 状态快照与 diff（任意时刻快照 + 两快照 diff + 断言 DSL） | P0.2 | 🔴 `tests/gates/test_snapshot_diff_structured.py` | **done** 2026-08-21T07:05Z · 状态快照与结构化 diff · 门禁两条 L1 转绿 |
+| P0.4 | 定制包规范化器（剥离 `modified`/`creation`/`owner`/`_comments` 并稳定排序） | P0.3 | 🔴 `tests/gates/test_normalizer_idempotent.py` | **done** 2026-08-21T07:05Z · 定制包规范化器 · 门禁三条转绿 |
 | P0.5 | 差集 apply 引擎（读包 → 求差 → **对差集执行删除**） | P0.4 | 🔴 `tests/gates/test_customization_roundtrip_delete.py` | `MD:p0-foundation` |
 | P0.6 | 种子数据：确定性程序化生成，**内置已知业务荒谬**（1,010 米积压） | P0.3 | 同种子两次生成 `diff` 为空，且断言积压场景存在：`python -m agenerp.seed --seed 42 --verify` 退 0 | `MD:p0-foundation` |
 | P0.7 | 零依赖启动 CI（空环境变量下 config + up + healthcheck） | P0.1, W0.7 | `CI:gates` 上 `test_zero_dep_boot` 绿 | `CI:gates` |
