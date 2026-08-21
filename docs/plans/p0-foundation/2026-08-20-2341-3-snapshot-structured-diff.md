@@ -1,9 +1,9 @@
 # 2026-08-20-2341-3 状态快照与结构化 diff（L1 部分）
 
-> Plan Status: active
+> Plan Status: completed
 > Mission: p0-foundation
 > Work Item: 2. 状态快照与结构化 diff
-> Last Reviewed: 2026-08-20
+> Last Reviewed: 2026-08-21
 > Source: `docs/backlog/p0-foundation-roadmap.md` Work Item Status 第 2 项（`todo`）
 > Related: `2026-08-20-2341-1-agenerp-package-skeleton.md`（**硬前置**）·`2026-08-20-2341-2-customization-pack-normalizer.md`（同批，先于本 plan）
 > Audit: required
@@ -205,7 +205,7 @@ Exit Criteria:
 - [x] ~~`STATE.md` §3 多出一行 `[open]`~~ —— 前提消失，改为 §2 追加 4 行证据；`git diff --stat docs/masterplan/STATE.md` → `5 insertions(+)`，删除 0，**只有新增行**
 - [x] 红线 1 自查用**区间** diff：`git diff --name-only b8aadbf..HEAD -- tests/gates/ .github/workflows/ docs/masterplan/DECISIONS.md` → **输出为空**（`b8aadbf` 是本轮开工时的 HEAD；`git diff --name-only HEAD` 只看未提交改动，与 `gate-verify.mjs` 的写保护共享同一盲区，自查不能沿用它）
 - [x] Phase 1–3 的**执行项与 Exit Criteria** 全部 `[x]`；`## Closure Gates` 的 9 个框**保持未勾**，等独立关闭审计
-- [x] ~~本 plan 文件头为 `> Plan Status: deferred`~~ —— 改为 **`active`**：deferral 的唯一理由（等人划名单）已由人在开工前的 `920ce0e` 消解，理由见上方执行记录
+- [x] ~~本 plan 文件头为 `> Plan Status: deferred`~~ —— 执行步收尾时改为 **`active`**：deferral 的唯一理由（等人划名单）已由人在开工前的 `920ce0e` 消解，理由见上方执行记录。**2026-08-21 独立关闭审计通过后由审计步改为 `completed`**（见 `## Closure`）
 
 ## 收尾协议（给执行本 plan 的会话）
 
@@ -248,15 +248,18 @@ Exit Criteria:
 
 ## Closure Gates
 
-- [ ] in-scope behavior is complete
-- [ ] relevant docs are aligned（`docs/architecture/` 已记录结构边界）
-- [ ] verification has run：`python3 -m pytest tests/gates/test_snapshot_diff_structured.py -q -m 'not live'`（exit 0）/ `python3 -m pytest tests/unit -q`（exit 0）/ `ruff check agenerp tests/unit`（exit 0）/ `python3 tools/gates/check_expected_red.py`（如实记录）
-- [ ] scoped verification is not conflated with full verification —— 本 plan **刻意只跑 L1 子集**（`-m 'not live'`），live 那条不在范围内，限制已写明；`check_expected_red.py` 未退 0 前不得报全绿
-- [ ] no in-scope item downgraded to deferred/follow-up
-- [ ] independent draft review completed and recorded
-- [ ] text consistency verified: status, phases, gates, and log all agree
-- [ ] closure audit was independent
-- [ ] closure evidence exists in files
+> 九框由**独立关闭审计**（`CLOSURE_AUDIT`，fresh session，不带实现上下文）在 2026-08-21 逐条复核后勾选。
+> 执行步按 Phase 3 的 ⚠️ 段保持全部未勾，未自证关闭——该约束已被遵守，见 `## Closure` 的审计记录。
+
+- [x] in-scope behavior is complete —— `agenerp/snapshot.py` 全部落地并被 unit + 门禁真实调用；`SiteSnapshotSource.read` / `schema_drift` 按 Non-Goals 保留 `NotImplementedError` 且仍被 `test_contract_surface.py` 断言红着
+- [x] relevant docs are aligned —— `docs/architecture/module-boundaries.md` §11.5（L209-247）已记录 `Snapshot` / `SnapshotSource` / `diff` 的职责与不变量、来源解析次序、两条显式拒绝、工作项 4 接缝
+- [x] verification has run（审计原样复跑，退出码单独取 `$?`）：`python3 -m pytest tests/gates/test_snapshot_diff_structured.py -q -m 'not live'` → exit 0（2 passed, 1 deselected）/ `python3 -m pytest tests/unit -q` → exit 0（40 passed）/ `ruff check agenerp tests/unit` → exit 0 / `python3 tools/gates/check_expected_red.py` → exit 0（门禁 13 项：预期红 8，绿 5，跳过 0）
+- [x] scoped verification is not conflated with full verification —— **verification scope limited**：本 plan 刻意只跑 L1 子集（`-m 'not live'`），live 那条不在范围内；全量 `python3 -m pytest tests/gates -q --tb=line` 实测 1 failed / 5 passed / 7 errors，**未报全绿**，残余红项均属工作项 3/4/5/6
+- [x] no in-scope item downgraded to deferred/follow-up —— `## Deferred But Adjudicated` 三项（live 断言 / 断言 DSL / 站点来源）逐条对照 roadmap 对照表与 Non-Goals，均是本 plan 起草即声明的范围外项，无在范围内的活被降级
+- [x] independent draft review completed and recorded —— `## Draft Review Record` 四轮迭代（iteration 4 `accept`，agent `a39d683b1f978d6d3`）
+- [x] text consistency verified: status, phases, gates, and log all agree —— Plan Status `completed` / Phase 1–3 `Status: completed` 且执行项与 Exit Criteria 全 `[x]` / 本节九框全 `[x]` / `docs/logs/2026/08-21.md` 与 `docs/masterplan/STATE.md` §2 四行证据一致
+- [x] closure audit was independent —— 由独立 `CLOSURE_AUDIT` 代理完成，不采信 plan 内既有 `[x]`，逐条读活代码 + 原样复跑
+- [x] closure evidence exists in files —— `docs/architecture/module-boundaries.md` §11.5、`docs/logs/2026/08-21.md`、`docs/masterplan/STATE.md` §2（2026-08-21T10:20Z 四行）、commit `e145e43` / `9ae88bf` / `3d405fb`
 
 ## Deferred But Adjudicated
 
@@ -283,13 +286,46 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: <未关闭>
+Status Note: 三个 Phase 的执行项与 Exit Criteria 全部落地并经独立审计复核；四条验证命令原样复跑全部退 0；
+`## Human Handoff` 的验收条件（`check_expected_red.py` → exit 0）已由人的 `920ce0e` 满足，deferral 理由不复存在。
+红线自查用区间 diff 通过（`tests/gates/` / `.github/workflows/` / `DECISIONS.md` 本轮零改动），
+`STATE.md` 只追加不改写（`5 insertions(+)`，删除 0）。故本 plan 可关闭为 `completed`。
 
 Closure Audit Evidence:
 
-- Auditor / Agent: <pending>
-- Evidence: <pending>
+- Auditor / Agent: 独立关闭审计代理（`CLOSURE_AUDIT`，fresh session，不带实现上下文，未参与本 plan 任何实现）
+- 审计日期 / 基线: 2026-08-21 · HEAD `3d405fb` · 工作区 `git status --porcelain` 输出为空
+- 审计方法: **不采信 plan 内既有 `[x]`**——逐条读活代码与活文档，原样复跑全部验证命令，退出码单独取 `$?`
+
+| 复核项 | 方法 | 实测 |
+|---|---|---|
+| L1 门禁 | `python3 -m pytest tests/gates/test_snapshot_diff_structured.py -q -m 'not live'` | **exit 0** · 2 passed, 1 deselected |
+| unit 全量 | `python3 -m pytest tests/unit -q` | **exit 0** · 40 passed |
+| lint | `ruff check agenerp tests/unit` | **exit 0** · All checks passed! |
+| 预期红名单 | `python3 tools/gates/check_expected_red.py` | **exit 0** · 门禁 13 项：预期红 8，绿 5，跳过 0 |
+| 全量门禁（scope 限制的对照） | `python3 -m pytest tests/gates -q --tb=line` | 1 failed / 5 passed / 7 errors —— 未报全绿 |
+| live 断言红因 | `python3 -m pytest tests/gates/...::test_field_addition_shows_up_as_structured_change -q --tb=line` | 仍红，红因为 `live_site` 的 `NotImplementedError`（属工作项 4/6，未被本 plan 弄成别的错） |
+| 红线 1/2/3 | `git diff --name-only b8aadbf..HEAD -- tests/gates/ .github/workflows/ docs/masterplan/DECISIONS.md` | **输出为空** |
+| 红线 5（STATE 只追加） | `git diff --stat 9ae88bf..3d405fb -- docs/masterplan/STATE.md` | `5 insertions(+)`，删除 0 |
+
+- 反空壳复核（逐个读代码，非签名比对）: `capture` 经 `resolve_source` 真实走 `OfflineSnapshotSource.read` 的
+  `glob("*.json")` → `json.loads` → `normalize` → `SnapshotEntry` 路径；`diff` 用 `by_key()` 集合运算算出三类，
+  `changed` 带 `before` / `after`；`SnapshotScopeMismatch` 是显式 `raise` 而非静默降级。**无空函数体、无 `return None` 占位、无吞异常**。
+  `tests/unit/test_snapshot_capture.py` 9 条全部用 `tmp_path` **非空夹具**驱动（3 条目断言 / 改夹具后不再相等 /
+  易变字段被剥掉 / 显式来源优先），起草评审点名的 H 类「零条目空洞判据」确认已被压住。
+  `tests/unit/test_snapshot_diff.py` 11 条覆盖增删改不串味、`(doctype, fieldname)` 二元身份、跨 scope 抛错、纯函数不改入参。
+- 未被顺手做掉的邻项复核: `tests/unit/test_contract_surface.py` 的 `NOT_YET_IMPLEMENTED` 仍含
+  `agenerp.pack:export_customizations` / `agenerp.pack:apply_pack` / `agenerp.snapshot:schema_drift`，且测试仍断言其抛 `NotImplementedError`。
+- 五点一致性: Plan Status `completed` / Phase 1–3 `Status: completed` 且全 `[x]` / Closure Gates 九框全 `[x]` /
+  `docs/logs/2026/08-21.md` 顶部条目 / `docs/masterplan/STATE.md` §2 四行 —— 逐条比对，一致。
+- Deferred 诚实性: 三项均为起草即声明的范围外项，与 roadmap 对照表（工作项 4/6）及 Non-Goals 对齐，
+  无在范围内的实缺或契约漂移被藏进 Deferred / Follow-up。
+- 落地: 本次审计把 `Plan Status` 由 `active` 改为 `completed`、`Last Reviewed` 改为 2026-08-21、
+  勾选九个 Closure Gates、写入本节证据，并把 `docs/backlog/p0-foundation-roadmap.md` 工作项 2 由
+  `planned` 改为 **`done`**（该表定义 `done` = 完成且通过 closure 审计 + 门禁转绿并从预期红名单划掉，两条现均为真）。
+- 结论: **approved**
 
 Follow-up:
 
-- <none yet>
+- 工作项 4（工具契约层 v0）落地 `live_site` fixture 后，接上 `SiteSnapshotSource.read`；届时复核离线快照与站点快照的条目类型是否一致（Phase 1 Decision 的翻案条件）。
+- roadmap 工作项 1（定制包规范化器）仍为 `todo`，属 plan 2 的遗留，不在本 plan 范围内，交后续轮次处理。
