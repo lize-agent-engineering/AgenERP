@@ -280,3 +280,92 @@ roadmap 工作项 3（plan `docs/plans/p0-foundation/2026-08-21-1022-1-zero-dep-
 新增的三条 healthcheck **一个 AI 相关变量都不出现**，也不引入任何 `${…}` 插值——
 这是 §14 规则 ② 的直接要求（外部能力缺失是「未配置」状态，不进 healthcheck / command 的成败路径），
 判据是 `tests/unit/test_compose_zero_dep.py` 的 `test_ai_variable_defaults_to_empty` 与两条插值断言。
+
+---
+
+## 14.3 「AI 能力未配置」在本仓的表达口径（2026-08-21 追加）
+
+> 本节回答两个此前无人定义的问题：**这句话由站点上的什么东西承载**，以及
+> **它要不要随 AI 配置的变化而变**。出处是 plan
+> `docs/plans/p0-foundation/2026-08-21-2220-2-homepage-ai-not-configured.md` Phase 1，
+> 结论全部由该 plan 起草与执行时在活站点上实测得出，命令原文与退出码在当天的 `docs/logs/` 里。
+> 本节**只增不改**，不改写 §14 / §14.1 / §14.2 的任何一行。
+
+### 决策 ①：承载物取 `Website Settings.banner_html`
+
+| 候选 | 实测结论 | 取舍 |
+|---|---|---|
+| (a) 建一条 `Web Page` + 把 `Website Settings.home_page` 指向它 | plan 起草时实测可行，门禁两条断言都过 | **未采纳** |
+| (b) `Website Settings.banner_html` | 执行时实测可行：`GET /` 回 200，正文含该文案（渲染在 navbar 之前） | **采纳** |
+| (c) 自建 Frappe app 提供 www 页面 | 要在镜像里装 app，与「零依赖启动不改镜像」冲突 | 起草时即排除 |
+
+取 (b) 的三条理由，按分量排：
+
+1. **它不把 `/` 从登录页上夺走。** (a) 会让 `/` 变成一张静态说明页，登录退到 `/login`——
+   本仓此刻唯一的可用界面就是 ERPNext 原生桌面，把登录挤出首页是实打实的产品退化。
+   (b) 保留登录页，只在它上面加一条状态横幅。
+2. **改动面更小。** (b) 只写一个既有 Single 的一个字段，不新增任何文档、不改路由归属；
+   (a) 要建一条 `Web Page` 文档并改写 `home_page`，两处站点态、两处要幂等。
+3. **幂等是天然的。** 写字段天然幂等（值相同就跳过），不需要 (a) 那种「已存在则跳过」的分支。
+
+实测记录（活站点，端口 18080，`Host: frontend`）：
+
+- `PUT /api/resource/Website Settings/Website Settings`（`banner_html` 置为含该文案的 HTML）→ `put=200`；
+  随后 `GET /` → `status=200`，正文命中该文案 1 次，位置在 `<div>…</div><nav class="navbar …">` 之前。
+- **覆盖面的代价照实记**：`banner_html` 出现在**所有 website 层页面**上，不只是 `/`。
+  实测 `/login` 同样命中 1 次；`/app` 是 301、`/api/method/ping` 是 200 且都 0 次——
+  即桌面与 API 不受影响，覆盖面被限制在 website 层。
+
+### 决策 ②：文案在引导期按环境判定一次，但「AI 能力未配置」这句话无条件常驻
+
+| 候选 | 取舍 |
+|---|---|
+| (a) 引导时读当时的 `AGENERP_LLM_ENDPOINT`，空/非空写不同文案 | **采纳，但带下面那条硬约束** |
+| (b) 固定写「AI 能力未配置」，完全不看环境 | 备选（硬约束若说不通就退回它） |
+| (c) 请求时动态判断 | 起草时即排除：静态承载物读不到环境变量，要动态就得有服务端代码，踩红线 7 的边界 |
+
+**硬约束：无论 AI 是否已配置，首页正文都必须逐字包含 `AI 能力未配置`。**
+理由是判据侧的事实，不是文案偏好：门禁那条断言是**无条件**的
+（`assert "AI 能力未配置" in resp.text`，它不看环境），而 `compose_stack` 起栈时用的是**宿主环境**
+（`tests/gates/conftest.py` 的 `_compose()` 不传 `env=`），compose 还会读仓根 `.env` 做插值。
+朴素的「非空就改写文案」会让这条门禁**在零代码改动的情况下、只因换了台机器而变红**。
+因此「已配置」分支只允许在这句话**之外**追加状态说明——本仓把它写成一张能力清单：
+端点配没配是一行，Agent 有没有承担呈现层 / 语言层 / 判断层是另一行，而后者在 P0 阶段**恒为未配置**
+（roadmap 首句：P0 不引入任何 LLM）。所以这句话在两个分支里都是真陈述，不是为了迁就断言而说的假话。
+
+### 引导步骤的落点与限制
+
+- 落点：一次性 compose 服务 `bootstrap-homepage`（形状同 `create-site`：`restart: "no"`、
+  `depends_on: create-site: service_completed_successfully`、跑完即退），
+  跑仓内脚本 `tools/bootstrap/homepage_notice.py`，以**字面写死的相对路径**只读 bind mount 挂进容器。
+  路径不许写成变量：判据是对 compose 的静态文本扫描，而仓根 `.env` 能在 `config` 时把变量改掉——
+  与 §14.1 「回环绑定 IP 必须字面写死」是同一条理由。
+  这是本仓**唯一**的 bind mount；此前 compose 全文只挂命名卷，仓内脚本对容器不可见。
+- **一次性服务必须被人依赖，否则 `up -d --wait` 会判它失败。** 实测：`bootstrap-homepage`
+  刚落地时没有任何服务依赖它，`up -d --wait` 退 **1**，逐字打
+  `container agenerp-bootstrap-homepage-1 exited (0)` —— 正常退出被 `--wait` 当成了失败。
+  `configurator` / `create-site` 不踩这个坑，正是因为它们各自被 `service_completed_successfully` 依赖着。
+  处置：给 `frontend` 加 `bootstrap-homepage: condition: service_completed_successfully`。
+  这一条同时买到了产品语义——nginx 开始对外服务时，横幅一定已经在了。
+- **站点名 `frontend` 现在出现在 compose 的四处**（`create-site` 的 `--set-default`、
+  `frontend` 的 `FRAPPE_SITE_NAME_HEADER`、`backend` 探针的 `Host` 头、`bootstrap-homepage` 的
+  `AGENERP_SITE_NAME`），改站点名要四处一起改。§14.2 写的「三处」是本节落地前的计数。
+  引导脚本自己**不写死**站点名，四处都在 `docker-compose.yml` 里。
+- **引导脚本必须在 `frappe-bench/sites` 目录下跑。** frappe 的日志路径是
+  `os.path.join("..", "logs", …)`，相对 cwd；换个目录跑会直接
+  `FileNotFoundError: /home/frappe/logs/database.log`（实测踩过）。
+- **限制 ①（残余风险）：文案是引导期一次性判定的。** 事后改了 `.env` 里的 AI 变量，
+  首页文案**不会自动跟着变**，要重跑引导步骤（`docker compose up -d bootstrap-homepage`）。
+  动态判定要服务端代码，会踩红线 7 的边界，本仓不做。
+- **限制 ②（残余风险）：上面那条硬约束意味着文案里永远留着一句「AI 能力未配置」。**
+  产品上线前需要人复核它是否仍然贴切——真接上 LLM 之后，这句话的落点应当从「整个产品」
+  收窄到「具体哪一层还没接」，否则它会从真陈述退化成噪音。
+- 引导脚本读 `AGENERP_LLM_ENDPOINT`，但**它不在成败路径上**：变量为空时脚本照样退 0
+  （这正是 §14 规则 ② 的要求）。可执行定义见 `tests/unit/test_compose_zero_dep.py`
+  的 `test_ai_vars_absent_from_healthchecks`。
+
+### 红线 7 在本节的落点
+
+交付的横幅内容与引导脚本都**只含静态文本**：不出现 `<script`、不出现 Jinja 定界符、
+不建 `Server Script` / `Client Script` 任何一种。这不是只写在文档里的承诺，
+判据是 `tests/unit/test_compose_zero_dep.py::test_bootstrap_delivers_no_runtime_code`。

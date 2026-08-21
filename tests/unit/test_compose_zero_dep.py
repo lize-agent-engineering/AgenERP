@@ -203,3 +203,109 @@ def test_no_floating_image_tags():
         assert not ref.endswith(":latest"), f"{ref} 用了 latest tag"
         name = ref.rsplit("/", 1)[-1]
         assert ":" in name, f"{ref} 没写 tag，等同 latest"
+
+
+# --- 引导服务（plan 2026-08-21-2220-2 新增，只加不改） -------------------------------
+# 三条新判据全部服务于同一件事：首页那句「AI 能力未配置」是**编排层的可复现产物**，
+# 而不是谁在站点上手点出来的。既有判据一条不动。
+
+BOOTSTRAP_SERVICE = "bootstrap-homepage"
+BOOTSTRAP_DIR = REPO_ROOT / "tools" / "bootstrap"
+
+
+def _service_block(name: str) -> list[str]:
+    """取 `services:` 下某个服务的整块（含其下所有更深缩进的行）。
+
+    同样刻意不解析 YAML：理由与 `_published_port_entries` 一致，见文件头。
+    """
+    lines = _raw().splitlines()
+    out: list[str] = []
+    header = f"  {name}:"
+    inside = False
+    for line in lines:
+        if line.rstrip() == header:
+            inside = True
+            continue
+        if inside:
+            if line.strip() and not line.startswith("    "):
+                break
+            out.append(line)
+    return out
+
+
+def test_bootstrap_service_is_one_shot():
+    """引导服务必须存在，且是「跑完即退」的一次性形状。
+
+    失败意味着两件事之一：引导服务没了（首页那句话回到「靠人手点」，
+    `git clone && docker compose up` 不再自带它）；或者它被改成了常驻服务
+    —— 那样 `up -d --wait` 会一直等它 healthy，而它根本没有探针。
+    """
+    block = _service_block(BOOTSTRAP_SERVICE)
+    assert block, f"compose 里没有 {BOOTSTRAP_SERVICE} 服务——首页文案不再是启动路径的产物"
+    joined = "\n".join(block)
+    assert re.search(r'^\s*restart:\s*"no"\s*$', joined, re.M), (
+        f"{BOOTSTRAP_SERVICE} 不是一次性形状（缺 `restart: \"no\"`），"
+        "与 configurator / create-site 的纪律不一致"
+    )
+    assert re.search(r"^\s*create-site:\s*$", joined, re.M), (
+        f"{BOOTSTRAP_SERVICE} 没有等 create-site 完成——站点还不存在时写 Website Settings 必然失败"
+    )
+
+
+def _healthcheck_blocks() -> list[str]:
+    """取所有 `healthcheck:` 块的正文。"""
+    blocks: list[str] = []
+    current: list[str] | None = None
+    indent = 0
+    for line in _text_without_escapes().splitlines():
+        stripped = line.strip()
+        if stripped == "healthcheck:":
+            if current is not None:
+                blocks.append("\n".join(current))
+            current = []
+            indent = len(line) - len(line.lstrip())
+            continue
+        if current is not None:
+            if stripped and (len(line) - len(line.lstrip())) <= indent:
+                blocks.append("\n".join(current))
+                current = None
+            else:
+                current.append(line)
+    if current is not None:
+        blocks.append("\n".join(current))
+    return blocks
+
+
+def test_ai_vars_absent_from_healthchecks():
+    """§14 规则 ② 的可执行化：AI 变量不得出现在任何 `healthcheck:` 块内。
+
+    规则原话是「不进 healthcheck / command 的成败路径」，但「成败路径」是语义，
+    文本扫描判不了；能判的是「出现在哪个块里」。healthcheck 块整块都是成败路径，
+    所以「出现即违规」在这里是精确的，不是近似。
+
+    失败意味着：某个服务的存活判定开始依赖 AI 配置。没配 AI 的机器上，
+    栈会因为「未配置」这个**正常状态**而判成不健康——`clone && up` 不再零依赖。
+    """
+    for block in _healthcheck_blocks():
+        for var in AI_VARS:
+            assert var not in block, f"{var} 出现在 healthcheck 块里，未配置会变成不健康：\n{block}"
+
+
+def test_bootstrap_delivers_no_runtime_code():
+    """红线 7 的可执行判据：引导逻辑只交付静态文本，不交付可执行代码。
+
+    扫两处：`tools/bootstrap/` 下的全部文件（横幅 HTML 的唯一出处就在这里），
+    以及 compose 里引导服务那一块。
+
+    失败意味着：首页横幅里出现了脚本标签或模板定界符，或者引导步骤开始建
+    运行时代码类 DocType。那等同于让 Agent 生成可执行代码（AGENTS.md 红线 7）——
+    交付的必须是可 diff、可回滚的静态产物，不是站点上跑起来的代码。
+    """
+    forbidden = ["<script", "{{", "{%", "Server Script", "Client Script"]
+    assert BOOTSTRAP_DIR.is_dir(), f"引导脚本目录不在：{BOOTSTRAP_DIR}"
+    targets = {str(f): f.read_text(encoding="utf-8") for f in sorted(BOOTSTRAP_DIR.rglob("*")) if f.is_file()}
+    assert targets, f"{BOOTSTRAP_DIR} 是空的——引导逻辑没有落盘处，判据也就没有对象"
+    targets["docker-compose.yml::" + BOOTSTRAP_SERVICE] = "\n".join(_service_block(BOOTSTRAP_SERVICE))
+    for where, text in targets.items():
+        for token in forbidden:
+            assert token not in text, f"{where} 含 {token!r}——红线 7：引导逻辑不得交付运行时代码"

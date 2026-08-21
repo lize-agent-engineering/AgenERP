@@ -182,24 +182,24 @@ python3 -m pytest tests/gates/test_zero_dep_boot.py -q
 
 ### Phase 1 — 定「未配置」的表达口径
 
-Status: planned
+Status: completed
 Targets: `docs/architecture/system-baseline.md`（新增 §14.3）
 Skill: `none`
 
 - Item Types: `Proof | Explore | Decision`
 - Prereqs: 无
 
-- [ ] `Proof` **先复跑坐实红因**：
+- [x] `Proof` **先复跑坐实红因**：
       `AGENERP_HTTP_PORT=18080 AGENERP_LIVE=1 AGENERP_ADMIN_PASSWORD=admin python3 -m pytest tests/gates/test_zero_dep_boot.py -q --tb=line`
       → 期望 exit 1、`1 failed, 2 passed`，红在
       **`AssertionError: 首页没有说明 AI 能力未配置`** 而不是红在状态码或连不上。退出码与失败原文照抄。
       若红因不是这个，**停下写 needs-human，不猜根因**。
-- [ ] `Explore` 起草时已验证「Web Page + `home_page`」可行，但**没验证过另外两条**，
+- [x] `Explore` 起草时已验证「Web Page + `home_page`」可行，但**没验证过另外两条**，
       本项必须各跑一次再决策，结论写进 Phase 1 的 `Decision`：
       · `Website Settings.banner_html` 能否让登录页也带上这段文案（若能，站点结构改动更小）；
       · `bench --site frontend set-config` 一类配置项有没有现成的首页文案位。
       **本 `Explore` 不结论就不许进 `Decision`。**
-- [ ] `Decision` **定两件事，都要写备选与残余风险**：
+- [x] `Decision` **定两件事，都要写备选与残余风险**：
       **① 承载物**。候选 (a) `Web Page` + `Website Settings.home_page`（起草时已实测可行，
       门禁两条断言都过）；(b) `banner_html`（待 `Explore` 验证，改动面更小但会出现在所有页面）；
       (c) 自建 Frappe app 提供 www 页面（最贴产品形态，但要在镜像里装 app，
@@ -226,14 +226,42 @@ Skill: `none`
 
 Exit Criteria:
 
-- [ ] `Explore` 的两条各有一次实测记录（命令原文 + 观测结果），不是推断
-- [ ] `Decision` 的两项都记了选择、备选、残余风险
-- [ ] `system-baseline.md` 新增 §14.3「AI 能力未配置在本仓的表达口径」
-- [ ] `docs/logs/` 更新
+- [x] `Explore` 的两条各有一次实测记录（命令原文 + 观测结果），不是推断
+- [x] `Decision` 的两项都记了选择、备选、残余风险
+- [x] `system-baseline.md` 新增 §14.3「AI 能力未配置在本仓的表达口径」
+- [x] `docs/logs/` 更新
+
+**Phase 1 执行留痕（2026-08-21，本机，栈已在跑，端口 18080）**
+
+- `Proof` 复跑红因：
+  `AGENERP_HTTP_PORT=18080 AGENERP_LIVE=1 AGENERP_ADMIN_PASSWORD=admin python3 -m pytest tests/gates/test_zero_dep_boot.py -q --tb=line`
+  → **exit 1**；`1 failed, 2 passed in 0.44s`；失败原文逐字为
+  `tests/gates/test_zero_dep_boot.py:37: AssertionError: 首页没有说明 AI 能力未配置——用户会以为产品坏了`，
+  且断言展开里带着 `Response(status_code=200, …)`。**与起草基线一致，红因就是第二条断言，不是状态码也不是连不上。**
+- `Explore` ①（`banner_html`）：`PUT /api/resource/Website Settings/Website Settings`
+  把 `banner_html` 置为含该文案的 HTML → `put=200`；`GET /`（`Host: frontend`）→ `status=200 size=346571`，
+  正文命中「AI 能力未配置」**1 次**，位置在 `<div>…</div><nav class="navbar navbar-light navbar-expand-lg">`。
+  **门禁两条断言都会过。** 覆盖面实测：`/login` 命中 1 次、`/app` 301 命中 0 次、`/api/method/ping` 200 命中 0 次
+  —— 即横幅只覆盖 website 层，桌面与 API 不受影响。随后置回空串，复验 `<title>Login</title>` 且命中 **0** 次，
+  **站点已还原**。
+- `Explore` ②（`bench set-config` 一类配置项）：容器内 `bench --site frontend set-config --help` 显示它只是
+  「Insert/Update a value in site_config.json」；实测 `sites/frontend/site_config.json` 只有
+  `db_name` / `db_password` / `db_type` 三个键。读 `apps/frappe/frappe/website/utils.py` 的 `get_home_page()`：
+  首页解析链是 Role → `Portal Settings.default_portal_home` → app hooks → `Website Settings.home_page`
+  → 回退 `login`，**全链路没有任何 `site_config` 键**。
+  **结论：`set-config` 一类配置项没有现成的首页文案位，候选出局。**
+- `Decision` 两项的选择、备选与残余风险已写进 `docs/architecture/system-baseline.md` §14.3
+  （决策 ① 取 `banner_html`，决策 ② 取「引导期一次性判定 + 无条件常驻那句话」的硬约束）。
+- 引导脚本可行性顺带实测（为 Phase 2 定形，非本阶段判据）：容器内
+  `cd /home/frappe/frappe-bench/sites && ../env/bin/python <脚本>` 写 `banner_html` → exit 0；
+  再跑一次输出「banner 已是目标内容，跳过」→ exit 0，**幂等成立**。
+  ⚠️ 踩到一个坑照实记：`frappe` 的日志路径是 `os.path.join("..", "logs", …)`，**相对 cwd**，
+  因此脚本必须在 `sites/` 目录下跑，否则 `frappe.connect()` 直接
+  `FileNotFoundError: /home/frappe/logs/database.log`。
 
 ### Phase 2 — 引导步骤与文案落地
 
-Status: planned
+Status: completed
 Targets: `docker-compose.yml` · `tools/`（引导脚本，路径由**本阶段第一项**的 `Decision` 定）·
   `tests/unit/test_compose_zero_dep.py`（**新增判据，不放宽任何既有判据**）
 Skill: `none`
@@ -241,12 +269,12 @@ Skill: `none`
 - Item Types: `Decision | Add | Proof`（6 项里 4 项 `Add`，未过 80% 阈值，**逐项标**）
 - Prereqs: Phase 1 完成
 
-- [ ] `Add` 在 `docker-compose.yml` 里加一个**一次性引导服务**（沿用 `create-site` 的形状：
+- [x] `Add` 在 `docker-compose.yml` 里加一个**一次性引导服务**（沿用 `create-site` 的形状：
       `restart: "no"`、`depends_on: create-site: service_completed_successfully`、跑完即退）。
       幂等：页面已存在就跳过并退 0，与 `create-site` 的「已存在则跳过」同一条纪律。
       **必须同时满足既有全部 compose 判据**：新增的每个 `${...}` 都带 `:-` 默认值、
       不新增发布端口、不改镜像 tag、不写顶层 `version:`。
-- [ ] `Decision` **定引导逻辑的落盘方式**。原草案写「落成 `tools/` 下的脚本」，
+- [x] `Decision` **定引导逻辑的落盘方式**。原草案写「落成 `tools/` 下的脚本」，
       **那是跑不通的**：实测 compose 里零 bind mount，所有服务只挂命名卷，仓内脚本对容器不可见
       （草案评审指出）。三个候选：
       **(i) 把脚本以只读 bind mount 挂进引导服务** —— 脚本可单独跑、可 lint、diff 可读；
@@ -258,12 +286,12 @@ Skill: `none`
       （每个 `${...}` 带 `:-`、无 `${VAR:?}`、AI 变量默认空、端口字面回环短语法、tag 不浮动、无顶层 `version:`）。
       **残余风险**：(i) 的 bind mount 路径若写成变量，会被 `.env` 改掉而绕过静态扫描——
       因此路径必须**字面写死相对路径**，与既有的「端口 IP 字面写死」是同一条理由。
-- [ ] `Add` 按上一项的选择落地引导逻辑：经 `bench --site <site> …` 建/更新 Web Page 与 `Website Settings`，
+- [x] `Add` 按上一项的选择落地引导逻辑：经 `bench --site <site> …` 建/更新 Web Page 与 `Website Settings`，
       **不建 Server Script / Client Script**（红线 7）。
-- [ ] `Add` 文案定稿。硬要求只有一条：正文必须逐字包含 **`AI 能力未配置`**（门禁的字符串断言）。
+- [x] `Add` 文案定稿。硬要求只有一条：正文必须逐字包含 **`AI 能力未配置`**（门禁的字符串断言）。
       其余至少说清三件事：AI 能力是什么、为什么现在没有、怎么配上（指向仓内文档路径）。
       **不写任何承诺性的产品话术**——本仓此刻不具备任何 AI 能力，写了就是假陈述。
-- [ ] `Add` `tests/unit/test_compose_zero_dep.py` **补三条新判据**（只加不改，既有判据一条不动）：
+- [x] `Add` `tests/unit/test_compose_zero_dep.py` **补三条新判据**（只加不改，既有判据一条不动）：
       · 引导服务存在且是一次性形状（`restart: "no"`）；
       · **AI 变量名不得出现在任何 `healthcheck:` 块内**（这是上面那句「不在成败路径上」的
         可执行化定义——文本扫描判据只能判「出现在哪个块里」，判不了语义）；
@@ -272,7 +300,7 @@ Skill: `none`
         这条正是 Non-Goals 承诺过「要有判据」的那一条，不许只写在文档里。
       ⚠️ `tests/unit/**` 不在红线内，但它是既有判据面：**新增判据可以，放宽既有判据不行**。
       本项如果发现新做法与某条既有判据冲突，**停下来写 needs-human，不改判据**。
-- [ ] `Proof` **冷起验证**：`docker compose down -v` 之后完整 `up -d --wait`，
+- [x] `Proof` **冷起验证**：`docker compose down -v` 之后完整 `up -d --wait`，
       再 `curl -H "Host: frontend" http://127.0.0.1:18080/` 确认文案在。
       **必须是 `down -v`（连卷一起删）**——热卷上的站点已经带着上一轮的状态，
       不删卷验不出「新用户 clone 之后能不能得到这个首页」，那正是这条门禁存在的理由。
@@ -280,18 +308,63 @@ Skill: `none`
 
 Exit Criteria:
 
-- [ ] `docker compose -f docker-compose.yml config -q` 在空环境下 exit 0
+- [x] `docker compose -f docker-compose.yml config -q` 在空环境下 exit 0
       （门禁 `test_compose_config_valid_with_empty_env` 不许因本 plan 掉绿）
-- [ ] `python3 -m pytest tests/unit -q` exit 0（**含新增三条**）
-- [ ] 三条里那条**红线 7 判据**（扫 `<script` / `{{` / `{%` / `Server Script` / `Client Script`）确实存在并会跑到
+- [x] `python3 -m pytest tests/unit -q` exit 0（**含新增三条**）
+- [x] 三条里那条**红线 7 判据**（扫 `<script` / `{{` / `{%` / `Server Script` / `Client Script`）确实存在并会跑到
       —— 这是 Non-Goals 逐字承诺过「要有判据」的那一条，**不许在收尾时被数成「两条」而漏掉**
-- [ ] `down -v` 冷起后 `GET /` 回 200 且含「AI 能力未配置」，命令原文与退出码已记录
-- [ ] `system-baseline.md` §14.3 记下引导步骤的落点与「改配置需重跑引导」这条限制
-- [ ] `docs/logs/` 更新
+- [x] `down -v` 冷起后 `GET /` 回 200 且含「AI 能力未配置」，命令原文与退出码已记录
+- [x] `system-baseline.md` §14.3 记下引导步骤的落点与「改配置需重跑引导」这条限制
+- [x] `docs/logs/` 更新
+
+**Phase 2 执行留痕（2026-08-21，本机 compose v5.0.2，端口 18080）**
+
+- `Decision` **落盘方式取候选 (i)：只读 bind mount**。脚本落在 `tools/bootstrap/homepage_notice.py`，
+  经 `- ./tools/bootstrap:/opt/agenerp/bootstrap:ro` 挂进引导服务。宿主侧路径**字面写死相对路径**，
+  不写成变量（残余风险照 plan 处置：变量会被仓根 `.env` 改掉而绕过静态扫描）。
+  (ii) 内联 `command:` 未采纳——文案是含 HTML 的多行中文，塞进 compose 折叠字符串后 `$$` 转义与引号
+  都要手工数，改一次要重起整栈才看得出对错；(iii) 起草时即排除。
+  既有文本判据一条未放宽，`python3 -m pytest tests/unit -q` → **exit 0，192 passed**。
+- `Add` compose 新增一次性服务 `bootstrap-homepage`（`restart: "no"`、
+  `depends_on: create-site: service_completed_successfully`、跑完即退），不新增发布端口、
+  不改镜像 tag、不写顶层 `version:`、新增的插值一个都没有。
+- `Add` 引导逻辑走 `../env/bin/python`（**不是** `bench --site … execute`），
+  经 `frappe.get_doc("Website Settings")` → `save(ignore_permissions=True)` → `commit()` 写
+  `banner_html`；内容相同即跳过。**不建任何运行时代码类 DocType**（红线 7）。
+- `Add` 文案定稿，两个分支都逐字含 `AI 能力未配置`；另说清三件事：AI 能力是什么（呈现层/语言层/判断层由
+  Agent 承担）、为什么现在没有（三个 AI 变量默认全空，缺失是「未配置」不是错误）、怎么配上
+  （指向 `docs/architecture/system-baseline.md` §14.3）。无任何承诺性产品话术。
+- `Add` `tests/unit/test_compose_zero_dep.py` 补**三条**新判据，既有判据一条未动：
+  `test_bootstrap_service_is_one_shot` · `test_ai_vars_absent_from_healthchecks` ·
+  **`test_bootstrap_delivers_no_runtime_code`**（红线 7 那条，扫 `<script` / `{{` / `{%` /
+  `Server Script` / `Client Script`，对象是 `tools/bootstrap/**` 全部文件 + compose 里引导服务那一块）。
+  **三条都做了变异验证，逐条有牙**：
+  · healthcheck 块里塞进 `AGENERP_LLM_ENDPOINT` → `test_ai_vars_absent_from_healthchecks` 红（`1 failed, 12 passed`）；
+  · 引导脚本尾部追加 `<script` → `test_bootstrap_delivers_no_runtime_code` 红（`1 failed, 12 passed`）；
+  · 引导服务改名 → `test_bootstrap_service_is_one_shot` 红（`1 failed, 12 passed`）。
+  三次还原后复跑 → **exit 0，13 passed**；`docker-compose.yml` 与引导脚本的 `shasum -a 256` 各自还原。
+- `Proof` **冷起验证（`down -v` 连卷一起删）**：
+  · 第一次：`down -v` → exit 0；`AGENERP_HTTP_PORT=18080 docker compose up -d --wait --wait-timeout 300`
+    → **exit 1**，耗时 58s，逐字 `container agenerp-bootstrap-homepage-1 exited (0)`。
+    **红因不是引导失败**（`docker compose logs bootstrap-homepage` 逐字「引导：首页横幅已写入（AI 能力状态）」，
+    `curl` 也已经能看到文案），而是 `--wait` 把一个**没有任何服务依赖它**的一次性容器的正常退出当成失败。
+    处置：给 `frontend` 加 `bootstrap-homepage: condition: service_completed_successfully`——
+    与 `configurator` / `create-site` 同一条纪律，且顺带买到「nginx 对外服务时横幅一定已在」。已写进 §14.3。
+  · 第二次：`down -v` → exit 0；同一条 `up -d --wait --wait-timeout 300` → **exit 0**，耗时 **62s**。
+    `curl -H "Host: frontend" http://127.0.0.1:18080/` → `status=200 size=347156`，
+    「AI 能力未配置」命中 **1** 次，`<title>Login</title>` 仍在（登录页没被夺走）。
+  · **幂等复跑**：再跑一次 `up -d --wait` → **exit 0**，5s，引导服务日志第二行逐字
+    「引导：首页横幅已是目标内容，跳过」。
+  · 顺带坐实一个 plan 起草时只有推断的事实：`docker compose ps --format json`（**不带 `-a`**，
+    正是门禁 fixture 用的那条）列出的是 9 个长驻服务，**一次性容器一个都不在里面**——
+    新增引导服务不会弄红 `test_stack_boots_and_all_services_healthy`。
+- `Proof` 空环境 `config`：`env -i PATH=… HOME=… docker compose -f docker-compose.yml config -q` → **exit 0**。
+- `Proof` `ruff check agenerp tests/unit tests/contracts` → **exit 0**（`All checks passed!`）；
+  新增的 `tools/bootstrap/` 单独跑也 `All checks passed!`。
 
 ### Phase 3 — 门禁复跑、变异验证与收尾
 
-Status: planned
+Status: completed
 Targets: `docs/backlog/p0-foundation-roadmap.md` · `docs/masterplan/STATE.md`（**只追加**）·
   `docs/context/project-context.md` · `docs/logs/`
 Skill: `none`
@@ -299,17 +372,17 @@ Skill: `none`
 - Item Types: `Proof | Fix`（5 项里 4 项 `Proof` = 80%，**仍逐项标**，因为剩下那条是不可降级的 `Fix`）
 - Prereqs: Phase 1、Phase 2 完成
 
-- [ ] `Proof` 跑 `test_zero_dep_boot.py` 三条。期望：`test_homepage_states_ai_disabled_instead_of_crashing`
+- [x] `Proof` 跑 `test_zero_dep_boot.py` 三条。期望：`test_homepage_states_ai_disabled_instead_of_crashing`
       **绿**；`test_compose_config_valid_with_empty_env` 仍绿；
       `test_stack_boots_and_all_services_healthy` 的结果**照实记**（它归 plan `1634-2`，
       起草时的口径是「6 个有探针的服务」，见 `system-baseline.md` §14.2）。退出码与原文照抄。
-- [ ] `Proof` **变异验证**：把引导脚本里的文案临时改成不含「AI 能力未配置」的字符串 →
+- [x] `Proof` **变异验证**：把引导脚本里的文案临时改成不含「AI 能力未配置」的字符串 →
       该门禁必须**逐字转红**在「首页没有说明 AI 能力未配置」。改回后复跑转绿。
       两次的退出码都记。
-- [ ] `Proof` 复跑 `python3 tools/gates/check_expected_red.py`（默认环境，不带 `AGENERP_LIVE`），
+- [x] `Proof` 复跑 `python3 tools/gates/check_expected_red.py`（默认环境，不带 `AGENERP_LIVE`），
       确认没有名单外的门禁变红。**名单一行不动**（见 Non-Goals）。
-- [ ] `Proof` 复跑 `ruff check agenerp tests/unit tests/contracts` → exit 0。
-- [ ] `Fix` 更正 `docs/context/project-context.md:48` 的**已知假陈述**：该行现在写着
+- [x] `Proof` 复跑 `ruff check agenerp tests/unit tests/contracts` → exit 0。
+- [x] `Fix` 更正 `docs/context/project-context.md:48` 的**已知假陈述**：该行现在写着
       「`compose_stack` fixture 仍抛 `NotImplementedError`（红线 1，等人处置）」，
       而 fixture 已由人在 `ede5440` 实现、阻塞已在 `3fed439` 关闭。
       这是确认的 owner-doc 漂移（Minimum Rule 14 的非降级项），且本 plan 正好在编辑同一行。
@@ -317,11 +390,41 @@ Skill: `none`
 
 Exit Criteria:
 
-- [ ] 门禁转绿的命令原文、退出码、以及变异验证两次的结果均已落进 plan
-- [ ] `docs/context/project-context.md:48` 的假陈述已改准
-- [ ] `docs/logs/` 更新
+- [x] 门禁转绿的命令原文、退出码、以及变异验证两次的结果均已落进 plan
+- [x] `docs/context/project-context.md:48` 的假陈述已改准
+- [x] `docs/logs/` 更新
 
 （roadmap 与 `STATE.md` 的更新挪到 Phase 4，与 CI 那半一起做完再记，避免记两次账。）
+
+**Phase 3 执行留痕（2026-08-21，本机 compose v5.0.2，端口 18080）**
+
+- `Proof` 门禁三条：`AGENERP_HTTP_PORT=18080 AGENERP_LIVE=1 AGENERP_ADMIN_PASSWORD=admin
+  python3 -m pytest tests/gates/test_zero_dep_boot.py -q` → **exit 0，`3 passed in 0.36s`**。
+  · `test_homepage_states_ai_disabled_instead_of_crashing` **转绿**（本 plan 的结果面）；
+  · `test_compose_config_valid_with_empty_env` 仍绿；
+  · `test_stack_boots_and_all_services_healthy` **绿**，照实记它归 plan `1634-2`，
+    断言的是 §14.2 那六个有探针的服务，不是十一个。
+- `Proof` **变异验证**：把 `tools/bootstrap/homepage_notice.py` 里两个分支交付的文案从
+  `AI 能力未配置` 改成 `MUTATION-NO-NOTICE`，`docker compose run --rm --no-deps bootstrap-homepage`
+  重跑引导（日志「引导：首页横幅已写入（AI 能力状态）」）后跑同一条门禁命令
+  → **exit 1**，`1 failed, 2 passed in 1.34s`，逐字红在
+  `tests/gates/test_zero_dep_boot.py:37: AssertionError: 首页没有说明 AI 能力未配置——用户会以为产品坏了`。
+  改回原文件（`shasum -a 256` → `5f6bcc5afaa9af018b1822a41e0f1150ce389916c54436f7ac3aca99c08db3b0`，
+  与变异前逐字相同）、重跑引导后复跑 → **exit 0，`3 passed in 1.17s`**。**这条门禁有牙齿。**
+- `Proof` 默认环境判定器 `python3 tools/gates/check_expected_red.py` → **exit 0**
+  （「门禁 19 项：预期红 7，绿 12，跳过 0 · ✅ 与预期红名单完全一致」），无名单外门禁变红。
+  `git diff --numstat tools/gates/expected-red.txt` → **无输出**（名单一行未动，见 Non-Goals）。
+  `git diff --stat -- tests/gates docs/masterplan` → **无输出**（红线路径未触及）。
+- `Proof` `ruff check agenerp tests/unit tests/contracts` → **exit 0**（`All checks passed!`）。
+- `Fix` `docs/context/project-context.md:48` 的假陈述已就地改准：原文写「`compose_stack` fixture 仍抛
+  `NotImplementedError`（红线 1，等人处置）」——实测 `grep -c NotImplementedError tests/gates/conftest.py` → **0**，
+  fixture 已由人在 `ede5440` 实现、阻塞已在 `3fed439` 关闭。该行现在改成三段式：
+  ① 起栈与健康判定已实证（不动，归 `1634-2`）；② 首页降级文案已落地（本 plan，带冷起证据）；
+  ③ L2 在 live 判定环境下已全绿**但名单不动**，理由逐字写清（默认判定环境无 `AGENERP_LIVE`，
+  L2 在那里恒红；人在 `STATE.md` §2 11:20Z 裁定「名单必须反映判定器实际看到的」）。
+  同一行的「两件事分开说」相应改为「三件事」。
+  另在验证命令表补一行「L2 live 门禁（零依赖启动）」，并逐字写明**它与另外两行的 env 不同**
+  （只取 `compose_stack`、不取 `live_site`，因此不需要 `AGENERP_SITE`）——此前表里没有这条命令。
 
 ### Phase 4 — 让 CI 真跑 L2
 

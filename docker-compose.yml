@@ -159,6 +159,37 @@ services:
       configurator:
         condition: service_completed_successfully
 
+  # 一次性：把「AI 能力未配置」写进 Website Settings.banner_html，写完即退出。
+  # 幂等：横幅内容已是目标值就跳过（脚本自己判），使重复 `up -d` 不重复写、不报错。
+  # 口径与残余风险见 docs/architecture/system-baseline.md §14.3。
+  bootstrap-homepage:
+    <<: *erpnext_image
+    restart: "no"
+    entrypoint:
+      - bash
+      - -c
+    command:
+      - >
+        cd sites;
+        ../env/bin/python /opt/agenerp/bootstrap/homepage_notice.py;
+    environment:
+      # 引导脚本读 AGENERP_LLM_ENDPOINT 决定写哪一版文案。它**不在成败路径上**：
+      # 变量为空是正常状态，脚本照样退 0（§14 规则 ②）。
+      <<: *ai_env
+      # 站点名。与 create-site 的 --set-default、frontend 的 FRAPPE_SITE_NAME_HEADER、
+      # backend 探针的 Host 头是同一个值 —— 改站点名要这四处一起改。
+      AGENERP_SITE_NAME: frontend
+    volumes:
+      - sites:/home/frappe/frappe-bench/sites
+      - logs:/home/frappe/frappe-bench/logs
+      # 本仓唯一的 bind mount。宿主侧路径**字面写死相对路径**、不许写成变量：
+      # 判据是对本文件的静态文本扫描，而仓根 .env 能在 config 时把变量改掉 ——
+      # 与上面「端口的宿主 IP 字面写死」是同一条理由（§14.1）。
+      - ./tools/bootstrap:/opt/agenerp/bootstrap:ro
+    depends_on:
+      create-site:
+        condition: service_completed_successfully
+
   backend:
     <<: *backend_defaults
     environment:
@@ -261,6 +292,14 @@ services:
         condition: service_healthy
       websocket:
         condition: service_healthy
+      # 首页横幅必须先写进去，nginx 再开始对外服务 —— 否则第一个访客可能正好落在
+      # 「站点起来了但还没说 AI 未配置」的窗口里。
+      # 还有一个**编排层的硬理由**：`up -d --wait` 会把「没有任何服务以
+      # service_completed_successfully 依赖它」的一次性容器的正常退出当成失败（实测退 1，
+      # 逐字 `container agenerp-bootstrap-homepage-1 exited (0)`）。configurator / create-site
+      # 不踩这个坑，正是因为它们各自被依赖着。
+      bootstrap-homepage:
+        condition: service_completed_successfully
 
 volumes:
   db-data:

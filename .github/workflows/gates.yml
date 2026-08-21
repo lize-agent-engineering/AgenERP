@@ -138,3 +138,53 @@ jobs:
           python-version: "3.11"
       - name: 门禁判定 → 循环反应，三条链
         run: bash tools/gates/smoke-loop-wiring.sh
+
+  # L2 慢门禁：真的在 runner 上把栈拉起来跑一次「零依赖启动」。
+  # 加它的理由：本仓所有 live 证据此前都带着「只在本机做过」的限定，而工作项 8 的名字
+  # 就是「零依赖启动**进 CI**」。见 plan docs/plans/p0-foundation/2026-08-21-2220-2-…。
+  #
+  # ⚠️ 残余风险，写在这里而不是只写在文档里：本 job **不跑 tools/gates/check_expected_red.py**，
+  #    而是直接对 pytest 的退出码做判定。原因是判定环境不同——默认环境没有 AGENERP_LIVE，
+  #    L2 在那里恒红，名单如实登记着它们；而本 job 在 live 判定环境下跑，那几条是绿的，
+  #    判定器会报「名单内的门禁却绿了」并退 1，两个 job 互相拆台。
+  #    **代价**：这几条门禁在 CI 上不受预期红名单棘轮保护。代偿控制是上面的 gates-untouched job
+  #    ——那几条断言就在 tests/gates/** 内，改它们要人工批准 trailer。
+  #    真正的修法是给判定器加「live 名单」，那属判据设施改造，超出本 plan（已登记 Deferred）。
+  gates-l2:
+    name: L2 慢门禁（零依赖启动）
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install pytest
+
+      # runner 与本机的 compose 版本差是 plan 1022-1 登记的 watch-only residual，
+      # 每次都把版本打出来，差异出现时能直接比对，不用回头猜。
+      - name: runner 上的 docker / compose 版本
+        run: |
+          docker version --format '{{.Server.Version}}'
+          docker compose version
+
+      # --wait-timeout 取 900 而不是本机的 300：口径依据没变（system-baseline.md §14.2 的
+      # 「interval × retries + start_period 必须小于 wait-timeout」，本仓最大值约 120 秒），
+      # 放大的那部分只覆盖 runner 上更慢的拉镜像与建站，不放松任何判定。
+      - name: 起栈（一个 AI 变量都不配）
+        run: docker compose -f docker-compose.yml up -d --wait --wait-timeout 900
+
+      # 这条门禁只取 compose_stack、不取 live_site，因此不需要 AGENERP_SITE / AGENERP_SITE_URL。
+      # 端口不设：fixture 从跑着的栈上观测 frontend 的实际发布端口。
+      - name: L2 门禁 —— 零依赖启动
+        env:
+          AGENERP_LIVE: "1"
+          AGENERP_ADMIN_PASSWORD: admin
+        run: python3 -m pytest tests/gates/test_zero_dep_boot.py -q
+
+      - name: 引导服务日志（失败时最先要看的东西）
+        if: always()
+        run: docker compose -f docker-compose.yml logs bootstrap-homepage --no-log-prefix
+
+      - name: 拆栈（无条件）
+        if: always()
+        run: docker compose -f docker-compose.yml down -v
