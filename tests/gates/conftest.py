@@ -61,6 +61,22 @@ def _compose(*args: str, timeout: int = 120) -> subprocess.CompletedProcess:
     return subprocess.run(COMPOSE + list(args), capture_output=True, text=True, timeout=timeout)
 
 
+def _port_occupant(port: str) -> str:
+    """谁占着这个端口。空字符串表示没人占。
+
+    实测教训：本机另有一套 ERPNext 演示栈常驻 8080，`up` 会以
+    `Bind for 0.0.0.0:8080 failed: port is already allocated` 失败 —— 那条报错
+    埋在几十行容器启动日志里，不预检的话看半天才明白是端口的事。
+    """
+    try:
+        r = subprocess.run(["lsof", "-nP", f"-iTCP:{port}", "-sTCP:LISTEN"],
+                           capture_output=True, text=True, timeout=15)
+        lines = [ln for ln in r.stdout.splitlines()[1:] if ln.strip()]
+        return lines[0].split()[0] if lines else ""
+    except Exception:
+        return ""
+
+
 # --------------------------------------------------------------------------
 # compose_stack —— 整栈
 # --------------------------------------------------------------------------
@@ -122,10 +138,21 @@ def compose_stack():
     before = _compose("ps", "--format", "json")
     already_up = bool(before.stdout.strip()) and before.returncode == 0
     if not already_up:
+        occupant = _port_occupant(HTTP_PORT)
+        if occupant:
+            pytest.fail(
+                f"端口 {HTTP_PORT} 已被 `{occupant}` 占用，门禁栈起不来。\n"
+                f"本机另有服务常驻该端口时，换一个跑：\n"
+                f"    AGENERP_HTTP_PORT=8099 AGENERP_LIVE=1 python3 -m pytest tests/gates -m live -q\n"
+                f"（不自动挑空闲端口 —— 那会把一个真实冲突藏起来）"
+            )
         # --wait 让 docker 自己等 healthcheck，不用我们轮询猜
         r = _compose("up", "-d", "--wait", timeout=UP_TIMEOUT)
         if r.returncode != 0:
-            pytest.fail(f"docker compose up 失败（exit {r.returncode}）：{r.stderr[-1500:]}")
+            # 先拆掉自己起的那部分再 fail。fixture 在 yield 之前 fail 的话
+            # teardown 不会执行，半拉起的栈会漏在机器上 —— 实测踩过。
+            _compose("down", timeout=300)
+            pytest.fail(f"docker compose up 失败（exit {r.returncode}）：{r.stderr[-1200:]}")
     stack = ComposeStack(started_by_us=not already_up)
     yield stack
     if stack.started_by_us:
