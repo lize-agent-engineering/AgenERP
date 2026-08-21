@@ -10,6 +10,7 @@
 
 这个脚本是 GATE_VERIFY 与 CI 共用的判定器。它只读退出结果，不读 AI 的说法。
 """
+import os
 import subprocess
 import sys
 import xml.etree.ElementTree as ET
@@ -18,6 +19,29 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 ALLOWLIST = ROOT / "tools/gates/expected-red.txt"
 JUNIT = ROOT / ".pytest-gates.xml"
+
+# 判定器跑在谁的环境里，不由判定器决定：launchd、CI、人手敲的 shell，PATH 各不相同。
+# 已装载的 launchd plist 半路改不了（要 unload/load，等于杀掉正在跑的循环），
+# tools/loopx-writeback.sh 的自愈也只覆盖走它那条入口的运行。所以在这里再兜一层：
+# 判定器自己起 pytest 之前，把系统标准路径补齐。
+#
+# 漏 /usr/local/bin 的代价是实打实的：Docker Desktop 的 CLI 软链在那儿
+# （/usr/local/bin/docker -> Docker.app），缺了它 test_compose_config_valid_with_empty_env
+# 会以 `FileNotFoundError: 'docker'` 假红，而它不在预期红名单里 —— 判定器于是报
+# 「名单外的门禁红了（真的坏了）」，把一个环境问题误判成实现回归。
+# （2026-08-21 迁 launchd 后第二次踩到；第一次见 0f2c59a。）
+#
+# 只**追加**、不前置：绝不遮挡环境里已经选定的 python / docker 等工具。
+# 这不放松任何判据 —— docker 真没装时，测试照样红。
+SYSTEM_PATHS = ("/usr/local/bin", "/usr/local/sbin")
+
+
+def healed_env() -> dict[str, str]:
+    env = dict(os.environ)
+    parts = env.get("PATH", "").split(os.pathsep)
+    parts += [d for d in SYSTEM_PATHS if d not in parts and Path(d).is_dir()]
+    env["PATH"] = os.pathsep.join(p for p in parts if p)
+    return env
 
 
 def load_allowlist() -> set[str]:
@@ -34,7 +58,7 @@ def load_allowlist() -> set[str]:
 def run_pytest(extra: list[str]) -> dict[str, str]:
     cmd = [sys.executable, "-m", "pytest", "tests/gates", "-q", "--tb=no",
            f"--junitxml={JUNIT}", *extra]
-    proc = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True)
+    proc = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True, env=healed_env())
     if not JUNIT.exists():
         print("FATAL: pytest 没产出 junit 报告，它自己就跑挂了：", file=sys.stderr)
         print(proc.stdout[-2000:], proc.stderr[-2000:], file=sys.stderr)
