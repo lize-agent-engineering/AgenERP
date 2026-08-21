@@ -608,7 +608,7 @@ Exit Criteria:
 
 ### Phase 3 — live 实测、三条变异验证与收尾
 
-Status: planned
+Status: completed
 Targets: `docs/context/project-context.md` · `docs/logs/2026/08-22.md` ·
   `docs/masterplan/STATE.md`（**只追加**）· `docs/backlog/p0-foundation-roadmap.md`
 Skill: `none`
@@ -616,7 +616,7 @@ Skill: `none`
 - Item Types: `Proof | Fix`
 - Prereqs: Phase 2 完成
 
-- [ ] `Proof` **19 条一次跑完的 live 实测**（本仓第一次查这个未知数）。先起栈，再跑 Infrastructure 那条命令，
+- [x] `Proof` **19 条一次跑完的 live 实测**（本仓第一次查这个未知数）。先起栈，再跑 Infrastructure 那条命令，
       **退出码与完整输出逐字抄进 plan**。三种结局的处置事先写死：
       · **exit 0** —— live 判定环境的首个整目录绿证。
       · **exit 1 且红因是门禁之间互相干扰** —— **这是本 plan 的重要发现，不是失败**。
@@ -633,7 +633,7 @@ Skill: `none`
       plan `1922-3` 当时是用一次性脚本做的——本 plan 照做，**该脚本不提交**，
       但它的原文与两次输出要抄进 plan。
       - Skill: `none`
-- [ ] `Proof` **正向对照：live 模式必须被证明能返回 exit 0**（独立评审 B3，采纳）。
+- [x] `Proof` **正向对照：live 模式必须被证明能返回 exit 0**（独立评审 B3，采纳）。
       · 上一项若是 **exit 0**，本项由它满足，写一行「由上一项满足」即可。
       · 上一项若是 **exit 1**，必须补一次**收窄范围的正向对照**：用
         `python3 tools/gates/check_expected_red.py --ignore=<文件1> [--ignore=<文件2> …]` 在 live 环境下跑，
@@ -645,7 +645,7 @@ Skill: `none`
         **这是诊断用的一次性对照，不是新的判定跑法**，绝不写进 `project-context.md` 当作可用命令。
         **拿不到 exit 0 就不许关闭本 plan**——live 模式没有正向证据 = 交付物未证明可用。
       - Skill: `none`
-- [ ] `Proof` **变异 ①：live 模式对真实现回归有牙齿。**
+- [x] `Proof` **变异 ①：live 模式对真实现回归有牙齿。**
       临时把 `agenerp/apply.py` 的删除路径改成 no-op（plan `1922-3` 实测过该变异会让
       `::test_removing_from_pack_actually_deletes_on_site` 逐字转红），跑 live 判定。
       **判据不是「退出码变了」而是「点名的 nodeid 集合变了」**（独立评审 B3）：
@@ -662,26 +662,26 @@ Skill: `none`
       同时在 plan 里写明「本项不发布任何行为改变（变异已复原）」。
       ⚠️ 变异只许改 `agenerp/**`，不得触碰 `tests/gates/**`（红线 1）。
       - Skill: `none`
-- [ ] `Proof` **变异 ②：判定器的 skip 分支真的在起作用**（独立评审 B4，采纳——旧写法只是复述 Phase 2 的单测，
+- [x] `Proof` **变异 ②：判定器的 skip 分支真的在起作用**（独立评审 B4，采纳——旧写法只是复述 Phase 2 的单测，
       不含变异、不可能失败）。**变异对象是判定器自己**：把 `verdict()` 里的 `skipped` 分支删掉（或反转），
       跑 `python3 -m pytest tests/unit -q` → 期望 **exit 1 且逐字点名那两条 skip 单测**；
       复原后复跑 → 期望 exit 0。两次退出码与被点名的测试名都抄进 plan。
       **这同时是 Phase 1 新增那条 Protected Areas 行所要求的「判定器自身的变异验证」**，两处引同一份证据。
       - Skill: `none`
-- [ ] `Fix` **改准 `project-context.md` 第 56 行（及第 57 行同措辞处）的确认漂移**：
+- [x] `Fix` **改准 `project-context.md` 第 56 行（及第 57 行同措辞处）的确认漂移**：
       「`tests/gates/conftest.py` 全文不设这个变量」是错的（`conftest.py:274` 在 `live_site` 内会设它），
       正确说法是「`test_snapshot_diff_structured.py` 那两条不取任何 fixture、直接调 `capture()`，
       走不到那行，所以必须由命令给」。**Minimum Rule 14：确认的 owner-doc 漂移不得降级成 follow-up。**
       - Skill: `none`
-- [ ] `Fix` **给 `project-context.md` 验证命令表新增一行「L2 live 门禁（整目录判定）」**，
+- [x] `Fix` **给 `project-context.md` 验证命令表新增一行「L2 live 门禁（整目录判定）」**，
       写清命令、三处口径、以及 Phase 3 实测到的退出码。**现有三行照留**（按文件定位红因时仍是正确工具）。
       ⚠️ 若整目录实测是 exit 1，新增行必须**如实写它红在哪**，不得只收录绿的那部分，
       也**不得**把上一项那条 `--ignore` 诊断命令写进表里。
       - Skill: `none`
-- [ ] `Fix` **roadmap 「9 现状」行**：本 plan 关闭时工作项 9 停在 `planned`（关闭判据是「CI 上跑绿」，
+- [x] `Fix` **roadmap 「9 现状」行**：本 plan 关闭时工作项 9 停在 `planned`（关闭判据是「CI 上跑绿」，
       本 plan 不碰 CI）。行内写明本 plan 交付了什么、live 整目录实测退出码、仍未做的那半（CI 消费面 + CI 侧守卫）。
       - Skill: `none`
-- [ ] `Proof` **收尾复跑与红线自查（用开工 sha 作基线，不用裸 `git diff`）**：
+- [x] `Proof` **收尾复跑与红线自查（用开工 sha 作基线，不用裸 `git diff`）**：
       · `python3 tools/gates/check_expected_red.py && python3 -m pytest tests/unit -q` → 期望 exit 0；
       · `git diff --stat <开工 sha>..HEAD -- tests/gates .github/workflows docs/masterplan missions tools/gates/expected-red.txt`
         → 期望**只列出 `docs/masterplan/STATE.md` 一行**（本 plan 只往 §2 追加），其余路径零命中；
@@ -704,17 +704,235 @@ Skill: `none`
       → **`1	1`**——那次提交确实就地改写了 STATE 的一行。这条判据当时会咬。
       - Skill: `none`
 
+#### Phase 3 执行记录（2026-08-22）
+
+**起栈**：`AGENERP_HTTP_PORT=18080 docker compose -f docker-compose.yml up -d --wait --wait-timeout 300`
+→ **exit 0**（六个服务 Healthy，`configurator` / `create-site` / `bootstrap-homepage` 三个一次性服务 Exited）。
+本机 Docker 29.2.1 / Compose v5.0.2。
+
+**`capture` 的调用方式**：`agenerp.snapshot.capture` **没有 CLI**（`agenerp/` 下无 `__main__` / `argparse`），
+按 plan `1922-3` 的先例用一次性脚本，**该脚本不提交**（写在 `/tmp/agenerp_capture.py`）。原文：
+
+```python
+# 一次性诊断脚本（不提交）：全量 capture("doctypes") 快照 → JSON 到 stdout。
+import json
+import sys
+
+sys.path.insert(0, "/Users/lize/Claude/Projects/AgenERP")
+from agenerp.snapshot import capture
+
+snap = capture("doctypes")
+print(json.dumps(
+    sorted([e.doctype, e.fieldname] for e in snap.entries),
+    ensure_ascii=False, indent=1,
+))
+```
+
+---
+
+##### 第一项 · 19 条一次跑完的 live 实测 —— **结局是「exit 1 一次，exit 0 五次，且那一次不可复现」**
+
+**跑前全量 `capture("doctypes")`**（10 条，全是应用自带字段，无探针）：
+
+```
+[["Address","is_your_company_address"],["Address","tax_category"],["Communication","company"],
+ ["Contact","is_billing_contact"],["Customer","crm_deal"],["Email Account","company"],
+ ["Print Settings","compact_item_print"],["Print Settings","print_taxes_with_zero_amount"],
+ ["Print Settings","print_uom_after_quantity"],["Quotation","crm_deal"]]
+```
+
+**第 1 跑**（Infrastructure 那条字面命令）：
+
+```
+$ AGENERP_HTTP_PORT=18080 AGENERP_LIVE=1 AGENERP_SITE=frontend \
+  AGENERP_SITE_URL=http://127.0.0.1:18080 AGENERP_ADMIN_PASSWORD=admin \
+  python3 tools/gates/check_expected_red.py
+判定模式：live（AGENERP_LIVE=1）—— 契约为全部门禁绿、零 skip，不读预期红名单
+门禁 19 项：红 1，绿 18，跳过 0
+
+❌ live 判定契约是全部门禁绿，下列门禁红了：
+   tests/gates/test_customization_roundtrip_delete.py::test_no_orphan_column_left_behind
+$ echo $?
+1
+```
+
+**跑后全量 `capture("doctypes")` 与差集**（Protected Areas 末行要求的证据——这一跑里
+`agenerp/apply.py` 的**真删除路径**第一次与另外 18 条门禁一起对活站点执行）：
+
+```
+before: 10 after: 10
+added  : []
+removed: []
+```
+
+**差集为空**，连本次门禁自己的探针（`agenerp_gate_probe` / `agenerp_gate_roundtrip`）都没剩下——
+门禁自己清干净了，比「只允许含本次探针」这条判据更严，通过。
+
+**按 `AGENTS.md` 裁判规则 3「复跑优先于分析」，原样复跑**（同一条命令，一字未改）：
+
+```
+第 2 跑：门禁 19 项：红 0，绿 19，跳过 0 / ✅ live 判定：全部门禁绿，零 red、零 skip  → exit 0
+第 3 跑：门禁 19 项：红 0，绿 19，跳过 0 / ✅ live 判定：全部门禁绿，零 red、零 skip  → exit 0
+第 4 跑：门禁 19 项：红 0，绿 19，跳过 0 / ✅ live 判定：全部门禁绿，零 red、零 skip  → exit 0
+第 5 跑：门禁 19 项：红 0，绿 19，跳过 0 / ✅ live 判定：全部门禁绿，零 red、零 skip  → exit 0
+```
+
+**处置（照实写，不套 plan 事先写死的三种结局中的任何一种）**：
+plan 起草时写死的三个分支是 exit 0 / exit 1 且红因是门禁互相干扰 / exit 2。
+实测落在**第四种**：exit 1 一次、原样复跑四次全绿。
+**这一跑的红因「不可复现」，按裁判规则 3 不猜根因**——
+不写「是门禁互相干扰」（没有证据），也不写「是环境抖动」（同样没有证据）。
+**绝没有用 `-p no:randomly` / `-x` / 收窄目录之类的手段把它糊过去**：五跑用的是同一条字面命令。
+
+**这条不可复现的红是本 plan 交出去的一条实测事实，不是被藏起来的失败**：
+它意味着 `test_no_orphan_column_left_behind` 在整目录 live 判定下**是间歇性的**，
+本批第二个 plan 要在 CI 上跑同一条命令，**必须知道这件事**——CI 上一次红就是一次红，没有人在旁边复跑。
+已写进 `docs/context/project-context.md` 新增那行、roadmap 「9 现状」行、`docs/logs/2026/08-22.md` 与 STATE §2，
+并在本 plan `## Deferred But Adjudicated` 新增一条 `watch-only residual` 登记它与重开事件。
+
+**顺带被这一跑消掉的一个未知数**：那 9 条从未在 live 下跑过的门禁
+（`test_normalizer_idempotent.py` 3 条 + `test_seed_dataset_absurdity.py` 6 条）
+在 live 环境下**行为与默认环境一致**（六跑里没有一次点名过它们中的任何一条），
+对应 Deferred「9 条从未在 live 环境下跑过的门禁」的重开事件**未触发**。
+
+---
+
+##### 第二项 · 正向对照：live 模式能返回 exit 0
+
+**由上一项满足**——第 2/3/4/5 跑均为整目录 19 条全绿、**exit 0**，
+所以**不需要**那条收窄范围的 `--ignore` 诊断对照，也没有跑它（因此没有任何 `--ignore` 命令进
+`project-context.md`，符合第六项的禁令）。
+
+---
+
+##### 第三项 · 变异 ①：live 模式对真实现回归有牙齿
+
+**变异**：`agenerp/apply.py` 的 `execute_plan` 删除路径第一行插入 `return`（改成 no-op），
+只改 `agenerp/**`，**`tests/gates/` 下一个字节没碰**。
+
+**判据是「点名的 nodeid 集合之差」，不是退出码**：
+
+| | 判定器逐字点名的 nodeid 集合 | 退出码 |
+|---|---|---|
+| 变异前（第 5 跑，基线） | **∅**（`✅ live 判定：全部门禁绿，零 red、零 skip`） | 0 |
+| 变异后 | `{tests/gates/test_customization_roundtrip_delete.py::test_removing_from_pack_actually_deletes_on_site}` | 1 |
+| **差** | **恰好一条**：`::test_removing_from_pack_actually_deletes_on_site` | |
+
+变异后的完整输出：
+
+```
+判定模式：live（AGENERP_LIVE=1）—— 契约为全部门禁绿、零 skip，不读预期红名单
+门禁 19 项：红 1，绿 18，跳过 0
+
+❌ live 判定契约是全部门禁绿，下列门禁红了：
+   tests/gates/test_customization_roundtrip_delete.py::test_removing_from_pack_actually_deletes_on_site
+```
+
+**为什么变异期间那一跑不带 `capture` 对照**：变异把删除改成 no-op，no-op 删不掉任何东西，
+前后差集**按构造必然为空**，加上去是假证据。真正需要那条证据的是复原之后的复跑（下面）。
+
+**复原并复跑确认回到基线**（`git checkout -- agenerp/apply.py`）：
+
+```
+$ AGENERP_HTTP_PORT=18080 AGENERP_LIVE=1 AGENERP_SITE=frontend \
+  AGENERP_SITE_URL=http://127.0.0.1:18080 AGENERP_ADMIN_PASSWORD=admin \
+  python3 tools/gates/check_expected_red.py
+判定模式：live（AGENERP_LIVE=1）—— 契约为全部门禁绿、零 skip，不读预期红名单
+门禁 19 项：红 0，绿 19，跳过 0
+✅ live 判定：全部门禁绿，零 red、零 skip
+$ echo $?
+0
+```
+
+点名集合回到 **∅**，与基线一致。**这一跑的前后全量 `capture` 对照**（真删除路径又跑了一次）：
+
+```
+before: 10 after: 10
+added  : []
+removed: []
+```
+
+差集为空，通过。**本项不发布任何行为改变（变异已复原）。**
+
+---
+
+##### 第四项 · 变异 ②：判定器自己的 `skipped` 分支真的在起作用
+
+**变异对象是判定器自己**（`tools/gates/check_expected_red.py` 的 `verdict()`）：
+删掉 `if skipped:` 那个消息块，并把 `skipped` 从 live 与 default 两条失败条件里一并去掉
+（只删消息块不删条件，退出码不会变，那样的变异证明不了任何事）。
+
+```
+$ python3 -m pytest tests/unit -q
+...
+FAILED tests/unit/test_gate_verdict.py::test_default_skip_fails_even_when_everything_else_matches
+FAILED tests/unit/test_gate_verdict.py::test_live_any_skip_fails - assert 0 == 1
+2 failed, 203 passed in 0.56s
+$ echo $?
+1
+```
+
+**逐字点名的就是那两条 skip 单测**（default 一条、live 一条），两条都断在 `assert code == 1` → `assert 0 == 1`。
+
+**复原后复跑**（`git checkout -- tools/gates/check_expected_red.py`）：
+
+```
+$ python3 -m pytest tests/unit -q
+205 passed in 0.48s
+$ echo $?
+0
+$ git status --porcelain -- tools/gates/check_expected_red.py    # 输出为空
+$ grep -n "skipped" tools/gates/check_expected_red.py
+85:        elif tc.find("skipped") is not None:
+86:            outcomes[nodeid] = "skipped"
+97:    skipped = sorted(n for n, o in outcomes.items() if o == "skipped")
+100:        lines = [f"门禁 {len(outcomes)} 项：红 {len(reds)}，绿 {len(greens)}，跳过 {len(skipped)}"]
+103:                 f"绿 {len(greens)}，跳过 {len(skipped)}"]
+105:    if skipped:
+108:        lines += [f"   {n}" for n in skipped]
+115:        if reds or skipped:
+134:    if unexpected_red or unexpected_green or skipped:
+```
+
+第 105/115/134 三行就是被变异删掉又复原回来的那三处（消息块 + 两条失败条件）。
+**这份证据同时满足 Phase 1 新增那条 Protected Areas 行所要求的「判定器自身的变异验证」**，两处引同一份。
+
+---
+
+##### 第五、六项 · `project-context.md` 两处改动
+
+- **确认漂移已就地改准**（Minimum Rule 14，不降级成 follow-up）：验证命令表里「L2 live 门禁（快照）」
+  那一行的 ② 此前写「`tests/gates/conftest.py` 全文不设这个变量」，**那是错的**——
+  `conftest.py:274` 在 `live_site` fixture 内部会设它。已改写成更窄的正确说法：
+  `test_snapshot_diff_structured.py` 那两条不取任何 fixture、直接调 `capture()`，走不到那行，所以必须由命令给。
+  「定制包往返」那一行引用这三处口径时的措辞同步指向改准后的窄说法，免得两行读起来自相矛盾。
+- **新增一行「L2 live 门禁（整目录判定）」**：命令、三处口径、六次实测的退出码全部写进去，
+  **如实写了第一跑的 exit 1 与「不可复现」**，没有只收录绿的那部分；**没有**把 `--ignore` 写进表里
+  （本次压根没跑它）。现有三行照留（按文件定位红因时仍是正确工具）。
+
+##### 第七项 · roadmap 「9 现状」行
+
+已补，工作项 9 停在 `planned`（关闭判据是「CI 上跑绿」，本 plan 不碰 CI）。
+行内写明本 plan 交付了什么（live 判定模式 / 纯函数接缝 + 12 条单测 / Protected Areas 加严行）、
+live 整目录实测的六次退出码与那次不可复现的红、以及仍未做的那半（CI 消费面 + CI 侧守卫 `verdict-tool-untouched`）。
+
+##### 第八项 · 收尾复跑与红线自查
+
+见本节末尾「收尾自查（STATE §2 提交之后跑）」小节——按 plan 自己定的执行顺序，
+这五条必须在写完 STATE §2 并提交**之后**才跑，否则第二条会拿到一个伪失败。
+
+
 Exit Criteria:
 
-- [ ] live 整目录判定已实跑，退出码与完整输出逐字在 plan 与 log 里
-- [ ] **live 模式已被证明能返回 exit 0**（整目录绿，或收窄范围的正向对照绿）
-- [ ] 变异 ① 有「点名 nodeid 集合之差恰好为一条」的证据，且附变异前后全量 `capture` 差集
-- [ ] 变异 ② 是对判定器自身的变异，有「红 → 复原 → 绿」两次退出码
-- [ ] Phase 3 的两处变异（变异 ① / 变异 ②）均已复原并复跑确认；Phase 2 的负向对照变异由该阶段自己的 Exit Criteria 覆盖
-- [ ] `project-context.md` 第 56/57 行的漂移已就地改准，且多出整目录判定那一行
-- [ ] roadmap 有「9 现状」行，工作项 9 停在 `planned`
-- [ ] 红线自查五条命令输出为期望值
-- [ ] `docs/logs/2026/08-22.md` 与 STATE §2 各有对应记录（STATE 只追加）
+- [x] live 整目录判定已实跑，退出码与完整输出逐字在 plan 与 log 里
+- [x] **live 模式已被证明能返回 exit 0**（整目录绿，或收窄范围的正向对照绿）
+- [x] 变异 ① 有「点名 nodeid 集合之差恰好为一条」的证据，且附变异前后全量 `capture` 差集
+- [x] 变异 ② 是对判定器自身的变异，有「红 → 复原 → 绿」两次退出码
+- [x] Phase 3 的两处变异（变异 ① / 变异 ②）均已复原并复跑确认；Phase 2 的负向对照变异由该阶段自己的 Exit Criteria 覆盖
+- [x] `project-context.md` 第 56/57 行的漂移已就地改准，且多出整目录判定那一行
+- [x] roadmap 有「9 现状」行，工作项 9 停在 `planned`
+- [x] 红线自查五条命令输出为期望值
+- [x] `docs/logs/2026/08-22.md` 与 STATE §2 各有对应记录（STATE 只追加）
 
 ## `Plan Status` 由谁写（写死，免得烧循环）
 
@@ -937,6 +1155,23 @@ Exit Criteria:
   **但「没有理由」不是证据**——Phase 3 的整目录实测正是它们第一次在 live 下跑，结果照实记。
 - Successor Required: `no`
 - 重开事件：整目录实测若显示这 9 条中任意一条在 live 下行为不同，立即转为 blocking 并回 Phase 2。
+
+### 整目录 live 判定实测到一次**不可复现**的红（`::test_no_orphan_column_left_behind`）
+
+- Classification: `watch-only residual`
+- **本条是 Phase 3 实测新增的，不是起草时就有的。** 第 1 跑 exit 1 并逐字点名
+  `tests/gates/test_customization_roundtrip_delete.py::test_no_orphan_column_left_behind`，
+  **原样复跑四次全部 exit 0（19 条全绿）**。按 `AGENTS.md` 裁判规则 3，记为「不可复现」，**不猜根因**。
+- Why Not Blocking Closure: live 模式的正向证据已经拿到（四跑 exit 0），交付物「被证明可用」这条成立；
+  且本 plan **不碰 CI**，这条间歇性此刻不会让任何自动化判定变红。
+  **但它必须被交出去**：本批第二个 plan 要在 CI 上跑同一条命令，而 CI 上一次红就是一次红，没有人在旁边复跑。
+- Successor Required: `yes` —— `2026-08-22-0027-2-ci-l2-full-live-gate-coverage.md`，
+  **作为已知风险交办**（不是给它加 scope：它本来就要跑这条命令，这条事实只是它必须知道的输入）。
+- 重开事件：**再次观察到同一条门禁在整目录 live 判定下红**（本机或 CI 皆算）。
+  届时它就从「不可复现」变成「可复现的间歇性」，应当立即立案查根因并回到判据侧，
+  **不得**用 `-p no:randomly` / `-x` / 收窄目录之类的手段掩盖。
+- 相关既有登记：`docs/backlog/gate-fixtures-pollute-the-live-site.md`（门禁在活站点上留孤儿列）
+  与本条**可能**相关，但本 plan **不断言**两者有因果关系——那是猜根因。
 
 ### 门禁每跑一轮在本机常驻站点上留孤儿列
 
