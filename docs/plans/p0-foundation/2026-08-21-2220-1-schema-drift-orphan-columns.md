@@ -1,6 +1,6 @@
 # 2026-08-21-2220-1 孤儿列巡检与清除（`schema_drift` + apply 后不留残列）
 
-> Plan Status: active
+> Plan Status: completed
 > Mission: p0-foundation
 > Work Item: 6. 定制包往返删除验证（活站点端到端）—— **第二个 plan：`test_no_orphan_column_left_behind` 这一条**
 > Last Reviewed: 2026-08-21
@@ -351,7 +351,7 @@ Exit Criteria:
 
 ### Phase 3 — 变异验证与收尾
 
-Status: planned
+Status: completed
 Targets: `docs/backlog/p0-foundation-roadmap.md` · `docs/masterplan/STATE.md`（**只追加**）·
   `docs/context/project-context.md` · `docs/logs/`
 Skill: `none`
@@ -359,7 +359,7 @@ Skill: `none`
 - Item Types: `Proof | Add | Follow-up`（8 项里 4 项 `Proof`，未过 80% 阈值，**逐项标**）
 - Prereqs: Phase 1、Phase 2 完成
 
-- [ ] `Proof` **变异验证一：这条门禁测不出「巡检坏掉」，如实记录。**
+- [x] `Proof` **变异验证一：这条门禁测不出「巡检坏掉」，如实记录。**
       把 `schema_drift` 临时改成返回空元组，跑
       `AGENERP_HTTP_PORT=18080 AGENERP_LIVE=1 AGENERP_SITE=frontend AGENERP_SITE_URL=http://127.0.0.1:18080 AGENERP_ADMIN_PASSWORD=admin python3 -m pytest tests/gates/test_customization_roundtrip_delete.py -q`
       → 预期**绿**。
@@ -369,20 +369,20 @@ Skill: `none`
       因此本项的结论是「门禁对巡检坏掉零覆盖」，**补偿证据是 Phase 1 那次 `information_schema` SQL 交叉验证**，
       不是变异验证二。
       - Skill: `none`
-- [ ] `Proof` **变异验证二：清除有牙齿。** 把 Phase 2 的清列改成 no-op，跑上面同一条命令 →
+- [x] `Proof` **变异验证二：清除有牙齿。** 把 Phase 2 的清列改成 no-op，跑上面同一条命令 →
       该条必须**逐字转红**在「留下了孤儿列：…」。这是本 plan 真正的牙齿所在。改回后复跑转绿，两次退出码都记。
       - Skill: `none`
-- [ ] `Proof` 全量复跑 `test_customization_roundtrip_delete.py` 四条（同上命令，去掉 `--tb=line`），
+- [x] `Proof` 全量复跑 `test_customization_roundtrip_delete.py` 四条（同上命令，去掉 `--tb=line`），
       期望 exit 0 / `4 passed`。退出码与原文照抄。
       - Skill: `none`
-- [ ] `Proof` 复跑 `python3 tools/gates/check_expected_red.py`（默认环境，不带 `AGENERP_LIVE`），
+- [x] `Proof` 复跑 `python3 tools/gates/check_expected_red.py`（默认环境，不带 `AGENERP_LIVE`），
       确认没有名单外的门禁变红。**名单一行不动**（见 Non-Goals）。
       - Skill: `none`
-- [ ] `Add` 更新 `docs/backlog/p0-foundation-roadmap.md`：改写「6 现状」行为实测结论，
+- [x] `Add` 更新 `docs/backlog/p0-foundation-roadmap.md`：改写「6 现状」行为实测结论，
       工作项 6 **保持 `planned`**；同时在「5 现状」行补一句——`execute_plan` 的交付面被本 plan 扩过
       （多了清列一步），免得工作项 5 的记录与代码脱节。
       - Skill: `none`
-- [ ] `Add` 往 `docs/masterplan/STATE.md` **§2（会话日志，只追加）**写一条证据行。
+- [x] `Add` 往 `docs/masterplan/STATE.md` **§2（会话日志，只追加）**写一条证据行。
       ⚠️ **不写 §3**：§3 是 needs-human 队列，本 plan 没有任何要人拍板的事项
       （§3 此刻一条 `[open]` 都没有），把证据行塞进 §3 是给队列注水。
       同时按本 mission 的既有先例（`1922-1` 的 `## Closure` 段、`1022-2`、`2341-2`；
@@ -394,11 +394,11 @@ Skill: `none`
       WBS 行ID 用 **P0.2**（`schema_drift` 归在快照/契约面，与 `1922-1` 同一行），
       这也正好满足裁判规则 2 的「命令原文 + 退出码 + commit sha」。
       - Skill: `none`
-- [ ] `Add` 往 `docs/context/project-context.md` 的验证命令表补一行：
+- [x] `Add` 往 `docs/context/project-context.md` 的验证命令表补一行：
       `test_customization_roundtrip_delete.py` 的完整 L2 跑法（含 `AGENERP_SITE=frontend` 与「必须先起栈」），
       以及本 plan 新引入的两条带外命令（`bench execute` 读、`db` 侧 DDL 写）。
       - Skill: `none`
-- [ ] `Follow-up` 往 `docs/backlog/` 新开一条：**门禁自己在污染站点**——每轮跑完留一条孤儿列。
+- [x] `Follow-up` 往 `docs/backlog/` 新开一条：**门禁自己在污染站点**——每轮跑完留一条孤儿列。
       触发条件（按 Anti-Slacking Rule 必须写明）：**当 CI 真的开始跑 L2 时**（plan
       `2026-08-21-2220-2` 的 CI 阶段落地），残留会随每次 CI 累积，届时必须处置。
       现在不处置的理由：teardown 在 `tests/gates/conftest.py`（红线 1）。
@@ -406,16 +406,16 @@ Skill: `none`
 
 Exit Criteria:
 
-- [ ] 两条变异验证的命令原文、退出码、失败原文均已落进 plan，且变异验证一的**因果结论写的是「假绿」**
-- [ ] roadmap「6 现状」行更新为实测结论；工作项 6 **保持 `planned`**（不置 `done`，理由见 Non-Goals）；
+- [x] 两条变异验证的命令原文、退出码、失败原文均已落进 plan，且变异验证一的**因果结论写的是「假绿」**
+- [x] roadmap「6 现状」行更新为实测结论；工作项 6 **保持 `planned`**（不置 `done`，理由见 Non-Goals）；
       「5 现状」行补记 `execute_plan` 交付面的扩张
-- [ ] `STATE.md` **§2** 追加一条证据行（只追加，不改写任何已有行），**§3 不动**，授权链矛盾已照实引出
-- [ ] `docs/context/project-context.md` 验证命令表补上 `test_customization_roundtrip_delete.py` 一行
+- [x] `STATE.md` **§2** 追加一条证据行（只追加，不改写任何已有行），**§3 不动**，授权链矛盾已照实引出
+- [x] `docs/context/project-context.md` 验证命令表补上 `test_customization_roundtrip_delete.py` 一行
       与本 plan 新引入的 bench/db 带外命令
-- [ ] 全量复跑 `test_customization_roundtrip_delete.py` → exit 0 / `4 passed`，原文已抄
-- [ ] 默认环境 `python3 tools/gates/check_expected_red.py` → exit 0，无名单外门禁变红
-- [ ] `docs/backlog/` 下已新开「门禁污染站点」那条 follow-up，且写明了触发条件
-- [ ] `docs/logs/2026/08-21.md`（或执行当日）更新
+- [x] 全量复跑 `test_customization_roundtrip_delete.py` → exit 0 / `4 passed`，原文已抄
+- [x] 默认环境 `python3 tools/gates/check_expected_red.py` → exit 0，无名单外门禁变红
+- [x] `docs/backlog/` 下已新开「门禁污染站点」那条 follow-up，且写明了触发条件
+- [x] `docs/logs/2026/08-21.md`（或执行当日）更新
 
 ## Draft Review Record
 
@@ -464,17 +464,17 @@ Exit Criteria:
 
 ## Closure Gates
 
-- [ ] in-scope behavior is complete
-- [ ] relevant docs are aligned（§11.6 / 四处「唯一」表述（`site.py:1` · §11.7 的 510、515 · 338）/
+- [x] in-scope behavior is complete
+- [x] relevant docs are aligned（§11.6 / 四处「唯一」表述（`site.py:1` · §11.7 的 510、515 · 338）/
       新增 §11.8 / roadmap 的「5 现状」「6 现状」两行 / project-context / STATE §2）
-- [ ] 确认的 owner-doc 漂移（四处「唯一」）已就地改准，**没有被降级成 follow-up**（Minimum Rule 14）
-- [ ] verification has run：`tests/unit` · `tests/contracts` · `ruff check` ·
+- [x] 确认的 owner-doc 漂移（四处「唯一」）已就地改准，**没有被降级成 follow-up**（Minimum Rule 14）
+- [x] verification has run：`tests/unit` · `tests/contracts` · `ruff check` ·
       live 的 `test_customization_roundtrip_delete.py` · 默认环境的 `check_expected_red.py`
-- [ ] scoped verification is not conflated with full verification —— **live 只在本机做过，CI 未验证**，
+- [x] scoped verification is not conflated with full verification —— **live 只在本机做过，CI 未验证**，
       这句必须逐字出现在 Closure 里
-- [ ] no in-scope item downgraded to deferred/follow-up
-- [ ] independent draft review completed and recorded
-- [ ] text consistency verified: status, phases, gates, and log all agree
+- [x] no in-scope item downgraded to deferred/follow-up
+- [x] independent draft review completed and recorded
+- [x] text consistency verified: status, phases, gates, and log all agree
 - [ ] closure audit was independent
 - [ ] closure evidence exists in files
 
@@ -513,13 +513,45 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: 待执行后填写。
+Status Note: **三个 Phase 全部执行完毕，判据面四条在 live 环境全绿。** 交付基线 sha `e1c9104`。
+
+- **结果面**：`AGENERP_HTTP_PORT=18080 AGENERP_LIVE=1 AGENERP_SITE=frontend AGENERP_SITE_URL=http://127.0.0.1:18080 AGENERP_ADMIN_PASSWORD=admin python3 -m pytest tests/gates/test_customization_roundtrip_delete.py -q`
+  → **exit 0**，`4 passed in 10.29s`（含此前唯一仍红的 `::test_no_orphan_column_left_behind`）。
+- **其余验证**：`python3 -m pytest tests/unit -q` → exit 0 `189 passed`；
+  `python3 -m pytest tests/contracts -q` → exit 0 `151 passed`；
+  `ruff check agenerp tests/unit tests/contracts` → exit 0；
+  默认环境 `python3 tools/gates/check_expected_red.py` → exit 0（「门禁 19 项：预期红 7，绿 12，跳过 0」）。
+- **红线核对**：`git diff --stat -- tests/gates .github/workflows docs/masterplan`（相对开工基线）→ 无输出；
+  `git diff --numstat tools/gates/expected-red.txt` → 无输出（名单一行未动）；
+  `STATE.md` 的改动是 **9 insertions, 0 deletions**（只追加 §2 证据行，§3 未动）；
+  `DECISIONS.md` / 证据仓 / `missions/**` 均未触及；未生成任何运行时 Server Script。
+- **scoped verification is not conflated with full verification —— live 只在本机做过，CI 未验证。**
+- **本 plan 不划 `expected-red.txt`，工作项 6 保持 `planned` 不置 `done`**（理由见 Non-Goals，
+  依据是人在 `STATE.md` §2 2026-08-21T11:20Z 的裁定）。这不是把没做完的活报成完成，
+  也不是把做完的活报成没做——`done` 的字面定义（「已从预期红名单划掉」）在此处不可满足。
 
 Closure Audit Evidence:
 
-- Auditor / Agent: 待填（必须是独立子代理）
-- Evidence: 待填
+- Auditor / Agent: **待填** —— 独立关闭审计尚未进行。本轮是 `EXECUTE` 步骤，
+  独立子代理的关闭审计归 `CLOSURE_VERIFY` 步骤，不由执行步骤自审
+  （自审等于让被裁判者当裁判，与本仓反复强调的那条原则冲突）。
+- Evidence: 待填。可复跑的证据入口：本文件 Phase 1/2/3 各项的命令原文与退出码 ·
+  `docs/logs/2026/08-21.md` 的三条 `EXECUTE` 记录 · `docs/masterplan/STATE.md` §2 的证据行 · commit `e1c9104`。
+- **需要审计特别复核的三处**（执行侧自己点名，不藏）：
+  ① 变异验证一的因果结论是否写准了「假绿」（门禁对巡检坏掉零覆盖），而不是被读成「清除有效」；
+  ② `agenerp/oob.py` 与红线 7 的界线是否真的靠机制立住（`ALLOWED_CALLS` 钉到参数一级、
+     无通用 SQL / 通用函数入口），而不是靠散文里的一句排除；
+  ③ 作用域收窄是否真的只删了交集（跑前 6 条 → 跑后 5 条，消失的恰好只有 `agenerp_gate_roundtrip`）。
 
 Follow-up:
 
-- 待填（确认的缺陷不得出现在这里）
+- `docs/backlog/gate-fixtures-pollute-the-live-site.md` —— **门禁自己在污染站点**。
+  本 plan 已止血一半（走 `apply_pack` 的探针现在会被清掉），**没覆盖的是另一半**：
+  `test_snapshot_diff_structured.py` 的 `agenerp_gate_probe` 由 `live_site` fixture 直接建删、
+  **不经 `apply_pack`**，因此它的列仍每轮累积。修法在 `tests/gates/conftest.py`（红线 1），
+  触发条件是 **CI 真的开始跑 L2 时**（plan `2026-08-21-2220-2` 的 CI 阶段）。
+  **这不是确认的缺陷被塞进 follow-up**：它是本 plan `Deferred But Adjudicated` 第二条的落盘，
+  且 loop 无权处置。
+- 执行过程中**实测红过两次，两条都已就地修掉并各配一条判据**，不留成 follow-up：
+  ① `bench execute --kwargs` 是 Python 字面量不是 JSON（`NameError: name 'true' is not defined`）；
+  ② MariaDB 的反引号落在 `sh -c` 的双引号里被当成命令替换（`sh: 1: tabItem: not found`）。

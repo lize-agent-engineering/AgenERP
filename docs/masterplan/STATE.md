@@ -176,6 +176,15 @@
 - 2026-08-21T11:20Z · L2 · fixture 修 URL 编码后复跑：`test_stack_boots_and_all_services_healthy` **PASS**（栈真起、全服务 healthy、用完自拆）；其余红的**性质变了** —— 从「fixture 自己坏了」变成「实现确实不存在」。⚠️ 该条**仍留在预期红名单**：它只在 `AGENERP_LIVE=1` 且端口空闲时过，判定器走的是快门禁路径，那条路上它仍红。**名单必须反映判定器实际看到的，不是我知道的**
 
 - 2026-08-21T14:21Z · 记账更正 · 我上一轮向人报「三条 needs-human 全部关闭」是**错的**：当时只把工作项 7 那条标了 `resolved`，fixture 那两条只补了证据行、状态没改。本轮核对队列才发现。**「我做完了那件事」不等于「账上记了」** —— 状态字段是给下一个接手的人看的，不是给我自己回忆用的
+- 2026-08-21T20:50Z · **P0.2** · `AGENERP_HTTP_PORT=18080 AGENERP_LIVE=1 AGENERP_SITE=frontend AGENERP_SITE_URL=http://127.0.0.1:18080 AGENERP_ADMIN_PASSWORD=admin python3 -m pytest tests/gates/test_customization_roundtrip_delete.py -q` → **exit 0**（`4 passed in 10.29s`，该文件四条**全绿**，含此前唯一仍红的 `::test_no_orphan_column_left_behind`）· sha `e1c9104` · 下一项：工作项 8（plan `2026-08-21-2220-2`，首页「AI 能力未配置」+ CI 的 L2 job）
+  · **交付**：plan `docs/plans/p0-foundation/2026-08-21-2220-1-schema-drift-orphan-columns.md`（工作项 6 的第二个 plan）交付**巡检 + 清除两半**。新增 `agenerp/oob.py` —— `agenerp` 的第二条站点传输，也是唯一够得到物理层的一条（REST 够不到：Frappe 没有任何白名单方法回物理列，且 compose 不对宿主发布 db 端口）。`schema_drift` 复用 Frappe 自己的 `frappe.model.meta.trim_table`（`dry_run=True`）而不自建第二套字段口径；清除走 `db` 容器直发 `ALTER TABLE … DROP COLUMN`，作用域收窄到「本次删掉的 fieldname ∩ `schema_drift(doctype)`」。
+  · **与红线 7 的界线（不含糊过去）**：红线 7 禁的是把可执行脚本**装进站点**、由站点在处理请求时自己执行（持久化的 RCE 面）；`agenerp/oob.py` 是运维侧的一次性带外调用，不留任何站点态。界线靠机制立住不靠意图：`ALLOWED_CALLS` 是**「函数名 → 钉死的 kwargs」映射**（调用方只能给 `doctype`，`dry_run` 恒 `True`），且不提供任何「调用方给整条 SQL / 任意函数」的通用入口。详见 `docs/architecture/module-boundaries.md` §11.8。
+  · **作用域实测（方向是「减少」不是「新增」）**：门禁跑前 `schema_drift("Item")` 回 6 条、跑后 5 条，**消失的恰好只有 `agenerp_gate_roundtrip`**；`agenerp_gate_probe` / `agenerp_explore_probe` / `agenerp_explore_probe2` / `agenerp_scope_probe_item` / `agenerp_probe_orphan` **一条不少地还在**。这是「没有顺手多删」的正向证据。
+  · **变异验证两条，结论要连着读**：① 清列改 no-op → **exit 1**，逐字红在「留下了孤儿列：…」（**牙齿在这里**）；② `schema_drift` 改成返回空 → **exit 0**，但物理表复查显示 `agenerp_gate_roundtrip` **仍在 `tabItem` 上、一列没删**——空巡检 → 空交集 → 什么都没删，断言拿到的 `orphans` 也是空的。**这是一次假绿，本门禁对「巡检坏掉」零覆盖**；补偿证据是一次性的 `information_schema` 交叉验证（写死的等式，两侧相等）。
+  · **不请求划名单，也不声称有未决的 needs-human 项**：`tools/gates/expected-red.txt` **一行未动**（`git diff --numstat` 无输出），沿用人在本节 2026-08-21T11:20Z 的裁定——「名单必须反映判定器实际看到的，不是我知道的」，默认判定环境无 `AGENERP_LIVE`，L2 恒红。默认环境 `python3 tools/gates/check_expected_red.py` → **exit 0**。工作项 6 因此**保持 `planned`** 不置 `done`，与工作项 4/5/7 同一情形。**本行写在 §2 不写 §3**：§3 是 needs-human 队列，本 plan 没有任何要人拍板的事项（§3 此刻一条 `[open]` 都没有），把证据行塞进 §3 是给队列注水。
+  · **未做、也不由本 plan 做**（照实登记）：门禁自己每轮在站点上留一条孤儿列——已止血一半（走 `apply_pack` 的探针现在会被清掉），另一半（`test_snapshot_diff_structured.py` 的 `agenerp_gate_probe` 由 fixture 直接建删、不经 `apply_pack`）仍在累积。修法在 `tests/gates/conftest.py`（红线 1），登记在 `docs/backlog/gate-fixtures-pollute-the-live-site.md`，触发条件是**CI 真的开始跑 L2 时**。
+  · **verification scope limited**：上述 live 实证**只在本机做过**（compose v5.0.2、端口 18080、栈是热的）。**不得报为「CI 上也验证过」。**
+  · **授权链（与本节此前三行同一处矛盾，照实引出、不擅自消解）**：`01-EXECUTION-MODEL.md` §1 的表写角色 B「不得手写 STATE」，而执行器人格 `tools/mission-driver/agents/build.claude.md` 逐字指示「拿不准就写进 `STATE.md` 的 needs-human 队列」；`AGENTS.md` 红线 5 允许**追加**证据行。本行按更高优先级那条执行，**只追加、不改写任何已有行**，也不为这处矛盾另开一行。
 
 ---
 
