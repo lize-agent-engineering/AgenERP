@@ -12,7 +12,7 @@
 |---|---|
 | 阶段 | **Day -1**（主计划自身制作） |
 | 当前 mission | 无（mission-driver 尚未接管，Day 0 之后才有） |
-| **下一个未阻塞工作项** | **P0.2 · 修过期的契约测试并关闭工作项 1/2**（交给下一轮循环）（此字段**只填一个 ID**，不写「但实际前置是…」这类歧义——T1 实测：会让接手会话先做一次推理才敢动手） |
+| **下一个未阻塞工作项** | **P0 工作项 3 · 零依赖启动**（plan 已由循环起草并置 planned）（此字段**只填一个 ID**，不写「但实际前置是…」这类歧义——T1 实测：会让接手会话先做一次推理才敢动手） |
 | 该项验收命令 | `--driver claude` 能跑通一次最小 prompt 往返，且**不泄漏本仓 CLAUDE.md / hooks / skills**（对策见 `REF:SPIKE02-MODELS`） |
 | 阻塞 | 无。**T1–T4 四条全过**（2026-08-20） |
 | 成本 | 未开始计量（阈值待 `W0.0` 定出） |
@@ -145,6 +145,10 @@
 - 2026-08-21T10:20Z · P0 第三轮 · 工作项 2 · **`e145e43` 自记的「已知遗留」已清**：`tests/unit/test_contract_surface.py` 把 `capture` / `diff` 由 `NOT_YET_IMPLEMENTED` 迁入 `IMPLEMENTED`。这正是 `2026-08-21T01:56Z` 那条记的「当前 `commands.test` → exit 1（契约测试过期），这正是下一轮的活」——**判定面补上单测后，循环这一轮自己看见并修掉了它**，验证了缺陷 ② 的修法有效 · `python3 -m pytest tests/unit/test_contract_surface.py -q` → **exit 0**（9 passed，其中 3 条仍断言 `schema_drift` / `export_customizations` / `apply_pack` 抛 `NotImplementedError`）
 - 2026-08-21T10:20Z · P0 第三轮 · 工作项 2 · **§3 本轮不新增 `open` 行，理由如实记录**：plan-3 的 Phase 3 原规定「追加一行 needs-human，处置栏留 `open`」，前提是 `check_expected_red.py` 会因名单过期退 1。而人已在 `920ce0e`（带 `Gates-Change-Approved-By: lize`）划掉含本工作项两条 L1 在内的 5 行，该判据**在执行前就已退 0**——本 plan `## Human Handoff` 的验收条件已满足，再登记一条 `open` 就是凭空造一个人的待办。plan 末步据此保持 `Plan Status: active`（而非 `deferred`）交独立关闭审计，偏差与授权链已写进 plan 与 `docs/logs/2026/08-21.md`
 - 2026-08-21T10:20Z · P0 第三轮 · 红线自查（区间 diff，非 `git diff HEAD`）· `git diff --name-only b8aadbf..HEAD -- tests/gates/ .github/workflows/ docs/masterplan/DECISIONS.md` → **输出为空**；`tests/gates/test_snapshot_diff_structured.py::test_field_addition_shows_up_as_structured_change` 仍红且红因仍是 `tests/gates/conftest.py:17` 的 `live_site` `NotImplementedError`（属工作项 4/6，未被本 plan 弄成别的错）
+- 2026-08-21T03:32Z · P0 第二轮 · 认证恢复后重跑，**跑约 1 小时后被会话退出误杀**（输出末尾 `[killed]`，非停机、非失败）。产出 4 个提交 / 1,715 行：**自己修掉了上一轮留下的过期契约测试**（`commands.test` 由 exit 1 转 **exit 0**，40 条单测全过），roadmap **工作项 1、2 置 `done`**，并起草了工作项 3（零依赖启动）与 4（工具契约层）的 plan 置 `planned`
+- 2026-08-21T03:32Z · P0 第二轮 · 成本：4 个无头会话 / 268 条助手消息 / 输入 **42,972,116** / 输出 368,181 / ≈**\$35.6**
+- 2026-08-21T03:32Z · 基础设施 · **7×24 的第一个前提之前不成立**：循环挂在交互会话的后台任务下，会话一退子进程即被杀。新增 `tools/run-loop.sh`（`setsid` + `nohup` 双管齐下脱离进程组，带 pidfile / status / stop / log），停止时杀整个进程组以免引擎 spawn 的 claude 变孤儿
+
 ---
 
 ## §3 needs-human 队列
