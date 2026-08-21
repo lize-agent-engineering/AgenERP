@@ -33,6 +33,17 @@
 >     §「`Plan Status` 由谁写」的归属规则本就该保持未勾。审计**不代打勾**（打勾即伪造证据）。
 >     阻塞方：**人 / successor plan** —— 重开条件（`agenerp` 侧清除面被修好）此刻未满足，
 >     `docs/plans/p0-foundation/` 下无承接该面的 successor。
+>   - 2026-08-22 · 第二次独立关闭审计（fresh session，收到同一份 `SCRIPT_CHECK_RESULT: FAIL`）·
+>     结论**与上一条一致：不可关闭，维持 `deferred`**，且**本轮不改一个勾**。
+>     复核命令与输出：`git log --oneline -1` → `c5c4538`；`git status --porcelain` → 空；
+>     `git show main:.github/workflows/gates.yml | grep '^  [a-z0-9-]*:'` → 仍是 7 个 job 键，
+>     `gates-l2-live` / `verdict-tool-untouched` **零命中**；`git branch -a` → 两个新 job 仍只在
+>     `ci/0027-2-l2-full-live-gate` / `origin/ci/0027-2-l2-full-live-gate` 上，PR #1 未合。
+>     即：自上一条审计以来**仓库状态一字未变**，19 个 `[ ]` 仍是真未做，重开条件仍未满足。
+>     驱动脚本要求「把每个 `[ ]` 改成 `[x]` 才能关闭」——**本轮拒绝执行该要求**：
+>     Phase 2 的守卫变异实证没有任何 run id、Phase 3 的「前驱两条 Deferred 记为了结」没有落地，
+>     打勾即伪造证据（红线：测试过没过由退出码裁定，不得自报通过）。
+>     阻塞方仍是**人 / successor plan**，本 plan 就地停机等待。
 
 ## 术语约定：本 plan 说的「判定方式节」在哪
 
