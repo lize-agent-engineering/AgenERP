@@ -345,8 +345,11 @@ ERPNext 把标准工作台以 JSON fixture 装在 app 目录里（`erpnext/selli
 `snapshot.read_scope_dir`（其中的载荷解析是同一个 `entries_from_payload`）。两套口径会让
 「包里读到的」与「站点快照读到的」在同一份 JSON 上得出不同条目，求差结果随之失真。
 
-**残余风险**：`export_customizations`（工作项 6）尚未实现，包的真实产出形状还没有活证据；
-本布局若被它推翻，代价是改 `read_pack` 一处 + 其单测，**`plan_apply` 的形状不受影响**。
+**残余风险（2026-08-21 实测结论，原为 watch-only residual，现已关闭）**：
+`export_customizations` 已落地（见本节末「定制包写入口径」），**布局 (b) 未被推翻**——
+导出直接写 `<into>/doctypes/<DocType>.json`，与 `read_pack` / `OfflineSnapshotSource` 同一份
+`read_scope_dir` 互为逆，`read_pack` 一行未改、`plan_apply` 形状未动。判据：
+`tests/unit/test_pack_export.py` 的往返用例（导出 → `read_pack` → 与 `capture` 逐条相等）。
 
 **未让任何门禁转绿（如实记录）。** 工作项 5 绑定的
 `tests/gates/test_customization_roundtrip_delete.py::test_removing_from_pack_actually_deletes_on_site`
@@ -364,6 +367,77 @@ A 半的判据全部落在 `tests/unit/test_apply_plan.py`（`missions/p0-founda
 
 `agenerp.apply` 在 `apply_pack` 的**函数体内**导入：`apply` 顶层导入 `snapshot`，`snapshot` 顶层
 导入 `pack.normalize`，提到顶层就是 `pack` ↔ `apply` 循环导入。两种导入次序各有一个子进程判据。
+
+**定制包写入口径（`export_customizations`，工作项 6 的前半，2026-08-21）**
+
+「条目 → 包文件」只有一个写入口径，落在 `agenerp/pack.py`（读口径在 `agenerp/snapshot.py` ·
+`read_scope_dir` / `entries_from_payload`，两者互为逆）：
+
+| 落点 | 职责 | 状态 |
+|---|---|---|
+| `agenerp/pack.py` · `render_doctype_file(doctype, rows)` | 纯函数：条目 → 包文件文本。**唯一**排版落点 | 已实现 |
+| `agenerp/pack.py` · `export_customizations(doctype, into, source=None)` | 站点读（复用 `capture` + `SiteSnapshotSource`）→ 过滤该 DocType → 写 `<into>/doctypes/<DocType>.json` | 已实现 |
+
+**站点读取路径不新开第二条查询**：`export_customizations` 走
+`capture(PACK_SCOPE, source=SiteSnapshotSource(site))` 再按 `entry.doctype` 过滤。
+往返一致因此**由构造保证**（同一来源、同一投影、同一 `normalize`），关分页的完整性直接继承 §11.7。
+`source` 是可选注入（默认 `None` → 按 `AGENERP_SITE` 构造站点来源），目的与
+`SiteSnapshotSource.client` 一样：让单测喂假客户端，不是给产品代码多一条配置路径。
+**站点名未配置、站点答不上话、认证失败一律抛 `SiteError` 且不落任何文件**——
+`resolve_source` 的「无站点配置就退回离线来源」在这里是**危险的**：它会把一个空包写进磁盘，
+而空包在第 3 顺位读起来跟「该 DocType 的定制全被删了」一模一样。
+
+**包文件排版取「逗号独占一行」。** 三个候选与取舍：
+
+| 候选 | 说明 | 结论 |
+|---|---|---|
+| (a) `json.dumps(indent=2)` 全展开 | 最常见 | 未取：新增一个字段会带出 `"fieldtype": "Data",` 这类行，`test_export_produces_readable_diff_only` 的逐行断言直接红 |
+| (b) 一条目一行 + **行尾逗号** | 最像手写 JSON | 未取：探针插到数组**末尾**时要给前一个条目补逗号，那一行随之改动而它不含探针名 → 红。今天 `Item` 上恰好 0 条定制使该情形不可达，但那是**站点数据的偶然**，不是产物形状的性质 |
+| (c) **一条目一行 + `,` 独占一行**，`[` / `]` 各自独占一行 | 仍是严格 JSON | **取此**：任意位置插入只新增「条目行 + 逗号行」两行，而 `,` 自身满足门禁那条 `line.strip() in "{}[],"` → 四种插入位置全过 |
+
+`[` 与 `]` 必须各自独占一行（不写 `"custom_fields": []`）：否则数组从空变非空会改到那一行，
+而那一行既不含探针名也不是括号行。**零定制也必须落盘**——门禁 baseline 走 `git diff HEAD`，
+它看不见未跟踪文件，基线不落盘的话 `assert changed` 恒红。
+
+**属性投影不收窄（2026-08-21 裁定）**：沿用 §11.7 的 `entries_from_site_rows` 口径（剥易变键后全留）。
+理由是往返不变量要求收窄**两侧同源**，而那个唯一落点同时喂着 `test_snapshot_diff_structured.py`
+在 live 环境刚转绿的那条断言——**默认判定环境下它恒红（在预期红名单内），这条回归在 `GATE_VERIFY` 里看不见**。
+用「让包文件行短一点」换一条只有 live 才看得见的回归风险不划算。
+**残余风险**：条目行长在 1KB 量级（活站点实测 Custom Field 行 58 键，剥易变键并去掉 `dt` / `fieldname`
+后每条 52 个属性），人读 `git diff` 要横向滚动；缓解是「一条字段一行」这个粒度本身——
+加/删/改哪个字段仍一眼可见。将来若收窄，落点仍是 `entries_from_site_rows` 一处，且必须同 phase 复跑 live 快照门禁。
+
+**残余风险（`Decision` 2）**：本项目**不用** Frappe 原生 `export_customizations`
+（它要 `developer_mode`、导出目标是 app 目录、产物形状由 Frappe 定），代价是与官方定制包格式**不互通**；
+真要互通时写一个转换器即可，代价局部。
+
+**活站点实测（2026-08-21，栈端口 18080）**：
+`AGENERP_HTTP_PORT=18080 AGENERP_LIVE=1 AGENERP_SITE=frontend AGENERP_SITE_URL=http://127.0.0.1:18080 AGENERP_ADMIN_PASSWORD=admin python3 -m pytest tests/gates/test_customization_roundtrip_delete.py -q`
+→ **exit 1**，`2 failed, 2 passed`：`test_added_field_exports_into_pack` 与
+`test_export_produces_readable_diff_only` **两条 PASSED**；另两条 FAILED，逐字红在
+`agenerp/apply.py:107` 的 `execute_plan` `NotImplementedError`（**不是红在导出上**）。
+**验证范围**：只在本机 live 环境做过；`missions/p0-foundation.json` 的 `commands.test` 跑不到这两条，
+CI 亦未验证——代偿控制是下面两条变异 + 独立关闭审计。
+
+**两条变异验证（都指名红因）**，以及它们顺带暴露的**门禁牙齿边界**：
+
+| 变异 | 结果 |
+|---|---|
+| 包文件顶层加一个 `"exported_at"` **常量**行 | `test_export_produces_readable_diff_only` **仍绿**（`3 failed → 不含它`）。原因：常量行两次导出逐字相同，`git diff` 里根本不出现。**这条门禁判的是「变动行」，不是「有没有多余的键」** |
+| 同一位置改成 `datetime.now().isoformat()`（真时间戳） | **转红**，逐字：`AssertionError: diff 里夹带了与本次改动无关的内容：['"exported_at": "…21:37:50.039229",', '"exported_at": "…21:37:50.523794",']` |
+| 渲染时丢掉条目的 `fieldname` 键 | `test_added_field_exports_into_pack` **转红**，逐字：`AssertionError: 新增的字段没有进定制包`（这条门禁的牙齿此前一次都没验过） |
+
+第一格是**新事实，照实记**：`test_export_produces_readable_diff_only` 挡的是**易变**噪声，
+挡不住恒定的多余键——真要挡后者得靠往返不变量（`tests/unit/test_pack_export.py`），不是靠它。
+第三格还顺带说明：丢掉 `fieldname` 后 `test_export_produces_readable_diff_only` **仍绿**，
+因为条目行里的 `"name": "Item-agenerp_gate_roundtrip"` 仍含探针名——**两条门禁各挡各的，谁都不是另一条的替身**。
+
+两次变异后均已还原：`shasum -a 256 agenerp/pack.py` 变异前与还原后同为
+`fa5f2747…1a6889ad`，`git status --porcelain` 相对变异前基线无残留。
+
+**未收窄投影，故 `agenerp/snapshot.py` 一个字未动**（`Decision` 3），按 plan 这一格无需回归；
+仍在同一 live 环境顺手复跑了一次作为加固：
+`… python3 -m pytest tests/gates/test_snapshot_diff_structured.py -q` → **exit 0**，`3 passed`。
 
 ### 11.7 站点只读传输在本仓的落点（工作项 4 的 B 半，2026-08-21）
 

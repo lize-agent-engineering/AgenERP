@@ -22,13 +22,13 @@ from agenerp.snapshot import Snapshot
 # 已实现、有真实行为的契约面。
 IMPLEMENTED: list[str] = [
     "agenerp.pack:normalize",
+    "agenerp.pack:export_customizations",
     "agenerp.snapshot:capture",
     "agenerp.snapshot:diff",
 ]
 
 # 签名已定稿、行为未实现（调用即 NotImplementedError）的契约面。
 NOT_YET_IMPLEMENTED: list[str] = [
-    "agenerp.pack:export_customizations",
     "agenerp.pack:apply_pack",
     "agenerp.snapshot:schema_drift",
 ]
