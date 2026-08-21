@@ -57,6 +57,37 @@ plan `2026-08-21-2220-2` 的 CI 阶段已落地，`gates-l2` job 在 run `324992
 （那两个文件才取 `live_site`），或**当 CI 的 L2 站点不再是一次性的**（收尾从 `down -v` 改成保留卷）时。
 在此之前，唯一受影响的仍然只有本机常驻站点，处置手段见文末那条 `trim-tables`。
 
+### 2026-08-22 补记：新触发条件**已满足**，裁定结果是**维持 watch-only**，触发条件再改绑一次
+
+2026-08-21 那次补记写下的新触发条件逐字是「**当 CI 的 L2 覆盖面扩到
+`test_snapshot_diff_structured.py` 或 `test_customization_roundtrip_delete.py` 时**⋯
+或**当 CI 的 L2 站点不再是一次性的**时」。
+
+**前者已经发生**：plan `docs/plans/p0-foundation/2026-08-22-0027-2-ci-l2-full-live-gate-coverage.md`
+的新 job `gates-l2-live` 在 CI 上跑**整目录 19 条**，两个文件都在覆盖面里
+（run `32509351108`，PR #1，head `9a8832f`）。**必须给结论，本节就是结论。**
+
+**待核的两个事实，按 CI 实跑日志核对过，不是推理**：
+
+1. **新 job 的收尾仍是 `down -v`，且 `if: always()`。** 实测 attempt 2 的「拆栈（无条件）」步骤逐字打出
+   12 个容器 `Removed`、**5 个卷全部 `Removed`**（`agenerp_sites` / `agenerp_db-data` / `agenerp_logs` /
+   `agenerp_redis-queue-data` / `agenerp_redis-cache-data`）、`Network agenerp_default Removed`。
+   ⚠️ 这一跑的判定步骤是**红**的，拆栈仍然执行了——`if: always()` 在失败路径上实测生效。
+2. **CI 站点仍是一次性的。** 卷被删干净，下一次 CI 是全新站点。
+
+**因此裁定：维持 `watch-only`。** 残留仍**不累积**——即使门禁在 CI 上每轮都建探针 Custom Field，
+那些物理列随卷一起消失。唯一受影响的仍然只有**本机常驻站点**，处置手段见文末那条 `trim-tables`。
+
+**触发条件按新事实就地再改绑一次**（照 2026-08-21 那次的写法，不新开条目）：
+**当 CI 的 L2 站点不再是一次性的时**（收尾从 `down -v` 改成保留卷，或改用常驻 runner / 外部站点）。
+「覆盖面扩到那两个文件」这一条**已经用掉了，不再是触发条件**。
+
+**⚠️ 一条必须点名的相邻事实，别把它和本条混为一谈**：那次 CI 实跑里
+`test_customization_roundtrip_delete.py::test_no_orphan_column_left_behind` **两次 attempt 都红**
+（可复现）。**那不是站点污染问题**——CI 站点是全新的，没有任何历史孤儿列可污染。
+它是 `apply_pack` 物理列清除面的**实现问题**，归 `docs/masterplan/STATE.md` §3 的 2026-08-22 `[open]` 行
+与它指名的 successor plan。本条**不承接它**，也不因它改变裁定。
+
 ## 可选处置（loop 不替人选）
 
 - **(a)** 人带 `Gates-Change-Approved-By:` trailer 改 `tests/gates/conftest.py` 的 `live_site` teardown，

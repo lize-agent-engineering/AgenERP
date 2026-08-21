@@ -445,12 +445,23 @@ roadmap 工作项 3（plan `docs/plans/p0-foundation/2026-08-21-1022-1-zero-dep-
 （把 diff 范围扩到 `tools/gates/check_expected_red.py` 的 `verdict-tool-untouched` job），
 它由 plan `2026-08-22-0027-2-ci-l2-full-live-gate-coverage.md` 承接。
 **空窗期的两个端点照实记**：起点是本节被写下的那一刻（守卫还没上线），
-终点是 `verdict-tool-untouched` 合并进 `main` 的那一刻（见下面第二个小节）。
+终点是 `verdict-tool-untouched` 合并进 `main` 的那一刻——**该终点尚未到达**（PR #1 未合并，原因见下一小节开头的上线状态段），**空窗期此刻仍开着**。
 空窗期内唯一带牙齿的控制是**自愿**在改判定器的提交上带一行 `Gates-Change-Approved-By:` trailer——
 它当时不是本仓要求的（判定器不在 `gates-untouched` 的路径里，没有任何 job 会检查它），
 但它让那次改动在 `git log` 里**可被检索**。
 
 ### CI 怎么用这个判定模式（`gates-l2-live` job，plan `2026-08-22-0027-2` 交付）
+
+> **⚠️ 上线状态，先读这一段再读下面**（2026-08-22 实测补记）：本小节与下一小节描述的两个 job
+> **此刻不在 `main` 上**。它们只存在于分支 `ci/0027-2-l2-full-live-gate` 与 **PR #1**，
+> **该 PR 未合并**。原因：`gates-l2-live` 在 CI 上第一次跑就红，且**原样复跑复现**——
+> run `32509351108` 的两次 attempt 都打出 `门禁 19 项：红 1，绿 18，跳过 0` 并逐字点名
+> `tests/gates/test_customization_roundtrip_delete.py::test_no_orphan_column_left_behind`。
+> 按 `AGENTS.md` 裁判规则 4（CI 连续 2 轮红即停机），plan `2026-08-22-0027-2` 已置 `deferred`。
+> **红在实现，不是红在判据**：`apply_pack` 的物理列清除面在 runner 的全新站点上不成立。
+> 本机 6 跑红 1 次、runner **2 跑红 2 次**；起草时「runner 全新站点方向更有利」的推理**被实测证伪**，
+> **不猜根因**（裁判规则 3）。修它归一个专门的 successor plan。
+> 下面两小节写的是**设计与判据**，读它们时别把「已设计」读成「已在 `main` 上生效」。
 
 `.github/workflows/gates.yml` 末尾的 **`gates-l2-live`** job 是 live 判定模式在服务端的唯一消费者：
 它在 runner 上起栈，然后用 **`python3 tools/gates/check_expected_red.py`** 对**全部 19 条门禁**做一次判定，
@@ -507,6 +518,6 @@ env 为 `AGENERP_LIVE=1` · `AGENERP_ADMIN_PASSWORD=admin` · `AGENERP_SITE=fron
 `gates-l2` job 的那几条门禁在 CI 上不受预期红名单棘轮保护：有人把它们改绿而不改实现，棘轮不会响。
 **代偿控制**：`gates-untouched` job 仍然拦着对 `tests/gates/**` 的无批准改动，
 而那几条断言就在 `tests/gates/**` 内。
-**这条风险已由上面的 `gates-l2-live` 收口**（它走判定器，live 契约比棘轮更紧，且覆盖面是 `gates-l2` 的超集）；
+**这条风险的收口方案是上面的 `gates-l2-live`，但它尚未在 `main` 上生效**（PR #1 未合并）（它走判定器，live 契约比棘轮更紧，且覆盖面是 `gates-l2` 的超集）；
 本小节原样保留，是因为 `gates-l2` 那条绕开判定器的路径**仍然存在**——
 它只是不再是本仓对 L2 的唯一服务端判定。

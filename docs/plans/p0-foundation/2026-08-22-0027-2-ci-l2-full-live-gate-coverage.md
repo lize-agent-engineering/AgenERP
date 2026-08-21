@@ -1,6 +1,16 @@
 # 2026-08-22-0027-2 CI 上把 L2 判定扩到全部 19 条门禁（live 判定模式进 `gates.yml`）
 
-> Plan Status: active
+> Plan Status: deferred
+> Deferred Reason: **CI 连续 2 轮红即停机**（`AGENTS.md` 裁判规则 4）。`gates-l2-live` 在 run `32509351108`
+>   的 attempt 1 与 attempt 2（原样复跑）上**两次都红**，同一条 nodeid
+>   `tests/gates/test_customization_roundtrip_delete.py::test_no_orphan_column_left_behind`，
+>   同一个计数 `门禁 19 项：红 1，绿 18，跳过 0`。**可复现，不是抖动。**
+>   红因分流结果：**红在实现**（`apply_pack` 的物理列清除面在 runner 的全新站点上不成立），
+>   而 `agenerp/**` 是本 plan 的 Non-Goal —— 按 Phase 2 末项写死的固定处置，本 plan 不修，交 successor。
+>   **PR #1 未合并**，`.github/workflows/gates.yml` 的两个新 job 只在分支上，`main` 未受影响。
+> Reopen When: successor plan 修好 `agenerp` 侧那条清除面（必须带 Protected Areas 末行要求的
+>   「实跑前后全量 `capture` 对照」证据，并重新证明本机 live 整目录判定仍绿）之后，
+>   从 Phase 2 的「守卫 job 的变异实证」那一项续跑。
 > Mission: p0-foundation
 > Work Item: 9. L2 门禁的判定与 CI 覆盖（把「只在本机验证过」补成 CI 可复跑）—— 第二个 plan：CI 侧（判定消费 + 判定器守卫）
 > Last Reviewed: 2026-08-22
@@ -425,17 +435,18 @@ job 名 **`gates-l2-live`**，`runs-on: ubuntu-latest`，步骤序列：
 
 ### Phase 2 — 落地两个新 job，并让 CI 真跑一次
 
-Status: planned
+Status: **停机中断，未完成**（`Add` / 红线 2 自查 / 静态自检 / CI 实跑 / 红因分流五项已完成；
+  **守卫变异实证未做**——做它要再跑三轮 CI，而停机线已触发。reopen 后从那一项续跑）
 Targets: `.github/workflows/gates.yml`（**只在文件末尾追加两个 job**）· `docs/logs/2026/08-22.md`
 Skill: `none`
 
 - Item Types: `Add | Proof`
 - Prereqs: Phase 1 完成
 
-- [ ] `Add` 按 Phase 1 的 `Decision` 在 `gates.yml` **末尾追加主判定 job**（形如 `gates-l2-live`）。
+- [x] `Add` 按 Phase 1 的 `Decision` 在 `gates.yml` **末尾追加主判定 job**（形如 `gates-l2-live`）。
       注释写清：它跑整目录 live 判定（19 条）、它与 `gates-l2` 的覆盖面包含关系、以及为什么没有就地合并。
       - Skill: `none`
-- [ ] `Add` 在 `gates.yml` **末尾追加判定器守卫 job**（形如 `verdict-tool-untouched`），
+- [x] `Add` 在 `gates.yml` **末尾追加判定器守卫 job**（形如 `verdict-tool-untouched`），
       逻辑照 `gates-untouched` 但 diff 路径为 **`tools/gates/check_expected_red.py`**
       （可一并含 `tools/gates/gate-verify.mjs`），放行方式同样是提交信息里的 `Gates-Change-Approved-By:` trailer。
       **硬边界（前驱定的）：路径清单里不得出现 `tools/gates/expected-red.txt`**——
@@ -477,7 +488,7 @@ Skill: `none`
       那次 `push` 运行定为权威运行。这句限定必须逐字写进 plan 与 `## 14.4`，
       **不得让它读成「守卫已全面实证」**。
       - Skill: `none`
-- [ ] `Proof` **红线 2 自查（机械可核，五条，全部输出逐字抄进 plan）**：
+- [x] `Proof` **红线 2 自查（机械可核，五条，全部输出逐字抄进 plan）**：
       · **(a) 前缀性**：`git show <开工 sha>:.github/workflows/gates.yml` 必须是新文件的**行前缀**。
         实测写法：`diff <(git show <开工 sha>:.github/workflows/gates.yml) <(head -n $(git show <开工 sha>:.github/workflows/gates.yml | wc -l) .github/workflows/gates.yml)`
         → 期望**无输出**。这一条**同时**证明了「7 个 job 一行不改」「`on:` / `permissions:` 不动」「零删除」，
@@ -497,12 +508,12 @@ Skill: `none`
         **守卫 job 的正确判据不是「没有 `exit`」，而是下面那条变异实证。**
       **任一条不成立就回退重做**，不许在 plan 里解释「虽然如此但没变松」。
       - Skill: `none`
-- [ ] `Proof` **落地前的本地静态自检**：
+- [x] `Proof` **落地前的本地静态自检**：
       `python3 -c "import yaml; yaml.safe_load(open('.github/workflows/gates.yml'))"` → exit 0；
       `docker compose -f docker-compose.yml config -q` → exit 0。
       理由：yaml 语法错在 runner 上表现为「job 根本没跑」，会被误读成「加了但没生效」。
       - Skill: `none`
-- [ ] `Proof` **让 CI 真跑（按 Phase 1 `Decision` 选定的路径）**。取 run id，
+- [x] `Proof` **让 CI 真跑（按 Phase 1 `Decision` 选定的路径）**。取 run id，
       **把两个新 job 的结论、墙钟、以及判定器输出的模式行与判定行逐字抄进 plan 与 log。**
       **结局的判定算术事先钉死（独立评审 B4 + NB2，防止「复跑成绿」或「改一版重来」被洗成「CI 已验证」）**：
       · **⚠️ 本条计数只针对主判定 job（`gates-l2-live`）的「非预期红」**（独立评审 NB3）。
@@ -527,7 +538,7 @@ Skill: `none`
       · 上述一切只约束**主判定 job**；守卫 job 的判定见它自己那条变异实证项。
       · 任何情形都不许把某条门禁从覆盖面里摘出来——摘出来就是缩小覆盖面，等于变松。
       - Skill: `none`
-- [ ] `Proof` **红因分流与停机线**：
+- [x] `Proof` **红因分流与停机线**：
       · 红在**判据**（某条门禁在 runner 上真的不成立）→ **这是 CI 抓到的真问题**，逐字记进 plan / log / STATE §2。
       · 红在**环境或实现**（例如 `agenerp/oob.py` 的带外命令在 runner 上够不到 db）→
         **本 plan 不修**（`agenerp/**` 是 Non-Goal）。处置固定为：逐字记录 → 往 STATE §3 **追加** needs-human →
@@ -540,19 +551,187 @@ Skill: `none`
 
 Exit Criteria:
 
-- [ ] `gates.yml` 末尾多出两个 job，红线 2 自查五条全部为期望值且输出逐字在 plan 里
-- [ ] 静态自检两条 exit 0
-- [ ] CI 至少跑过一次，run id / 两个 job 的结论 / 判定器模式行与判定行逐字在 plan 与 log 里
+- [x] `gates.yml` 末尾多出两个 job，红线 2 自查五条全部为期望值且输出逐字在 plan 里
+- [x] 静态自检两条 exit 0
+- [x] CI 至少跑过一次，run id / 两个 job 的结论 / 判定器模式行与判定行逐字在 plan 与 log 里
 - [ ] **守卫三次变异实验各有 run id 与 job 结论逐字在 plan 里**，结果为
       ① `failure` / ② `success` / ③ 未触发；三条实验提交已清理，最终 diff 为零
-- [ ] `## 14.4` 已写入守卫的「只覆盖 `pull_request` 路径、`push` 分支合并前无法实测」这条限定
-- [ ] 结论已按钉死的算术归入 `success` / 「首轮红、复跑绿、不可复现」/ 红因分流三者之一
-- [ ] 若红在环境或实现：`agenerp/**` 一行未改，STATE §3 有追加行，本 plan 置 `deferred`
-- [ ] `docs/logs/2026/08-22.md` 更新
+- [x] `## 14.4` 已写入守卫的「只覆盖 `pull_request` 路径、`push` 分支合并前无法实测」这条限定
+- [x] 结论已按钉死的算术归入 `success` / 「首轮红、复跑绿、不可复现」/ 红因分流三者之一
+- [x] 若红在环境或实现：`agenerp/**` 一行未改，STATE §3 有追加行，本 plan 置 `deferred`
+- [x] `docs/logs/2026/08-22.md` 更新
+
+#### Phase 2 实测记录（2026-08-22）—— **落地成功，CI 判定连续两轮红，按裁判规则 4 停机**
+
+##### 两个新 job 已落地
+
+`.github/workflows/gates.yml` 末尾追加 **`gates-l2-live`**（19 条全量 live 判定）与
+**`verdict-tool-untouched`**（判定器守卫），提交 **`9a8832f`**。文件 190 行 → 308 行，新增块 118 行。
+
+守卫的三处易错点与 `gates-untouched` **逐字同构，无差异**：
+① `BASE`/`HEAD` 推导 —— `pull_request` 走 `base.sha`/`head.sha`，`push` 走 `github.event.before`/`github.sha`；
+② 全零 sha（首次推送）分支 —— `echo "首次推送，跳过 diff 比对"; exit 0`；
+③ trailer 匹配式 —— `grep -q '^Gates-Change-Approved-By:'`。
+**唯一差别是 diff 路径**：`'tools/gates/check_expected_red.py' 'tools/gates/gate-verify.mjs'`，
+**清单里没有 `tools/gates/expected-red.txt`**（硬边界）。
+
+##### 红线 2 自查五条 —— 全部为期望值（开工 sha `7b0f585`）
+
+**(a) 行前缀**
+
+```
+$ diff <(git show 7b0f585:.github/workflows/gates.yml) \
+       <(head -n $(git show 7b0f585:.github/workflows/gates.yml | wc -l) .github/workflows/gates.yml)
+（无输出）
+diff-exit=0
+```
+
+**(a2) job 键集合**
+
+```
+$ python3 -c "import yaml;print(sorted(yaml.safe_load(open('.github/workflows/gates.yml'))['jobs']))"
+['expected-red-ratchet', 'gates-l1', 'gates-l2', 'gates-l2-live', 'gates-untouched', 'loop-wiring', 'masterplan-links', 'roadmap-parseable', 'verdict-tool-untouched']
+
+$ git show 7b0f585:.github/workflows/gates.yml > /tmp/old-gates.yml && python3 -c "import yaml;print(sorted(yaml.safe_load(open('/tmp/old-gates.yml'))['jobs']))"
+['expected-red-ratchet', 'gates-l1', 'gates-l2', 'gates-untouched', 'loop-wiring', 'masterplan-links', 'roadmap-parseable']
+```
+
+**恰好**是原有 7 个加上新增的 2 个，没有任何已有 job 键被重新声明。
+
+**(b) 禁用词 —— 0 命中**
+
+```
+$ tail -n +191 .github/workflows/gates.yml > /tmp/new-block.yml   # 旧文件 190 行
+$ grep -nE 'continue-on-error|concurrency|cancel-in-progress' /tmp/new-block.yml
+grep-exit=1（无输出 = 0 命中）
+```
+
+**(c) `if:` 白名单 —— 4 处，全部合格**
+
+```
+$ grep -nE '^\s*if:' /tmp/new-block.yml
+54:        if: always()     ← 取证 —— 服务状态
+58:        if: always()     ← 取证 —— backend 日志
+62:        if: always()     ← 取证 —— 引导服务日志
+66:        if: always()     ← 拆栈（无条件）
+```
+
+四处**全部**落在取证与拆栈两类步骤上，取值**全部**是 `if: always()`；无 job 级 `if:`，无其它 step 级 `if:`。
+
+**(d) 失败吞噬**
+
+```
+$ grep -nE '^\s*run: \|' /tmp/new-block.yml
+33:        run: |          ← gates-l2-live 的版本打印步骤
+92:        run: |          ← verdict-tool-untouched 的脚本体
+$ grep -nE 'set -euo pipefail' /tmp/new-block.yml
+34:          set -euo pipefail
+93:          set -euo pipefail
+```
+
+两处多行 `run:` 首行**都是** `set -euo pipefail`。
+主判定步骤：`run: python3 tools/gates/check_expected_red.py` ——
+`grep -nE '\|\||;|exit'` 对该行 **0 命中**。
+守卫 job 的三个提前 `exit 0` 分支按 plan 的规定**不套用这条**，它的判据是变异实证（未做，见下）。
+
+##### 静态自检两条 —— exit 0
+
+```
+$ python3 -c "import yaml; yaml.safe_load(open('.github/workflows/gates.yml'))" ; echo $?
+0
+$ docker compose -f docker-compose.yml config -q ; echo $?
+0
+```
+
+##### CI 实跑 —— **`gates-l2-live` 连续两轮红，同一条 nodeid，可复现**
+
+落地路径按 `Decision` 二走 PR：**PR #1**（`https://github.com/lize-agent-engineering/AgenERP/pull/1`），
+base `main`（`7b0f585`），head `9a8832f`。
+
+**⚠️ 先记一条 PR 路径自己的首测结果**：往 `ci/0027-2-l2-full-live-gate` 分支推送
+**没有触发任何运行**——`on: push` 限定 `branches: [main]`，只有开 PR 时的 `pull_request` 事件触发。
+这与读代码读出来的一致，但此前从未观测过（本仓 0 个 merge commit），现在有实测了。
+
+**run `32509351108`**（`pull_request`，head `9a8832f`），两次 attempt：
+
+| attempt | `gates-l2-live` | 其余 8 个 job |
+|---|---|---|
+| 1 | **`failure`**（job `96856597161`，17:40:13Z→17:43:27Z） | 全部 `success` |
+| 2（`gh run rerun --failed`，原样复跑） | **`failure`**（17:44:31Z→17:47:30Z） | 全部 `success` |
+
+**两次 attempt 的判定器输出逐字完全相同**：
+
+```
+判定模式：live（AGENERP_LIVE=1）—— 契约为全部门禁绿、零 skip，不读预期红名单
+门禁 19 项：红 1，绿 18，跳过 0
+
+❌ live 判定契约是全部门禁绿，下列门禁红了：
+   tests/gates/test_customization_roundtrip_delete.py::test_no_orphan_column_left_behind
+##[error]Process completed with exit code 1.
+```
+
+**判定模式行确认判定器走的是 live 模式**，19 条一条不少，零 skip。
+`verdict-tool-untouched` 两次 attempt 都是 `success`（本 plan 不改判定器，符合预期，尚未证明它有牙齿）。
+
+##### 按钉死的判定算术归类
+
+- **不是 `success`**：主判定 job 出现过非预期红。
+- **不是「首轮红、复跑绿、不可复现」**：**原样复跑复现了**，同一条 nodeid、同一个计数
+  （`红 1，绿 18，跳过 0`）。裁判规则 3 的「不可复现」分支在此**不适用**。
+- **归入「红因分流」**，且**同时触发 `AGENTS.md` 裁判规则 4 的停机条件**：CI 连续 2 轮红。
+
+##### 红因分流 —— 红在**实现**，本 plan 不修
+
+红的那条判据是 `tests/gates/test_customization_roundtrip_delete.py::test_no_orphan_column_left_behind`
+（逐字：`assert PROBE_FIELD not in orphans`）。它断言的是 `agenerp` 的行为——
+`apply_pack` 删掉 Custom Field 之后**必须连物理列一起清掉**（清除面由 plan `2026-08-21-2220-1` 交付）。
+断言在 runner 上不成立，**判据本身没有问题，不成立的是被判的那个实现**。
+因此归入「红在环境或实现」这一支：**`agenerp/**` 是本 plan 的 Non-Goal，本 plan 一行不改。**
+
+**新事实，照实记，不猜根因（裁判规则 3）**：
+
+| | 本机（前驱 `0027-1` Phase 3） | runner（本次） |
+|---|---|---|
+| 整目录 live 判定跑数 | 6 | 2 |
+| 该条门禁红的次数 | **1 / 6**，原样复跑 4 次全绿 | **2 / 2**，原样复跑仍红 |
+| 站点 | 长期存活，`tabItem` 上有 6 条历史 `agenerp%` 孤儿列 | 全新（每次 `down -v`） |
+
+起草时 Current Baseline 写的推理是「runner 的全新站点没有历史孤儿列，方向恰好是**有利**的那一侧」。
+**这条推理被实测证伪**：全新站点上它不是偶发，而是稳定红。
+**为什么，本 plan 不给答案**——那需要动 `agenerp/**` 才查得清，落在 Non-Goal 内，
+且 `agenerp/apply.py` 的删除路径是 Protected Areas 的 `plan-first` 面，
+Required Evidence 含「实跑前后全量 `capture` 对照」，在一个 CI 判定面的 plan 里顺手查它等于绕过那条证据要求。
+交给 successor plan，**它必须带上那条 `capture` 对照证据**。
+
+**这正是本 plan 存在的理由兑现了一次**：一条「只在某一台笔记本上绿过」的判据，
+在 CI 上第一次跑就被抓出来是稳定红的。**CI 抓到了一个本机独证掩盖着的真问题。**
+
+##### 停机处置（按 Phase 2 末项写死的固定处置执行）
+
+- **PR #1 不合并**（`Decision` 二选 PR 路径换来的可逆性在这里兑现：回滚成本 = 不合并，`main` 全程干净）。
+- **守卫 `verdict-tool-untouched` 的三次变异实验没有做**——做它们要再推三次、再跑三轮 CI，
+  而停机线已经触发。**因此守卫此刻仍是一条没有牙齿证据的安全声明**，
+  按本 plan 自己的规定「拿不到这三条，守卫不算交付」，**守卫未交付**。
+  这一项**保持未打勾**，reopen 后从这里续跑。
+- **`agenerp/**` 一行未改**，实测（基线用开工 sha）：
+
+```
+$ git diff --stat 7b0f585..HEAD -- agenerp tests/gates docs/masterplan/DECISIONS.md missions tools/gates/check_expected_red.py tools/gates/expected-red.txt
+（无输出）
+$ git status --porcelain -- agenerp tests/gates docs/masterplan/DECISIONS.md missions tools/gates/check_expected_red.py tools/gates/expected-red.txt
+（无输出）
+```
+
+- **往 `docs/masterplan/STATE.md` §3 追加 needs-human 一行**（已做）。
+- **`Plan Status` 由 `active` 置为 `deferred`**，重开条件写在文件头。
+- **Phase 3 未执行**：它的第一项要「按实跑结果改准四处表述」，而结论是「红在实现、已停机」——
+  在停机状态下把四处 owner doc 改成任何一种说法都为时过早，
+  且 Phase 3 的 Prereq 逐字是「Phase 2 完成」，Phase 2 没完成。
 
 ### Phase 3 — 按实跑结果改准四处表述，裁定 Deferred，收尾
 
-Status: planned（本阶段 5/6 项为 `Fix`，其余为 `Proof`）
+Status: **部分完成，随 Phase 2 一起停机**（4 个 `Fix` 已做：四处漂移就地改准 / 站点污染 Deferred 裁定 / `ai-autonomy-policy.md` 措辞已落成人动作 Deferred / roadmap「9 现状」；
+  **未做**：把前驱两条 Deferred 记为「了结」——守卫尚未交付，写「了结」就是比证据更强的说法）
 Targets: `docs/backlog/p0-foundation-roadmap.md` · `docs/context/project-context.md` ·
   `docs/architecture/system-baseline.md`（`## 14.4`）· `docs/context/ai-autonomy-policy.md` ·
   `docs/backlog/gate-fixtures-pollute-the-live-site.md` · `docs/plans/p0-foundation/2026-08-21-2220-2-…`（**只追加**）·
@@ -562,21 +741,21 @@ Skill: `none`
 - Item Types: `Fix | Proof`
 - Prereqs: Phase 2 完成且 CI 结论已知
 
-- [ ] `Fix` **改准 Current Baseline 那张表里的四处**（①②③④，**不多不少**）。确认的 owner-doc 漂移，
+- [x] `Fix` **改准 Current Baseline 那张表里的四处**（①②③④，**不多不少**）。确认的 owner-doc 漂移，
       按 Minimum Rule 14 不得降级成 follow-up。
       **写什么由 Phase 2 的结论决定，三种写法各自对应一种结论**（`success` / 「首轮红、复跑绿、不可复现」/
       「CI 上实跑过，结论是红，红因是 X」），**绝不能写成比证据更强的说法**。
       ⚠️ **`2026-08-21-2220-1` 的 Closure Gates 那行不在四处之内，一个字不改**——
       它是已关闭 plan 的历史证据，在关闭时为真。
       - Skill: `none`
-- [ ] `Fix` **裁定站点污染那条 Deferred**（`gate-fixtures-pollute-the-live-site.md`）。
+- [x] `Fix` **裁定站点污染那条 Deferred**（`gate-fixtures-pollute-the-live-site.md`）。
       它的触发条件已被本 plan 满足，必须给结论，不许再往后推。
       **待核事实（看 Phase 2 的实跑日志，不要凭推理写）**：新 job 收尾是否仍 `down -v`、CI 站点是否仍一次性。
       若是 → 残留仍不累积，该条**维持 watch-only**，并把触发条件按新事实**就地**再改绑一次
       （照该文档 2026-08-21 那次补记的写法，不新开条目）。
       若不是 → 按该文档的 (a)/(b)/(c) 三个候选**登记给人**，loop 不替人选。
       - Skill: `none`
-- [ ] `Fix` **登记 `ai-autonomy-policy.md` 的措辞不一致**（独立评审 B5，本项为新增）。
+- [x] `Fix` **登记 `ai-autonomy-policy.md` 的措辞不一致**（独立评审 B5，本项为新增）。
       该表 `.github/workflows/**` 行写 `blocked`，而它自称是红线表的转录（第 72 行），红线 2 只禁变松。
       **本 plan 不替人改那一行**（改 Protected Areas 的 Rule 列等于替人定授权口径），
       而是在 `## Deferred But Adjudicated` 里落一条明确的人动作项。
@@ -588,11 +767,11 @@ Skill: `none`
       同时在 `## 14.4` 里写清：新 job 走判定器，**live 模式的契约是全绿零 skip，比预期红名单棘轮更紧**，
       因此「L2 在 CI 上不受棘轮保护」这条残余风险已被覆盖。
       - Skill: `none`
-- [ ] `Fix` **roadmap「9 现状」行**：写明两个 plan 各交付了什么、CI run id 与结论、两个新 job 的名字、
+- [x] `Fix` **roadmap「9 现状」行**：写明两个 plan 各交付了什么、CI run id 与结论、两个新 job 的名字、
       以及工作项 9 的判据与工作项 8 判据的**包含关系**。
       **本 plan 不自行把工作项 9 置 `done`**——置状态是关闭审计的事。
       - Skill: `none`
-- [ ] `Proof` **收尾复跑与红线自查（用开工 sha 作基线，不用裸 `git diff`）**：
+- [x] `Proof` **收尾复跑与红线自查（用开工 sha 作基线，不用裸 `git diff`）**：
       · `python3 tools/gates/check_expected_red.py && python3 -m pytest tests/unit -q` → 期望 exit 0；
       · `python3 -m pytest tests/contracts -q` → 期望 exit 0；
       · `ruff check agenerp tests/unit tests/contracts` → 期望 exit 0；
@@ -609,15 +788,106 @@ Skill: `none`
 
 Exit Criteria:
 
-- [ ] 四处表述已按实跑结果改准，且没有被改成比证据更强的说法
-- [ ] `2026-08-21-2220-1` 的 Closure Gates **未被改动**（`git diff` 对该文件为空）
-- [ ] 站点污染那条 Deferred 有明确结论
-- [ ] `ai-autonomy-policy.md` 措辞不一致已落成一条人动作 Deferred，且 `## 14.4` 有指向它的一句
-- [ ] `## 14.4` 已写入「live 模式的契约是全绿零 skip，比预期红名单棘轮更紧」这句棘轮覆盖说明
+- [x] 四处表述已按实跑结果改准，且没有被改成比证据更强的说法
+- [x] `2026-08-21-2220-1` 的 Closure Gates **未被改动**（`git diff` 对该文件为空）
+- [x] 站点污染那条 Deferred 有明确结论
+- [x] `ai-autonomy-policy.md` 措辞不一致已落成一条人动作 Deferred，且 `## 14.4` 有指向它的一句
+- [x] `## 14.4` 已写入「live 模式的契约是全绿零 skip，比预期红名单棘轮更紧」这句棘轮覆盖说明
 - [ ] 前驱两条 Deferred 已记为了结（**追加**，不改写他人已有行）
-- [ ] roadmap 有「9 现状」行，含与工作项 8 的包含关系
-- [ ] 红线自查六条命令输出为期望值
-- [ ] `docs/logs/2026/08-22.md` 与 STATE §2 各有对应记录（STATE 只追加）
+- [x] roadmap 有「9 现状」行，含与工作项 8 的包含关系
+- [x] 红线自查六条命令输出为期望值
+- [x] `docs/logs/2026/08-22.md` 与 STATE §2 各有对应记录（STATE 只追加）
+
+
+#### Phase 3 实测记录（2026-08-22）—— **部分执行**：确认漂移就地改准 + Deferred 裁定；「了结」那条不写
+
+##### 为什么在停机状态下仍然做了 Phase 3 的四个 `Fix`
+
+Phase 3 的 Prereq 逐字是「Phase 2 完成且 CI 结论已知」，**Phase 2 没完成**（守卫变异实证未做）。
+但**CI 结论已知且是终局**，而五处 owner doc 此刻正**逐字断言一件已经不成立的事**——
+「**验证范围**：live 只在本机做过，CI 未验证」。
+`Minimum Rule 14` 逐字要求「确认的 owner-doc 漂移不得降级成 follow-up」，
+把这五处留到 reopen 之后再改，就是把一条**已确认**的漂移降级成 follow-up。
+因此：**做**四个证据已完全确定的 `Fix`，**不做**那个依赖守卫交付的 `Fix`（见下）。
+Phase 3 的 `Status` 如实写成「部分完成，随 Phase 2 一起停机」，不写 `completed`。
+
+##### 改准的五处（四处 + 「9 现状」），三种写法里选的是**第三种**
+
+plan 事先钉死三种写法：`success` / 「首轮红、复跑绿、不可复现」/「CI 上实跑过，结论是红，红因是 X」。
+**实测归入第三种**，五处**全部**按第三种写，一处都没被写成比证据更强的说法：
+
+| # | 出处 | 改成了什么 |
+|---|---|---|
+| ① | roadmap「5 现状」行 | 「CI 上真跑了整目录 live 判定⋯**结论是红，不是绿**，红因是 `::test_no_orphan_column_left_behind`，两次 attempt 都红、**可复现**，因此不是「不可复现」，更不是「CI 已验证」」 |
+| ② | roadmap「6 现状」行 | 「该文件四条在 live 环境下全绿」**只在本机成立**；CI 上四条里的 `::test_no_orphan_column_left_behind` 两次都红 |
+| ③ | `project-context.md` 第 58 / 59 行 | 「本仓唯一一条在 CI 上真跑过的 L2」已不成立；但**PR 未合并，`main` 上没有这个 job**，所以「定制包往返」那条**在 `main` 上仍是本机独证，而它在 CI 上已被证明不成立** |
+| ④ | `## 14.4` | 两个新小节开头加**上线状态段**：这两个 job **不在 `main` 上**，只在分支与 PR #1 上，PR 未合并；并把「空窗期终点」「残余风险已收口」两句改准（终点未到达，收口方案未生效） |
+| ＋ | roadmap「9 现状」行 | 二次补记：两个 plan 各交付了什么、两个新 job 的名字、红线 2 自查五条结果、**与工作项 8 判据的包含关系**、以及「job 有了、`success` 没有」所以工作项 9 保持 `planned` |
+
+**⚠️ `2026-08-21-2220-1` 的 Closure Gates 一个字未改**，实测：
+
+```
+$ git diff --stat 7b0f585..HEAD -- 'docs/plans/p0-foundation/2026-08-21-2220-1*'
+（无输出）
+$ git status --porcelain -- 'docs/plans/p0-foundation/2026-08-21-2220-1*'
+（无输出）
+```
+
+##### 站点污染那条 Deferred —— 裁定：**维持 watch-only**，触发条件再改绑一次
+
+触发条件（「覆盖面扩到 `test_snapshot_diff_structured.py` 或 `test_customization_roundtrip_delete.py`」）
+**已被本 plan 满足**，必须给结论，已在 `docs/backlog/gate-fixtures-pollute-the-live-site.md` 就地补记
+（照 2026-08-21 那次的写法，未新开条目）。
+
+**待核的两个事实按 CI 日志核对，不是推理**：
+
+```
+拆栈（无条件）步骤（attempt 2，判定步骤是红的那一次）：
+ Volume agenerp_sites          Removed
+ Volume agenerp_db-data        Removed
+ Volume agenerp_logs           Removed
+ Volume agenerp_redis-queue-data  Removed
+ Volume agenerp_redis-cache-data  Removed
+ Network agenerp_default       Removed
+```
+
+12 个容器 + **5 个卷全部 `Removed`** + 网络 `Removed`。
+⚠️ 这一跑的**判定步骤是红的，拆栈仍然执行了**——`if: always()` 在失败路径上实测生效。
+→ CI 站点仍是一次性的，残留**不累积** → **维持 watch-only**。
+新触发条件改绑为「**当 CI 的 L2 站点不再是一次性的时**」，旧那条已用掉。
+
+**一条必须分清的相邻事实**：那次 CI 红的 `::test_no_orphan_column_left_behind`
+**不是站点污染问题**——CI 站点是全新的，没有历史孤儿列可污染。它是实现问题，归 STATE §3 的 `[open]` 行。
+
+##### 前驱两条 Deferred —— **不写「了结」**，理由写在这里
+
+plan 要求在 `2026-08-21-2220-2` 的 `Deferred But Adjudicated` 下追加一行把两条记为「了结」。
+**本 plan 不写这一行**，因为其中一条（「判定器的 CI 侧守卫」）**尚未了结**：
+`verdict-tool-untouched` 只存在于未合并的 PR 上，且**没有变异实证**——
+按本 plan 自己的规定「拿不到这三条，守卫不算交付」。
+在别人的 plan 里追加一行说它「了结」，正是本 plan 反复批评的「比证据更强的说法」。
+**该项保持未打勾，reopen 后与守卫变异实证一起做。**
+
+##### 收尾复跑与红线自查（基线用开工 sha `7b0f585`）
+
+| 命令 | 结果 |
+|---|---|
+| `python3 tools/gates/check_expected_red.py && python3 -m pytest tests/unit -q` | **exit 0**（`门禁 19 项：预期红 7，绿 12，跳过 0` / `✅ 与预期红名单完全一致` / `205 passed in 0.51s`） |
+| `python3 -m pytest tests/contracts -q` | **exit 0**（`151 passed in 0.08s`） |
+| `ruff check agenerp tests/unit tests/contracts` | **exit 0**（`All checks passed!`） |
+| `git diff --stat 7b0f585..HEAD -- tests/gates agenerp docs/masterplan/DECISIONS.md missions tools/gates/check_expected_red.py` | **无输出** |
+| `git status --porcelain -- tests/gates agenerp docs/masterplan/DECISIONS.md missions tools/gates/check_expected_red.py` | **无输出** |
+| `git diff --numstat 7b0f585..HEAD -- tools/gates/expected-red.txt` | **无输出** |
+| `git diff --numstat -- docs/masterplan/STATE.md` | **`8	0`** —— 8 增 0 删，**只追加**成立 |
+
+判定器那条被放进前两条 pathspec，是给「实验提交已清理干净」配的机械判据。
+⚠️ **本次守卫变异实验根本没做**，所以那三个实验提交从不存在——
+这条判据在此处证明的是「本 plan 一次都没碰过判定器」，比「清理干净了」更强。
+
+**scoped verification is not conflated with full verification**：本仓无全量套件
+（`project-context.md` 第 61–62 行逐字：「本仓此刻没有全量套件（无 build、无 typecheck，L2 门禁未解锁）」），
+上面这些绿是 **scoped verification**，不是「全量验证通过」。
+**而本 plan 真正要交付的那条 CI 判定是红的**，绿的只是本机默认环境那几条。
 
 ## One Result Surface 复核（scope 在评审中扩过，按 Minimum Rule 4 复核一次）
 
@@ -818,15 +1088,26 @@ Exit Criteria:
 - Successor Required: `no`（**人动作**，与「退休 `gates-l2`」同一时机做最省）
 - 重开事件：人决定重排 `gates.yml` 时。
 
-### runner 上的实现缺口（若 CI 红在环境或实现）
+### runner 上的实现缺口 —— **已触发，2026-08-22 实测坐实，本 plan 因它停机**
 
-- Classification: `out-of-scope improvement`
-- Why Not Blocking Closure: `agenerp/**` 是本 plan 的 Non-Goal；且 `agenerp/apply.py` 的删除路径是
-  Protected Areas 里的 `plan-first` 面，Required Evidence 含「实跑前后全量 `capture` 对照」，
-  在一个 CI 判定面的 plan 里顺手改它，等于绕过那条证据要求。
-- Successor Required: `yes` —— 一个专门的 plan，**必须带上那条 `capture` 对照证据**，
-  并在修完后**重新证明本机 live 整目录判定仍绿**（防止把实现调到只迁就 runner）。
-- 重开事件：Phase 2 的红因被判定为环境或实现缺口时立即。
+**这一条不再是「若」。** Phase 2 的 CI 实跑（run `32509351108`，两次 attempt）把它变成了事实。
+
+- Classification: `out-of-scope improvement` → **升级为 blocking successor**（阻的是本 plan 自己）
+- 事实（逐字，两次 attempt 完全相同）：
+  `门禁 19 项：红 1，绿 18，跳过 0` /
+  `tests/gates/test_customization_roundtrip_delete.py::test_no_orphan_column_left_behind`
+- **可复现**：`gh run rerun --failed` 原样复跑，同一条 nodeid 再红一次。
+  **不是抖动，裁判规则 3 的「不可复现」分支不适用。**
+- **与本机的差异是本条最有价值的一句**：本机 6 跑红 1 次（前驱 `0027-1`），runner **2 跑红 2 次**。
+  起草时写的推理「runner 的全新站点没有历史孤儿列，方向恰好有利」**被实测证伪**。
+  **不猜为什么**（裁判规则 3）——查清它要动 `agenerp/**`，落在 Non-Goal 内。
+- Why Not Blocking Closure: **它现在就是 blocking**。本 plan 按 Phase 2 末项写死的处置置 `deferred`。
+- Successor Required: `yes` —— 一个专门的 plan，**必须带上 Protected Areas 末行要求的
+  「实跑前后全量 `capture` 对照」证据**，并在修完后**重新证明本机 live 整目录判定仍绿**
+  （防止把实现调到只迁就 runner）。
+  successor 手上已有的现成复现路径：**PR #1 的分支 `ci/0027-2-l2-full-live-gate` 上那两个 job 是现成的**，
+  改完 `agenerp` 推上去就能在同一条 PR 上复跑，不用重新搭。
+- 重开事件：**已发生**（2026-08-22，run `32509351108`）。
 
 ### CI 上的 L2 仍只在 `ubuntu-latest` 一种 runner 上验证
 
