@@ -219,3 +219,47 @@ def test_read_site_config_refuses_a_path_traversing_site_name():
         read_site_config("../../etc", runner=runner)
 
     assert runner.commands == []
+
+
+# --- 「零孤儿列」必须表达得出来（plan 2026-08-22-0228-2，红因分流 (b) 档） -------------
+#
+# 红因逐字：全新站点上 apply 把探针列清干净之后，`trim_table` 返回 `[]`，
+# 而 `bench execute` 只在返回值为真时才打印（`frappe/commands/utils.py:285` 的 `if ret:`），
+# 于是 stdout 是零字节 → 旧代码判成「载荷不是 JSON」→ `OobError` → 门禁红。
+# **清干净了反而红**。下面四条钉的是这条通道，不是钉门禁。
+
+
+def test_empty_stdout_means_the_callee_returned_a_falsy_value():
+    """`bench execute` 对假值返回一个字都不打印 —— 这不是故障，是协议。"""
+    from agenerp.oob import FALSY_RESULT
+
+    runner = FakeRunner([_ok("")])
+
+    assert run_json(TRIM_TABLE, doctype="Item", site="frontend", runner=runner) is FALSY_RESULT
+
+
+def test_a_site_with_zero_orphan_columns_is_expressible():
+    """**承重条款**：站点上一条孤儿列都没有时，巡检必须回空元组，而不是抛。"""
+    runner = FakeRunner([_ok("")])
+
+    assert schema_drift("Item", site="frontend", runner=runner) == ()
+
+
+def test_blank_stdout_is_not_confused_with_a_broken_command():
+    """例外只覆盖**退出码 0**：非零退出仍旧抛，空 stdout 不给它开后门。"""
+    runner = FakeRunner([OobResult(1, "", "")])
+
+    with pytest.raises(OobError, match="带外命令失败"):
+        schema_drift("Item", site="frontend", runner=runner)
+
+
+def test_the_falsy_sentinel_is_not_a_result_any_caller_can_use_by_accident():
+    """哨兵不是 `None` 也不是 `[]`：这两个都会重新制造本模块要挡的那种歧义。"""
+    from agenerp.oob import FALSY_RESULT
+
+    assert FALSY_RESULT is not None
+    assert FALSY_RESULT != []
+    assert not isinstance(FALSY_RESULT, list)
+    # `json.loads("null")` 就是 None —— 站点真回了 `null` 与「什么都没打印」必须分得开。
+    assert run_json(TRIM_TABLE, doctype="Item", site="frontend",
+                    runner=FakeRunner([_ok("null")])) is None

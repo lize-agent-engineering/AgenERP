@@ -19,7 +19,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Protocol
 
-from agenerp.oob import TRIM_TABLE, OobError, Runner, run_json
+from agenerp.oob import FALSY_RESULT, TRIM_TABLE, OobError, Runner, run_json
 from agenerp.pack import normalize
 from agenerp.site import SiteClient, client_from_env
 
@@ -339,10 +339,17 @@ def schema_drift(
     **站点答不上话时抛 `agenerp.oob.OobError`，不返回空元组**——空元组是「没有孤儿列」这个
     合法结论的表示，用它兼表「命令没跑起来」会让门禁在栈坏掉时照样绿（与 §11.7 同一条约定）。
 
+    **反过来「没有孤儿列」也必须表达得出来。** `trim_table` 返回 `[]` 时 `bench execute`
+    一个字都不打印（模块头第 1 条的例外），`run_json` 因此回 `FALSY_RESULT`；
+    这里把它翻译成 `()`，因为本函数的返回类型是列表、而唯一的假值列表就是 `[]`。
+    这**不是**放宽：真故障全部非零退出，够不到这条路（2026-08-22 冷起站点三形态实测）。
+
     `site` / `runner` 是可选注入（默认按 `AGENERP_SITE` 与 `docker compose exec` 解析），
     目的与 `SiteSnapshotSource.client` 一样：让单测喂假件，不是给产品代码多一条配置路径。
     """
     columns = run_json(TRIM_TABLE, doctype=doctype, site=site, runner=runner)
+    if columns is FALSY_RESULT:
+        return ()
     if not isinstance(columns, list):
         raise OobError(
             f"{TRIM_TABLE} 对 {doctype} 回的不是列表，读到 {type(columns).__name__}：{columns!r:.200}"

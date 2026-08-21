@@ -699,6 +699,33 @@ Custom Field 不删列，所以此前每跑一轮就留一条孤儿列——清�
 **绝不降级成空列表**。空列表是「没有孤儿列」这个合法结论的表示，用它兼表「命令没跑起来」
 会让门禁在栈坏掉时照样绿——与 §11.7 第 1 条是同一条约定。
 
+**「不伪装成功」的唯一例外，2026-08-22 实测追加（plan `2026-08-22-0228-2`）**：
+上面那条「载荷不是 JSON 一律抛」在**全新站点**上会把一个**合法结论**判成故障，
+表现是 `tests/gates/test_customization_roundtrip_delete.py::test_no_orphan_column_left_behind`
+**清干净了反而红**——CI runner 2 跑红 2 次（run `32509351108`），本机 `down -v` 冷起后 3 跑红 3 次，
+红因原文 `agenerp.oob.OobError: frappe.model.meta.trim_table 的输出不是 JSON：''`。
+
+机制逐字（v15.119.3 容器内实读 `apps/frappe/frappe/commands/utils.py:285`）：`bench execute`
+末尾是 `if ret:` 才 `print(json.dumps(ret))`——**假值返回一个字都不打印**。所以
+「该 DocType 上一条孤儿列都没有」（`trim_table` 回 `[]`）在这条通道上就是**零字节 stdout**。
+本机常驻站点长期躺着别的门禁留下的历史孤儿列（冷起前实测 `["agenerp_gate_probe"]`），
+清完自己的探针列后集合仍非空 → 打印 JSON → 绿；**全新站点没有任何残留 → 清完必然归零 → 必然红**。
+这逐字解释了此前记录的「本机 6 跑红 1 次、runner 2 跑红 2 次」差异，起草时「runner 方向更有利」
+的推理由此被证伪。
+
+处置：`run_json` 对**退出码 0 且 stdout 全空**返回哨兵 `FALSY_RESULT`，由调用方按自己的
+返回类型翻译（`schema_drift` → `()`）。**刻意不返回 `None` 也不直接返回 `[]`**：
+`json.loads("null")` 就是 `None`，用它兼表两件事会重新制造本节要挡的歧义；直接给 `[]`
+等于替调用方猜「这个函数返回列表」，白名单以后多一条返回 dict 的函数那个猜就会静默错掉。
+
+**这不是放宽，三种真故障够不到该分支**（2026-08-22 冷起站点逐条实跑，全部非零退出，
+先被 `_run` 拦掉）：函数不存在 → exit 1 `AttributeError`；函数内部抛错 → exit 1
+`pymysql.err.ProgrammingError`；站点不存在 → exit 1。判据
+`tests/unit/test_schema_drift.py::test_blank_stdout_is_not_confused_with_a_broken_command`
+等 4 条。**清除面本身从未坏过**：同一轮实跑前后全量 `capture` 对照为
+`entries added/removed: []`、`columns added/removed: []`，`information_schema` 独立确认
+探针列不在 `tabItem` 上——红在**巡检的表达能力**，不在清除。
+
 **配置口径（环境变量，全部带默认值）**：
 
 | 变量 | 含义 | 默认 |

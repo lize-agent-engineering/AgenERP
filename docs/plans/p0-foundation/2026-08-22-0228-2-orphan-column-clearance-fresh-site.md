@@ -121,7 +121,7 @@
 
 ### Phase 1 - 复现与取证（**不猜根因**）
 
-Status: planned
+Status: completed
 Targets: 无代码改动
 Skill: `bug-diagnosis-prompt.md`
 
@@ -129,103 +129,237 @@ Skill: `bug-diagnosis-prompt.md`
 - Prereqs: 无硬前置。前驱 `0228-1` 若已落地，本机 `tools/gates/explain_last_gate_failures.py` 可直接打出红因原文，
   少走一次手工 `-vv` 复跑；未落地也不阻塞——本阶段的取证主路是本机冷起 + `pytest -vv`。
 
-- [ ] `Proof`：**冷起之前，先把常驻站点的证据取全**（`down -v` 之后这些证据就不存在了）——
+- [x] `Proof`：**冷起之前，先把常驻站点的证据取全**（`down -v` 之后这些证据就不存在了）——
       ① `bench backup` 并按 Infra 那条把备份**拷出容器**；
       ② 记录常驻站点当前的孤儿列全集：`information_schema` 直查 `tabItem` 的列
       + `schema_drift("Item")` 各一份，逐字抄下（Baseline 说是 5–6 条，以本轮实测为准）；
       ③ 在常驻站点上跑一次 live 整目录判定，抄下退出码与输出，作为「冷起前的本机基线」。
       这一项做完再往下走；顺序颠倒就再也补不回来。
-- [ ] `Proof`：**本机冷起复现**——`docker compose -f docker-compose.yml down -v`
+      - 实测（2026-08-22，`0cfd3bd`，常驻站点 `Up 6 hours`）：
+        ① `docker compose -f docker-compose.yml exec -T backend bench --site frontend backup` → **exit 0**，
+        `Database: ./frontend/private/backups/20260822_034532-frontend-database.sql.gz 797.9KiB`；
+        `docker compose -f docker-compose.yml cp backend:/home/frappe/frappe-bench/sites/frontend/private/backups ./.backups-2026-08-22`
+        → **exit 0**，落盘 `817012` 字节的 `.sql.gz` + `site_config_backup.json`（已加进 `.gitignore`，不进版本库）。
+        ② `information_schema` 直查 `tabItem` → **81 列**，其中孤儿列 **1 条：`agenerp_gate_probe`**；
+        `bench --site frontend execute frappe.model.meta.trim_table --kwargs "{'doctype':'Item','dry_run':True}"`
+        → 逐字 `["agenerp_gate_probe"]`。**⚠️ 与 Baseline 的「5–6 条」不符，以本轮实测的 1 条为准**
+        （冷起前的实际值，照实记）。
+        ③ live 整目录判定 → **exit 0**，逐字 `门禁 19 项：红 0，绿 19，跳过 0` / `✅ live 判定：全部门禁绿，零 red、零 skip`。
+- [x] `Proof`：**本机冷起复现**——`docker compose -f docker-compose.yml down -v`
       （**破坏性：删 5 个卷，上一项那些历史孤儿列到此为止**）后
       `AGENERP_HTTP_PORT=18080 docker compose -f docker-compose.yml up -d --wait --wait-timeout 300`，
       再单跑该文件：`… python3 -m pytest tests/gates/test_customization_roundtrip_delete.py -vv`。
       全新站点是 runner 条件在本机最接近的等价物。抄下退出码与**完整** traceback。
-- [ ] `Proof`：把 `agenerp.apply` 的 WARNING 打开（`-o log_cli=true --log-cli-level=WARNING` 或等价方式）
+      - 实测：`down -v` → exit 0（5 卷 `agenerp_sites` / `agenerp_db-data` / `agenerp_logs` /
+        `agenerp_redis-cache-data` / `agenerp_redis-queue-data` 全部 `Removed`）；
+        `up -d --wait --wait-timeout 300` → **exit 0**（61.7 秒，六服务 healthy）。
+        `AGENERP_HTTP_PORT=18080 AGENERP_LIVE=1 AGENERP_SITE=frontend AGENERP_SITE_URL=http://127.0.0.1:18080 AGENERP_ADMIN_PASSWORD=admin python3 -m pytest tests/gates/test_customization_roundtrip_delete.py -vv`
+        → **exit 1**，`1 failed, 3 passed in 8.53s`，逐字
+        `FAILED tests/gates/test_customization_roundtrip_delete.py::test_no_orphan_column_left_behind - agenerp.oob.OobError: frappe.model.meta.trim_table 的输出不是 JSON：''`。
+        **红在全新站点上首跑即复现**（后续第 2、3 跑同样红，共 3/3），与 runner 的 2/2 红方向一致。
+        traceback 末端：`agenerp/snapshot.py:345` → `agenerp/oob.py:186` `raise OobError(f"{function} 的输出不是 JSON：{stdout[:300]!r}")`。
+- [x] `Proof`：把 `agenerp.apply` 的 WARNING 打开（`-o log_cli=true --log-cli-level=WARNING` 或等价方式）
       再跑一次，记录 `narrow_deletes` / `drop_orphan_columns` 的跳过日志逐条原文。
       这直接回答「删除集是不是被收窄没了」与「哪几列被判为非孤儿」。
-- [ ] `Proof`：**实跑前后全量 `capture` 对照**（`0027-2` 指名要的证据）——
+      - 实测（`… -o log_cli=true --log-cli-level=WARNING` 单跑该 nodeid → **exit 1**，`1 failed in 3.00s`）：
+        **全程只有一条 WARNING**，来自 `narrow_deletes`（`apply.py:204`）：
+        `apply 跳过 10 条**不在定制包管辖范围内**的删除（包覆盖的 DocType：['Item']）：('Address', 'is_your_company_address'), ('Address', 'tax_category'), ('Communication', 'company'), ('Contact', 'is_billing_contact'), ('Customer', 'crm_deal'), ('Email Account', 'company'), ('Print Settings', 'compact_item_print'), ('Print Settings', 'print_taxes_with_zero_amount'), ('Print Settings', 'print_uom_after_quantity'), ('Quotation', 'crm_deal')`。
+        `drop_orphan_columns` 的两条 WARNING（`不是孤儿列` / `不碰…不是本次 apply 造成的孤儿列`）
+        **一条都没打**——即 `fieldnames - orphans` 与 `orphans - fieldnames` 双双为空，
+        `removable` 恰好是探针列，`drop_columns` 正常发了 DDL。
+        **结论：删除集没有被收窄没了，清除面走到了且执行成功。**（排除 (c) 档。）
+- [x] `Proof`：**实跑前后全量 `capture` 对照**（`0027-2` 指名要的证据）——
       apply 前后各做一次全量 `capture(PACK_SCOPE, source=SiteSnapshotSource(site))`，
       记录差集；同时用 `information_schema` 独立交叉验证 `tabItem` 上探针列的物理存在性
       （不经 `schema_drift`，避开已登记的假绿面）。
-- [ ] `Proof`：**分流**——把红因归到下面三档之一并写明依据：
+      - 实测（冷起后的全新站点，apply 前后各一次）：
+        `before: entries=10 item_columns=80` → `after: entries=10 item_columns=80`；
+        差集逐字 `entries added: []` / `entries removed: []` /
+        `columns added: []` / `columns removed: []` / `probe col present after: False`。
+        **影响面恰好只有探针**（加了又删干净），方向是「减少/归零」不是「新增」，
+        且 `information_schema` 独立确认 `agenerp_gate_roundtrip` **不在** `tabItem` 上。
+        **这条是本阶段最重的一条事实：物理清除面本身是好的，红不在清除面。**
+- [x] `Proof`：**分流**——把红因归到下面三档之一并写明依据：
       (a) 断言失败且探针列确实还在表上；(b) `OobError`（带外命令没跑起来 / 非零退出 / 载荷不是 JSON）；
       (c) 走都没走到清除面（`plan.deletes` 为空，被 `narrow_deletes` 收窄掉）。
       **三档的修法完全不同**，不分流就动代码等于猜。
-- [ ] `Proof`：若本机冷起**复现不出来**（3 跑全绿）→ 逐字记「本机冷起不可复现」，**不猜根因**（裁判规则 3），
+      - **分流结论：(b) 档**，且落点精确到 `agenerp/oob.py:186` `run_json` 的**空 stdout 分支**。依据：
+        ① 排除 (a)：上一项的 `information_schema` 交叉验证证明探针列**不在**表上，断言本身不会失败；
+        ② 排除 (c)：`drop_orphan_columns` 的 DDL 真发了（无跳过 WARNING，且列确实没了）；
+        ③ (b) 的**具体形态不是「命令没跑起来」**——冷起后直接手跑
+        `bench --site frontend execute frappe.model.meta.trim_table --kwargs "{'doctype':'Item','dry_run':True}"`
+        → **exit 0、stdout 0 字节、stderr 0 字节**。即：清除做完之后全新站点上**一条孤儿列都没有了**，
+        `trim_table` 返回 `[]`，而 `bench execute` 的打印是有条件的——
+        `apps/frappe/frappe/commands/utils.py:285` 逐字 `if ret:`（v15.119.3 容器内实读），
+        **假值返回不打印任何东西**。于是 `json.loads('')` 抛 `ValueError` → `OobError`。
+      - **它逐字解释了「本机 6 跑红 1 次、runner 2 跑红 2 次」这个已实测差异**：
+        本机常驻站点上一直躺着别的门禁留下的历史孤儿列（本轮冷起前实测 `["agenerp_gate_probe"]`），
+        所以本次 apply 清完自己的探针列之后 `trim_table` 仍返回**非空**列表 → 打印 JSON → 绿；
+        只有在残留恰好不在场的那一跑才会红（本机 1/6）。
+        runner 的**全新**站点上没有任何历史残留 → 清完必然归零 → 必然红（runner 2/2、本机冷起 3/3）。
+      - **安全前提已实证，不是推理**：`run_json` 若把「exit 0 且 stdout 全空」认成「callee 返回假值」，
+        会不会把真故障吞掉？冷起站点上实跑三种故障形态，**全部非零退出**（故走不到该分支，
+        仍由 `_run` 抛 `OobError`）：
+        (A) 白名单外/不存在的函数 `frappe.model.meta.no_such_fn` → **exit 1**，
+        `AttributeError: module 'frappe.model.meta' has no attribute 'no_such_fn'`；
+        (B) 函数内部抛错 `trim_table(doctype='NoSuchDoctypeXYZ')` → **exit 1**，
+        `pymysql.err.ProgrammingError: ('DocType', 'NoSuchDoctypeXYZ')`；
+        (C) 站点不存在 `--site nosuchsite` → **exit 1**（stdout 32 字节，非 JSON，双重挡住）。
+- [x] `Proof`：若本机冷起**复现不出来**（3 跑全绿）→ 逐字记「本机冷起不可复现」，**不猜根因**（裁判规则 3），
       并**不得**据此认为问题已消失（runner 上 2 跑红 2 次是已实测的事实）。
       此时唯一可走的取证路是 CI，而 CI 取证面归 `0228-1` 的 `## Human Handoff`（需要人解停机线 / 出 trailer）——
       本 plan 按 `## Deferred But Adjudicated` 的固定处置置 `deferred` 并把这一事实写进 STATE §3，
       **不自行推分支跑 CI 碰运气**。
+      - **本条的前提不成立，故不适用**：本机冷起 **3 跑红 3 次**（非「3 跑全绿」），红因原文已到手。
+        因此**不**走 `deferred` 分支，按 Phase 2 继续。
 
 Exit Criteria:
 
-- [ ] 红因被归入 (a)/(b)/(c) 之一，依据是命令原文 + 退出码 + 输出，不是推断
-- [ ] 前后全量 `capture` 对照 + `information_schema` 交叉验证两份证据在案
-- [ ] **冷起前**的常驻站点证据三件（备份已拷出 · 孤儿列全集 · live 整目录判定退出码）在案
-- [ ] No owner-doc update required（本阶段不改行为）
-- [ ] `docs/logs/2026/08-22.md` 更新
+- [x] 红因被归入 (a)/(b)/(c) 之一，依据是命令原文 + 退出码 + 输出，不是推断 —— **(b) 档**，见分流项
+- [x] 前后全量 `capture` 对照 + `information_schema` 交叉验证两份证据在案
+- [x] **冷起前**的常驻站点证据三件（备份已拷出 · 孤儿列全集 · live 整目录判定退出码）在案
+- [x] No owner-doc update required（本阶段不改行为）
+- [x] `docs/logs/2026/08-22.md` 更新
 
 ### Phase 2 - 按证据修实现
 
-Status: planned
+Status: completed
 Targets: `agenerp/apply.py` · `agenerp/oob.py` · `agenerp/snapshot.py`（**只改 Phase 1 分流指到的那一处**）· `tests/unit/`
 Skill: `none`
 
 - Item Types: `Fix | Proof`
 - Prereqs: Phase 1 完成且分流结论明确
 
-- [ ] `Fix`：只改分流指到的那一处。**不做与红因无关的顺手优化**（北极星条款）。
+- [x] `Fix`：只改分流指到的那一处。**不做与红因无关的顺手优化**（北极星条款）。
       改动前在本项下写明：改哪个函数、为什么这一处、以及它如何解释「本机 6 跑红 1 次、runner 2 跑红 2 次」
       这个已实测的差异——解释不了就说明分流没做完，回 Phase 1。
-- [ ] `Fix`：若红因落在 (b)/(c) 档，**不得**用「吞掉异常」或「放宽收窄」的方式让门禁变绿——
+      - **改哪个函数**：`agenerp/oob.py` `run_json` 的**空 stdout 分支**（原 `agenerp/oob.py:186`）。
+        新增哨兵 `FALSY_RESULT`；`run_json` 对「退出码 0 且 `stdout.strip()` 为空」返回该哨兵，
+        其余路径一字未动。连带一处**必须同时改的消费端**：`agenerp/snapshot.py` `schema_drift`
+        把 `FALSY_RESULT` 翻译成 `()`。
+      - **为什么是这一处**：Phase 1 已用两条独立证据排掉另外两档——`information_schema` 证明探针列
+        物理上不在表上（排 (a)），`drop_orphan_columns` 无任何跳过 WARNING 且 DDL 真发了（排 (c)）。
+        剩下的唯一未证伪面就是 `run_json` 把「零字节 stdout」判成「载荷不是 JSON」。
+        冷起站点上手跑 `trim_table` → **exit 0 / stdout 0 字节**，而
+        `apps/frappe/frappe/commands/utils.py:285` 逐字 `if ret:` —— 假值返回不打印。
+      - **`agenerp/apply.py` 一字未改**：Targets 允许它，但分流没指到它，按本项自己的约束不动。
+      - **它如何解释已实测的差异**：本机常驻站点长期躺着别的门禁留下的历史孤儿列
+        （冷起前实测 `schema_drift("Item")` → `["agenerp_gate_probe"]`），apply 清完自己的探针列后
+        集合**仍非空** → `bench execute` 打印 JSON → 绿；只有残留恰好不在场的那一跑才红（本机 1/6）。
+        runner 的**全新**站点没有任何残留 → 清完必然**归零** → `[]` → 零字节 → 必然红
+        （runner 2/2、本机冷起 3/3）。**方向、频次、站点形态三者全部对得上。**
+- [x] `Fix`：若红因落在 (b)/(c) 档，**不得**用「吞掉异常」或「放宽收窄」的方式让门禁变绿——
       两者都会重新制造 `2026-08-21-2220-1` 已登记的假绿面。收窄若确需放宽，
       必须在 `module-boundaries.md` §11.6 追加裁定并写清作用域上界。
-- [ ] `Proof`：`tests/unit/` 补一条**对着红因**的判据（不是对着门禁），
+      - **没有吞任何异常，也没有放宽任何收窄**：`narrow_deletes` 与 `drop_orphan_columns` 的交集口径
+        一字未改；`_run` 的非零退出仍抛；非空的非 JSON 载荷仍抛；非 list、非 str 列名仍抛。
+        新增的只有「exit 0 且 stdout 全空」这一条，而它在 `bench execute` 的协议里**等价于**
+        「被调函数返回了假值」，不是「命令没跑起来」。
+      - **该等价性是实证的，不是推理**（冷起站点逐条实跑，三种真故障**全部非零退出**，
+        走不到新分支）：(A) 函数不存在 → exit 1 `AttributeError: module 'frappe.model.meta' has no attribute 'no_such_fn'`；
+        (B) 函数内部抛错 → exit 1 `pymysql.err.ProgrammingError: ('DocType', 'NoSuchDoctypeXYZ')`；
+        (C) 站点不存在 → exit 1。
+      - **哨兵而不是 `[]`/`None` 的理由**：`json.loads("null")` 就是 `None`，用 `None` 兼表两件事会
+        重新制造本模块要挡的歧义；直接回 `[]` 等于替调用方猜「这个函数返回列表」，
+        `ALLOWED_CALLS` 以后多一条返回 dict 的函数那个猜就会静默错掉。哨兵逼调用方显式翻译。
+- [x] `Proof`：`tests/unit/` 补一条**对着红因**的判据（不是对着门禁），
       命令 `python3 -m pytest tests/unit -q` → exit 0。
-- [ ] `Proof`：`ruff check agenerp tests/unit tests/contracts` → exit 0；
+      - 补在 `tests/unit/test_schema_drift.py`（该文件的模块 docstring 自称就是
+        「钉死孤儿列巡检的行为（`agenerp/oob.py` + `agenerp.snapshot.schema_drift`）」，是这条面的既有 owner），
+        共 **4 条**，全部喂假 `Runner`、不连站点：
+        `test_empty_stdout_means_the_callee_returned_a_falsy_value` ·
+        `test_a_site_with_zero_orphan_columns_is_expressible`（承重条款：零孤儿列必须表达得出来） ·
+        `test_blank_stdout_is_not_confused_with_a_broken_command`（例外只覆盖 exit 0） ·
+        `test_the_falsy_sentinel_is_not_a_result_any_caller_can_use_by_accident`（含 `null` 与空输出必须分得开）。
+      - `python3 -m pytest tests/unit -q` → **exit 0**，`221 passed in 0.59s`。
+- [x] `Proof`：`ruff check agenerp tests/unit tests/contracts` → exit 0；
       `python3 -m pytest tests/contracts -q` → exit 0。
+      - `ruff check agenerp tests/unit tests/contracts` → **exit 0**，`All checks passed!`
+      - `python3 -m pytest tests/contracts -q` → **exit 0**，`151 passed in 0.06s`
+      - 附带：`python3 tools/gates/check_expected_red.py`（默认判定环境，L1）→ **exit 0**，
+        `门禁 19 项：预期红 7，绿 12，跳过 0` / `✅ 与预期红名单完全一致`（名单一行未动）。
 
 Exit Criteria:
 
-- [ ] 改动面 ≤ Phase 1 分流指到的一处，且能解释本机/runner 的差异
-- [ ] 单测与契约测试全绿，lint 干净
-- [ ] `docs/architecture/module-boundaries.md` §11.6 或 §11.8 追加实测结论（**追加，不改写**）
-- [ ] `docs/logs/2026/08-22.md` 更新
+- [x] 改动面 ≤ Phase 1 分流指到的一处，且能解释本机/runner 的差异 —— `run_json` 空 stdout 分支 + 其消费端翻译
+- [x] 单测与契约测试全绿，lint 干净
+- [x] `docs/architecture/module-boundaries.md` §11.8 追加实测结论（**追加，不改写**；§11.6 无需改，收窄口径一字未动）
+- [x] `docs/logs/2026/08-22.md` 更新
 
 ### Phase 3 - 三面证明（全新站点 / 多轮累积站点 / 变异）
 
-Status: planned
+Status: completed
 Targets: 无代码改动
 Skill: `none`
 
 - Item Types: `Proof`（全部）
 - Prereqs: Phase 2 完成
 
-- [ ] `Proof`：**全新站点**——`down -v` 冷起后跑 live 整目录判定
+- [x] `Proof`：**全新站点**——`down -v` 冷起后跑 live 整目录判定
       `… python3 tools/gates/check_expected_red.py` → 期望 `门禁 19 项：红 0，绿 19，跳过 0` / exit 0，
       **连跑 3 次全绿**（前驱 `0027-1` 实测过这条门禁有间歇性，1 跑不算数）。
-- [ ] `Proof`：**多轮累积站点**（Baseline 里说的「常驻站点」在 Phase 1 冷起时已被 `down -v` 删掉，
+      - 实测：`down -v` → exit 0（18 项 `Removed`）；`up -d --wait --wait-timeout 300` → exit 0（61.1 秒）。
+        `AGENERP_HTTP_PORT=18080 AGENERP_LIVE=1 AGENERP_SITE=frontend AGENERP_SITE_URL=http://127.0.0.1:18080 AGENERP_ADMIN_PASSWORD=admin python3 tools/gates/check_expected_red.py`
+        连跑 3 次：**RUN1 exit 0 · RUN2 exit 0 · RUN3 exit 0**，三次均逐字
+        `门禁 19 项：红 0，绿 19，跳过 0` / `✅ live 判定：全部门禁绿，零 red、零 skip`。
+        对照 Phase 1 同一形态站点上的 **3 跑红 3 次**——方向逆转，且首跑即绿。
+- [x] `Proof`：**多轮累积站点**（Baseline 里说的「常驻站点」在 Phase 1 冷起时已被 `down -v` 删掉，
       因此这一条按冷起后的实际情况定义，不写成拿不到的证据）——
       在**上一项连跑 3 次之后、不再 `down -v`** 的那个站点上跑同一条命令 → exit 0。
       此时站点已积累了至少 3 轮门禁 fixture 的残留，正是「非空表」条件。
       这一条是「不迁就 runner」的判据：只在**空**站点绿说明修法可能只对空表成立。
-- [ ] `Proof`：**变异验证**（**必须在 `down -v` 冷起后的全新站点上做**——红只在全新站点稳定复现，
+      - 实测：同一站点第 4 跑（未 `down -v`）→ **exit 0**，`门禁 19 项：红 0，绿 19，跳过 0`。
+        此时 `tabItem` 已由 80 列涨到 **81 列**、孤儿列集合由**空**变成 `["agenerp_gate_probe"]`
+        （非空表条件成立）。
+      - **补一条更强的隔离证据**（同一累积站点上单跑该门禁文件，前后各一次全量 `capture`）：
+        `acc_before: entries=10 item_columns=81` → 门禁 **exit 0，4 passed in 7.29s** → `acc_after: entries=10 item_columns=81`；
+        差集 `entries added/removed: []`、`columns added/removed: []`；
+        `agenerp_gate_probe still there: True`、`agenerp_gate_roundtrip present: False`。
+        即：在**非空**表上，apply 只清掉自己的探针列，**一列都没多删**——收窄口径仍然成立。
+- [x] `Proof`：**变异验证**（**必须在 `down -v` 冷起后的全新站点上做**——红只在全新站点稳定复现，
       在多轮累积站点上做变异，不红也说明不了问题）——把 Phase 2 的修复点改回改动前的形态 → 该门禁必须**逐字转红**
       且点名集合恰好多出 `::test_no_orphan_column_left_behind` 一条；复原后复跑回 exit 0。
       牙齿在这里；变异不红就说明修的不是红因。
-- [ ] `Proof`：**物理列的独立证据**——修复后再做一次 `information_schema` 查询，
+      - **A/B 两跑都在各自 `down -v` 冷起后的全新站点上做**（控制变量，不拿累积站点凑数）：
+      - **变异**（删掉 `run_json` 里 `if not stdout.strip(): return FALSY_RESULT` 两行，其余一字不动）
+        → `python3 tools/gates/check_expected_red.py` **exit 1**，逐字：
+        `门禁 19 项：红 1，绿 18，跳过 0` / `❌ live 判定契约是全部门禁绿，下列门禁红了：` /
+        `   tests/gates/test_customization_roundtrip_delete.py::test_no_orphan_column_left_behind`。
+        **点名集合恰好一条，且与 CI run `32509351108` 两次 attempt 的输出逐字一致。**
+      - 变异同时也把单测打红（牙齿不只在门禁上）：`python3 -m pytest tests/unit -q` → **exit 1**，
+        `2 failed, 219 passed`，红的恰好是 `::test_empty_stdout_means_the_callee_returned_a_falsy_value`
+        与 `::test_a_site_with_zero_orphan_columns_is_expressible`。
+      - **复原**（`cp /tmp/oob.py.good agenerp/oob.py`）→ `python3 -m pytest tests/unit -q` **exit 0**（`221 passed`）；
+        再 `down -v` 冷起同形态全新站点 → `python3 tools/gates/check_expected_red.py` **exit 0**，
+        `门禁 19 项：红 0，绿 19，跳过 0`。
+- [x] `Proof`：**物理列的独立证据**——修复后再做一次 `information_schema` 查询，
       确认探针列确实不在 `tabItem` 上；**作用域方向判据按冷起后的集合算**：
       拿本阶段第 1 项冷起**之后**首跑前记录的孤儿列集合作基准，
       修复后该集合**只许减少本次探针列、不许多删一条、不许新增**。
       （Baseline 里那 5 条冷起前的历史孤儿列已随 `down -v` 消失，**不得**把它们写进本条判据——
       写了就是拿不到的证据。）
+      - **基准（冷起后、首跑前）**：`trim_table(dry_run=True)` → exit 0 / **0 字节**（孤儿列集合为**空集**）；
+        `information_schema` → `tabItem` **80 列**，零个 `agenerp*` 列。
+      - **4 跑之后**：孤儿列集合 = `["agenerp_gate_probe"]`，`tabItem` **81 列**，
+        `diff` 基准→现状**只有一行**：`> agenerp_gate_probe`。
+        本次探针列 `agenerp_gate_roundtrip` **不在** `tabItem` 上（`grep` 命中 0 次），
+        不经 `schema_drift`、直查 `information_schema` 得出，避开已登记的假绿面。
+      - **方向照实说明，不粉饰**：集合从空集变成 1 条，看上去是「新增」，但那一条**不是 apply 造成的**——
+        `agenerp_gate_probe` 由**另一条门禁**创建，`grep` 实证落点
+        `tests/gates/test_snapshot_diff_structured.py:39` `live_site.add_custom_field(doctype="Item", fieldname="agenerp_gate_probe", …)`，
+        属本 plan Non-Goals 明列、归 `docs/backlog/gate-fixtures-pollute-the-live-site.md` 的门禁 fixture 残留。
+      - **apply 自身的方向判据由前后 `capture` 对照单独给出，两侧站点各一次，均为「减少/归零」**：
+        全新站点 `columns added: []` / `columns removed: []`（探针列加了又清干净）；
+        非空累积站点同样 `columns added: []` / `columns removed: []`，且 `agenerp_gate_probe` **原样保留**——
+        **一列都没多删**，收窄面完好。
 
 Exit Criteria:
 
-- [ ] 全新站点 3 跑全绿、多轮累积站点 1 跑绿，命令原文与退出码在案
-- [ ] 变异验证有牙齿（在全新站点上做），点名集合精确
-- [ ] 作用域方向是「减少」：冷起后孤儿列集合的前后对照在案，只少了本次探针列
-- [ ] `docs/logs/2026/08-22.md` 更新
+- [x] 全新站点 3 跑全绿、多轮累积站点 1 跑绿，命令原文与退出码在案
+- [x] 变异验证有牙齿（在全新站点上做），点名集合精确（恰好 1 条，与 CI 红因逐字一致）
+- [x] 作用域方向是「减少」：冷起后孤儿列集合的前后对照在案，只少了本次探针列；
+      唯一的「新增」已实证归因于另一条门禁的 fixture 残留（既有 backlog 项），不是本次 apply
+- [x] `docs/logs/2026/08-22.md` 更新
 
 ### Phase 4 - CI 实跑与回写（**硬上限 2 次实跑**）
 

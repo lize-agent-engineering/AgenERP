@@ -5,6 +5,13 @@
 
 1. **不伪装成功。** 命令起不来 / 非零退出 / 载荷不是 JSON —— 一律抛 `OobError`。
    降级成空列表会让「没有孤儿列」和「命令没跑起来」长得一模一样，门禁随之假绿。
+   **唯一的例外是「退出码 0 且 stdout 全空」**，它在 `bench execute` 的协议里恰好等价于
+   「被调函数返回了**假值**」——`apps/frappe/frappe/commands/utils.py:285` 逐字 `if ret:`，
+   假值不打印任何东西（v15.119.3 容器内实读）。这个例外**不是降级**：它返回哨兵
+   `FALSY_RESULT` 而不是任何一种「正常结果」，逼调用方按自己的返回类型把它翻译成
+   `[]` / `{}` / `0`，翻译不了就自己抛。三种真故障都够不到这个分支——
+   2026-08-22 冷起站点实测：函数不存在 → exit 1、函数内部抛错 → exit 1、站点不存在 → exit 1，
+   全部先被 `_run` 拦掉（判据 `tests/unit/test_schema_drift.py`）。
 2. **能执行什么被钉死到参数一级。** `ALLOWED_CALLS` 是**「函数名 → 钉死的 kwargs」映射**，
    不是名字集合。调用方只能给 `doctype`；`trim_table` 的 `dry_run` 恒为 `True`，
    给不了 `False`——只钉名字挡不住「把该 DocType 的孤儿列一次删光」。
@@ -58,6 +65,23 @@ ALLOWED_CALLS: dict[str, dict[str, Any]] = {
 _IDENTIFIER = re.compile(r"^[A-Za-z0-9_ ]+$")
 
 TRIM_TABLE = "frappe.model.meta.trim_table"
+
+
+class _FalsyResult:
+    """`run_json` 的哨兵：被调函数**成功返回了一个假值**，因此 `bench execute` 什么都没打印。
+
+    刻意**不是** `None` 也不是 `[]`：`json.loads("null")` 就是 `None`，用它兼表两件事会
+    重新制造本模块要挡的那种歧义；而直接给 `[]` 等于替调用方猜「这个函数返回列表」——
+    白名单以后多一条返回 dict 的函数，那个猜就会静默错掉。哨兵逼调用方显式翻译。
+    """
+
+    __slots__ = ()
+
+    def __repr__(self) -> str:
+        return "FALSY_RESULT"
+
+
+FALSY_RESULT = _FalsyResult()
 
 
 class OobError(RuntimeError):
@@ -163,6 +187,12 @@ def run_json(function: str, doctype: str, site: str | None = None, runner: Runne
     所以 `dry_run` 这类开关传不进来（模块头第 2 条）。
 
     非零退出、stdout 不是 JSON —— 一律抛 `OobError`，不返回空。
+
+    **退出码 0 且 stdout 全空**是唯一的例外，返回 `FALSY_RESULT`（模块头第 1 条）：
+    `bench execute` 只在返回值为真时才打印，所以「没有孤儿列」这个**合法结论**在
+    这条通道上就是零字节。以前它被当成「载荷不是 JSON」抛掉，于是
+    `test_no_orphan_column_left_behind` 在**全新站点**上必然红——清干净了反而红
+    （2026-08-22 冷起实测 3/3、CI runner 2/2）。
     """
     pinned = ALLOWED_CALLS.get(function)
     if pinned is None:
@@ -180,6 +210,8 @@ def run_json(function: str, doctype: str, site: str | None = None, runner: Runne
             ),
         ),
     )
+    if not stdout.strip():
+        return FALSY_RESULT
     try:
         return json.loads(stdout)
     except ValueError as exc:
