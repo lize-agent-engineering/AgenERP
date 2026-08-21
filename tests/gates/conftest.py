@@ -38,8 +38,7 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parents[2]
 COMPOSE = ["docker", "compose", "-f", str(REPO_ROOT / "docker-compose.yml")]
 SITE_NAME = "frontend"
-HTTP_PORT = os.environ.get("AGENERP_HTTP_PORT", "8080")
-BASE_URL = f"http://127.0.0.1:{HTTP_PORT}"
+HTTP_PORT = os.environ.get("AGENERP_HTTP_PORT", "8080")  # 仅在**我们自己起栈**时用
 ADMIN_USER = "Administrator"
 ADMIN_PASSWORD = os.environ.get("AGENERP_ADMIN_PASSWORD", "admin")
 UP_TIMEOUT = int(os.environ.get("AGENERP_LIVE_UP_TIMEOUT", "900"))
@@ -60,6 +59,33 @@ def _require_live(what: str) -> None:
 
 def _compose(*args: str, timeout: int = 120) -> subprocess.CompletedProcess:
     return subprocess.run(COMPOSE + list(args), capture_output=True, text=True, timeout=timeout)
+
+
+def _running_frontend_port() -> str:
+    """从真正在跑的栈上读出 frontend 的对外端口。空字符串表示没跑。
+
+    实测教训：栈可能是**别人**起的（循环做工作项 4-B 时自己拉了一套，用的 18080），
+    端口未必等于本进程 `AGENERP_HTTP_PORT` 猜的那个。照猜的连过去就是
+    `Connection refused`，而门禁会红在「连不上」而不是红在实现——红错了地方。
+    端口是**观测出来的事实**，不是配置出来的期望。
+    """
+    r = _compose("ps", "--format", "json")
+    if r.returncode != 0:
+        return ""
+    for line in r.stdout.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            row = json.loads(line)
+        except ValueError:
+            continue
+        if row.get("Service") != "frontend" or row.get("State") != "running":
+            continue
+        for pub in row.get("Publishers") or ():
+            if pub.get("TargetPort") == 8080 and pub.get("PublishedPort"):
+                return str(pub["PublishedPort"])
+    return ""
 
 
 def _port_occupant(port: str) -> str:
@@ -94,8 +120,9 @@ class Response:
 
 
 class ComposeStack:
-    def __init__(self, started_by_us: bool) -> None:
+    def __init__(self, started_by_us: bool, base_url: str) -> None:
         self.started_by_us = started_by_us
+        self.base_url = base_url
 
     def services(self) -> list[Service]:
         """当前栈里**长期运行**的服务及其健康状态。
@@ -123,22 +150,26 @@ class ComposeStack:
         return out
 
     def http_get(self, path: str, timeout: int = 30) -> Response:
-        req = urllib.request.Request(BASE_URL + path, headers={"Host": SITE_NAME})
+        req = urllib.request.Request(self.base_url + path, headers={"Host": SITE_NAME})
         try:
             with urllib.request.urlopen(req, timeout=timeout) as resp:
                 return Response(resp.status, resp.read().decode("utf-8", "replace"))
         except urllib.error.HTTPError as e:
             return Response(e.code, e.read().decode("utf-8", "replace"))
         except Exception as e:  # 连不上也要给出可判定的结果，而不是抛到测试外
-            pytest.fail(f"GET {path} 连不上 {BASE_URL}：{e}")
+            pytest.fail(f"GET {path} 连不上 {self.base_url}：{e}")
 
 
 @pytest.fixture(scope="session")
 def compose_stack():
     _require_live("compose_stack")
-    before = _compose("ps", "--format", "json")
-    already_up = bool(before.stdout.strip()) and before.returncode == 0
-    if not already_up:
+    running_port = _running_frontend_port()
+    already_up = bool(running_port)
+    if already_up:
+        # 用**观测到的**端口，不用猜的。栈是别人起的时，两者往往不同。
+        port = running_port
+    else:
+        port = HTTP_PORT
         occupant = _port_occupant(HTTP_PORT)
         if occupant:
             pytest.fail(
@@ -154,7 +185,7 @@ def compose_stack():
             # teardown 不会执行，半拉起的栈会漏在机器上 —— 实测踩过。
             _compose("down", timeout=300)
             pytest.fail(f"docker compose up 失败（exit {r.returncode}）：{r.stderr[-1200:]}")
-    stack = ComposeStack(started_by_us=not already_up)
+    stack = ComposeStack(started_by_us=not already_up, base_url=f"http://127.0.0.1:{port}")
     yield stack
     if stack.started_by_us:
         _compose("down", timeout=300)
@@ -167,8 +198,9 @@ def compose_stack():
 class LiveSite:
     """经 REST API 操作真站点。每一次调用都真的打到站点上，没有本地缓存。"""
 
-    def __init__(self) -> None:
+    def __init__(self, base_url: str) -> None:
         self.name = SITE_NAME
+        self._base = base_url
         self._opener = urllib.request.build_opener(
             urllib.request.HTTPCookieProcessor()
         )
@@ -182,7 +214,7 @@ class LiveSite:
         # 只编码路径段，保留 `/` 分隔。
         safe_path = urllib.parse.quote(path, safe="/")
         req = urllib.request.Request(
-            BASE_URL + safe_path, data=data,
+            self._base + safe_path, data=data,
             headers={"Host": SITE_NAME, "Content-Type": "application/json", "Accept": "application/json"},
             method=method or ("POST" if data else "GET"),
         )
@@ -223,6 +255,13 @@ class LiveSite:
         self._created.clear()
 
 
+# 被测代码认这几个变量找站点（`agenerp.site.client_from_env`）。
+# fixture 必须把它们指向**自己正在操作的那套栈**，否则测试在站点上建了字段，
+# 而 `capture()` / `export_customizations()` 读的是别处（默认离线来源）——
+# diff 恒为空，门禁红在「看不见」而不是红在实现。实测踩过这一脚。
+_SITE_ENV_KEYS = ("AGENERP_SITE", "AGENERP_SITE_URL", "AGENERP_ADMIN_PASSWORD", "AGENERP_ADMIN_USER")
+
+
 @pytest.fixture
 def live_site(compose_stack):
     _require_live("live_site")
@@ -230,9 +269,23 @@ def live_site(compose_stack):
     ping = compose_stack.http_get("/api/method/ping")
     if ping.status_code != 200:
         pytest.fail(f"站点未就绪：GET /api/method/ping → HTTP {ping.status_code}")
-    site = LiveSite()
-    yield site
-    site.cleanup()
+
+    saved = {k: os.environ.get(k) for k in _SITE_ENV_KEYS}
+    os.environ["AGENERP_SITE"] = SITE_NAME
+    os.environ["AGENERP_SITE_URL"] = compose_stack.base_url
+    os.environ["AGENERP_ADMIN_USER"] = ADMIN_USER
+    os.environ["AGENERP_ADMIN_PASSWORD"] = ADMIN_PASSWORD
+
+    site = LiveSite(compose_stack.base_url)
+    try:
+        yield site
+    finally:
+        site.cleanup()
+        for k, v in saved.items():   # 不污染后续测试的环境
+            if v is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = v
 
 
 # --------------------------------------------------------------------------
