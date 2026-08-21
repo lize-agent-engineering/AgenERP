@@ -1,6 +1,6 @@
 # 2026-08-21-1553-1 差集 apply 引擎 · A 半（读包 → 求差 → **删除计划**，纯逻辑不接站点）
 
-> Plan Status: active
+> Plan Status: completed
 > Mission: p0-foundation
 > Work Item: 5. 差集 apply 引擎（读包 → 求差 → **对差集执行删除**）—— **只做 A 半（读包 + 求差 + 删除计划），不做 B 半（对站点执行）**
 > Last Reviewed: 2026-08-21
@@ -290,15 +290,15 @@ Exit Criteria:
 
 ## Closure Gates
 
-- [ ] in-scope behavior is complete
-- [ ] relevant docs are aligned
-- [ ] verification has run（`python3 tools/gates/check_expected_red.py`、`python3 -m pytest tests/unit -q`、`ruff check agenerp tests/unit tests/contracts`、`python3 -m pytest tests/gates/test_customization_roundtrip_delete.py -q --tb=line`，逐条记退出码）
-- [ ] scoped verification is not conflated with full verification —— 本仓无全量套件（无 build、无 typecheck、L2 门禁未解锁），关闭记录必须逐字写明「verification scope limited」
-- [ ] no in-scope item downgraded to deferred/follow-up
-- [ ] independent draft review completed and recorded
-- [ ] text consistency verified: status, phases, gates, and log all agree
-- [ ] closure audit was independent
-- [ ] closure evidence exists in files
+- [x] in-scope behavior is complete
+- [x] relevant docs are aligned
+- [x] verification has run（`python3 tools/gates/check_expected_red.py`、`python3 -m pytest tests/unit -q`、`ruff check agenerp tests/unit tests/contracts`、`python3 -m pytest tests/gates/test_customization_roundtrip_delete.py -q --tb=line`，逐条记退出码）
+- [x] scoped verification is not conflated with full verification —— 本仓无全量套件（无 build、无 typecheck、L2 门禁未解锁），关闭记录必须逐字写明「verification scope limited」
+- [x] no in-scope item downgraded to deferred/follow-up
+- [x] independent draft review completed and recorded
+- [x] text consistency verified: status, phases, gates, and log all agree
+- [x] closure audit was independent
+- [x] closure evidence exists in files
 
 ## Deferred But Adjudicated
 
@@ -339,13 +339,60 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: 待独立关闭审计填写。
+Status Note: A 半（读包 + 求差 + **删除计划**）已在活代码里落地并被 `tests/unit/` 钉住，
+三个 Phase 的执行项与 Exit Criteria 全部为 `[x]`，红线自查区间 diff 为空。
+B 半（对站点执行删除）从起草起就是 Non-Goal，已在 `## Deferred But Adjudicated` 登记并指名 successor 与重开事件，
+**不存在把未完成的活报成完成**：roadmap 工作项 5 停在 `planned`，`tools/gates/expected-red.txt` 一行未动，
+本 plan 未让任何门禁转绿。
 
 Closure Audit Evidence:
 
-- Auditor / Agent: 待填（必须与 `EXECUTE` 会话分离）
-- Evidence: 待填（命令原文 + 退出码 + commit sha）
+- Auditor / Agent: 独立关闭审计会话 `MISSION_DRIVER:2026-08-21-155943-mission-driver` 的 `CLOSURE_AUDIT` 步，
+  与 `EXECUTE` 会话分离（`EXECUTE` 的产物是 `0603ccf` / `dac7a9f` / `8718f40`，本步只改本 plan 文件）。
+- 审计基线 sha：`8718f40`（`git status --short` 输出为空，工作区干净）。开工基线 `<base>` = `d6672cc`。
+- **实跑复核（命令原文 + 退出码，本审计会话现跑，非抄执行日志）**：
+  - `python3 tools/gates/check_expected_red.py` → **exit 0**（门禁 13 项：预期红 7，绿 6，跳过 0）
+  - `python3 -m pytest tests/unit -q` → **exit 0**（**73 passed**）
+  - `ruff check agenerp tests/unit tests/contracts` → **exit 0**（All checks passed!）
+  - `python3 -m pytest tests/gates/test_customization_roundtrip_delete.py -q --tb=line` → **exit 1**，
+    **`4 errors`**（`ERROR at setup`，逐字 `NotImplementedError: live_site 尚未实现 …`）——
+    与起草评审基线形态逐字一致，无漂移，四条仍红且红在 fixture 层
+  - `git diff --name-only d6672cc..HEAD -- tests/gates/ .github/workflows/ missions/ tools/gates/ docs/masterplan/DECISIONS.md`
+    → **输出为空**（红线 1/2/3/6 零触碰）
+  - `git diff --numstat d6672cc..HEAD -- docs/masterplan/` → **输出为空**（`STATE.md` 未改，停手分支未触发）
+  - `git diff --numstat d6672cc..HEAD -- docs/architecture/module-boundaries.md` → `50	0`（删除列为 0，只追加）
+- **verification scope limited**：本仓无全量套件（`docs/context/project-context.md` 的验证表里
+  Build 与 Typecheck 逐字为 `none`，L2 门禁未解锁）。上列命令即本仓验证面的全部，**不等同于「全量绿」**。
+- **反假判据复核（逐条读活代码，不信 `[x]`）**：
+  - `agenerp/apply.py` 有实体行为——`read_pack` 走 `snapshot.read_scope_dir`（与 `OfflineSnapshotSource` 同源，
+    非第二口径）、`plan_apply` 由 `diff(before=current, after=desired)` 推导并有 `_assert_direction` 方向不变量把守；
+    无空函数体、无 `return None` 占位、无吞异常。
+  - 委派链真的被运行时走到：`agenerp/pack.py::apply_pack` 函数体内导入 `agenerp.apply`，
+    `tests/unit/test_apply_plan.py::test_apply_pack_really_runs_the_pure_half` 用「缺 `fieldname` 的包」证明
+    报错来自读包这一步（`ValueError`）而不是站点侧——一个原地 `raise` 的假委派过不了这条。
+  - 零依赖判据确在**全新子进程**里测（`subprocess.run([sys.executable, "-c", ...])`），三个子进程的
+    `returncode` 都进断言；不是同进程 `sys.modules` 求差那种恒空的假判据。
+  - 变异实测有牙齿：执行日志记录变异 A（`deletes` 恒空）→ exit 1 / 6 failed、变异 B（参数序写反）→ exit 1 / 9 failed，
+    还原后 `git checkout` + `git diff --quiet` 双双 exit 0。
+- 文档同步复核：`docs/architecture/module-boundaries.md` §11.6（`:306`）已落地——落点表、包布局三候选裁定与残余风险、
+  方向约定、`execute_plan` 接缝归属、以及「本 plan 未让任何门禁转绿」这一事实齐备；
+  `docs/logs/2026/08-21.md` 有当日条目，含命令原文 + 退出码 + commit sha。
+  `docs/context/project-context.md` 的验证命令表**无需增行**（`python3 -m pytest tests/unit -q` 已在表内 `:52`）。
+- 五点一致性复核：`Plan Status: completed` · Phase 1/2/3 全为 `Status: completed` 且执行项与 Exit Criteria 全 `[x]` ·
+  Closure Gates 九框全 `[x]` · 本节证据齐备 · `docs/logs/2026/08-21.md` 与之相符。
+
+**审计如实记下的一处 plan 措辞漂移（不擅自消解，不构成阻塞）**：
+本 plan `## 结构边界` 把 `execute_plan` 写成「**B 半的唯一落点**」，而委派接上后实测的红因逐字是
+`SiteSnapshotSource.read 尚未实现 …（工作项 4 · 工具契约层 v0）`——**站点侧实为两个落点**，
+`execute_plan`（工作项 6）排在它之后。执行会话已在 `docs/logs/2026/08-21.md` 与 `module-boundaries.md` §11.6
+两处如实记录，且**没有**为了对齐 plan 措辞去伪造一个空的 `current` 快照（那会让删除集恒等于全量包）。
+真相源以 §11.6 为准；B 半的 successor 两处都要接。这是 plan 起草时的表述不足，不是活代码缺陷，
+plan 的历史文本按「矛盾原文如实保留、不擅自消解」处理。
 
 Follow-up:
 
-- 待填（确认缺陷不得出现在此处）
+- （非阻塞）B 半的 successor plan 除 `execute_plan` 外还须接 `SiteSnapshotSource.read`，
+  触发条件：人对 `docs/masterplan/STATE.md` §3 那行 `[open]` 的 (a)/(b)/(c)/(d) 作出选择之后。
+- （非阻塞·等人）`tools/mission-driver/prompts/execute.md` 第 4.a（`Plan Status` → `completed`）与
+  4.b（工作项 → ✅）与 `AGENTS.md` 裁判规则 1/2 冲突，本 plan 两条均未执行，矛盾原文记在
+  「`Plan Status` 由谁写」一节，触发条件：人裁定要不要改上游模板。
