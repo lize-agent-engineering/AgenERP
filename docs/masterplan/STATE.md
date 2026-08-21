@@ -138,6 +138,8 @@
 - 2026-08-21T02:00Z · P0 第二轮 · 复跑确认：`claude -p --settings ...` 直接回同一句认证错误 · Keychain 里 `Claude Code-credentials` 条目仍在但已过期 · **监督会话（桌面端）不受影响**——它自己持有并刷新 token，无头子进程用的是钥匙串那份
 - 2026-08-21T02:00Z · P0 第二轮 · **暴露 7×24 的一个真空白**：订阅 OAuth 会过期，而**刷新只能由人完成**（登录属认证动作，AI 不得代做）。循环撞上这个只会一路 `failed`，且写回闸会把它当成普通失败保持 open、下一轮继续撞。**没有任何机制把「认证过期」与「代码有问题」区分开** —— 记为待补的停机条件
 
+- 2026-08-21T02:04Z · 停机条件 · **新增第 5 条：认证失败即停机**。原四条（3 连败 / 碰门禁 / 成本超阈 / CI 两连红）都假设「失败是代码问题，重试有意义」，而认证过期重试一万次也没用且**只能由人修**。实现在 `tools/loopx-writeback.sh`：从运行输出匹配 `OAuth session expired` / `Failed to authenticate` / `401 unauthorized` / `authentication_error` → 落 `.mission-halt.json` 并标 todo blocked → 退 2 · 自测：认证特征命中；普通测试失败不误报
+
 ---
 
 ## §3 needs-human 队列
@@ -145,7 +147,7 @@
 > 格式：`[状态] 日期 · 触发条件 · WBS行ID · 最后一条失败命令原文 + 退出码 · sha · 处置`
 > 状态只有 `open` / `resolved`。**resolved 的行保留不删。**
 
-- [open] 2026-08-21T02:00Z · 触发：Claude Code 订阅 OAuth 过期，无头执行器全部起不来 · P0 第二轮 · `claude -p ...` → `Failed to authenticate: OAuth session expired and could not be refreshed`；mission 退 1，13 秒死在 step 1 · sha `ec759ba` · **处置只能由人做**：在交互式终端跑 `claude login` 重新登录（AI 不得代做认证动作）。恢复后验收：`claude -p "ping"` 返回非空 → 重跑 `tools/loopx-writeback.sh p0-foundation todo_175c903f50e3`
+- [resolved] 2026-08-21T02:00Z · 触发：Claude Code 订阅 OAuth 过期，无头执行器全部起不来 · P0 第二轮 · `claude -p ...` → `Failed to authenticate: OAuth session expired and could not be refreshed`；mission 退 1，13 秒死在 step 1 · sha `ec759ba` · **处置只能由人做**：在交互式终端跑 `claude login` 重新登录（AI 不得代做认证动作）。恢复后验收：`claude -p "ping"` 返回非空 → 重跑 `tools/loopx-writeback.sh p0-foundation todo_175c903f50e3` · **处置（2026-08-21T02:04Z）**：人已 `claude login` 重新登录；`claude -p` 复验返回「在线」。并补上第五条停机条件：写回闸从运行输出识别认证失败特征 → 落 `.mission-halt.json`（`condition: auth-expired`）→ 拒绝后续重启。自测：认证特征命中、普通测试失败不误报
 
 - [resolved] 2026-08-20 · 触发：W0.7 需要建 GitHub 远程仓才能验证「push 触发 CI」 · W0.7 · 处置：人选定**先建私有仓**，`lize-agent-engineering/AgenERP` 已建并 push，CI 已实跑。公开时机留待 P2 有演示价值时由人再定
 

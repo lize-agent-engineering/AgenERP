@@ -34,9 +34,36 @@ if [ "$DECISION" != "run" ]; then
 fi
 
 # 1. 跑 mission（停机闸在 shim 里，撞了会直接退 2）
-./tools/mission-driver.sh "$MISSION" "$@"
-CODE=$?
+RUN_LOG="$(mktemp -t agenerp-run)"
+./tools/mission-driver.sh "$MISSION" "$@" 2>&1 | tee "$RUN_LOG"
+CODE=${PIPESTATUS[0]}
 echo "[writeback] mission '$MISSION' 退出码 = $CODE"
+
+# 1b. 认证类失败 → 停机，不是普通失败。
+#     实测教训（2026-08-21）：订阅 OAuth 过期时循环 13 秒死在 step 1，
+#     而写回闸把它当普通失败保持 open —— 下一轮继续撞，撞到人回来为止。
+#     刷新 token 只能由人做，所以这类失败必须停机，不能留给下一轮。
+if [ "$CODE" -ne 0 ] && grep -qiE "OAuth session expired|Failed to authenticate|invalid api key|401 unauthorized|authentication_error" "$RUN_LOG"; then
+  SIG=$(grep -ioE "OAuth session expired[^\"]*|Failed to authenticate[^\"]*|invalid api key|401 unauthorized|authentication_error" "$RUN_LOG" | head -1)
+  python3 - "$ROOT" "$MISSION" "$SIG" <<'PY'
+import json, sys, datetime, pathlib
+root, mission, sig = sys.argv[1], sys.argv[2], sys.argv[3]
+pathlib.Path(root, ".mission-halt.json").write_text(json.dumps({
+    "haltedAt": datetime.datetime.now(datetime.UTC).isoformat(),
+    "condition": "auth-expired",
+    "reason": "执行器认证失败，刷新只能由人完成",
+    "signature": sig.strip()[:200],
+    "mission": mission,
+    "remedy": "在交互式终端执行 claude login，然后删除本文件重启循环",
+}, ensure_ascii=False, indent=2) + "\n")
+PY
+  "$LOOPX" todo update --goal-id "$GOAL_ID" --todo-id "$TODO_ID" --status blocked \
+    --reason "执行器认证过期（auth-expired）：需人重新登录，循环已停机" >/dev/null 2>&1
+  rm -f "$RUN_LOG"
+  echo "[writeback] 认证失败 → 已停机并落 .mission-halt.json（下次启动会被拒绝，直到人处置）"
+  exit 2
+fi
+rm -f "$RUN_LOG"
 
 # 2. 按退出码写回，措辞只描述事实
 case "$CODE" in
