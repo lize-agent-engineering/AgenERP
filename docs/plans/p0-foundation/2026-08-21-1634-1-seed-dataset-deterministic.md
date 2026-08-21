@@ -389,7 +389,7 @@ Exit Criteria:
 - [x] no in-scope item downgraded to deferred/follow-up
 - [x] independent draft review completed and recorded
 - [x] text consistency verified: status, phases, gates, and log all agree
-- [ ] closure audit was independent（独立子代理，fresh session，不带实现上下文）
+- [x] closure audit was independent（独立子代理，fresh session，不带实现上下文 —— mission-driver `2026-08-21-171157` `CLOSURE_VERIFY` 步，见 `## Closure`）
 - [x] closure evidence exists in files
 - [x] `git diff --name-only` 对 `tests/gates/**`、`.github/workflows/**`、`missions/**` 全部零命中
 
@@ -440,9 +440,7 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: 四个阶段全部执行完毕并逐条打勾，`Plan Status: completed`。
-**独立关闭审计尚未跑**——`## Closure Gates` 里「closure audit was independent」一框**如实留空**，
-它归 mission-driver 的 `CLOSURE_VERIFY` 步（fresh session 子代理，不带实现上下文），不由执行会话自封。
+Status Note: 四个阶段全部执行完毕并逐条打勾，独立关闭审计已跑并接受关闭，`Plan Status: completed`。
 
 **收尾 sha**：`3024a3d`（18 个文件）。
 
@@ -481,8 +479,46 @@ Status Note: 四个阶段全部执行完毕并逐条打勾，`Plan Status: compl
 
 Closure Audit Evidence:
 
-- Auditor / Agent: <pending —— 归 `CLOSURE_VERIFY` 步的独立子代理>
-- Evidence: <pending>
+- Auditor / Agent: mission-driver `2026-08-21-171157` 的 `CLOSURE_VERIFY` 步 —— 独立关闭审计代理，fresh session，不带实现上下文，未参与本 plan 的起草与执行。
+- 审计基线：`8401ad9`（`docs(p0-foundation): plan-2026-08-21-1634-1 补收尾 sha`）；工作树除一份不相关的未跟踪 plan 文件外干净。
+- **复跑证据（命令原文 + 退出码，审计当场跑，非转抄执行会话）**：
+
+  | 命令 | 退出码 |
+  |---|---|
+  | `python3 -m agenerp.seed --seed 42 --verify` | **0**（`✅ 种子 42：两次生成 diff 为空，场景断言全过`） |
+  | `python3 -m pytest tests/unit -q` | **0**（104 passed） |
+  | `python3 -m pytest tests/unit/test_seed_deterministic.py -q` | **0**（31 passed，与 plan 声称的 31 条一致） |
+  | `python3 tools/gates/check_expected_red.py` | **0** |
+  | `ruff check agenerp tests/unit tests/contracts` | **0** |
+  | `bash tools/check-masterplan-links.sh` | **0** |
+  | `node tools/check-doc-references.mjs` | **1**，违规集合仍是**唯一那条** `docs/architecture/module-boundaries.md:172 -> docs/analysis/2026-08-19-pre-build-validation.md:143`，与 `07d684c` 基线逐行相同 —— 本 plan 一条新的都没加 |
+  | `git diff --name-only -- tests/gates/ .github/workflows/ missions/ tools/gates/ docs/masterplan/DECISIONS.md` | 输出为空（红线零命中） |
+
+- **独立变异复验（审计自己做的，不采信执行会话的记录）**：`agenerp/seed/model.py` 的 `DELIVERY_QTY 990→980` →
+  `python3 -B -m agenerp.seed --seed 42 --verify` **exit 1** 并逐条指名道姓报出 7 条（发货 / 结余数量 / 结余价值 / 应收逾期 / 毛利与凭证差额 / 毛利 / 达成率）；
+  还原后 `find agenerp/seed -name '*.py' | sort | xargs shasum -a 256 | shasum -a 256` = `6b48864bde53ca33d20097e278eef5c0e7966f877ba53ceee9f6806bc40dc4dc`，
+  与变异前及 plan 记录的 `6b48864b…` **完全一致**；再跑该命令 **exit 0**。→ 判据确有牙齿。
+
+- **Exit Criteria 对活仓逐条核对（不采信 `[x]`）**：
+  `agenerp/seed/` 实为 10 个模块、最大 `documents.py` **300** 行（全部 < 500）；
+  `tests/unit/test_seed_deterministic.py` 存在且 31 条通过；
+  `docs/backlog/gate-proposal-seed-dataset.md` 存在；
+  `docs/architecture/module-boundaries.md` §12（含 §12.1–§12.6）已落地；
+  `docs/masterplan/STATE.md` needs-human 新增行在 `3024a3d` 内，`git diff --numstat` 只增不删；
+  `docs/context/project-context.md` 验证命令表已含 `python3 -m agenerp.seed --seed 42 --verify`（含「不在 `commands.test` 里」的注），Optional Layers 七格已全部勾上并附实测文件数；
+  `docs/backlog/p0-foundation-roadmap.md` 工作项 7 = `planned`，对照表第 7 行仍逐字写着「**仍然没有门禁**」；
+  `docs/logs/2026/08-21.md` 四个阶段条目齐全，命令原文与退出码均在。
+
+- **Anti-Hollow**：`agenerp/seed/__main__.py` 真实调用 `generate` / `to_snapshot` / `agenerp.snapshot.diff` / `verify`，
+  非空壳；全包扫描无 `TODO` / `FIXME` / `NotImplemented` / 吞异常，唯一的 `return None`（`checks.py` 的 `_finished_bin`）是查不到 Bin 的正常返回，不是占位。
+
+- **五点一致性**：`Plan Status: completed` · 四个 Phase 全 `Status: completed` 且执行项与 Exit Criteria 全 `[x]` ·
+  Closure Gates 全 `[x]` · Closure 证据与 `docs/logs/2026/08-21.md` 的记录一致 —— 无冲突。
+
+- **Deferred 诚实性**：`## Deferred But Adjudicated` 四项均为红线 1 挡住的 B 半、待人批的门禁、已对账关闭的数值漂移（缩窄后的 watch-only 部分有重开事件）、划归 P1 的行业包规则；
+  未发现被藏进 Deferred 的在范围内实缺陷或契约漂移。工作项 7 置 `planned` 而非 `done`，未把没做完的活报成完成。
+
+- 审计判定：**接受关闭**。verification scope limited 的两层声明（无 build/typecheck、L2 未解锁；核心验收命令不在 `commands.test` 里）在 plan 内已显式写明，未被报成「全量绿」——这一点复核属实。
 
 Follow-up:
 
