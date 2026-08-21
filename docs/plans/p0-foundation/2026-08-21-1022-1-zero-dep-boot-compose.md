@@ -117,14 +117,14 @@
 
 ### Phase 1 — 落 `docker-compose.yml`，做到零必填变量
 
-Status: planned
+Status: completed
 Targets: `docker-compose.yml`、`.env.example`（追加 compose 用变量的说明，不改已有行）
 Skill: `none`
 
 - Item Types: `Proof | Add | Decision`
 - Prereqs: 无
 
-- [ ] `Proof` **开工前置确认（第一步，不做完不许写 compose）**——把起草时查实的两件事复核一遍，不是重新调研：
+- [x] `Proof` **开工前置确认（第一步，不做完不许写 compose）**——把起草时查实的两件事复核一遍，不是重新调研：
       1. **CI 侧前提**：`gh api -H "Accept: application/vnd.github.raw" repos/actions/runner-images/contents/images/ubuntu/Ubuntu2404-Readme.md | grep -i 'Docker Compose'`
          → 应含 `Docker Compose 2.x`。起草时读到 **2.38.2**（`Ubuntu2204` 同）。**记退出码与命中的原文行。**
       2. **本机 compose 版本**：`docker compose version`（起草时 v5.0.2）。两个版本都记进 log。
@@ -142,37 +142,37 @@ Skill: `none`
         **不要「先实现、只是不划名单」**——那会让 `check_expected_red.py` 报「名单内的门禁却绿了」退 1，
         `GATE_VERIFY` 判 fail、重试 EXECUTE 三轮后子流程 `failed`，正是 plan `…-2341-2` 踩过的那个坑。要么整件事做完，要么一步都不做。
       - Skill: `none`
-- [ ] `Decision` 定下栈的形状与镜像来源，并写明备选与残余风险。
+- [x] `Decision` 定下栈的形状与镜像来源，并写明备选与残余风险。
       - 约束来自门禁与 owner doc，不是自由发挥：文件名/位置由门禁写死；服务集合要能支撑工作项 8 的 `services()` 与 `http_get("/")`。
       - 备选：(a) 完整 frappe/erpnext 多服务栈（db + redis-cache + redis-queue + backend + frontend + websocket + queue worker + scheduler + 建站 init）；
         (b) 单服务占位 compose，只为让 `config` 退 0。
       - **否决 (b)**：那是为让判据变绿而做的手脚，且工作项 8 一开工就得推翻重写。选 (a)。
       - 残余风险：镜像 tag 会漂。缓解——**tag 写死具体版本，不用 `latest`**，并在文件头注明版本来源与升级时该跑什么。
       - Skill: `none`
-- [ ] `Add` 写 `docker-compose.yml`：**不写 `version:` 顶层键**（compose v2+ 已弃用；实测是告警，见下），
+- [x] `Add` 写 `docker-compose.yml`：**不写 `version:` 顶层键**（compose v2+ 已弃用；实测是告警，见下），
       每个变量一律 `${VAR:-默认值}` 形式，**全文件不得出现 `${VAR:?}` / `${VAR:?msg}`**。
       - `version:` 的实测是**告警，不报错**（评审在本机 v5.0.2 复现：带 `version: "3.9"` 时 `config -q` 仍 **exit 0**，只打 `the attribute 'version' is obsolete`）。
         规则保留（不写它），但不许在文档里写成「会报错」。
       - Skill: `none`
-- [ ] `Add` AI 能力相关变量（如 LLM endpoint / api key）一律给**空字符串默认值**，且不得出现在任何服务的
+- [x] `Add` AI 能力相关变量（如 LLM endpoint / api key）一律给**空字符串默认值**，且不得出现在任何服务的
       `healthcheck` 或启动 `command` 的成败路径上——「未配置」是合法状态，不是错误状态（`system-baseline.md` §14 规则 2）。
       - Skill: `none`
-- [ ] `Add` 所有 `ports:` 发布项写成 `127.0.0.1:<host>:<container>` 短语法，**宿主 IP 字面写死、不经变量**，且默认口令只用于本地起栈。
+- [x] `Add` 所有 `ports:` 发布项写成 `127.0.0.1:<host>:<container>` 短语法，**宿主 IP 字面写死、不经变量**，且默认口令只用于本地起栈。
       - 这是 `system-baseline.md` §14 「附带风险」段点名要求的两个对冲手段之一（另一个是首次启动强制改密，属应用层，不在本 plan）。
       - 在文件头用注释写明：默认值仅供本地零依赖启动，**对外暴露前必须改**。
       - Skill: `none`
 
 Exit Criteria:
 
-- [ ] `env -i PATH="$PATH" HOME="$HOME" docker compose -f docker-compose.yml config -q` → **exit 0**（复现门禁的调用形状）
-- [ ] `python3 -m pytest tests/gates/test_zero_dep_boot.py::test_compose_config_valid_with_empty_env -q` → **exit 0（1 passed）**
-- [ ] ⚠️ **预期之内、不要当故障**：本阶段结束时门禁已绿但名单还没划，所以 `execute.md:3a` 在阶段之间跑的 `{{testCmd}}`
+- [x] `env -i PATH="$PATH" HOME="$HOME" docker compose -f docker-compose.yml config -q` → **exit 0**（复现门禁的调用形状）
+- [x] `python3 -m pytest tests/gates/test_zero_dep_boot.py::test_compose_config_valid_with_empty_env -q` → **exit 0（1 passed）**
+- [x] ⚠️ **预期之内、不要当故障**：本阶段结束时门禁已绿但名单还没划，所以 `execute.md:3a` 在阶段之间跑的 `{{testCmd}}`
       （即 `check_expected_red.py && pytest tests/unit`）会**退 1** 并报「名单内的门禁却绿了」。Phase 2 划掉那一行后即恢复退 0。
       **不许为了让它中途变绿而提前划名单或改实现**——划名单是 Phase 2 的活，且必须在 Phase 1 前置确认通过之后。
-- [ ] `! grep -q ':?' docker-compose.yml` → **exit 0**
+- [x] `! grep -q ':?' docker-compose.yml` → **exit 0**
       - **不写成 `grep -c ':?' … → 0`**：`grep` 无命中时自身退 **1**，一条「成功状态是退 1」的判据在这个仓里就是缺陷
         （草案评审在 plan `…-2341-2` 上抓到过同一类：`ruff check .`）
-- [ ] 无 owner-doc 更新（归 Phase 3）
+- [x] 无 owner-doc 更新（归 Phase 3）
 
 ### Phase 2 — 把三条规则固化成判据，并划名单
 
