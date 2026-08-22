@@ -556,4 +556,4 @@ Closure Audit Evidence:
 
 - Auditor / Agent: 待独立审计（执行者不自证）
 - Evidence: 待回填 —— 可复跑的清单见 Phase 1–4 的四个「实跑记录」小节与
-  `docs/logs/2026/08-22.md` / `docs/logs/2026/08-23.md`；落地 sha `7f47ed5`。
+  `docs/logs/2026/08-22.md` / `docs/logs/2026/08-23.md`；落地 sha `dcefafa`。
