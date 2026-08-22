@@ -1091,9 +1091,50 @@ Exit Criteria:
 
 `git push origin main` 的结果、那次 `main` push 运行的 run id 与**全部 job 结论**，见下面「⑧ 推送结果」。
 
+**⑧ 推送结果**
+
+`git push origin main` → **exit 0**，`f689d0e..10da9e7  main -> main`，推的是 **6 个文件，全部在 `docs/**` 下**：
+`docs/architecture/system-baseline.md` · `docs/logs/2026/08-22.md` · `docs/masterplan/STATE.md` ·
+`docs/plans/p0-foundation/2026-08-22-0027-2-…md` · 本 plan 文件 · `docs/plans/p0-foundation/2026-08-22-1206-2-…md`
+（最后一个是 Phase 1 ⑦ 记的那处偏差：前序会话留在工作树里的姊妹 plan 评审改写，内容一字未改）。
+
+那次 `main` push 运行：run **`32571701925`**，event `push`，head **`10da9e7506ead7d1121130343649dc7728613bf5`**，
+run 结论 **`success`**。**七个 job 全部 `success`**：
+
+| job | job id | conclusion |
+|---|---|---|
+| 门禁未被改动（`gates-untouched`） | `97027947547` | `success` |
+| 预期红名单只能变短（`expected-red-ratchet`） | `97027947522` | `success` |
+| L1 快门禁（`gates-l1`） | `97027947498` | `success` |
+| 主计划引用不断链（`masterplan-links`） | `97027947492` | `success` |
+| roadmap 引擎可解析（`roadmap-parseable`） | `97027947439` | `success` |
+| 循环联动冒烟（`loop-wiring`） | `97027947500` | `success` |
+| L2 慢门禁（零依赖启动）（`gates-l2`） | `97027947541` | `success` |
+
+⚠️ **这一轮只有 7 个 job，本身就是一条证据**：`gates-l2-live` 与 `verdict-tool-untouched`
+**此刻仍不在 `main` 上**。因此本 plan `## Non-Goals` 第二条逐字说的那件事成立——
+**这次 `main` push 运行不构成守卫 `push` BASE/HEAD 路径的实测，也不构成工作项 9 判据的成立。**
+
+**Phase 3 那次最终清理 force-push 开出的运行 `32571266013`**（head `b7348bf`）**结论亦为 `success`**，
+是「清理后的 head 上有一次全绿」的第三次冗余复现。
+
+**CI 运行次数终值：10 / 12，未超预算。** 逐条：
+`32569935835`（建 PR = Phase 2 基线）· `32570222139`（实验 ①，预期红）· `32570426423`（实验 ②）·
+`32570657720`（③ 前 reset）· `32570691388`（实验 ③）· `32570916073`（④ 前 reset）·
+`32570942284` attempt 1（实验 ④，真红 #1）· 同 run attempt 2（原样复跑，绿）·
+`32571266013`（最终清理 reset）· `32571701925`（`main` 收尾推送）。
+
 **⑨ 收尾收敛判据（取代原来那条会与姊妹 plan 死锁的「两值相等」）**
 
-见「⑧ 推送结果」末尾两行实测。
+- `git merge-base --is-ancestor origin/main main` → **成立**；
+- `git diff --name-only origin/main main` → 只含 `docs/logs/**` 与 `docs/plans/p0-foundation/**`
+  （本回填提交本身：本 plan 文件 + 当日日志。**未推**，留给独立关闭审计那次回填一起走）。
+
+⚠️ **为什么收尾判据不是「`git rev-parse main origin/main` 两值相等」**：本 plan 置 `completed` 之后
+还需要一次**独立关闭审计的回填提交**（`## Closure Gates` 打勾 + `Closure Audit Evidence`），
+那次回填必然发生在本次推送之后，「两值相等」在**姊妹 plan 开工那一刻必然为假**，
+而姊妹 plan 的 Phase 1 预检 ⑥ 拿它当停机闸 —— 两个 plan 会在这里死锁。
+改准后的两条在「回填已落地」与「尚未落地」两种状态下都成立。
 
 ## Draft Review Record
 
