@@ -22,6 +22,23 @@ import sys
 # 实测：真实工作约 1,500 万输入 token / 循环（≈$16 当量）。
 # 默认 2 亿 ≈ 13 个循环 ≈ $210 当量 —— 「人该回来看一眼」的量级，不是「烧穿了才发现」。
 DEFAULT_BUDGET = 200_000_000
+CONFIG = pathlib.Path("tools/gates/budget.json")
+
+
+def configured_budget() -> int:
+    """阈值的唯一真相源：环境变量 > 配置文件 > 内置默认。
+
+    此前阈值只写在 launchd plist 里，于是人手工跑本脚本读默认 2 亿、
+    循环读 plist 的 10 亿 —— **同一个判定器给出两个答案**。人哪天手工查一下
+    看到「超预算」，会以为循环该停了，其实它跑得好好的。判据不能有两个读数。
+    """
+    env = os.environ.get("AGENERP_DAILY_TOKEN_BUDGET", "").strip()
+    if env.isdigit():
+        return int(env)
+    try:
+        return int(json.loads(CONFIG.read_text())["daily_token_budget"])
+    except Exception:
+        return DEFAULT_BUDGET
 
 
 LEDGER = pathlib.Path("_tmp/loop-usage.jsonl")
@@ -51,9 +68,11 @@ def usage_since(start: datetime.datetime) -> dict:
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--budget-tokens", type=int,
-                    default=int(os.environ.get("AGENERP_DAILY_TOKEN_BUDGET", DEFAULT_BUDGET)))
+                    default=None)
     ap.add_argument("--json", action="store_true")
     a = ap.parse_args()
+    if a.budget_tokens is None:
+        a.budget_tokens = configured_budget()
 
     now = datetime.datetime.now(datetime.UTC)
     start = now - datetime.timedelta(hours=24)
