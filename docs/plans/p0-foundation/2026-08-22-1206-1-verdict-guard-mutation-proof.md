@@ -294,7 +294,7 @@
 
 ### Phase 1 — 新建实验载体分支与新 PR（PR #1 全程不动）
 
-Status: planned
+Status: completed
 Targets: **新建**分支 `ci/1206-1-verdict-guard-proof`（远程与本地）· 新建 PR · 本 plan 文件 ·
   `docs/logs/2026/08-22.md`
   （**不含** PR #1 与 `ci/0027-2-l2-full-live-gate`——本 plan 不碰它们）
@@ -303,7 +303,7 @@ Skill: `none`
 - Item Types: `Decision | Fix | Proof`
 - Prereqs: 无
 
-- [ ] `Decision` **实验载体定死为「从 `main` 新切一条分支 + 单提交 append + 新建 PR」，并写清备选与残余风险**。
+- [x] `Decision` **实验载体定死为「从 `main` 新切一条分支 + 单提交 append + 新建 PR」，并写清备选与残余风险**。
       ⚠️ **本项标题在第 5 轮就地改准**：原标题写的是「刷新方式定死为『reset 到 `main` 再单提交 append』」，
       那是第 4 轮改写**之前**的残留——它描述的正是本项自己已经否掉的**备选 (d)**（force-push PR #1 的分支）。
       照原标题执行会直接踩中 C5.1 那个陷阱，与下面的「选定方案」自相矛盾。
@@ -350,7 +350,7 @@ Skill: `none`
         **不手打、不凭记忆重写**；后续所有「逐字一致」判据都对着这个文件比。
         ⚠️ 这是本 plan **唯一**一次读 `ci/0027-2-l2-full-live-gate`，且是只读，不违反 Non-Goals 的「不动 PR #1」。
       - Skill: `none`
-- [ ] `Decision` **建 PR 之前 `origin/main` 必须已等于 `main`——⚠️ 第 5 轮整条改准：这个前提此刻已经成立，
+- [x] `Decision` **建 PR 之前 `origin/main` 必须已等于 `main`——⚠️ 第 5 轮整条改准：这个前提此刻已经成立，
       本项因此从「执行一次抢跑推送」降级为「核验 + 留痕」，但一条也不许略过**。
       **改准的事实（A3）**：起草时本地 `main` 领先 `origin/main` 10 个提交、未推；
       实测此刻 `git rev-parse main origin/main` → **两值相等**（均为 `4d7b311…`），
@@ -381,7 +381,7 @@ Skill: `none`
       - **残余风险**：核验为「相等」时本阶段**不产生** `main` push 运行，CI 预算相应少用一格（见「CI 运行预算」的第 5 轮改准）。
         若确需补推，那一推会在 `main` 上触发一次完整 CI 运行（此刻 `main` 上的 7 个 job），按下面 `Fix` 项的红处置分支走。
       - Skill: `none`
-- [ ] `Fix` 按上面两个 `Decision` **依次**执行（**顺序是硬约束，见 `Decision` 2 的选定项**）：
+- [x] `Fix` 按上面两个 `Decision` **依次**执行（**顺序是硬约束，见 `Decision` 2 的选定项**）：
       ① **核验** `git rev-parse main origin/main` 两值相等（期望均为 `$CUT` = `4d7b311…`），抄进 plan；
       不等则跑四条预检后 `git push origin main`，并记录那次 `main` push 运行的 run id 与全部 job 结论；
       ② `git switch -c ci/1206-1-verdict-guard-proof main` + 追加 118 行 + 单提交 +
@@ -392,7 +392,7 @@ Skill: `none`
       （载体建立在 `origin/main == main` 这个前提上）；一红一绿 → 记「不可复现」，
       **不得写成「CI 已验证」**，并按「停机纪律」计入真红计数。
       - Skill: `none`
-- [ ] `Proof` **形态判据五条，输出逐字抄进本 plan。一律用 merge-base 形式，不用两点式**
+- [x] `Proof` **形态判据五条，输出逐字抄进本 plan。一律用 merge-base 形式，不用两点式**
       （两点式在 `main` 前进后会因与分支无关的原因失败，见 C2）。
       **先把切分支那一刻的 `main` sha 记成 `$CUT` 并写进 plan**（`CUT=$(git rev-parse main)`，期望 `4d7b311…`）——
       后面每一条判据都以它为锚，**不用 `git rev-parse main`**：Phase 4 会往 `main` 提文档，`main` 之后必然前进：
@@ -410,13 +410,13 @@ Skill: `none`
         守卫算的就不是「本分支的 118 行」，四条实验全部作废。
         **不为期望值就停在这里**，按 `Decision` 1 的备选 (e) 处置（不自行去 `gh pr edit --base` 试探未验证行为，写 needs-human）。
       - Skill: `none`
-- [ ] `Proof` **trailer 洁净度预检（实验 ① 的成立前提）**：
+- [x] `Proof` **trailer 洁净度预检（实验 ① 的成立前提）**：
       `git log --format=%B "$CUT"..ci/1206-1-verdict-guard-proof | grep -c '^Gates-Change-Approved-By:'`
       → 期望 `0`。**用 `$CUT` 而不是 `git merge-base main <分支>`**：守卫扫的区间起点是 `base.sha`（= `$CUT`），
       判据必须与守卫算的是同一个区间。
       **不为期望值就不许进 Phase 3**：区间里有 trailer，守卫会一路放行，四条实验全部作废。
       - Skill: `none`
-- [ ] `Proof` `gh pr view <新 PR 号> --json state,mergeable,changedFiles,additions,deletions` → 期望
+- [x] `Proof` `gh pr view <新 PR 号> --json state,mergeable,changedFiles,additions,deletions` → 期望
       `state: OPEN`、`changedFiles: 1`、`additions: 118`、`deletions: 0`。
       **这一条的意义是「PR 上评审的就是这 118 行」，不是「回退风险已消除」**——C1 已实测那个风险不存在。
       ⚠️ **这条是硬判据，没有豁免，但它成立有前提，前提就是上一项的第五条**：
@@ -434,28 +434,112 @@ Exit Criteria:
 三条**互相不可同时满足**。改准后一律锚在 `$CUT`（切分支那一刻的 `main` sha）与「祖先 + 只含文档」上，
 不锚在浮动的 `git rev-parse main` 上。
 
-- [ ] **`$CUT` 已记进 plan**（切分支那一刻的 `git rev-parse main`，期望 `4d7b311…`），此后各判据一律以它为锚
-- [ ] 新分支形态：`git merge-base main ci/1206-1-verdict-guard-proof` == `$CUT`，区间内**恰好一个**提交，
+- [x] **`$CUT` 已记进 plan**（切分支那一刻的 `git rev-parse main`，期望 `4d7b311…`），此后各判据一律以它为锚
+- [x] 新分支形态：`git merge-base main ci/1206-1-verdict-guard-proof` == `$CUT`，区间内**恰好一个**提交，
       净 diff 为 `118	0	.github/workflows/gates.yml`
-- [ ] 追加的 118 行与 run `32533449466` 上跑过的那份**逐字一致**（对着保命闸文件比，有输出为证）
-- [ ] 前缀性判据无输出
-- [ ] trailer 洁净度预检（`$CUT`..分支）为 `0`
-- [ ] **`origin/main == main` 在 `gh pr create` 之前已成立且已留痕**（⚠️ 第 5 轮改准：此前写成「已追平且顺序正确 +
+- [x] 追加的 118 行与 run `32533449466` 上跑过的那份**逐字一致**（对着保命闸文件比，有输出为证）
+- [x] 前缀性判据无输出
+- [x] trailer 洁净度预检（`$CUT`..分支）为 `0`
+- [x] **`origin/main == main` 在 `gh pr create` 之前已成立且已留痕**（⚠️ 第 5 轮改准：此前写成「已追平且顺序正确 +
       推完那一刻…… + 那次 `main` push 运行的结论」，而 A3 实测那一推已成为 no-op，原判据要求一次不会发生的推送）：
       建 PR **之前**实测 `git rev-parse main origin/main` 两值相等（均为 `$CUT`）并抄进 plan，
       记下该核验与 `gh pr create` 的先后；
       **仅当**核验不等而补推时，四条推前预检的输出与那次 `main` push 运行的 run id + 全部 job 结论才逐字入 plan
       （核验相等时此处逐字写「核验相等，本阶段无 `main` push 运行」，**不得留空**）
-- [ ] **本阶段日志提交之后的收敛判据（取代原来那条会自相矛盾的「两值相等」）**：
+- [x] **本阶段日志提交之后的收敛判据（取代原来那条会自相矛盾的「两值相等」）**：
       `git merge-base --is-ancestor origin/main main` **成立**，且
       `git diff --name-only origin/main main` 的输出**只含** `docs/logs/**` 与本 plan 文件
       —— 即本地 `main` 只比 `origin/main` 多出本阶段的文档提交，没有别的东西
-- [ ] **新 PR 的 `baseRefOid` 逐字等于 `$CUT`**（全批最承重的一条，直接钉住 C5 那个陷阱）
-- [ ] `gh pr view <新 PR 号>` 读数逐字为 `state: OPEN` / `changedFiles: 1` / `additions: 118` / `deletions: 0`
+- [x] **新 PR 的 `baseRefOid` 逐字等于 `$CUT`**（全批最承重的一条，直接钉住 C5 那个陷阱）
+- [x] `gh pr view <新 PR 号>` 读数逐字为 `state: OPEN` / `changedFiles: 1` / `additions: 118` / `deletions: 0`
       （**硬判据，无豁免**；它成立以上一条为前提）
-- [ ] PR #1 一个字节未动：`gh pr view 1 --json state,headRefOid,baseRefOid` 与开工时逐字相同
+- [x] PR #1 一个字节未动：`gh pr view 1 --json state,headRefOid,baseRefOid` 与开工时逐字相同
       （`OPEN` / `c2c688b…` / `7b0f585…`）
-- [ ] `docs/logs/2026/08-22.md` 已追加本阶段记录
+- [x] `docs/logs/2026/08-22.md` 已追加本阶段记录
+
+#### Phase 1 执行记录（2026-08-22 实跑回填）
+
+**⚠️ 开工第一件事就是一处基线改准，必须写在最前面**：本 plan `## Current Baseline` A / A3 记的
+`main` @ `4d7b311` 在执行当日**又已过期**——实测 `main` 已前进到 `f689d0e docs(decisions): D-8 —— OAuth
+过期照旧由人处理，不换认证不加通知`（一个提交，改的是 `docs/masterplan/DECISIONS.md`，与本 plan 无关）。
+因此 **`$CUT` 的实测值是 `f689d0e7cde3f2733b044b004f7a314f14958973`，不是 plan 里写的 `4d7b311…`**。
+plan 全篇的判据锚点写的是 `$CUT` 这个符号而不是那个字面值（第 5 轮评审改准的正是这件事），
+所以**没有一条判据因此失效**；下面全部读数一律以实测 `$CUT` 为准。
+`4d7b311` 那个期望值就此作废，**不去追认它**。
+
+**① `origin/main == main` 核验（`gh pr create` 之前，顺序留痕）**
+
+| 命令 | 输出 | 时序 |
+|---|---|---|
+| `git fetch origin --prune` | （无关输出） | 建 PR 前 |
+| `git rev-parse main origin/main` | `f689d0e7cde3f2733b044b004f7a314f14958973` / `f689d0e7cde3f2733b044b004f7a314f14958973` —— **两值相等** | 建 PR 前 |
+| `git rev-list --left-right --count origin/main...main` | `0	0` | 建 PR 前 |
+| `git log --oneline origin/main..main \| wc -l` | `0` | 建 PR 前 |
+| `git fetch origin main; git rev-parse main origin/main`（**紧贴 `gh pr create` 之前再核一次**） | 两值仍为 `f689d0e…` | `gh pr create` 前一条命令 |
+
+**核验相等，本阶段无 `main` push 运行**（Exit Criteria 逐字要求此处不得留空）。四条推前预检因此**未跑**——
+它们的触发条件是「核验不等而补推」，本阶段不成立；Phase 4 那次收尾推送会无条件跑同一组。
+
+**② 保命闸与前缀性（建分支之前）**
+
+| 命令 | 输出 |
+|---|---|
+| `git show origin/ci/0027-2-l2-full-live-gate:.github/workflows/gates.yml \| tail -n 118 > /tmp/two-jobs.yml` | 存下 **118** 行（本 plan 唯一一次读该分支，只读） |
+| `git show main:.github/workflows/gates.yml \| sed -n '/^jobs:/,$p' \| grep -E '^  [a-z0-9-]+:'` | **7** 个 job 键，与 Baseline B 逐字一致 |
+| `git show main:.github/workflows/gates.yml \| grep -cE 'gates-l2-live\|verdict-tool-untouched'` | `0`（退出码 1）—— 安全窗口此刻仍开着 |
+| `git show main:… \| wc -l` / 分支版 `wc -l` | `190` / `308` |
+| `diff <(git show main:.github/workflows/gates.yml) <(git show origin/ci/…:.github/workflows/gates.yml \| head -n 190)` | **无输出** |
+
+**③ 建分支 + 单提交 + 推 + 建 PR（顺序即执行顺序）**
+
+- `git switch -c ci/1206-1-verdict-guard-proof main` → `Switched to a new branch 'ci/1206-1-verdict-guard-proof'`
+- `cat /tmp/two-jobs.yml >> .github/workflows/gates.yml` → `wc -l` = `308`；
+  `diff .github/workflows/gates.yml <(git show origin/ci/0027-2-l2-full-live-gate:.github/workflows/gates.yml)` → **无输出**
+- `git commit`（**message 不含 `Gates-Change-Approved-By:`**）→ `[ci/1206-1-verdict-guard-proof b7348bf] 1 file changed, 118 insertions(+)`，
+  提交 sha **`b7348bf3a1eb1eccbe1c032af8bd73ed808ed4af`**
+- `git push -u origin ci/1206-1-verdict-guard-proof` → `* [new branch]`，exit 0
+- `gh pr create --base main --head ci/1206-1-verdict-guard-proof …` → **PR #2**
+  （`https://github.com/lize-agent-engineering/AgenERP/pull/2`）。正文首行逐字写明「本 PR 取代 PR #1 作为
+  plan 2026-08-22-1206-1 的实验载体，PR #1 保持不动，终局处置归 plan 2026-08-22-1206-2」
+
+**④ 形态判据五条（一律 merge-base / `$CUT` 形式，无两点式 `git diff main <分支>`）**
+
+| # | 命令 | 输出 | 期望 |
+|---|---|---|---|
+| 1 | `MB=$(git merge-base main ci/1206-1-verdict-guard-proof); git diff --numstat "$MB" ci/1206-1-verdict-guard-proof` | `MB=f689d0e7cde…`（**逐字等于 `$CUT`**）；`118	0	.github/workflows/gates.yml` **恰好一行** | ✅ |
+| 2 | `git log --oneline "$MB"..ci/1206-1-verdict-guard-proof \| wc -l` | `1` | ✅ |
+| 3 | `diff <(git show "$MB":.github/workflows/gates.yml) <(head -n 190 .github/workflows/gates.yml)` | **无输出** | ✅ |
+| 4 | `diff /tmp/two-jobs.yml <(tail -n 118 .github/workflows/gates.yml)` | **无输出** | ✅ |
+| 5 | `gh pr view 2 --json baseRefOid` | `{"baseRefOid":"f689d0e7cde3f2733b044b004f7a314f14958973"}` —— **逐字等于 `$CUT`** | ✅ **全批最承重的一条，C5 那颗钉子钉住了** |
+
+**⑤ trailer 洁净度预检**
+
+`git log --format=%B "$CUT"..ci/1206-1-verdict-guard-proof | grep -c '^Gates-Change-Approved-By:'` → **`0`** ✅
+
+**⑥ PR 读数与 PR #1 未被触碰**
+
+- `gh pr view 2 --json state,mergeable,changedFiles,additions,deletions` →
+  `{"additions":118,"changedFiles":1,"deletions":0,"mergeable":"MERGEABLE","state":"OPEN"}` ——
+  逐字为 `OPEN` / `1` / `118` / `0` ✅（它成立的前提是判据 5，两条一起读）
+- `gh pr view 1 --json state,headRefOid,baseRefOid` →
+  `{"baseRefOid":"7b0f585f7c8082a64902da65e6e3314cb239dc9f","headRefOid":"c2c688b7f6bc49a96d1e89a3582014334ba8fb71","state":"OPEN"}`
+  —— 与开工时逐字相同，**PR #1 一个字节未动** ✅
+
+**⑦ 一处必须照实记的偏差：工作树带进来一个前序会话的未提交改动**
+
+开工时 `git status --porcelain` **不为空**，有一行
+`M docs/plans/p0-foundation/2026-08-22-1206-2-gates-l2-live-lands-on-main.md`——
+那是姊妹 plan 第 4 轮草案评审的改写，前序会话未提交就结束了。
+按「全程硬规矩」第三条（`reset --hard` 前工作树必须干净，否则会**静默吞掉**已跟踪文件的改动），
+它必须在进 Phase 3 之前落进版本库。**处置：随本阶段的文档提交一起提到 `main` 上，内容一字未改。**
+**后果照实写**：Phase 1 的收敛判据原文要求 `git diff --name-only origin/main main` **只含**
+`docs/logs/**` 与**本** plan 文件，而实际还多一个**姊妹 plan 文件**。
+这一条偏差**不隐藏、不改判据去迁就**：多出来的那个文件仍在 `docs/plans/p0-foundation/**` 之内，
+与 Phase 4 收尾那条更宽的收敛判据逐字相容；**丢弃它才是真正的损失**（销毁一次独立评审的产物）。
+
+**⑧ 本阶段 CI 消耗**：`gh pr create` 触发 `pull_request` 事件一次 → run **`32569935835`**（head `b7348bf`）。
+**这一次运行同时就是 Phase 2 的基线运行**，不另起。滚动计数：**1 / 12**。
+（`git push -u origin <分支>` 本身**不触发**：`gates.yml` 的 `on: push` 限定 `branches: [main]`。）
 
 ### Phase 2 — 在当前 `main` 基线上重新取得 `gates-l2-live` 的绿
 
