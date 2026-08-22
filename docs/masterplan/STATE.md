@@ -111,6 +111,25 @@
   · **授权链**：本 plan **真的改了 `main` 的 `.github/workflows/**`**（前驱是零改动）。读法沿用 plan `2026-08-21-2220-2` 已在 `main` 落地过的先例：红线 2 只禁**变松**，本次是**纯追加 = 加严**。`docs/context/ai-autonomy-policy.md` 把 `.github/workflows/**` 标 `blocked` 与红线 2 措辞不一致这条**仍待人裁定**，**残余风险照实记：人若事后裁定严格 `blocked`，本次落地需要补一次追认。**
   · **红线 5**：本行只追加，不改写 `STATE.md` 已有任何一行。
 
+- 2026-08-22T19:20Z · P0.7/工作项 7（B 半第一段） · `python3 -m pytest tests/unit -q` → **exit 0**（`221 passed`）· `python3 -m agenerp.seed --seed 42 --verify` → **exit 0** · `ruff check agenerp tests/unit tests/contracts` → **exit 0** · sha `478392e`（开工基线；本行随 plan `2026-08-22-2107-1` Phase 1 收尾提交一并入库） · plan `2026-08-22-2107-1-seed-site-write-surface-and-masters.md` Phase 1 执行完毕（E1–E4 四组活站点实测 + D1–D5 五条裁定），下一项是 Phase 2（`SiteClient` 写入面）
+  · **活站点实测的四条硬结论**（原样输出在 `docs/logs/2026/08-22.md`，本行只记结论）：① 会话 cookie 下 `POST /api/resource/<DocType>` **不需要** `X-Frappe-CSRF-Token`；② 建重名回 **HTTP 409 `DuplicateEntryError`**；③ **站点对 `Warehouse` / `Account` / `Item` / `BOM` 不采纳显式 `name`**（分别按 `warehouse_name`/`account_name` + ` - XM`、`item_code`、`BOM-{item}-{###}` 派生），幂等因此走 `find_one(doctype, filters)` 而非「把 name 塞进载荷」；④ `BOM.operations[].operation` 是 Link 到 `Operation`，`Workstation`/`Operation` 必须先建。
+  · **一条起草时不知道的事实**：`frontend` 站点**没跑过 setup wizard**——实测 `UOM`/`Item Group`/`Account`/`Company`/`Warehouse`/`Customer`/`Supplier`/`Operation`/`Workstation`/`Customer Group`/`Supplier Group`/`Territory`/`Fiscal Year`/`Item` **全部 0 行**，只有 `Currency` 149 / `Country` 250 / `Domain` 2 有行。装载器因此还要补建 ERPNext setup wizard 本该建的前置 fixture（`Warehouse Type: Transit` 等），Phase 3 的依赖顺序据此加长。
+  · **`POST /api/resource/Company` 会让站点自己生成 82 条 `Account` + 5 个 `Warehouse` + 2 个 `Cost Center`**（Standard 模板，全英文名），与 `model.py` 的 11 个中文科目**零重合**——那 11 条由装载器补建。
+  · **实测发现 `agenerp/seed/model.py` 的一处真缺陷，本 plan 不修**：`ACC_OPERATING = "生产费用（计入估值）- XM"` 少一个空格，而 ERPNext `Account.autoname` 走 `" - ".join(...)`，实测只能产出 `生产费用（计入估值） - XM`。**该常量在活站点上永远命不中。** 本 plan 的 Closure Gate 逐字要求 `agenerp/seed/**` 一个字节未改，故只**报告**不修改，登记进 `docs/bugs/` 与 plan 的 `## Deferred But Adjudicated`，重开事件交第二个 plan 的对账。
+  · **本 plan 自带一条加严**：`docs/context/ai-autonomy-policy.md` Protected Areas 新增「对活站点的**非破坏性写**（建 / 改）」，定级 `plan-first`（此前默认 `implement`，旧的「破坏性写」那一行标题逐字是「破坏性」，**「建」不在其字面内**）。
+  · **验证范围（scoped，照实写，不得读成 full green）**：本仓**无全量套件**。本行覆盖的是三条本机命令 + 一组活站点手工实测，**不含 CI**。
+  · **红线 5**：本行只追加，不改写 `STATE.md` 已有任何一行。
+
+- 2026-08-22T19:50Z · P0.7/工作项 7（B 半第一段） · `AGENERP_HTTP_PORT=18080 AGENERP_SITE=frontend AGENERP_SITE_URL=http://127.0.0.1:18080 AGENERP_ADMIN_PASSWORD=admin python3 -m agenerp.seedsite --load-masters --site frontend` → **exit 0**（第一跑 `合计：新建 40 / 已存在 0`；**原样第二跑 exit 0 且 `合计：新建 0 / 已存在 40`**）· sha `478392e`（开工基线；本行随 plan `2026-08-22-2107-1` Phase 3 收尾提交一并入库） · plan `2026-08-22-2107-1` Phase 2/3 执行完毕，下一项是 Phase 4（owner doc 就地改准）
+  · **装载前后各跑一次整目录 live 判定，两次逐字节相同**：`AGENERP_HTTP_PORT=18080 AGENERP_LIVE=1 AGENERP_SITE=frontend AGENERP_SITE_URL=http://127.0.0.1:18080 AGENERP_ADMIN_PASSWORD=admin python3 tools/gates/check_expected_red.py` → **exit 0**，逐字 `门禁 19 项：红 0，绿 19，跳过 0`。**装载前那一次即本机基线**，不引用 CI 上的旧结论当基线。命名隔离（`XM` 前缀）由这一对判定**判出来**，不靠声明。
+  · **从 `docker compose down -v` 冷起的空站点开始**：`down -v` → exit 0（卷 `agenerp_db-data`/`agenerp_logs` 已移除）；`up -d --wait --wait-timeout 300` → **exit 0，59.6 秒**。⚠️ 这是**第二次**冷起——第一次跑在「不符检查拿派生名跟自己比、永远报不出不符」的那一版代码上，改了比对基准后**从 `down -v` 重跑整条序列**，证据只取最终代码那一轮，两轮不混。
+  · **`SiteClient` 的写面从 1 条变 3 条**（`create_doc` / `find_one` / `ensure_doc`），`WRITE_METHOD_ALLOWLIST` 已逐条登记 `create_doc` 与 `ensure_doc`（后者名字里**一个 `WRITE_VERB` 都没有**、守卫扫不到，是**主动登记**的）。**两条变异验证各拿到「转红 → 点名 → 复原转绿」**：① `find_one` 改成「任何非 2xx 都判不存在」→ `4 failed`，点名 `test_find_one_raises_on_any_non_2xx_and_never_reads_it_as_absent[401]/[403]/[500]/[502]`；② 从白名单删掉 `create_doc` → `1 failed`，逐字 `AssertionError: 未登记的写方法：['SiteClient.create_doc']`。复原后均 `246 passed`。
+  · **装载器不在 `agenerp/seed/` 内**（`module-boundaries.md` 那条「不读时钟、不读环境、不联网」的模块不变量保住了）：新建同级单文件模块 `agenerp/seedsite.py`，CLI 入口在该文件内。`git diff --stat 478392e -- tests/gates tools/gates/expected-red.txt agenerp/seed` → **无输出**。
+  · **两处不粉饰的实测**：① BOM 的 `raw_material_cost = 0.0`（默认 `rm_cost_as_per = "Valuation Rate"`，站点此刻无库存），`120 × 35 = 4200` 那一半**要等第二个 plan 装完期初库存后由站点自己算**；试过 `rm_cost_as_per: "Manual"` → ERPNext v15.119.3 **500 `UnboundLocalError`**，上游缺陷，不绕。② `M.ACC_OPERATING` 少一个空格、在活站点上永远命不中，装载器**打出告警行但不退非 0**，登记在 `docs/bugs/01-...md`。
+  · **本 plan 交付的行为没有属于自己的门禁**（站点侧那三条 L2 断言仍是提案文本，采纳者是人）。代偿控制：CLI 退出码 + `tests/unit` 246 条 + 两条变异验证 + 装载前后两次 live 判定 + 独立关闭审计。**照实登记，不粉饰。**
+  · **验证范围（scoped，照实写，不得读成 full green）**：本仓**无全量套件**。本行覆盖的是六条本机命令 + 一组活站点读回，**不含 CI**。
+  · **红线 5**：本行只追加，不改写 `STATE.md` 已有任何一行。
+
 ---
 
 ## §3 needs-human 队列

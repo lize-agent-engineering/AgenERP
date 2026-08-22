@@ -14,11 +14,18 @@
    `tests/gates/conftest.py` 给 fixture 留的 `admin` 默认值是测试脚手架，不是产品口径。
 4. **写方法必须登记。** 公开方法名里出现 `agenerp.contracts.WRITE_VERBS` 的，
    必须在 `tests/unit/test_site_client.py` 的 `WRITE_METHOD_ALLOWLIST` 里逐条列名。
-   2026-08-21 起白名单有且只有一条：`SiteClient.delete_custom_field`
-   （差集 apply 的 B 半，plan `2026-08-21-1922-3`）。这是**收窄式演进**——
+   2026-08-21 起有 `SiteClient.delete_custom_field`（差集 apply 的 B 半，plan `2026-08-21-1922-3`）；
+   **2026-08-22 起再加两条**：`SiteClient.create_doc` 与 `SiteClient.ensure_doc`
+   （种子主数据装载，plan `2026-08-22-2107-1`）。这是**收窄式演进**——
    每加一个写方法就要付一次 diff 和一次留痕，不是把只读约束取消了。
-   **不提供「删任意 DocType 文档」的通用方法**：通用删除接口等于把业务数据交出去，
-   而本模块的写面只该覆盖「结构定制」。
+   ⚠️ `ensure_doc` 的名字里**一个 `WRITE_VERB` 都没有**，守卫扫不到它；
+   它是**主动登记**的——漏登记等于把「加写面要付一次留痕」这条规矩掏空。
+   **不提供「删任意 DocType 文档」的通用方法**：通用删除接口等于把业务数据交出去。
+   ⚠️ **「本模块的写面只覆盖结构定制」这句话 2026-08-22 起不再成立**：`create_doc` / `ensure_doc`
+   是**通用建档面**，覆盖业务主数据（公司 / 科目 / 仓库 / 物料 / BOM…）。
+   代偿有三条，且都可判：`docs/context/ai-autonomy-policy.md` Protected Areas 新增的
+   「对活站点的非破坏性写（建 / 改）」行（`plan-first`）· 上面那道登记守卫 ·
+   `agenerp/seedsite.py` 是这两个方法**目前唯一的调用方**。落点见 §11.7 与 §12.9。
 
 两条实测得来的硬约束（不是猜的）：
 
@@ -59,6 +66,14 @@ ALL_FIELDS = ("*",)
 
 LOGIN_PATH = "/api/method/login"
 RESOURCE_PATH = "/api/resource"
+
+# 存在性判断走列表端点 + `filters`，不走「GET 单文档、404 判不存在」：
+# 2026-08-22 实测，站点对 `Warehouse` / `Account` / `Item` / `BOM` **不采纳显式 `name`**
+# （分别按 `warehouse_name`/`account_name` + 公司缩写、`item_code`、命名序列派生），
+# 按 name 取单文档因此对半数 DocType 无从下手。列表端点的「零行」是 HTTP 200，
+# 与「站点答不上话」在状态码上天然分开 —— 这正是本模块第 1 条约束要的形状。
+FILTERS_PARAM = "filters"
+SINGLE_PAGE_LENGTH = "1"
 
 # 承载「某个 DocType 上的某个定制字段」的 DocType，以及它的文档名口径。
 # 名字形如 `Item-agenerp_gate_roundtrip` —— 2026-08-21 在活站点上实测确认
@@ -137,7 +152,7 @@ def default_base_url() -> str:
 
 
 class SiteClient:
-    """活站点的客户端：读全部、写只有一条（`delete_custom_field`，见模块头第 4 条）。
+    """活站点的客户端：读全部；写三条（`create_doc` / `ensure_doc` / `delete_custom_field`，见模块头第 4 条）。
 
     认证取「token 优先、会话登录回退」：token 贴生产且不把口令带进每次运行，
     但零依赖栈上没有现成的 key，只做 token 会让 L2 门禁跑不起来。取舍与残余风险
@@ -192,6 +207,64 @@ class SiteClient:
         if not isinstance(rows, list):
             raise SiteError(f"{doctype} 的列表载荷缺少 data 数组：{str(payload)[:200]}")
         return rows
+
+    def create_doc(self, doctype: str, payload: dict) -> dict:
+        """在站点上建一份文档，返回站点回的 `data`（**站点回什么就是什么**）。
+
+        实测语义（2026-08-22，活站点 ERPNext v15.119.3）：
+
+        - 成功回 **HTTP 200** `{"data": {...整份文档...}}`；
+        - **`name` 由站点说了算**，不是由载荷说了算。`Warehouse` / `Account` 按
+          `<x>_name + " - " + 公司缩写` 派生，`Item` 按 `Stock Settings.item_naming_by` 派生，
+          `BOM` 走命名序列 `BOM-{item}-{###}` —— 显式塞 `name` 会被**静默忽略**。
+          调用方要用真名，就得读返回值里的 `data.name`。
+        - 建重名回 **HTTP 409 `DuplicateEntryError`**；缺 Link 前置回 **HTTP 417 `LinkValidationError`**。
+
+        **不吞任何错误**：非 2xx 沿用 `_request` 抛 `SiteError`，站点错误原文进消息。
+        把 409 判成「已经有了、算成功」是有诱惑力的，但那会让「载荷写错导致建了两份」
+        与「本来就在」长得一模一样 —— 幂等由 `ensure_doc` 用**先查后建**做，不靠吞异常做。
+        """
+        self._ensure_authenticated()
+        response = self._request("POST", f"{RESOURCE_PATH}/{doctype}", body=payload)
+        doc = response.get("data") if isinstance(response, dict) else None
+        if not isinstance(doc, dict):
+            raise SiteError(f"建 {doctype} 的响应缺少 data 对象：{str(response)[:200]}")
+        return doc
+
+    def find_one(self, doctype: str, filters: dict[str, Any]) -> dict | None:
+        """按 `filters` 找**至多一份**文档；找不到回 `None`。
+
+        **只把「查得到、但零行」判成不存在。** 其余一切（连不上、401、403、5xx、载荷形状不对）
+        一律经 `_request` / 本方法抛 `SiteError`。把非 2xx 判成「不存在」会让站点挂掉时
+        `ensure_doc` 一路重复建 —— 这是本模块第 1 条约束在写路径上的同一件事。
+        """
+        self._ensure_authenticated()
+        payload = self.get(
+            f"{RESOURCE_PATH}/{doctype}",
+            {
+                FILTERS_PARAM: json.dumps([[k, "=", v] for k, v in filters.items()]),
+                FIELDS_PARAM: json.dumps(list(ALL_FIELDS)),
+                PAGE_LENGTH_PARAM: SINGLE_PAGE_LENGTH,
+            },
+        )
+        rows = payload.get("data") if isinstance(payload, dict) else None
+        if not isinstance(rows, list):
+            raise SiteError(f"{doctype} 的查询载荷缺少 data 数组：{str(payload)[:200]}")
+        return rows[0] if rows else None
+
+    def ensure_doc(self, doctype: str, key: dict[str, Any], payload: dict) -> tuple[dict, bool]:
+        """幂等落地：`key` 命中则原样读回 `(doc, False)`，未命中则建并回 `(doc, True)`。
+
+        **不改已存在的文档**（没有 upsert 的 update 半）。代价照实说：
+        站点上已存在但字段不对的对象**不会被纠正**，也不会报错。取这一侧的理由是
+        「少写」比「悄悄改写站点」安全；漏网的字段错误会由第二个 plan 的站点侧对账
+        表现成「站点自己算出的数对不上」，**不会静默通过**。
+        取舍与重开事件见 `docs/architecture/module-boundaries.md` §12.9。
+        """
+        existing = self.find_one(doctype, key)
+        if existing is not None:
+            return existing, False
+        return self.create_doc(doctype, payload), True
 
     def delete_custom_field(self, doctype: str, fieldname: str) -> None:
         """删掉站点上的一条 Custom Field。**本模块唯一的写动作**（见模块头第 4 条）。

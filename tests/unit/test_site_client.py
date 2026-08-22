@@ -35,7 +35,25 @@ from agenerp.site import (
 #   `tests/gates/test_customization_roundtrip_delete.py::test_removing_from_pack_actually_deletes_on_site`）。
 #   写面被**刻意限死在 Custom Field 一种文档上**：不提供「删任意 DocType 文档」的通用方法，
 #   那等于把业务数据交出去。
-WRITE_METHOD_ALLOWLIST: tuple[str, ...] = ("SiteClient.delete_custom_field",)
+#
+# `SiteClient.create_doc` / `SiteClient.ensure_doc`（2026-08-22，plan `2026-08-22-2107-1` 种子主数据装载）：
+#   种子数据的 B 半要把公司 / 科目 / 仓库 / 物料 / BOM 装进活站点，`agenerp/seedsite.py` 是唯一调用方。
+#   ⚠️ **这一次写面从「结构定制」扩到了「业务主数据」**，`agenerp/site.py` 模块头第 4 条
+#   与 `docs/architecture/module-boundaries.md` §11.7 已同步改准，不是默默扩的。
+#   ⚠️ `ensure_doc` 的名字里**一个 `WRITE_VERB` 都没有**（`create`/`write`/`submit`/`cancel`/`delete`/`amend`），
+#   下面那条守卫**扫不到它**——它是**主动登记**的。只登记守卫扫得到的，等于让守卫替人决定该留什么痕。
+#   `find_one` 是纯读，不登记。
+WRITE_METHOD_ALLOWLIST: tuple[str, ...] = (
+    "SiteClient.delete_custom_field",
+    "SiteClient.create_doc",
+    "SiteClient.ensure_doc",
+)
+
+# 名字里**不含任何 `WRITE_VERB`**、因而下面那道扫描守卫**看不见**的写方法。
+# 它们是**主动登记**的，靠 `test_deliberately_registered_write_methods_stay_registered`
+# 上锁 —— 否则「把 `ensure_doc` 从白名单里删掉」这个动作会**静默通过**，
+# 「每加一个写方法就要付一次留痕」这条规矩就只对名字取得巧的方法生效。
+NON_VERB_WRITE_METHODS: tuple[str, ...] = ("SiteClient.ensure_doc",)
 
 ALL_ENV = (API_KEY_ENV, API_SECRET_ENV, ADMIN_PASSWORD_ENV, "AGENERP_ADMIN_USER",
            "AGENERP_SITE_URL", "AGENERP_HTTP_PORT")
@@ -228,6 +246,135 @@ def test_list_resource_rejects_a_payload_without_data():
         _client(transport, api_key="k", api_secret="s").list_resource("Custom Field")
 
 
+def _created(name, **extra):
+    return SiteResponse(200, json.dumps({"data": {"name": name, **extra}}))
+
+
+def _rows(*rows):
+    return SiteResponse(200, json.dumps({"data": list(rows)}))
+
+
+def test_create_doc_returns_the_document_the_site_built():
+    """`name` 由站点说了算：实测站点对 Warehouse/Account/Item/BOM 不采纳显式 `name`。"""
+    transport = FakeTransport([_created("XM 原料仓 - XM", warehouse_name="XM 原料仓")])
+
+    doc = _client(transport, api_key="k", api_secret="s").create_doc(
+        "Warehouse", {"warehouse_name": "XM 原料仓", "company": "XM 演示纺织有限公司"}
+    )
+
+    assert doc["name"] == "XM 原料仓 - XM"
+    assert transport.last.method == "POST"
+    assert "/api/resource/Warehouse" in transport.last.url
+    assert json.loads(transport.last.body)["warehouse_name"] == "XM 原料仓"
+
+
+def test_create_doc_raises_on_non_2xx_instead_of_pretending_it_exists():
+    """409 DuplicateEntryError 不许被吞成「已经有了、算成功」——幂等靠先查后建，不靠吞异常。"""
+    transport = FakeTransport([SiteResponse(409, '{"exc_type":"DuplicateEntryError"}')])
+
+    with pytest.raises(SiteError) as excinfo:
+        _client(transport, api_key="k", api_secret="s").create_doc("Item", {"item_code": "XM-LACE-1000"})
+
+    assert "409" in str(excinfo.value)
+    assert "DuplicateEntryError" in str(excinfo.value)
+
+
+def test_create_doc_rejects_a_payload_without_a_data_object():
+    """载荷形状不对时抛。回一个没有 data 的 200 就当建成功，等于凭空造一个假文档。"""
+    transport = FakeTransport([SiteResponse(200, json.dumps({"exc": "boom"}))])
+
+    with pytest.raises(SiteError):
+        _client(transport, api_key="k", api_secret="s").create_doc("Item", {"item_code": "X"})
+
+
+def test_find_one_returns_the_row_when_the_site_has_it():
+    transport = FakeTransport([_rows({"name": "织造"})])
+
+    got = _client(transport, api_key="k", api_secret="s").find_one("Operation", {"name": "织造"})
+
+    assert got == {"name": "织造"}
+    url = transport.last.url
+    assert f"{site_mod.PAGE_LENGTH_PARAM}={site_mod.SINGLE_PAGE_LENGTH}" in url
+    assert f"{site_mod.FILTERS_PARAM}=" in url
+
+
+def test_find_one_returns_none_only_for_an_empty_result_set():
+    """「查得到、但零行」是唯一的「不存在」。实测站点对未命中回 HTTP 200 `{"data": []}`。"""
+    transport = FakeTransport([_rows()])
+
+    assert _client(transport, api_key="k", api_secret="s").find_one("Operation", {"name": "没有"}) is None
+
+
+@pytest.mark.parametrize("status", [401, 403, 500, 502])
+def test_find_one_raises_on_any_non_2xx_and_never_reads_it_as_absent(status):
+    """站点挂掉必须抛。判成「不存在」会让 `ensure_doc` 一路重复建 —— 最难发现的那种坏。"""
+    transport = FakeTransport([SiteResponse(status, '{"exc_type":"PermissionError"}')])
+
+    with pytest.raises(SiteError) as excinfo:
+        _client(transport, api_key="k", api_secret="s").find_one("Operation", {"name": "织造"})
+
+    assert str(status) in str(excinfo.value)
+
+
+def test_find_one_rejects_a_payload_without_data():
+    transport = FakeTransport([SiteResponse(200, json.dumps({"exc": "boom"}))])
+
+    with pytest.raises(SiteError):
+        _client(transport, api_key="k", api_secret="s").find_one("Operation", {"name": "织造"})
+
+
+def test_ensure_doc_issues_zero_posts_when_the_document_already_exists():
+    """幂等的判据是「第二跑零 POST」，不是「没报错」。"""
+    transport = FakeTransport([_rows({"name": "织造", "workstation": "XM 织造机台"})])
+
+    doc, created = _client(transport, api_key="k", api_secret="s").ensure_doc(
+        "Operation", {"name": "织造"}, {"name": "织造"}
+    )
+
+    assert (doc["name"], created) == ("织造", False)
+    assert [r.method for r in transport.requests] == ["GET"], [r.method for r in transport.requests]
+
+
+def test_ensure_doc_posts_exactly_once_when_the_document_is_missing():
+    transport = FakeTransport([_rows(), _created("织造")])
+
+    doc, created = _client(transport, api_key="k", api_secret="s").ensure_doc(
+        "Operation", {"name": "织造"}, {"name": "织造"}
+    )
+
+    assert (doc["name"], created) == ("织造", True)
+    assert [r.method for r in transport.requests] == ["GET", "POST"]
+
+
+def test_ensure_doc_does_not_update_an_existing_document():
+    """`ensure_doc` 只建不改：站点上字段不对的对象**不会被悄悄改写**（代价写在 §12.9）。"""
+    transport = FakeTransport([_rows({"name": "织造", "workstation": "旧工位"})])
+
+    doc, created = _client(transport, api_key="k", api_secret="s").ensure_doc(
+        "Operation", {"name": "织造"}, {"name": "织造", "workstation": "新工位"}
+    )
+
+    assert doc["workstation"] == "旧工位"
+    assert created is False
+    assert [r.method for r in transport.requests] == ["GET"]
+
+
+def test_write_methods_report_missing_credentials_by_name(clean_env):
+    """认证未就绪时，写路径的报错必须和读路径一样指名缺哪个环境变量。"""
+    client = SiteClient("frontend", base_url="http://127.0.0.1:18080", transport=FakeTransport())
+
+    for call in (
+        lambda: client.create_doc("Item", {"item_code": "X"}),
+        lambda: client.find_one("Item", {"name": "X"}),
+        lambda: client.ensure_doc("Item", {"name": "X"}, {"item_code": "X"}),
+    ):
+        with pytest.raises(SiteError) as excinfo:
+            call()
+        message = str(excinfo.value)
+        for name in (API_KEY_ENV, API_SECRET_ENV, ADMIN_PASSWORD_ENV):
+            assert name in message, f"报错没指名 {name}：{message}"
+
+
 def _public_methods() -> list[str]:
     """`agenerp.site` 对外暴露的全部公开可调用名（模块级函数 + 公开类的公开方法）。"""
     names: list[str] = []
@@ -256,6 +403,26 @@ def test_site_module_exposes_no_unlisted_write_method():
     ]
 
     assert offenders == [], f"未登记的写方法：{offenders}；白名单={WRITE_METHOD_ALLOWLIST}"
+
+
+def test_deliberately_registered_write_methods_stay_registered():
+    """扫描守卫的补丁：名字里没有 verb 的写方法，删掉登记也必须转红。
+
+    2026-08-22 实测过：把 `SiteClient.ensure_doc` 从白名单删掉，
+    `test_site_module_exposes_no_unlisted_write_method` **一声不响地照样绿**——
+    因为 `ensure_doc` 里一个 `WRITE_VERB` 都没有，扫描器根本看不见它。
+    没有这一条，「主动登记」就只是一句自觉，不是判据。
+    """
+    missing = [name for name in NON_VERB_WRITE_METHODS if name not in WRITE_METHOD_ALLOWLIST]
+
+    assert missing == [], f"写方法被从白名单里删掉了：{missing}；白名单={WRITE_METHOD_ALLOWLIST}"
+
+
+def test_every_allowlisted_name_resolves_to_a_real_method():
+    """白名单不许留陈迹：登记的每个名字都必须在模块上真的存在。"""
+    for entry in WRITE_METHOD_ALLOWLIST:
+        cls_name, method = entry.split(".")
+        assert callable(getattr(getattr(site_mod, cls_name), method, None)), f"{entry} 不存在"
 
 
 def test_the_allowlist_assertion_actually_has_teeth():

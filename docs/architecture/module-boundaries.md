@@ -574,7 +574,7 @@ Custom Field 不删列，所以此前每跑一轮就留一条孤儿列——清�
 
 | 落点 | 职责 | 状态 |
 |---|---|---|
-| `agenerp/site.py` · `SiteClient` | 连活站点的**唯一 HTTP** 传输落点（物理层那条在 §11.8）。`get(path, params)` 返回已解析载荷；`list_resource(doctype)` 列出全部行 | 已实现（读方法 + **一条**写方法 `delete_custom_field`，见下一行与 §11.6；白名单口径见 `agenerp/site.py:16-17`） |
+| `agenerp/site.py` · `SiteClient` | 连活站点的**唯一 HTTP** 传输落点（物理层那条在 §11.8）。`get(path, params)` 返回已解析载荷；`list_resource(doctype)` 列出全部行；`find_one(doctype, filters)` 按 filters 找至多一份（**只把「查得到、但零行」判成不存在**） | 已实现（读方法 + **三条**写方法：`delete_custom_field` · `create_doc` · `ensure_doc`，见本节末尾的 2026-08-22 改准段与 §12.9；白名单口径见 `agenerp/site.py` 模块头第 4 条） |
 | `agenerp/site.py` · `SiteError` | 站点侧一切失败的统一异常：连不上 / 认证失败 / 非 2xx / 载荷不是 JSON | 已实现 |
 | `agenerp/site.py` · `client_from_env(site)` | 环境 → 客户端的组装点，缺凭据时抛并指名变量 | 已实现 |
 | `agenerp/site.py` · `Transport` / `UrllibTransport` | 可注入的传输接缝：单测喂假件，产品走标准库 | 已实现 |
@@ -620,6 +620,35 @@ Custom Field 不删列，所以此前每跑一轮就留一条孤儿列——清�
 **本 plan 内白名单为空**。写成绝对禁令的话，工作项 5 的删除段在同一模块上加 `delete_custom_field`
 会被一条已关闭 plan 的判据当场打红，届时只剩「动别人的判据」和「卡住」两条路。
 白名单让它按**收窄**演进：每加一个写方法都要付一次 diff 和一次留痕。
+
+**⚠️ 2026-08-22 就地改准（plan `2026-08-22-2107-1`）：本节标题里的「只读」与
+`agenerp/site.py` 原 docstring 里的「本模块的写面只该覆盖『结构定制』」，两句都已不再成立。**
+改准前本节通篇按「站点**只读**传输 + 一条例外」的口径写；2026-08-22 起 `SiteClient` 是一个
+**通用写客户端**：`create_doc(doctype, payload)` 能建**任意 DocType** 的文档，
+`ensure_doc(doctype, key, payload)` 在它上面做「先查后建、**只建不改**」的幂等。
+写面覆盖的已经是**业务主数据**（公司 / 科目 / 仓库 / 物料 / BOM…），不是结构定制。
+**这是扩张，就写成扩张，不写成「一直如此」。** 本节标题保留「只读传输」是因为它记的是
+工作项 4 那一次交付的历史落点；**当前形态以本段为准。**
+
+**扩张的代偿有三条，且都可判**（不是靠自觉）：
+
+1. `docs/context/ai-autonomy-policy.md` Protected Areas 新增「对活站点的**非破坏性写**（建 / 改）」行，
+   定级 `plan-first`，Required Evidence 含**一条对可逆性说话的**。此前该区域默认 `implement`。
+2. 上面那道白名单守卫**已登记** `SiteClient.create_doc` 与 `SiteClient.ensure_doc`。
+   ⚠️ `ensure_doc` 的名字里**一个 `WRITE_VERB` 都没有**，守卫**扫不到它**——它是**主动登记**的。
+   只登记守卫扫得到的，等于让守卫替人决定该留什么痕。守卫的牙齿由变异验证实证
+   （删掉 `create_doc` 那条 → `tests/unit` 必红并逐字点名该方法）。
+3. `agenerp/seedsite.py` 是这两个方法**目前唯一的调用方**（§12.9）。
+   **残余风险照实记**：这三条都不阻止将来出现第二个调用方，也不约束「写的是什么」。
+   出现第二个调用方时应评估是否要把写面收进一个更窄的门面。
+
+**`find_one` 为什么不走「GET 单文档、404 判不存在」**：2026-08-22 实测，站点对
+`Warehouse` / `Account` / `Item` / `BOM` **不采纳显式 `name`**（分别按
+`warehouse_name`/`account_name` + 公司缩写、`item_code`、命名序列 `BOM-{item}-{###}` 派生），
+按 name 取单文档对半数 DocType 无从下手。列表端点 + `filters` 的「零行」是 **HTTP 200**，
+与「站点答不上话」在状态码上天然分开 —— 这正是本模块第 1 条约束（不伪装成功）要的形状。
+**只把「查得到、但零行」判成不存在**；把非 2xx 判成「不存在」会让 `ensure_doc` 在站点宕机时
+一路重复建，这条有专门的参数化单测（401 / 403 / 500 / 502）。
 
 **不起本地 `http.server` 做单测**：本机 8080 已被另一套常驻栈占用是实测事实，
 在 `GATE_VERIFY` 与 CI 的 `gates-l1` 里再绑一个端口是自找的不稳定源。单测喂注入式假传输；
@@ -849,10 +878,28 @@ Custom Field 不删列，所以此前每跑一轮就留一条孤儿列——清�
 ① 变异验证（故意破坏一条断言 → 该命令必须转红且指名道姓），证明判据有牙齿；
 ② 独立关闭审计复跑该命令。这与工具契约层 v0 的 `tests/contracts` 用的是同一套代偿。
 
-工作项「种子数据」本身**仍然没有绑定的门禁测试**。本次只交付纯逻辑那一半（生成 + 自验），
-装载进活站点与站点侧断言那一半被红线 1 挡着，因此该工作项收尾时置 `planned` 而非 `done`，
-门禁提案见 `docs/backlog/gate-proposal-seed-dataset.md`，判据缺口登记在 `docs/masterplan/STATE.md` 的 needs-human 队列。
+**⚠️ 以下两句 2026-08-22 就地改准（plan `2026-08-22-2107-1`）。改准前逐字是**
+「工作项『种子数据』本身**仍然没有绑定的门禁测试**」与「装载进活站点与站点侧断言那一半**被红线 1 挡着**」，
+**两句在 2026-08-22 都已不成立**，属确认的 owner-doc 漂移（Minimum Rule 14 不降级）。
 
+**改准一 · 工作项 7 有一条绑定门禁。** `tests/gates/test_seed_dataset_absurdity.py` **存在**，
+**6 条**（确定性 ×2 / 1,010 米 · ¥6,450 精确值 / 积压对规则可见 / 不含图片 / 无第三方权利），
+**2026-08-21 由人补齐**，实跑全绿，且**从未进过** `tools/gates/expected-red.txt`。
+它是 **L1**，断的是**生成器**（`:23-24` 自带 `1010.0` / `6450.0` 两个常量副本，
+刻意不从 `agenerp.seed.model` 取数）。因此 mission 规则「判据先行」对工作项 7 **是满足的**。
+**但站点侧那一半仍然没有门禁**：`docs/backlog/gate-proposal-seed-dataset.md` 拟的三条 **L2** 断言
+至今是提案文本，`Status: proposed`，采纳者是人（`Gates-Change-Approved-By:`）。
+**不得把本段读成「工作项 7 站点侧已有门禁」——那是假的。**
+
+**改准二 · 红线 1 挡的是「站点侧断言**作为一条门禁**」，不是装载器。**
+装载器落在 `agenerp/seedsite.py`（见 §12.9），**红线 1 不挡它**——2026-08-22 它已经落地并在活站点上跑通。
+被挡着的只有「把站点侧断言写成 `tests/gates/**` 下的一条测试」这一件事，**那一半仍需人批，这一半没有变**。
+
+工作项 7 收尾时仍置 `planned` 而非 `done`，**但理由不是「没有门禁」**：`done` 的定义要求
+「对应门禁测试已转绿**并从预期红名单划掉**」，而那条 L1 门禁**从未进过名单**，
+「划掉」这个动作没有对象，定义在字面上不可满足 —— 与工作项 4 / 9 同一情形。
+该缺口登记在 `docs/backlog/needs-human-expected-red-handoff.md` 与
+`docs/masterplan/STATE.md` 的 needs-human 队列，**由人裁定**。
 ### 12.8 已知漂移
 
 - ~~「¥6,450 与 1,010 米单价对不上」~~ —— §12.1 已对账关闭，不是漂移。
@@ -861,3 +908,90 @@ Custom Field 不删列，所以此前每跑一轮就留一条孤儿列——清�
   引用时容易再次被读成「均价 6.39」。本节即为那两处的解释落点。
 - 站点的存货计价方法（FIFO）是**从两个实测数反推出来的**，证据仓里没有一行直接写着 `valuation_method`。
   §12.1 给了可证伪的对照（均价口径应得 ¥5,757），但这仍是推断而非直证。
+
+### 12.9 主数据装载在本仓的落点（工作项 7 的 B 半第一段，2026-08-22）
+
+plan `docs/plans/p0-foundation/2026-08-22-2107-1-seed-site-write-surface-and-masters.md`。
+§12.1–§12.7 讲的是**纯内存/落盘的数据集**（A 半）；本节讲的是**把它装进活站点**的那一段。
+
+**模块归属：装载器在 `agenerp/seedsite.py`，不在 `agenerp/seed/` 内。**
+理由不是风格：§12 逐字规定 `agenerp.seed`「零第三方依赖，纯标准库，**不读时钟、不读环境、不联网**」，
+而装载器必然读环境（站点凭据）并联网。把它放进那个包等于把一条**好的、且被 31 条单测依赖的**
+不变量改松。取舍是「多一个同级单文件模块」（先例：`agenerp/oob.py`）换「生成路径保持纯净」。
+**`agenerp/seed/**` 在这一段落地时一个字节未改**，只被只读引用。
+
+**依赖顺序（写死在 `plan_steps()` 里，纯函数，可被单测直接判）**，共 40 步：
+
+`Warehouse Type` → `Company` → `Account`(11) → `Warehouse`(4) → `Item Group`(4) → `UOM`(3) →
+**`Workstation`(1) → `Operation`(3)** → `Item`(3) → 客商分组(6) → `Customer`/`Supplier` → `BOM`。
+
+- **`Workstation` / `Operation` 不可省、不可后置**：`masters.bom()` 的 `operations` 三行的
+  `operation` 是 Link 到 `Operation` DocType，缺它 `POST /api/resource/BOM` 回
+  `417 LinkValidationError`，CLI 会按「失败即停」退非 0。
+- **`Warehouse Type: Transit` 必须在 `Company` 之前**：2026-08-22 实测，缺它建公司直接
+  `417 LinkValidationError: Could not find Warehouse Type: Transit`。
+- **⚠️ 本仓的站点没跑过 setup wizard**（建站命令只有 `bench new-site --install-app erpnext`）。
+  实测冷起后 `UOM` / `Item Group` / `Customer Group` / `Territory` / `Supplier Group` / `Fiscal Year`
+  **全部 0 行**，只有 `Currency`(149) / `Country`(250) / `Domain`(2) 有行。
+  上面那些 fixture 因此**由装载器自己补**，名字**照抄 ERPNext 的标准 fixture 名**，不自造。
+- **建 `Company` 会让站点自己生成 82 条英文科目 + 5 个仓库 + 2 个成本中心**，
+  与 `model.py` 的 11 个中文科目**零重合** —— 那 11 条必须补建，挂在站点生成的组节点下。
+
+**幂等口径：`SiteClient.ensure_doc` 先查后建、只建不改。**
+判据是**第二跑「新建 0」**，不是「没报错」（实测：第一跑 `新建 40 / 已存在 0`，
+原样第二跑 `新建 0 / 已存在 40`，两次退出码均 0）。
+**代价照实说**：站点上已存在但字段不对的对象**不会被纠正，也不会报错**。
+取这一侧的理由是「少写」比「悄悄改写站点」安全；漏网的字段错误会由第二个 plan 的站点侧对账
+表现成「站点自己算出的数对不上」，不会静默通过。**重开事件**：第二个 plan 的对账因主数据字段不符而红时，
+应补一条显式的「已存在但不符即报错」，而不是悄悄改写站点。
+
+**装载器自有的纯结构字段清单（不参与任何断言）**：
+
+| 类别 | 值 |
+|---|---|
+| 公司结构 | `ABBR = "XM"` · `default_currency = "CNY"` · `country = "China"` · `create_chart_of_accounts_based_on = "Standard Template"` · `chart_of_accounts = "Standard"` |
+| 科目结构 | `ACCOUNT_SHAPE`：11 组 `(root_type, account_type, parent_account)`，父节点全部是站点自己生成的组节点（`Stock Assets - XM` 等） |
+| 站点生成的树根 | `All Warehouses - XM` · `Stock Assets/Expenses/Liabilities - XM` · `Accounts Payable/Receivable - XM` · `Direct Income - XM` |
+| setup wizard 前置 fixture | `Warehouse Type: Transit` · `Item Group: All Item Groups` · `Customer Group: All Customer Groups` / `Commercial` · `Territory: All Territories` / `Rest Of The World` · `Supplier Group: All Supplier Groups` / `Local` |
+| 工位 | `Workstation: XM 织造机台`（`hour_rate_labour` 取 `model.WORKSTATION_HOUR_RATE`；⚠️ **直接给 `hour_rate` 会被站点算掉回 0.0**，它是几个分项之和的派生量） |
+
+**参与断言的数值一律从 `agenerp.seed` 取，装载器里不得出现第二份**：
+`M.COMPANY` / `M.CUSTOMER` / `M.SUPPLIER` / `M.WH_*` / `M.ACC_*` / `M.WAREHOUSE_ACCOUNT` /
+`M.WORKSTATION_HOUR_RATE` / `masters.items()` / `masters.bom()` / `names.BOM`。
+**这条边界靠人读，没有机械判据**；缓解是第二个 plan 的对账会把「结构字段填错」表现成数对不上。
+
+**命名隔离**：装载器写进站点的对象名沿用 `model.py` 已有的 `XM` 前缀常量，**不新造命名规则**。
+隔离是否成立**由「装载前后各跑一次整目录 live 判定」判出来**，不靠声明：
+两次均 exit 0 且逐字 `门禁 19 项：红 0，绿 19，跳过 0`。
+
+**⚠️ 装了就留在站点上：没有代码级 teardown。**
+装载器**只建不删**，`agenerp/site.py` 也**不提供**「删任意 DocType 文档」的通用方法
+（那等于把业务数据交出去）。复位手段只有两条，都是**手工**的：
+① `AGENERP_HTTP_PORT=18080 docker compose -f docker-compose.yml down -v` 冷起（丢整站数据，实测 59.6 秒）；
+② 事前 `docker compose exec -T backend bench --site frontend backup`，事后由**人**手工
+`bench --site frontend restore <path>`（`restore` **不在** `agenerp/oob.py` 的 `ALLOWED_CALLS` 内，
+放宽带外执行面是另一条已登记的人裁定题）。
+**这是本节的一条真代价，不粉饰**：门禁一旦开始依赖「站点上没有种子数据」这个前提，
+或人要求把种子站点做成可反复重置的 fixture，就得回来补 teardown。
+
+**两处不粉饰的实测结果**：
+
+- **BOM 的 `raw_material_cost = 0.0`**：BOM 默认 `rm_cost_as_per = "Valuation Rate"`，
+  装完主数据时站点尚无库存故为 0。`model.INHOUSE_VALUE = 5000.0` 里
+  `120 × 35 = 4200` 那一半**要等第二个 plan 装完期初库存后由站点自己算出来**。
+  ⚠️ 试过 `rm_cost_as_per: "Manual"` —— ERPNext **v15.119.3 直接 500**
+  （`UnboundLocalError: cannot access local variable 'rate'`，`_exc_source: erpnext`）。
+  **上游缺陷，不绕它。** 工序成本那一半是对的：`400 + 240 + 160 = 800.0`，
+  与 `model.OPERATION_MINUTES / 60 * WORKSTATION_HOUR_RATE` 逐字相等。
+- **`model.ACC_OPERATING` 在活站点上永远命不中**：它逐字是 `生产费用（计入估值）- XM`，
+  **`- XM` 前少一个空格**，而 ERPNext 的 `Account.autoname` 走 `" - ".join(...)`，
+  只可能产出 `生产费用（计入估值） - XM`。装载器**报告不静默**（打印告警行并指向 bug note），
+  但**不因此退非 0**（科目建成功了，这不是装载失败）。缺陷登记在
+  `docs/bugs/01-acc-operating-constant-can-never-match-a-live-account-name.md`；
+  **本次不修**，因为落点在 `agenerp/seed/**`，被该 plan 的 Closure Gate 挡住。
+
+**本段交付的行为没有属于自己的门禁。** 站点侧那三条 **L2** 断言仍是提案文本
+（`docs/backlog/gate-proposal-seed-dataset.md`，`Status: proposed`，采纳者是人）。
+代偿控制沿用 §12.7 已写死的那一套：CLI 退出码 + `tests/unit` 单测 + 变异验证 + 独立关闭审计。
+**验证范围 scoped**：`python3 -m agenerp.seedsite --load-masters --site frontend` **不在**
+`missions/p0-foundation.json` 的 `commands.test` 里，`GATE_VERIFY` 复跑不到它。

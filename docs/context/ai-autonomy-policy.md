@@ -71,7 +71,8 @@ If this table still contains placeholders, AI must treat payment, auth/permissio
 本项目此刻**没有**支付面，也没有自有认证/权限面（权限由 Frappe / ERPNext 宿主承担）。
 下表前八条全部照抄 `AGENTS.md` 的红线表——**此处不新增、不放宽任何一条**；
 「对活站点的破坏性写」那一行是 2026-08-21 新增的**加严**行（本仓第一次出现对活站点的破坏性写实现面，见其 Required Evidence）；
-最后一行「门禁判定器本体」是 2026-08-22 新增的**加严**行（见表下说明）。
+「门禁判定器本体」是 2026-08-22 新增的**加严**行（见表下说明）；
+最后一行「对活站点的**非破坏性写**（建 / 改）」是 2026-08-22 新增的**加严**行（见表下说明）。
 
 | Area | Rule | Required Evidence |
 | --- | --- | --- |
@@ -86,6 +87,7 @@ If this table still contains placeholders, AI must treat payment, auth/permissio
 | `missions/*.json` | blocked | 角色 B 禁区（`docs/masterplan/01-EXECUTION-MODEL.md` §1 禁止项 ③），由人编辑 |
 | 对活站点的破坏性写（删除 Custom Field：`agenerp/site.py` · `SiteClient.delete_custom_field`、`agenerp/apply.py` · `execute_plan` 的删除路径；**直发物理 DDL**：`agenerp/oob.py` · `drop_columns`（`ALTER TABLE … DROP COLUMN`，经 `agenerp/apply.py` · `drop_orphan_columns` 挂在同一条调用链上）） | plan-first | 独立草案评审 + 独立关闭审计 + **实跑前后全量 `capture` 对照**（差集必须只含本次探针）+ **对「删错了能不能回来」说话的一条**：动 `agenerp/oob.py` · `drop_columns` 这条**不可逆**路径的 plan，必须在 plan 里逐字写明本次改动之后**站点侧回滚仍然只能手工做**（含手工前置动作的原文命令），或写明它交付了什么代码级前置/取证并给出实跑证据；**两者取其一，不许略过不谈**。2026-08-21 由 plan `2026-08-21-1922-3-execute-plan-site-delete.md` 补行——该 plan 落地前本表此行不存在，本行是**加严**（此前默认 `implement`）。**2026-08-22 由 plan `2026-08-22-1041-1-destructive-write-owner-doc-alignment.md` 就地加严第二次**：落点列表点名 `drop_columns`，Required Evidence 增上面那一条，旧的三条**逐字未动** |
 | `tools/gates/check_expected_red.py`（**门禁判定器本体**） | plan-first | 独立草案评审 + 独立关闭审计 + **「默认判定环境输出逐字节不变」的前后两次实跑** + **判定器自身的变异验证**（改坏它必须让 `tests/unit` 红）。2026-08-22 由 plan `2026-08-22-0027-1-live-mode-gate-verdict.md` 补行，本行是**加严**（此前默认 `implement`）。**边界：本行只覆盖 `check_expected_red.py`，不覆盖 `tools/gates/expected-red.txt`** —— 账本允许在同一提交里划短，出处是 `AGENTS.md` 红线 1 的「边界」句（「预期红名单 `tools/gates/expected-red.txt` 不在此列——它是账本不是裁判，测试转绿时应当在同一提交里划掉对应行（只能变短）」）与本表第 2 行（`allowed（只能变短）`，名单**变长**才需 `Gates-Change-Approved-By:`，服务端控制是 `expected-red-ratchet` job）。把账本圈进守卫会让每一次合法的划短在 CI 上失败 |
+| 对活站点的**非破坏性写**（建 / 改）（`agenerp/site.py` · `SiteClient.create_doc` / `SiteClient.ensure_doc`；`agenerp/seedsite.py` 的主数据装载路径 —— 目前是这两个写方法的**唯一调用方**） | plan-first | 独立草案评审 + 独立关闭审计 + **一条对可逆性说话的**：动这条路径的 plan 必须逐字写明**本次改动之后站点侧回滚是否仍然只能手工做**（是则连手工命令原文一起写；否则写它交付了什么代码级 teardown 并给出实跑证据），**不许略过不谈**。2026-08-22 由 plan `2026-08-22-2107-1-seed-site-write-surface-and-masters.md` 补行——该 plan 落地前本表没有任何一行覆盖「建」，本行是**加严**（此前默认 `implement`） |
 
 **2026-08-22 · 「对活站点的破坏性写」那一行为什么被加严第二次（Decision，照实记，不粉饰）**：
 
@@ -136,8 +138,37 @@ If this table still contains placeholders, AI must treat payment, auth/permissio
 **不夸大本行**：它列的 Required Evidence 恰好就是补行那个 plan 自己已经在做的事，
 因此它对**那一次**改动没有增量约束，只对**将来的会话**有约束。
 
+**2026-08-22 · 为什么要新增「对活站点的非破坏性写（建 / 改）」这一行（Decision，照实记，不粉饰）**：
+
+**这不是把旧行改宽，是补一个此前字面上不存在的区域。** 上面那一行的标题逐字是「对活站点的**破坏性写**」，
+落点也全是删除与 DDL。**「建」不在它的字面内**——2026-08-22 之前本仓对活站点根本没有「建」的实现面，
+所以此前默认落在 `implement`（无需 plan、无需证据）。plan `2026-08-22-2107-1` 第一次交付了
+`SiteClient.create_doc` / `SiteClient.ensure_doc` 与 `agenerp/seedsite.py` 的主数据装载路径，
+靠读者「从破坏性写那一行推断建也受约束」等于没有约束，因此补一行。
+
+**候选与否决理由**（三选一，取 (c)）：
+
+| 候选 | 说明 | 结论 |
+|---|---|---|
+| **(a)** 不补行，靠现有「破坏性写」那一行覆盖 | 标题逐字是「破坏性」，靠推断 | 否决 |
+| **(b)** 补行并定级 `blocked` | AI 不得对活站点建任何文档 | 否决：会让补行的那个 plan 自身无法执行，且会阻断 P1/P2 全部站点侧工作 |
+| **(c)** 补行并定级 `plan-first`，Required Evidence 三条 | 加严一档，且不制造死锁 | **取此** |
+
+**加严的两件具体事**：① **区域本身**——「建 / 改」从 `implement` 提到 `plan-first`，此后动它必须先有 plan；
+② **一条对可逆性说话的证据**——因为「建」这条路径**在代码侧同样零 teardown**：
+`agenerp/seedsite.py` 装进站点的对象**删不掉**，复位手段只有 `docker compose down -v` 冷起
+（丢整站数据）或事前 `bench backup` + **人工** `restore`。这条代价写在
+`docs/architecture/module-boundaries.md` §12.9，**不由本行假装解决**。
+
+**残余风险（沿用本表上面两段的同一措辞，不发明新说法）**：
+**文档级约束对拿着 shell 的执行器没有强制力**，真正的强制力在 CI 侧守卫。
+本行落地时，「建」这条路径在 CI 侧**没有**对应守卫；代码侧唯一有牙齿的那道是
+`tests/unit/test_site_client.py` 的 `WRITE_METHOD_ALLOWLIST`（登记式，不是禁止式），
+它只保证「新增写方法必须留痕」，**不保证写的是什么**。**本行不假装已经把这件事解决了。**
+
 支付、认证/权限：`none`（本项目当前无自有实现面）。将来出现时，先在本表补行再动手。
 **数据删除**：不再是 `none` —— 2026-08-21 起本仓有了自有实现面（上表最后一行）。它删的是**结构定制**（Custom Field），不是业务数据；业务数据删除面仍为 `none`。
+**数据创建**：不再是 `none` —— 2026-08-22 起本仓有了自有实现面（上表最后一行）。它建的是**业务主数据**（公司 / 科目 / 仓库 / 物料 / BOM 等），**唯一调用方是 `agenerp/seedsite.py` 的种子装载路径**；业务**单据**创建面仍为 `none`。
 
 Protected-area rule meanings:
 

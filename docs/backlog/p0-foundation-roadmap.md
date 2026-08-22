@@ -41,6 +41,23 @@ P0 的目标一句话：**把「可验证」做出来。这一阶段不引入任
 >   —— 巡检（`agenerp/oob.py` + `schema_drift`）与清除（apply 后不留残列）两半，该文件四条在 live 下全绿；
 >   工作项 6 仍停在 `planned`（不划 `expected-red.txt`，见「6 现状」行）。
 
+> **2026-08-22 追加 · 工作项 7 的 B 半被拆成两个 plan，工作项 7 因此共有 3 个 plan（这偏离了本文件「一个工作项 = 1–2 个 plan」那条启发式，照实登记，不粉饰）**：
+> · A 半（已执行，2026-08-21）：[`2026-08-21-1634-1-seed-dataset-deterministic.md`](../plans/p0-foundation/2026-08-21-1634-1-seed-dataset-deterministic.md)
+> · B 半第一段（**1 / 2**）：[`2026-08-22-2107-1-seed-site-write-surface-and-masters.md`](../plans/p0-foundation/2026-08-22-2107-1-seed-site-write-surface-and-masters.md)
+>   —— `SiteClient` 的写入面（`create_doc` / `find_one` / `ensure_doc`）+ 主数据在活站点上装得出来。
+> · B 半第二段（**2 / 2**）：[`2026-08-22-2107-2-seed-documents-site-computed-backlog.md`](../plans/p0-foundation/2026-08-22-2107-2-seed-documents-site-computed-backlog.md)
+>   —— 业务单据段与站点侧对账（站点自己算出 1,010 米 / ¥6,450）。
+> **拆法依据**：B 半含两个互不相同的结果面——「主数据装得进去」与「站点自己算出 1,010 米 / ¥6,450」；
+> 后者的判据依赖前者**已经关闭**（否则每次单据实验都要连带怀疑主数据是不是装错了）。
+> 合成一个 plan 会让 `docs/plans/00-plan-authoring-and-execution-guide.md` 的 Minimum Rule 4
+> 「One plan, one result surface」失效，且单一 plan 的关闭判据会同时挂着两组互不相干的证据。
+> **规则冲突时选 Minimum Rule 4**：它是 plan 指南的最小规则，而「1–2 个 plan」是本文件的启发式，
+> 其原文自己指的路是「超过两个说明工作项拆得不够细，**回来改这张表**」。
+> **这里选的是「登记偏离」而不是「改这张表」**——新增工作项行会改变引擎的选取输入
+> （引擎取工作项状态块里第一个 `todo`），代价超出这两个 plan 的结果面。
+> 工作项 7 在这两个 plan 关闭后**仍停在 `planned`**（`done` 的卡点见「7 现状」与
+> [`needs-human-expected-red-handoff.md`](./needs-human-expected-red-handoff.md)）。
+
 ## Status values
 
 | Status | Meaning |
@@ -90,8 +107,10 @@ P0 的目标一句话：**把「可验证」做出来。这一阶段不引入任
   门禁的红因因此从 `ModuleNotFoundError` 变成 `NotImplementedError`——**没有任何一条门禁因此转绿**，
   下面 8 个工作项的状态一项未动。
 - 没有 `docker-compose.yml`，没有活站点，`live_site` / `pack_repo` / `compose_stack` 三个 fixture 都还抛 `NotImplementedError`
-- 工作项 7（种子数据）**仍然没有门禁测试**。2026-08-21 由 plan [`2026-08-21-1634-1-seed-dataset-deterministic.md`](../plans/p0-foundation/2026-08-21-1634-1-seed-dataset-deterministic.md) 交付了 A 半（`agenerp.seed` 确定性生成器 + 自验 CLI + 31 条单测），**A/B 切分的责任在那个 plan 自己**：B 半要 `live_site`，该 fixture 在 `tests/gates/conftest.py`（红线 1）。
-  因此工作项 7 置 `planned` 而非 `done`——roadmap 对 `done` 的定义是「对应门禁测试已转绿并从预期红名单划掉」，而它压根没有门禁测试，这个定义在字面上不可满足。门禁提案已写在红线外（[`gate-proposal-seed-dataset.md`](./gate-proposal-seed-dataset.md)），判据缺口已登记进 `docs/masterplan/STATE.md` 的 needs-human 队列，等人从三个处置项里选。
+- 工作项 7（种子数据）：**⚠️ 本条 2026-08-22 就地改准（plan `2026-08-22-2107-1`）。改准前逐字是「仍然没有门禁测试」，那句话已经被同一份文件第 65 行的对照表自我推翻**（`| 7 |` 一格写着「`test_seed_dataset_absurdity.py`（6 条）—— **2026-08-21 由人补齐**……实跑全绿」）。
+  **事实**：工作项 7 **有**一条绑定门禁 `tests/gates/test_seed_dataset_absurdity.py`（6 条，L1，断的是**生成器**，从未进过 `tools/gates/expected-red.txt`），mission 规则「判据先行」对它**已满足**。**但站点侧那一半仍然没有门禁**：提案的三条 L2 断言至今是提案文本（[`gate-proposal-seed-dataset.md`](./gate-proposal-seed-dataset.md)，`Status: proposed`，采纳者是人）。**不得读成「工作项 7 站点侧已有门禁」。**
+  A 半（`agenerp.seed` 确定性生成器 + 自验 CLI + 31 条单测）2026-08-21 由 plan [`2026-08-21-1634-1-seed-dataset-deterministic.md`](../plans/p0-foundation/2026-08-21-1634-1-seed-dataset-deterministic.md) 交付；**B 半的第一段（站点写入面 + 主数据装载）2026-08-22 由 plan [`2026-08-22-2107-1-seed-site-write-surface-and-masters.md`](../plans/p0-foundation/2026-08-22-2107-1-seed-site-write-surface-and-masters.md) 交付**（`agenerp/seedsite.py`，从冷起的空站点连跑两次幂等），单据段与站点侧对账归本批第二个 plan。**「B 半要 `live_site`、被红线 1 挡着」这个旧说法也不再准确**：红线 1 挡的只是「站点侧断言**作为一条门禁**」，装载器在 `agenerp/**`，红线 1 不挡它。
+  工作项 7 **仍**置 `planned` 而非 `done`，**但理由不是「没有门禁」**：`done` 的定义要求「对应门禁测试已转绿**并从预期红名单划掉**」，而那条 L1 门禁**从未进过名单**，「划掉」这个动作没有对象，定义在字面上不可满足——与工作项 4 / 9 同一情形。该缺口登记在 [`needs-human-expected-red-handoff.md`](./needs-human-expected-red-handoff.md) 与 `docs/masterplan/STATE.md` 的 needs-human 队列，等人裁定。
 
 ## 本 mission 的规则
 
