@@ -504,25 +504,25 @@ iteration 2 评审要求入库的 durable 证据
 
 ## Closure Gates
 
-- [ ] in-scope behavior is complete（D1 加严 + D2/D3/D4 三处改准 + backlog 条目 + roadmap 追加，五件事全落地）
-- [ ] relevant docs are aligned：`ai-autonomy-policy.md` · `module-boundaries.md` §11.7 ·
+- [x] in-scope behavior is complete（D1 加严 + D2/D3/D4 三处改准 + backlog 条目 + roadmap 追加，五件事全落地）
+- [x] relevant docs are aligned：`ai-autonomy-policy.md` · `module-boundaries.md` §11.7 ·
       `project-context.md` · `docs/backlog/`（新条目 + roadmap 两行）
-- [ ] verification has run：`ruff check agenerp tests/unit tests/contracts` ·
+- [x] verification has run：`ruff check agenerp tests/unit tests/contracts` ·
       `python3 -m pytest tests/unit -q` · `python3 -m pytest tests/contracts -q` ·
       `python3 tools/gates/check_expected_red.py`（四条命令原文与退出码记在 Phase 4）
-- [ ] **verification scope limited** —— 本仓无全量套件（无 build、无 typecheck，见 `project-context.md`），
+- [x] **verification scope limited** —— 本仓无全量套件（无 build、无 typecheck，见 `project-context.md`），
       且本 plan **不跑 L2 / 不起 docker 栈 / 不连活站点**；关闭记录必须逐字写明这一句，不得报成 full green
-- [ ] **CI 未跑，且本 plan 明示不跑**（零 CI 消耗，含不 `git push` `main`）；这一点写进关闭记录，
+- [x] **CI 未跑，且本 plan 明示不跑**（零 CI 消耗，含不 `git push` `main`）；这一点写进关闭记录，
       不得被读成「CI 已验证」
-- [ ] no in-scope item downgraded to deferred/follow-up
-- [ ] independent draft review completed and recorded（**两轮**：前一稿的 needs revision + 本稿的评审）
-- [ ] text consistency verified: status, phases, gates, and log all agree。
+- [x] no in-scope item downgraded to deferred/follow-up
+- [x] independent draft review completed and recorded（**两轮**：前一稿的 needs revision + 本稿的评审）
+- [x] text consistency verified: status, phases, gates, and log all agree。
       判据命令**必须行首锚定**：`grep -B5 '^- \[ \]' <本文件> | grep '^Status: completed'` → **无输出**。
       ⚠️ 指南 Minimum Rule 12 给的裸形态（不锚定）在本文件上**恒不可满足**——本行自己引的这条命令
       就是文件里的一段文本，裸 `grep` 会把它当命中。实测过，因此这里锚定行首，不是放宽判据
-- [ ] closure audit was independent（执行器自勾即自审，不算）
-- [ ] closure evidence exists in files
-- [ ] 红线自查通过：Phase 4 那条以 `4ac3517` 为基线的 `git diff --name-only` 无输出（**含 `agenerp`**）
+- [x] closure audit was independent（执行器自勾即自审，不算）
+- [x] closure evidence exists in files
+- [x] 红线自查通过：Phase 4 那条以 `4ac3517` 为基线的 `git diff --name-only` 无输出（**含 `agenerp`**）
 
 ## Deferred But Adjudicated
 
@@ -578,14 +578,74 @@ roadmap「5 现状」/「6 现状」行内追加（`planned` 一个字未改）�
 **CI 未跑，且本 plan 明示不跑**（零 CI 消耗，全程零 `git push` 含 `main`；`git ls-remote origin main` 仍是
 `508c75b`，与开工时逐字节相同）—— **这一点不得被读成「CI 已验证」。**
 
-**下面的 Closure Gates 十二框与 Closure Audit Evidence 由独立 `CLOSURE_VERIFY` 步回填，执行器不自勾**
-（`AGENTS.md` 裁判规则：执行器自勾即自审，不算）。
+**上面的 Closure Gates 十一框（本节此前写「十二框」，实际是 11 条，本次按实际条数照实改准）
+由独立 `CLOSURE_VERIFY` 步回填，执行器未自勾**（`AGENTS.md` 裁判规则：执行器自勾即自审，不算）。
 
 Closure Audit Evidence:
 
-- Auditor / Agent: <独立 `CLOSURE_VERIFY` 步或独立子代理，非本 plan 的执行器会话>
-- Evidence: <待回填：自己复跑的四条命令与退出码 · 四处改准的逐行核对 · 红线自查 · 五点一致性>
+- Auditor / Agent: 独立关闭审计步 MISSION_DRIVER `2026-08-22-112156-mission-driver`，fresh session，
+  非本 plan 的执行器会话。审计基线为**关闭时的 HEAD `70e67ad`**（执行器的三个交付提交
+  `e91f56e` · `9ed1d41` · `3b9fc9b` + 置 `completed` 的 `70e67ad`），全部命令由审计方自己复跑，
+  不采信 plan 内已记录的任何输出。
+- Evidence · 四条基线命令自行复跑（命令原文 + 退出码 + 输出尾行）：
+  `ruff check agenerp tests/unit tests/contracts` → **exit 0**，`All checks passed!` ·
+  `python3 -m pytest tests/unit -q` → **exit 0**，`221 passed` ·
+  `python3 -m pytest tests/contracts -q` → **exit 0**，`151 passed` ·
+  `python3 tools/gates/check_expected_red.py` → **exit 0**，
+  `门禁 19 项：预期红 7，绿 12，跳过 0` / `✅ 与预期红名单完全一致`。
+  四条与 `## Current Baseline` 逐字一致（221 / 151 / 判定行不变）。
+- Evidence · 红线自查自行复跑：
+  `git diff --name-only 4ac3517 HEAD -- tests/gates .github/workflows missions docs/masterplan/DECISIONS.md tools/gates/expected-red.txt tools/gates/check_expected_red.py agenerp`
+  → **无输出**；`git status --porcelain` → **无输出**；
+  `git diff --name-only 4ac3517 HEAD` → **8 个文件，全部在 `docs/**` 下**（与 Phase 4 记录的清单逐字相同）。
+- Evidence · 交付面逐条对着**活仓**核验（不采信 `[x]`）：
+  ① `sed -n '574,582p' docs/architecture/module-boundaries.md | grep -n "只有读方法\|未做"` → **exit 1，无输出**；
+  ② `sed -n '577p'` 状态格实为「已实现（读方法 + **一条**写方法 `delete_custom_field`…）」（D2 已改准）；
+  ③ `sed -n '581p'` 状态格实为「已实现（判据 `tests/unit/test_site_client.py` 的 `WRITE_METHOD_ALLOWLIST`）」
+  且行内含「从 2026-08-21 起就是假的」「改准一句假陈述，不是新增一项」（D3 已改准，未粉饰）；
+  ④ `grep -n "已实现（B 半）" docs/architecture/module-boundaries.md` → 仍命中 `:334`–`:338`，§11.6 未被顺手改动；
+  ⑤ `sed -n '60p' docs/context/project-context.md` 中 `bench --site frontend backup` → **1 次命中**、
+  `apply_pack` → **1 次命中**；用 `git show 4ac3517:` 取旧行程序化比对：**旧行（去行尾 `|`）逐字节是新行前缀**
+  （804 → 1525 字符，纯追加，D4 原句未删未弱化）；
+  ⑥ `grep -n "drop_columns" docs/context/ai-autonomy-policy.md` → 命中 `:87`（落点行）与 `:93`/`:94`/`:107`/`:120`（Decision 说明段）；
+  ⑦ **D1「只加严不放宽」的行内三格由审计方独立程序化比对**（旧行取自
+  `git show 4ac3517:docs/context/ai-autonomy-policy.md | sed -n '87p'`，按 `|` 切格）：
+  **Rule 格** 旧 `plan-first` == 新 `plan-first`，逐字节相同；
+  **Required Evidence 格** 旧的三条（`独立草案评审` / `独立关闭审计` / `实跑前后全量 capture 对照` +
+  `差集必须只含本次探针`）与 `1922-3` 补行自述**逐字全部仍在**，只增一条——
+  需注意旧格**不是新格的连续子串**（新增那条插在补行自述之前），所以判据是「逐条片段仍在」的超集判定，
+  不是子串判定，plan 内「逐字全部仍在，只增了一条」的表述与实测相符；
+  **Area 格** 旧点名的两处逐字仍在，新增 `agenerp/oob.py` · `drop_columns`，只增不减；
+  ⑧ `docs/context/ai-autonomy-policy.md` 表下说明段内含候选 (a)/(b)/(c) 三行表、否决 (b)/(c) 的理由
+  （锁死会让绿着的门禁 `test_customization_roundtrip_delete.py::test_no_orphan_column_left_behind`
+  的实现面进入不可维护状态）、残余风险（文档级约束对拿着 shell 的执行器没有强制力 + 代码侧仍零备份零取证）
+  —— Decision 三要素确实落在**该文件本身**，不是只落在 plan 里；
+  ⑨ `docs/backlog/irreversible-ddl-has-no-code-level-precondition.md` 存在（**8865 字节**），
+  `grep -c "触发条件"` → **1**；
+  ⑩ `grep -n "1041-1" docs/backlog/p0-foundation-roadmap.md` → `:62`（5 现状）与 `:64`（6 现状）各一处；
+  程序化比对确认**两行旧内容均为新内容前缀**（3720→4787 / 4110→5177 字符，纯追加），
+  且「保持 `planned`」在新旧两侧**都在**，状态词未被动过。
+- Evidence · 零 CI 消耗自行取证：`git rev-parse origin/main` → `508c75b0c8a0b2af30285d293b5ab694922d3eaa`，
+  与 Phase 4 记录的 `git ls-remote origin main` 值**逐字节相同**，`origin/main` 仍停在开工时那个 sha；
+  `git rev-list --count origin/main..main` → **9**（开工 5 + 交付 3 + 置 `completed` 的 `70e67ad` 1 个；
+  Phase 4 当时记的是 8，差的正是其后那一个 `docs/**` 提交，**没有任何提交被推走**）。
+  `.github/workflows/gates.yml` 的 `push: branches: [main]` 本轮未被触发。
+- Evidence · Anti-Hollow：本 plan 的结果面是 owner-doc 与 backlog 文本，`agenerp/**` 与 `tests/**`
+  **一行未改**（上面的红线 pathspec 含 `agenerp`，无输出），因此不存在「新代码未接线」这一类空壳风险；
+  **代码侧零备份零取证这条真实缺口没有被藏进 Deferred**——它在 `ai-autonomy-policy.md` 说明段、
+  `project-context.md:60`、backlog 新条目、roadmap 两行**四处都逐字写着「本轮不实现、交人裁定」**。
+- Evidence · 五点一致性：`Plan Status: completed`（`:3`）· 四个 Phase `Status: completed` ·
+  四个 Phase 的 Exit Criteria 全部 `[x]` · Closure Gates 11 框全部 `[x]`（本次由审计方回填）·
+  `docs/logs/2026/08-22.md` 内 `1041-1` 条目覆盖 **Phase 1/2/3/4 四个阶段**（`:88` / `:61` / `:27` / `:3`）
+  —— 五处互不矛盾。行首锚定判据 `grep -B5 '^- \[ \]' <本文件> | grep '^Status: completed'` → **无输出**；
+  全文 `grep -c "^- \[ \]"` → **0**。
+- Evidence · **verification scope limited（照抄，不改判）**：本仓无全量套件（无 build、无 typecheck），
+  本轮**不跑 L2 / 不起 docker 栈 / 不连活站点 / CI 未跑**。上面四条本机 L1 命令是全部可跑验证，
+  **不得读成「CI 已验证」或 full green**。
 
 Follow-up:
 
-- <待回填；确认的缺陷不得出现在这里>
+- 本文件 `## Closure` 原写「Closure Gates 十二框」，实际是 11 条；已在本次关闭审计中照实改准为十一框。
+  非缺陷，记录在此以免后续会话按「十二」去对账。
+- `docs/backlog/irreversible-ddl-has-no-code-level-precondition.md` 等人裁定；其重开事件已写在
+  `## Deferred But Adjudicated` 第一条，本 plan 不代人选。
