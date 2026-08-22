@@ -371,6 +371,44 @@ Skill: `none`
       「Phase 3 全部 Exit Criteria」—— 那是一个自锁**，与初稿把保命闸放进 Phase 1 是同一类错误。已拆开。
       - Skill: `none`
 
+#### Phase 3 本机前置自查与四条预测（**本块在推任何变异之前写死并单独提交**，commit `66736cf` 之后、变异 push 之前）
+
+**实验 ① 的确切变异点（不留「某一处」）**：`agenerp/contracts.py:225` 的
+`def _validate_returns(contract: ToolContract) -> list[str]:` 函数体**第一行插入 `return []`**，
+使该校验退化成 no-op。选它的理由是 `_validate_returns` 只被 `agenerp/contracts.py:289` 的 `validate()` 调用，
+`tests/unit` 里没有任何一个文件断言它的行为（⚠️ 逐字排除 `WRITE_VERBS`：
+`tests/unit/test_schema_drift.py:14` 与 `tests/unit/test_site_client.py:18` 都导入它）。
+
+**实验 ① 的本机三条前置判据（全部满足，实跑）**：
+
+- `python3 -m pytest tests/unit -q` → **exit 0**，`288 passed in 0.92s`
+- `python3 -m pytest tests/contracts -q` → **exit 1**，`6 failed, 145 passed in 0.14s`
+  （逐字含 `FAILED tests/contracts/test_contract_format.py::test_each_malformed_shape_is_rejected[overrides11-returns]`）
+- `python3 tools/gates/check_expected_red.py` → **exit 0**，判定三行逐字节与 Baseline 8 相同
+
+**实验 ③ 的确切变异点（由本机测量决定，不预设）**：`agenerp/snapshot.py:319`–`:323` 的
+`diff()` 里那五行 `changed = tuple(ChangedEntry(*key, …) for key in sorted(old.keys() & new.keys()) if …)`
+**整体替换为 `changed = ()`**，使 diff 永远报不出「改」这一类。
+
+**实验 ③ 的本机三条测量（实跑，CI 预测必须照抄这个结果）**：
+
+- `python3 -m pytest tests/unit -q` → **exit 1**，`4 failed, 284 passed in 0.78s`
+  （逐字含 `FAILED tests/unit/test_snapshot_diff.py::test_changed_attribute_lands_only_in_changed_with_both_values`）
+- `python3 -m pytest tests/contracts -q` → **exit 0**，`151 passed in 0.06s`
+- `python3 tools/gates/check_expected_red.py` → **exit 0**，判定三行逐字节与 Baseline 8 相同
+  → **因此实验 ③ 对 `gates-l1` 的预测照抄本机测量：`gates-l1` 预测 `success`**（不是凭直觉，是照抄）
+
+**四条预测（跑之前写死，跑完只允许在下面另起「实测」段填回，不得改写本段）**：
+
+- **实验 ①**：新 job `unit-and-contracts` → **`failure`**，且**红在步骤 ②「契约测试（tests/contracts）」**，
+  **步骤 ① 绿**；**其余 10 个 job 全部 `success`**。
+- **实验 ②**（`git revert` 实验 ①）：**11 个 job 全部 `success`**。
+- **实验 ③**：新 job → **`failure`**，且**红在步骤 ①「单测（tests/unit）」**（**不是** ②，
+  fail-fast 下步骤 ② 不会跑）；**`gates-l1` 预测 `success`**（照抄本机测量）。
+  ⚠️ **独占性本条不预测也不宣称**：`gates-l2-live` / `gates-l2-seed` 跑活站点，
+  `diff()` 是否在那条链上本 plan 未查证，**实测到什么就记什么**。
+- **实验 ④**（`git revert` 实验 ③）：**11 个 job 全部 `success`**。
+
 **停机线在本 Phase 内的口径（写死，不临场发明）**：`AGENTS.md` 裁判规则 4「CI 连续 2 轮红即停机」生效。
 实验 ① 与 ③ 的红是**本 plan 事先逐字写死的预测**，它们之间隔着必绿的 ② —— 因此不构成「连续 2 轮红」。
 **若任一轮的实测结果与写死的预测不符**（该红的绿了、该绿的红了、红在预测之外的 job 上、
