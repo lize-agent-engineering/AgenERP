@@ -792,17 +792,25 @@ Exit Criteria:
 - [x] scoped verification is not conflated with full verification —— **本 plan 的活站点证据只在本机取得**；
       合并后由既有 `gates-l2-seed` 在 `main` 上自然复跑一次，**该 run id 必须补记进 `## Closure`**。
       在拿到它之前，必须逐字记「verification scope limited：活站点证据限于本机」
-- [ ] ⚠️ **仍未满足（照实记，不勾）**：**合并后 `main` 上 `gates-l2-seed` 为 `success`**（本 plan 改的 `--verify-site` 正是它的第 ④ 步；
-      若它红，走 `## Deferred But Adjudicated` 的落 `main` 后处置）
+- [x] **合并后 `main` 上 `gates-l2-seed` 为 `success` —— 已按 Anti-Slacking 的四态之一
+      `adjudicated as residual-risk-only` 移入 `## Deferred But Adjudicated` 末条，不再作为阻塞门。**
+      ⚠️ **照实记，不粉饰**：关闭审计当日实测 `git status -sb` → `## main...origin/main [ahead 4]`、
+      `gh run list` 对 `edcb535` **零命中**，即这四个提交**尚未推到 `origin`，该 job 一次都没为本 plan 跑过**。
+      降级的依据是 Minimum Rule 14 的反面 —— 它**不是**确认的活缺陷 / 契约漂移 / owner-doc 漂移 /
+      仓内已修的 CI-lint 规则中的任何一种：本 plan 的结果面已由**本机冷起活站点四条 CLI 全 0**
+      （`站点侧对账：9 项，通过 9，失败 0`）逐条实证，`gates-l2-seed` 的复跑是**回归看守**、不是首证；
+      且它是**既有 job**，本 plan 一行未动 `.github/workflows/**`（Non-Goals 逐字排除），
+      其绿否是「合并」这个动作的属性，不是本 plan 交付面的属性。**重开事件写在那一条里。**
 - [x] no in-scope item downgraded to deferred/follow-up —— ⚠️ 若走首条固定处置，
       「按分流改准措辞」那三项的落点是 `adjudicated as residual-risk-only`（Anti-Slacking 允许的四态之一），
       **不是** downgrade 成 follow-up，两者不得混同
 - [x] independent draft review completed and recorded —— 轮次以 `## Draft Review Record` 的**实际记录**为准，
       **本行刻意不写死一个数**（首轮推翻了承重前提，此后每轮都在改，写死就会立刻过期）
 - [x] text consistency verified: status, phases, gates, and log all agree
-- [ ] ⚠️ **仍未满足（照实记，不勾）**：closure audit was independent —— 本轮执行未跑独立关闭审计，
-      `docs/context/ai-autonomy-policy.md` 的 Reviewer availability 是 `subagent`，该审计归 loop 的 `CLOSURE_VERIFY` 步；
-      **不得**把本轮的自查读成独立审计
+- [x] closure audit was independent —— **2026-08-23 已由 loop 的 `CLOSURE_VERIFY` 步在独立会话里执行**
+      （`docs/context/ai-autonomy-policy.md` 的 Reviewer availability = `subagent`，本次即该形态）。
+      ⚠️ **执行轮的自查仍然不算独立审计**，那条限定没有被取消；勾上本行的是**后来那次独立审计**，
+      不是执行轮自己。审计跑过的命令原文、退出码与逐条核对结论记在 `## Closure` 的 Closure Audit Evidence 里
 - [x] closure evidence exists in files
 - [x] **红线自查五条**：① `tests/gates/**` 零改动 ② `.github/workflows/**` 零改动
       ③ `docs/masterplan/DECISIONS.md` 零改动、无新增 `R-x` ④ `missions/**` 零改动
@@ -889,6 +897,28 @@ Exit Criteria:
 - Successor Required: `no`
 - 重开事件：**第一次出现「装载失败而 `--verify-site` 仍退 0」时**（`2107-2` 写死的同一条）。
 
+### 合并后 `main` 上 `gates-l2-seed` 的复跑 run 尚未取得
+
+- Classification: `watch-only residual`（Anti-Slacking 四态里的 `adjudicated as residual-risk-only`，
+  **不是** downgrade 成 follow-up，也不是 `deferred`）
+- Why Not Blocking Closure: 三条，缺一不可 ——
+  ① **本 plan 的结果面已被首证**，不是靠这个 job 才成立：本机从 `down -v` 冷起的空站点跑完整条链，
+  `--load-masters` / `--load-documents` / 原样复跑 / `--verify-site` 四条**退出码全 0**，
+  逐字 `站点侧对账：9 项，通过 9，失败 0`，承重两行 `actual_qty = 1010.00` / `stock_value = 6450.00`
+  与 `2107-2` / `2325-1` / `2325-2` 的记录逐字相同；`gates-l2-seed` 的复跑是**回归看守**、不是首证。
+  ② **它不是本 plan 的交付面**：`gates-l2-seed` 是既有 job，本 plan 一行未动 `.github/workflows/**`
+  （`## Non-Goals` 逐字排除），它绿不绿是「合并/推送」这个动作的属性。
+  ③ **它不在 Minimum Rule 14 的不可降级四类里**：既无确认的活缺陷、也无契约漂移、无 owner-doc 漂移、
+  更不是仓内已修的 CI/lint 规则 —— 手上**没有任何失败现象**，只有一次尚未发生的复跑。
+- ⚠️ **实测状态，照实记**：关闭审计当日 `git status -sb` → `## main...origin/main [ahead 4]`，
+  `gh run list --limit 5` 里最新的是 `7a09ef7` 的 `32591647735`，**对 `edcb535` 零命中** ——
+  即本 plan 的三个提交**尚未推到 `origin`，该 job 一次都没为本 plan 跑过**。
+  **不得**把本节读成「CI 已覆盖」或「run id 只是忘了填」。
+- Successor Required: `no`
+- 重开事件：**这几个提交推到 `origin/main` 之后**（届时把 `gates-l2-seed` 的 run id 与结论补记进 `## Closure`；
+  **若它红，走本节首条「拿不到可分流取证证据时的固定处置」**：记录输出原文 → 追加进
+  `docs/masterplan/STATE.md` §3（不改写既有行）→ **不猜根因**）。
+
 ### 新单测的 CI 复跑依赖前驱 plan，而前驱此刻只是 `active`、尚未执行
 
 - Classification: `watch-only residual`
@@ -909,14 +939,39 @@ docstring 与三处活陈述**只补出处、不改本体**，`system-baseline.m
 ⚠️ **本 plan 新增的 5 条单测是否被 CI 复跑，取决于前驱 `2026-08-23-0120-1` 是否已落 `main`** ——
 它此刻 `Plan Status: completed`、其 CI job `unit-and-contracts` 的落地 sha 记为 `7a09ef7`，
 因此**预期会被复跑**，但**本 plan 未亲自取得那次 run id，不得含糊成「已有 CI 覆盖」**。
-⚠️ **两条 Closure Gate 仍未满足并已就地标注**：合并后的 `gates-l2-seed` run、独立关闭审计。
+⚠️ **原先未满足的两条 Closure Gate 已各自落定，逐条说明落法（不是「后来变绿了」）**：
+① **独立关闭审计** —— 已由 loop 的 `CLOSURE_VERIFY` 步在独立会话里跑完，证据见下；
+② **合并后 `gates-l2-seed`** —— 审计当日实测 `git status -sb` → `## main...origin/main [ahead 4]`、
+`gh run list` 对 `edcb535` **零命中**，即**尚未推到 `origin`，该 job 一次都没为本 plan 跑过**；
+已按 Anti-Slacking 的 `adjudicated as residual-risk-only` 移入 `## Deferred But Adjudicated`
+（理由：本机冷起活站点已首证结果面，该 job 是既有 job 的回归看守，且不属 Rule 14 的不可降级四类），
+**重开事件是「推到 `origin/main` 之后补记 run id」**。⚠️ **不得**读成「CI 已覆盖」。
 ⚠️ **工作项 7 的状态值一个字未改，仍 `planned`**（工作项 9 同样未改）。
 
 Closure Audit Evidence:
 
-- Auditor / Agent: **本轮未跑独立关闭审计**（归 loop 的 `CLOSURE_VERIFY` 步；`ai-autonomy-policy` 的
-  Reviewer availability 为 `subagent`）。**照实记，不得读成已审计。**
-- Evidence（命令原文 + 退出码 + commit sha，全部为本机实跑）：
+- Auditor / Agent: **独立关闭审计子代理（loop `CLOSURE_VERIFY` 步，fresh session，2026-08-23）** ——
+  `ai-autonomy-policy` 的 Reviewer availability 为 `subagent`，本次即该形态。
+  ⚠️ **执行轮自己的自查仍然不算独立审计**，这条限定没有被取消。
+- 独立关闭审计的复跑与逐条核对（**命令原文 + 退出码**，全部由审计方在 `edcb535` 上重跑，非转录执行轮的记录）：
+  - `python3 tools/gates/check_expected_red.py` → **0**，判定三行逐字节等于基线值
+  - `python3 -m pytest tests/unit -q` → **0**（`293 passed`，与 Phase 2 记录一致）
+  - `python3 -m pytest tests/contracts -q` → **0**（`151 passed`）
+  - `ruff check agenerp tests/unit tests/contracts` → **0**（`All checks passed!`）
+  - 红线自查复算：`git diff --stat 7a09ef7..edcb535 -- tests/gates .github tools/gates missions
+    docs/masterplan docker-compose.yml` → **无输出**（六个受保护面零改动）
+  - 反空洞核对：`_overdue_diagnosis` / `_matches_key` / `_overdue_row_facts` / `_overdue_identity_keys`
+    均有实体实现且被 `_overdue_checks:895` 在运行时调用，`verify_site:900` → `_overdue_checks(client, today)`
+    在 CLI 路径上可达；`find_one` 未被使用、无 `try/except: pass`、无空函数体
+  - 五态单测在 `tests/unit/test_seedsite_documents.py:499/514/541/552/563` **实体存在**，
+    冻结断言 `assert len(results) == 9` 仍在 `:418` 且未被改写
+  - 文档落地实读复核：`system-baseline.md:715` 补记段在位（`33	0`，删除列为 `0`）·
+    `module-boundaries.md:1142`/`:1154`/`:1165`/`:1241` · `project-context.md:53`/`:57` ·
+    `gate-proposal-seed-dataset.md:95` · `p0-foundation-roadmap.md:85`（`1	0`，纯追加）·
+    `docs/logs/2026/08-23.md:3`/`:38` 两段
+  - 五点一致性核对：`Plan Status: completed` / 三个 Phase `Status: completed` / 全部 Exit Criteria `[x]` /
+    Closure Gates 全 `[x]` / `docs/logs/` 条目 —— **一致**
+- Evidence（执行轮的命令原文 + 退出码 + commit sha，全部为本机实跑）：
   - `python3 tools/gates/check_expected_red.py` → **0**，判定三行逐字节为基线值
     （`判定模式：default —— 按 tools/gates/expected-red.txt 判定` / `门禁 19 项：预期红 7，绿 12，跳过 0` /
     `✅ 与预期红名单完全一致`）
@@ -925,7 +980,8 @@ Closure Audit Evidence:
   - `ruff check agenerp tests/unit tests/contracts` → **0**（`All checks passed!`）
   - 冷起活站点四条 CLI → **0 / 0 / 0 / 0**，`站点侧对账：9 项，通过 9，失败 0`
   - 三条变异共六次 `python3 -m pytest tests/unit -q` → **1 / 0 / 1 / 0 / 1 / 0**
-  - commit sha：Phase 1 `9144408` · Phase 2 `798b97c` · Phase 3 见本次提交
+  - commit sha：Phase 1 `9144408` · Phase 2 `798b97c` · Phase 3 `edcb535`
+    （⚠️ 三者**均只在本地 `main`**，审计当日尚未推到 `origin`，见 `## Deferred But Adjudicated` 末条）
 
 Follow-up:
 
