@@ -7,8 +7,6 @@ WBS 的验收命令 `python3 -m agenerp.seed --seed 42 --verify` 不在
 
 from __future__ import annotations
 
-import uuid  # MUTATION-A: 故意的 F401，实验后必须 revert
-
 import copy
 import json
 import re
