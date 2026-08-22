@@ -828,7 +828,7 @@ Exit Criteria:
 - [x] no in-scope item downgraded to deferred/follow-up
 - [x] independent draft review completed and recorded（轮次以 `## Draft Review Record` 的实际记录为准，本行不写死数）
 - [x] text consistency verified: status, phases, gates, and log all agree
-- [ ] closure audit was independent —— ⚠️ **执行者不自证，本行由 loop 的独立关闭审计打勾**
+- [x] closure audit was independent —— 由 loop 的 `CLOSURE_VERIFY` 独立子代理打勾（**执行者不自证**）；核验记录见 `## Closure` 的 Closure Audit Evidence
 - [x] closure evidence exists in files
 - [x] **红线自查五条**：① `tests/gates/**` 零改动 ② `.github/workflows/**` **纯追加**（删除列为 `0`，
       **前 N 行逐字节未动**，N = **开工时实读**的基线行数（起草时为 404，**不得照抄**），
@@ -930,7 +930,19 @@ Status Note: **四个 Phase 全部执行完毕，两个新 job 已落 `main` 并
 
 Closure Audit Evidence:
 
-- Auditor / Agent: <independent subagent —— **执行者不自证**，由 loop 的 `CLOSURE_VERIFY` 步骤填写>
+- Auditor / Agent: **independent closure auditor（loop `CLOSURE_VERIFY` 步骤的独立子代理，fresh session）** —— 执行者不自证。
+  独立复核结论：**approved**（2026-08-23）。**逐条实读/实跑核准，不采信 `[x]`**：
+  · `.github/workflows/gates.yml` 现为 **441 行 = 404 + 37**，`git diff --numstat d45163c^..HEAD -- .github/workflows/gates.yml` 删除行数 **0**（前 404 行逐字节未动，纯追加成立）
+  · job 键实数 **13**，末两个逐字为 `seed-selfverify`（`name: 种子生成器自验（agenerp.seed --verify）`）与 `lint`（`name: 静态检查（ruff）`），两者各有 `name:`，与 Phase 4 记录逐条对上
+  · 两个新 job 均为 `gates.yml` 顶层 `jobs:` 成员，触发面为 `on: push[main] / pull_request / workflow_dispatch` —— **在 CI 上真实可达，非空壳**；`seed-selfverify` 的判据确为「退出码 + stdout 断言」两条（`set -euo pipefail` + `tee` + `grep -qE`），`lint` 钉 `ruff==0.14.1`
+  · `gh run view 32602915798` 独立复核：`conclusion: success` · `event: push` · `headSha: 4476c470fb65e53d81faa1ee0cd84ea674330689` · **13 个 job 全 `success`**（含「静态检查（ruff）」与「种子生成器自验（agenerp.seed --verify）」）—— 与 Closure 记录的 run id / sha **逐字同一个**
+  · 落地 sha 独立核对：`git rev-parse 4476c47` → `4476c470fb65e53d81faa1ee0cd84ea674330689`，该提交 `--numstat` 只含 `37	0	.github/workflows/gates.yml`
+  · 本机命令**审计侧原样复跑**：`python3 -m agenerp.seed --seed 42 --verify` → **exit 0**（`✅ 种子 42：两次生成 diff 为空，场景断言全过`）· `ruff check agenerp tests/unit tests/contracts` → **exit 0**（`All checks passed!`）
+  · 红线五条独立复核（`git diff --stat d45163c^..HEAD -- docs/masterplan/DECISIONS.md tests/gates missions agenerp pyproject.toml` **无输出**）：`tests/gates/**` / `missions/**` / `DECISIONS.md`（无新增 `R-x`）/ `agenerp/**` / `pyproject.toml` **全部零改动**；`STATE.md` `7	0` 纯追加
+  · owner doc 回填已实读落地：`system-baseline.md:889` §14.7 已建 · `project-context.md:52` / `:55` 为**句末追加**（`--numstat` `2	2`，行数未增、表结构未动）· roadmap `:92` 纯追加一行（`1	0`）· `docs/logs/2026/08-23.md` 已更新（`128	0`）
+  · 工作项 7 / 9 的状态值实读仍为 `planned`（roadmap Work Item Status 块），未被本 plan 改动
+  · Deferred 六条逐条读过：**均为 `watch-only residual` / `out-of-scope improvement` 且各带重开事件**，未见被降级藏匿的在范围内活缺陷；`missions/**` 覆盖缺口、`lint` 只跑默认规则集、授权面欠人追认三条，Closure 正文已逐字自陈，未粉饰
+  · 五点一致性（Plan Status `completed` / 四个 Phase 均 `Status: completed` 且 Exit Criteria 全 `[x]` / Closure Gates / Closure 证据）**互相吻合，无冲突**
 - Evidence（执行者侧已落盘的可复核证据）：
   - **本机命令原文 + 退出码**（落地后在 `main` `4476c47` 上复跑）：
     `python3 -m agenerp.seed --seed 42 --verify` → **0**（`✅ 种子 42：两次生成 diff 为空，场景断言全过`）·
