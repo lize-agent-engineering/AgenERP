@@ -717,6 +717,8 @@ Skill: `none`
 
 **结论：grep ② 零处需要改准**；job 计数类陈述**要么是带日期的历史证据、要么是仍然成立的序数**。
 
+
+**owner doc 回填提交本身也过了一次 CI**（本行是回填之后补记的最后一条证据）：文档提交 `be68398cd310eb835b1215cd7357f0ea4c2052e4` 推 `main` 触发 run **`32603477342`** → **`success`，13 个 job 全 `success`**。**这一跑的意义是窄的、但要紧**：它证明 roadmap 新增的那一行**没有把表写坏**（`roadmap-parseable` `success`）、两处新加的 markdown 链接**没有断链**（`masterplan-links` `success`）——而 plan 起草时逐字提醒过「`roadmap-parseable` 校验的是 `Work Item Status` 块，**它不会替你挡这个错**」。
 Exit Criteria:
 
 - [x] PR 号 / 落地 sha（全长）/ `main` `push` 权威运行 run id / 13 个 job 的 job id 与结论全部记在本 plan 内
