@@ -181,14 +181,14 @@
 
 ### Phase 1 — 前置核对与落地方式决策（一个字节都还没改）
 
-Status: planned
+Status: completed
 Targets: 本 plan 文件
 Skill: `none`
 
 - Item Types: `Proof | Decision`
 - Prereqs: 第一个 plan `2026-08-22-1206-1` 已 `completed`
 
-- [ ] `Proof` **前置八条实测核对，输出逐字抄进本 plan。任何一条不成立就停在这里，不往下走**：
+- [x] `Proof` **前置八条实测核对，输出逐字抄进本 plan。任何一条不成立就停在这里，不往下走**：
       · ① 第一个 plan 的 `Plan Status` 逐字为 `completed`，且它的**四条**实验证据（run id + job id + conclusion）都在文件里
         （四条 = 正向必红 / revert 必绿 / 只动账本必不触发 / **触及且带 trailer 必放行**；缺第四条就停在这里——
         那条出口决定「人将来还能不能合法地改判定器」）；
@@ -212,7 +212,7 @@ Skill: `none`
       · ⑧ **PR #1 仍原封未动**：`gh pr view 1 --json state,headRefOid,baseRefOid` → `OPEN` / `c2c688b…` / `7b0f585…`
         （前驱的 Non-Goals 承诺不碰它；本 plan 的 Phase 3 才处置它）。
       - Skill: `none`
-- [ ] `Proof` **落地那一推的守卫预测（必须在推之前算出来，不能等 CI 告诉你）**。守卫在 `push` 上取
+- [x] `Proof` **落地那一推的守卫预测（必须在推之前算出来，不能等 CI 告诉你）**。守卫在 `push` 上取
       `BASE=github.event.before` / `HEAD=github.sha`。因此推之前先在本地把同一个谓词算一遍：
       ⚠️ **先 `git fetch origin main`**（第 3 轮评审 nit）：本条自称硬闸，却读的是本地远程跟踪 ref `origin/main`；
       不 fetch 就可能拿一份陈旧的值当闸门。
@@ -240,7 +240,7 @@ Skill: `none`
       PR 读数也不会是 `1 / 118 / 0`。**所以 Phase 2 有一个第 0 步：先 `git push origin main` 推平，再切分支建 PR。**
       **落地推之前那次重算仍是唯一有约束力的守卫预检。**
       - Skill: `none`
-- [ ] `Decision` **落地失败怎么办（回滚 / 前滚 / 停机三选一，此处定死，别处不得再授权）**。
+- [x] `Decision` **落地失败怎么办（回滚 / 前滚 / 停机三选一，此处定死，别处不得再授权）**。
       - **选定**：**停机等人**。`main` 权威运行两次真红 → 写 `STATE.md` §3 needs-human 队列并置本 plan `deferred`，
         **loop 不自行 revert**。理由：`main` 无分支保护（Infra 那条 403 实测），红的 `main` 并不阻塞后续推送，
         没有「必须立刻回滚」的技术压力；而 revert 一个刚落地的判定 job 会把「工作项 9 的判据在 `main` 上成立」
@@ -252,7 +252,7 @@ Skill: `none`
       - **残余风险**：停机期间 `main` 上挂着一次红的权威运行，后续每轮 loop 都会看到它。
         **这正是想要的效果**——它是给人的可见信号，不是要被抹掉的噪声。
       - Skill: `none`
-- [ ] `Decision` **落地方式：`--ff-only` 合并本 plan 新开的那条分支，不用 squash，也不在 `main` 上另起提交**。
+- [x] `Decision` **落地方式：`--ff-only` 合并本 plan 新开的那条分支，不用 squash，也不在 `main` 上另起提交**。
       ⚠️ **本项在第 3 轮评审随载体改换重写，第 4 轮再随分支改名改准**：落地对象**不是 PR #1**
       （前驱 Baseline C5：`pull_request` 的 `BASE` 在 PR 创建时钉死，PR #1 的 `baseRefOid` 永远停在 `7b0f585`，
       守卫在它上面恒红，前驱那四条实验根本做不成），**也不是前驱那条分支**
@@ -295,7 +295,7 @@ Skill: `none`
       - **残余风险**：`main` 若在切分支与 ff-merge 之间被别的东西推进（他人、另一轮 loop），
         新分支即不再可 ff，必须回到第 0 步重来；判据是落地时 `git rev-parse main` 仍等于 `$RECUT`。
       - Skill: `none`
-- [ ] `Decision` **PR #1 与前驱 PR 的终局处置（本 plan 独有，第 3 轮评审新增；第 4 轮随分支改名改准）**。
+- [x] `Decision` **PR #1 与前驱 PR 的终局处置（本 plan 独有，第 3 轮评审新增；第 4 轮随分支改名改准）**。
       落地之后仓库里会同时存在**三个** PR：PR #1（`OPEN`，`baseRefOid=7b0f585`，承载 run `32509351108` 红与 `32533449466` 绿）、
       前驱那个 PR（`ci/1206-1-verdict-guard-proof`，`OPEN`，承载四条实验证据，**本次不合并它**）、
       以及本 plan 新开的那个 PR（`ci/1206-2-l2-live-land`，被 ff-merge → `MERGED`）。
@@ -314,7 +314,7 @@ Skill: `none`
         **本 plan 不删任何远程分支。**
       - **残余风险**：`gh pr close` 是可逆的（`gh pr reopen`），且不改任何 git 历史。**风险面接近零，照实记。**
       - Skill: `none`
-- [ ] `Decision` **授权面重新摆上台面（Baseline F，不得默认继承）**：记录本 plan **要真的改 `main` 的 workflow**，
+- [x] `Decision` **授权面重新摆上台面（Baseline F，不得默认继承）**：记录本 plan **要真的改 `main` 的 workflow**，
       与第一个 plan（零改动 `main`）不同；选定处置是**沿用 `2026-08-21-2220-2` 的先例**（纯追加 = 加严，红线 2 允许），
       并在 `## Deferred But Adjudicated` 里把「`ai-autonomy-policy.md` 的 `blocked` 措辞待人裁定」这条**继续挂着**。
       **备选**：停下来等人裁定后再落地——**不选**，理由是先例已在 `main` 上落地过一次且未被推翻，
@@ -324,14 +324,107 @@ Skill: `none`
 
 Exit Criteria:
 
-- [ ] **八条**前置核对输出逐字入 plan，全部成立（含 ⑥ 的两条收敛判据、⑦ 的 `baseRefOid == $CUT`、⑧ 的 PR #1 原封未动）
-- [ ] 守卫预测预检已**在推之前**算出，三种情形（①未触及 / ②带 trailer 放行 / ③无 trailer 必红）对应的出口已写死并逐字入 plan
-- [ ] 回滚 `Decision` 已选定「停机等人」，备选 (a)(b) 各有不选理由，残余风险已写明
-- [ ] 落地方式与授权面两个 `Decision` 各有选定、备选、约束、残余风险
-- [ ] **PR 终局处置 `Decision` 已选定并记录**：PR #1 与前驱 PR 各自的终局动作、四类备选的不选理由、残余风险
+- [x] **八条**前置核对输出逐字入 plan，全部成立（含 ⑥ 的两条收敛判据、⑦ 的 `baseRefOid == $CUT`、⑧ 的 PR #1 原封未动）
+- [x] 守卫预测预检已**在推之前**算出，三种情形（①未触及 / ②带 trailer 放行 / ③无 trailer 必红）对应的出口已写死并逐字入 plan
+- [x] 回滚 `Decision` 已选定「停机等人」，备选 (a)(b) 各有不选理由，残余风险已写明
+- [x] 落地方式与授权面两个 `Decision` 各有选定、备选、约束、残余风险
+- [x] **PR 终局处置 `Decision` 已选定并记录**：PR #1 与前驱 PR 各自的终局动作、四类备选的不选理由、残余风险
       （⚠️ 第 4 轮评审补：该 `Decision` 此前在 Phase 1 的 Exit Criteria 里没有任何一框对应，
       正是第 2 轮 blocking ⑤ 抓过的同一种毛病——`Decision` 没有 gate 就等于没有约束力）
-- [ ] `docs/logs/2026/08-22.md` 已追加本阶段记录
+- [x] `docs/logs/2026/08-22.md` 已追加本阶段记录
+
+#### Phase 1 执行记录（2026-08-22 实跑回填）
+
+**开工基线（本 plan 自己的锚）**
+
+- `git log --oneline -1` → `79184e5`（= 本 plan 的**开工 sha**，Phase 3 红线自查一律锚它）；
+  `git status --porcelain` → **无输出**（工作区干净）。
+- `git rev-parse main origin/main` → `79184e56024c786f717b43e983752b39fcf9c342` / `10da9e7506ead7d1121130343649dc7728613bf5`
+  —— 本地领先 **2** 个提交（`d1d30c5` 收尾推送结果回填、`79184e5` 文档/日志/roadmap 更新），
+  **正是前置核对 ⑥ 预料的形态**，不是「两值相等」。
+- `$CUT`（前驱切分支那一刻的 `main` sha，取自前驱 plan 第 5 轮实测行）
+  = **`f689d0e7cde3f2733b044b004f7a314f14958973`**。前驱新建的 PR 号 = **#2**。
+
+**① 前驱 plan 已 `completed`，四条实验证据在文件里**
+
+- `grep -n '^> Plan Status:' docs/plans/p0-foundation/2026-08-22-1206-1-verdict-guard-mutation-proof.md`
+  → `3:> Plan Status: completed` ✅
+- 四条实验的 run id / head / 结论逐字在前驱 plan 的实验矩阵里：
+  实验 ①（正向必红）`32570222139` head `47e0069` → `failure`（**预期红**）·
+  实验 ②（revert 必绿）`32570426423` head `4516e7f` → `success` ·
+  实验 ③（只动账本必不触发）`32570691388` head `a8e8305` → `success` ·
+  实验 ④（触及且带 trailer 必放行）`32570942284` head `cf73d90` → attempt 1 `failure`（真红 #1）、
+  attempt 2 **`success`**，守卫 job `97026657710` 输出逐字 `✅ 找到人工批准 trailer，放行`。
+  **第四条在**（缺它就要停在这里），且前驱自己把它记成「同一 sha 上不可复现」，本 plan **不改写这个限定**。
+
+**② 判据锚 `$CUT`，非两点式**
+
+- `git diff --numstat f689d0e7cde3f2733b044b004f7a314f14958973 ci/1206-1-verdict-guard-proof`
+  → **恰好一行** `118	0	.github/workflows/gates.yml` ✅
+- 附带核对本地与远程该分支同 sha：`git rev-parse ci/1206-1-verdict-guard-proof origin/ci/1206-1-verdict-guard-proof`
+  → 两值均 `b7348bf3a1eb1eccbe1c032af8bd73ed808ed4af` ✅
+
+**③ 前驱 PR #2 的读数**
+
+- `gh pr view 2 --json state,changedFiles,additions,deletions`
+  → `{"additions":118,"changedFiles":1,"deletions":0,"state":"OPEN"}` —— 即 `OPEN / 1 / 118 / 0` ✅
+
+**④ 该 PR head 上最近一次运行全绿**
+
+- `gh run view 32571266013` → run **`32571266013`**（event `pull_request`，head `b7348bf`）→ **`success`**，
+  **九个 job 全部 `success`**：`L1 快门禁` `97026942644` · `roadmap 引擎可解析` `97026942696` ·
+  `预期红名单只能变短` `97026942704` · `L2 慢门禁（零依赖启动）` `97026942716` · `循环联动冒烟` `97026942728` ·
+  **`L2 全量 live 判定（19 条）` `97026942737`** · `主计划引用不断链` `97026942741` ·
+  `判定器未被改动` `97026942746` · `门禁未被改动` `97026942760` ✅
+
+**⑤ Baseline E 那半确实还欠着**
+
+- `grep -n '2026-08-22-1206' docs/plans/p0-foundation/2026-08-21-2220-2-homepage-ai-not-configured.md`
+  → **零命中**（退出码 `1`）✅ —— 欠账是实测确认的，不是凭 Baseline E 断定。
+
+**⑥ 两条收敛判据同时成立**
+
+- `git merge-base --is-ancestor origin/main main` → 退出码 **`0`**（成立）✅
+- `git diff --name-only origin/main main` → 两行，**只含**
+  `docs/logs/2026/08-22.md` 与 `docs/plans/p0-foundation/2026-08-22-1206-1-verdict-guard-mutation-proof.md` ✅
+  （即只有 `docs/logs/**` 与 `docs/plans/p0-foundation/**`）
+
+**⑦ `baseRefOid` 那颗钉子仍在**
+
+- `gh pr view 2 --json baseRefOid` → `{"baseRefOid":"f689d0e7cde3f2733b044b004f7a314f14958973"}`
+  —— **逐字等于 `$CUT`** ✅
+
+**⑧ PR #1 仍原封未动**
+
+- `gh pr view 1 --json state,headRefOid,baseRefOid` →
+  `{"baseRefOid":"7b0f585f7c8082a64902da65e6e3314cb239dc9f","headRefOid":"c2c688b7f6bc49a96d1e89a3582014334ba8fb71","state":"OPEN"}`
+  —— `OPEN` / `c2c688b…` / `7b0f585…`，与 Baseline 逐字一致 ✅
+
+**八条全部成立，闸门放行。**
+
+**守卫预测预检（在推之前算出，代理操作数 = 前驱分支）**
+
+- `git fetch origin main` → exit 0（先刷新远程跟踪 ref，再读它当闸门）。
+- `git diff --name-only origin/main ci/1206-1-verdict-guard-proof -- tools/gates/check_expected_red.py tools/gates/gate-verify.mjs`
+  → **无输出** ⇒ 落在**情形 ①**：期望守卫走 `✅ 未触及判定器`、`success`。
+- `git log --format=%B origin/main..ci/1206-1-verdict-guard-proof | grep -c '^Gates-Change-Approved-By:'` → **`0`**
+  （与情形 ① 自洽：无触及则不需要 trailer）。
+- **三种情形的出口在 plan 正文里已写死**：① 未触及 → 绿 · ② 触及 + trailer ≥1 → 放行绿 · ③ 触及 + trailer `0` → **真红，不推**。
+- `pull_request` 那一路同解：新 PR 的 `BASE = baseRefOid = $RECUT`（第 0 步推平后的 `main` sha），
+  `HEAD =` 分支 tip，两式退化成「`main` vs `main`+118 行追加」，期望同为情形 ①。
+- ⚠️ **有约束力的那一次是 Phase 2 落地推之前的重算**，本条只提前暴露问题。
+
+**四个 `Decision` 的选定**
+
+- **落地失败怎么办** → 选定**停机等人**（备选 (a) `git revert` 不选且不授权给执行器、(b) 前滚修 `agenerp/**` 不选）。
+  残余风险：停机期间 `main` 上挂着一次红的权威运行——**这正是要的可见信号**。
+- **落地方式** → 选定 `git switch main && git merge --ff-only ci/1206-2-l2-live-land && git push origin main`；
+  备选 (a) squash / (b) 手工再 append 各有不选理由；硬约束「切分支到 ff-merge 之间 `main` 零新提交」照 plan 正文。
+- **PR 终局处置** → 选定：PR #1 与前驱 PR #2 **均 `gh pr close` 并各留说明评论**，**不删任何远程分支**；
+  本 plan 新开的 PR 被 ff-merge → `MERGED`。四类备选 (a)(b)(c)(d) 的不选理由见正文。
+- **授权面重新摆上台面** → 选定**沿用 `2026-08-21-2220-2` 的先例**（纯追加 = 加严，红线 2 只禁变松）；
+  `ai-autonomy-policy.md` 的 `blocked` 措辞待人裁定这条**继续挂在 `## Deferred But Adjudicated` 里**。
+  残余风险：人若事后裁定严格 `blocked`，本次落地需补一次追认——**逐字记着，不掩盖**。
 
 ### Phase 2 — 落地到 `main`，并取得权威运行
 
