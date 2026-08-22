@@ -885,3 +885,207 @@ run `32591433667` 十一绿后 `--ff-only` 落 `main`，**落地 sha `7a09ef7` �
   尤其**不推动工作项 9 的 `done` 判据**——那条判据是「用判定器对 `tests/gates` 全部 19 条 live 判定并 `success`」，
   与本 job 的 439 条**互不重叠**。本节是**覆盖面的扩展，不是判据的替换**。
 - **授权面欠着一次人的追认**（见本节第一段）。本次落地不因为跑绿而变成「已获授权」。
+
+## 14.7 `agenerp.seed --verify` 与 `ruff check` 的 CI 覆盖（`seed-selfverify` / `lint` 两个 job，plan `2026-08-23-0337-1` 交付）
+
+> 本节与 §14.1 / §14.5 / §14.6 同规矩：**只记落点，不改写 §14 本体（`:131`–`:177`）任何一行**，
+> 也不改写 §14.1–§14.6 任何一行。
+
+### 结果面裁定：两条命令留在同一个 plan 里（决策 D0，Minimum Rule 4 的当面裁定）
+
+`docs/plans/00-plan-authoring-and-execution-guide.md` 的 Minimum Rule 4 是「One plan, one result surface」。
+本 plan 同时交付两条互不相干的命令的 CI 覆盖，**这条规则必须被当面裁定，不能默认略过**
+——而 D3 自己的理由恰是反对它的最强论据：D3 逐字写「两条命令的**所有权与重开事件完全不同**」，
+「所有权不同、重开事件不同」几乎就是两个结果面的定义。佐证还有三条：D2 只为 ruff 半边存在；
+Deferred 六条里三条只关 ruff；变异实验 A 与实验 B 的失败分支不对称。
+
+**裁定：保持一个 plan。** 唯一共享的关闭判据逐字是——
+**「`docs/masterplan/STATE.md` 2026-08-23T01:00Z 行记的那笔四条命令零 CI 覆盖的账，
+被一次 `main` `push` 权威运行全绿一次性结清」**。两条命令是同一笔账的最后两项，
+分开关会让这笔账**永远差一半**。
+
+**被否候选**：拆成两个 plan —— 否掉。理由是 **D1 的授权面（本仓最高风险动作）要重摆两次**，
+而 Minimum Rule 4 自己写着「Multi-module extraction or migration that shares the same behavioral
+contract and closure criteria is still ONE result surface — **do not over-split**」。
+
+**残余风险照实记**：D3 的所有权论据**可以被反读成「这是两个结果面」**；
+本裁定押的是「共享关闭判据」这一侧，**押错的代价是关闭时两半状态不一致**
+——因此变异实验 A 与实验 B **各有一条对称的写死失败分支**，不许只给其中一条。
+
+### 授权面：动 `.github/workflows/**` 这一次凭什么（第五次重新摆上台面，不得默认继承）
+
+`docs/context/ai-autonomy-policy.md:81` 给 `.github/workflows/**` 定的是 `blocked`，
+与 `AGENTS.md:11` 红线 2「只禁**变松**（禁用 job、加 `continue-on-error`、缩小触发范围）」措辞不一致。
+该不一致由 `0027-2` 登记，`1206-1` / `1206-2` / `2325-2` / `0120-1` 各自重述，**至今未由人裁定**。
+`0120-1` 的 Deferred 逐字写死了重开事件：「**下一个要动 `main` 上 `.github/workflows/**` 的 plan 开工前**
+（届时必须再摆一次）」。**本 plan 就是那个 plan**，因此这一节是**第五次重新摆一遍，不是复制 §14.6**。
+
+三个候选与取舍（决策 D1）：
+
+| 候选 | 内容 | 代价 / 后果 |
+|---|---|---|
+| (a) | 按 `ai-autonomy-policy.md:81` 的字面 `blocked` 停手，整件事交人 | 这两条命令此后永远零服务端复跑面；而「判定面漏一块，循环就不会自己发现」正是 `missions/p0-foundation.json:24` 已吃过一次的亏 |
+| **(b)** | **在「纯追加 = 加严」这条**未经追认的**先例上继续走，并把机械可核的加严判据（红线 2 五条自查）写进保命闸** | **选它**；欠一次人的追认（见下） |
+| (c) | 先请人裁定再动 | 本 mission 无同步的人，等价于 (a) |
+
+⚠️ **必须当面引用那条否掉本候选证据基础的规则**：`docs/context/ai-autonomy-policy.md:9` 逐字
+「AI **must not loosen** protected areas, change `ask-first`/`blocked`/`research-only` work to `implement`,
+or remove blockers **without explicit human confirmation or owner-doc evidence marked as human-approved**」。
+`2220-2`（加 `gates-l2`）· `1206-2`（加两个 job）· `2325-2`（加 `gates-l2-seed`）· `0120-1`（加 `unit-and-contracts`）
+**四个先例全是 AI 起草的、没有一条带人的批准标记**，因此**它们不构成授权**；
+**本 plan 的三轮独立草案评审同样不构成授权**——评审者是子代理，按 `:9` / `:11` 的口径它提供不了
+「explicit human confirmation」。
+
+本节的诚实措辞只能是「**在未经追认的先例上继续走，欠一次追认**」，
+**不是**「沿用既有先例」——后者读起来像已定的授权，那是把 AI 自己的产物当成许可。
+⚠️ **先例从 4 个变成 5 个不减轻这条风险**：五个 AI 自产的先例仍然不等于一个授权，逐字写明。
+
+**(a) 分支的写死处置**（免得它成为一个没有出口的候选，本次未触发，原样存档）：
+一行 `gates.yml` 都不改，把 D1 的完整论证写进本节与 `docs/masterplan/STATE.md` §3（**只追加**），
+plan 置 `Plan Status: deferred`，重开事件为「人对 `.github/workflows/** = blocked` 给出裁定时」。
+
+### ruff 的版本怎么钉（决策 D2）
+
+| 候选 | 内容 | 取舍 |
+|---|---|---|
+| (i) | `pip install ruff`（不钉） | **否掉**：ruff 的规则集随版本变，不钉等于让一次上游发布把 `main` 变红，而红因与本仓任何一次改动都无关 |
+| **(ii)** | **`pip install ruff==0.14.1`（钉在本机实测的那一版）** | **选它** |
+| (iii) | 把版本钉进 `pyproject.toml` 的依赖组再由 CI 装 | **否掉**：`pyproject.toml` 现在**没有**任何依赖声明，为一条 lint 命令新开一个依赖组是超出本 plan 结果面的结构改动，且它同时改了本机与 CI 两侧的口径 |
+
+**残余风险照实记**：版本钉在 `.github/workflows/**` 这个 `blocked` 文件里，
+**将来升 ruff 必须再动一次这个文件**（又要重摆一次 D1）；且**本机侧仍然没有钉**，
+本机装了别的版本时两侧会不一致——该不一致**本 plan 不消除**，登记在 plan 的 Deferred 段。
+
+### 两条命令放一个 job 还是两个 job（决策 D3）
+
+| 候选 | 内容 | 取舍 |
+|---|---|---|
+| (i) | 追加成 `unit-and-contracts` 的第 ③④ 两个 step | **否掉**：`steps` 默认 fail-fast，`tests/unit` 红时后面三步全不跑，一次运行只能报最靠前的那个问题；且它会把**四条归属线完全不同**的命令并进一个 job 名（现名逐字是「单测与契约测试（439 条）」，塞进 lint 与种子自验之后该名字当场变假） |
+| (ii) | 一个新 job 装两条命令（两个独立 step） | 与 `0120-1` 的 D2 同形；代价是两条之间仍 fail-fast |
+| **(iii)** | **两个独立的新 job** | **选它** |
+
+选 (iii) 的理由，逐条：
+
+1. 两条命令的**所有权与重开事件完全不同**（`agenerp.seed --verify` 归工作项 7 的生成器；
+   `ruff check` 是全仓 lint，归任何改 Python 的 plan），合成一个 job 会把两条归属线并成一个退出码
+   ——这正是 `0120-1` D2 写死的理由，本 plan 只是把它推到底；
+2. 两者并行跑，**互相看得见对方的红**，不受 fail-fast 遮蔽；
+3. ruff 需要 `pip install ruff==0.14.1`，seed 自验**什么都不用装**（`agenerp/**` 实读只 import 标准库），
+   分开可以让后者的 job 更薄。
+
+**代价照实记**：job 键从 **11 → 13**，多一次 checkout/setup 开销（两个 job 各约十几秒，并行）。
+⚠️ **不得把 (iii) 说成「消除了 fail-fast 风险」**——它只是把两条命令之间的 fail-fast 消除了，
+**每个 job 内部只有一条判据 step，本来就没有第二步可被遮蔽**。
+
+### `seed-selfverify` 判什么：退出码 **和** stdout 断言，两条（决策 D4）
+
+在一个**不起 docker、不连站点、零 env 变量、不装任何 pip 包**的 runner 上跑一条命令，
+判据 step 以 `set -euo pipefail` 开头，三行：
+
+| 行 | 内容（逐字） | 作用 |
+|---|---|---|
+| 1 | `set -euo pipefail` | **不是装饰**：`\| tee` 会把退出码换成 `tee` 的，漏掉 `pipefail` 就是把退出码判据丢了 |
+| 2 | `python3 -m agenerp.seed --seed 42 --verify \| tee /tmp/seed-selfverify.log` | 判**退出码** |
+| 3 | `grep -qE '^✅ 种子 42：' /tmp/seed-selfverify.log` | 判 **stdout** |
+
+⚠️ **第 3 行为什么必须有（这是一条活的假绿路径，不是洁癖）**：
+只判退出码时，把 `agenerp/seed/__main__.py:70` 的 `raise SystemExit(main())` 改成 `raise SystemExit(0)`
+→ 本 job **静默退 0、绿**；而 `tests/unit/test_seed_deterministic.py:18` 是 `from agenerp.seed.__main__ import main`
+**直接 import**，`:205-213` 的两条测例**从不经过那两行卫句** → **也绿**。
+**该 job 会为一次它根本没跑过的生成器背书。** 加上 stdout 断言之后这条路径当场变红
+——**并且这不是推理，是 run `32602225121` 上一次真实的 CI 运行坐实的**（见下）。
+
+**候选与取舍**：(i) 只判退出码 —— 否掉，上面那条假绿路径是活的；
+**(ii) 退出码 + stdout 断言 —— 选它**，这是**加严**（红线 2 安全）；
+(iii) 改成 `python3 -c "from agenerp.seed.__main__ import main; ..."` —— 否掉：
+那样跑的就不再是 `docs/context/project-context.md` 记的那条 WBS 验收命令，**判据形态与被判对象脱钩**。
+
+**残余风险照实记**：`grep` 的模式写死了那句中文文案（`^✅ 种子 42：`），
+**将来改这句文案会让本 job 红** —— 那是**它该红**（文案是判据的一部分），
+但这层耦合必须写在这里，免得将来有人把它当成一次莫名其妙的红。
+
+**`agenerp` 的可导入性不靠 `pythonpath`**：`unit-and-contracts` 能 import `agenerp` 是因为
+`pyproject.toml` 的 `[tool.pytest.ini_options] pythonpath = ["."]`，**那行管不到本 job**
+——`python3 -m agenerp.seed` 不经过 pytest。本机与 runner 上成立的是同一条机制：
+`-m` 形式把 CWD 插进 `sys.path`，而 CI 的 `working-directory` 是仓根。
+**这条起草时只是推理，判据落在首跑上，已实测成立**（run `32601490564`，job `97100318957` → `success`，
+job 里连一句 `pip install` 都没有）。**没有走「加 `pip install -e .`」那条处置分支。**
+
+### `lint` 判什么
+
+`pip install ruff==0.14.1`（D2）+ 一条判据命令，逐字 `ruff check agenerp tests/unit tests/contracts`。
+**作用域三个目录逐字照抄 `docs/context/project-context.md` 的 `Lint / static check` 一行，一个字不加不减。**
+
+两个 job 的公共形态与 §14.6 的 `unit-and-contracts` 逐字相同：
+`runs-on: ubuntu-latest` · `timeout-minutes: 10` · `actions/checkout@v4` · `actions/setup-python@v5`
+with `python-version: "3.11"`。**两个 job 都不带任何 `if:`**（`gates.yml` 现有 10 处 `if: always()`
+全在取证/拆栈步骤上，无一在判据步骤上；本节的选择与那条房内惯例一致）。
+**本机是 Python 3.12.9、job 钉 3.11**，而 `[tool.ruff] target-version = "py312"` 是**给 ruff 看的语法目标**，
+与运行 ruff 的解释器版本无关 —— 这句起草时是推理，**已由首跑的 `All checks passed!` 实测证实**。
+
+`timeout-minutes: 10` 的口径照实说：实测墙钟 `seed-selfverify` **6 秒**（`22:06:07Z`→`22:06:13Z`）、
+`lint` **8 秒**（`22:06:06Z`→`22:06:14Z`），上限是它们的约 **75 倍**——**它挡的是「卡死」，不是「变慢」**。
+整个 run 的墙钟仍由三个 docker job 主导，两个新 job 没有让 run 变长。
+
+### 变异实证（plan `2026-08-23-0337-1` Phase 3，分支 `ci/0337-1-seed-lint-coverage`，PR #8 未合并，5 次 run）
+
+**四条 CI 预测在推任何一次 CI 之前逐字写死在 plan 内，事后逐条吻合，无一落空。**
+
+| 实验 | 变异 | run | 结果 |
+|---|---|---|---|
+| 首跑 | 无 | `32601490564` | **13 个 job 全 `success`**；`seed-selfverify` 逐字 `✅ 种子 42：两次生成 diff 为空，场景断言全过`，`lint` 逐字 `All checks passed!` |
+| A | `agenerp/snapshot.py` 与 `tests/unit/test_seed_deterministic.py` 各加一处 `F401` | `32601754671` | **`lint` `failure`**，日志逐字点名 `F401 [*] \`uuid\` imported but unused` / `--> agenerp/snapshot.py:16:8` / `--> tests/unit/test_seed_deterministic.py:10:8` / `Found 2 errors.`；**其余 12 个 job 全 `success`** |
+| A-revert | `git revert` A | `32601993786` | 13 个 job 全 `success` |
+| B | `agenerp/seed/__main__.py:70` `raise SystemExit(main())` → `raise SystemExit(0)` | `32602225121` | **`seed-selfverify` `failure`**（stdout 为空 → `grep -q` 退 1 → `##[error]Process completed with exit code 1.`）；**其余 12 个 job 全 `success`，含 `unit-and-contracts`（job `97102151664`）** |
+| B-revert | `git revert` B | `32602435912` | 13 个 job 全 `success` |
+
+**两条二态判据都落在「已证」那一支，逐字写下，不含糊**：
+
+- **`lint` 的隐形性已证。** 实验 A 的两处 `F401` 对 `main` 上原有的 11 个 job **完全隐形**，只有 `lint` 抓到。
+  **因此本节不写「未能证明 `lint` 抓得到此前 CI 抓不到的东西」那句话。**
+- **`seed-selfverify` 的隐形性已证。** 实验 B 的变异对 `main` 上原有的 11 个 job **完全隐形**
+  ——尤其 `unit-and-contracts` 是**绿的**，因为 `tests/unit` 直接 `import main`、从不经过 `__main__` 卫句。
+  **因此本节不写「未能证明 `seed-selfverify` 抓得到此前 CI 抓不到的东西」那句话。**
+  **实验 B 的失败分支（「改用一个 `--verify` 与 `tests/unit` 都抓得到的变异」）未触发，原样存档。**
+
+**结论只写到这么窄**：这一次、这两处变异如此，**不得读成「这两个 job 能抓到所有 `agenerp/**` 的回归」**。
+实验 A 只在 `agenerp/` 与 `tests/unit/` 各放了一处违例，**`tests/contracts` 未放**
+——它在命令的作用域里，但**本节不声称它已被变异实证**。
+
+**裁判规则 4 的对照照实记**：本 Phase 两次红（实验 A / B）**都是事先逐字写死的预测**，
+且两者之间隔着 A-revert 的全绿跑，顺序为**首跑绿 → A 红 → A-revert 绿 → B 红 → B-revert 绿**，
+**不构成「CI 连续 2 轮红」**；本 Phase 未出现任何一次未被预测的红，固定处置分支未触发。CI 实耗 5 次 run。
+
+**落地形态（纯追加，机械证据）**：`gates.yml` **404 → 441 行**（`git diff --numstat` → `37	0`，删除列 `0`），
+新增段 `:405`–`:441`；`head -404 .github/workflows/gates.yml | diff - <(git show d45163c:.github/workflows/gates.yml)`
+→ **无输出**；job 键 **11 → 13**，集合只增不减（`diff` 的唯一差异逐字为 `12a13,14` / `>   seed-selfverify:` / `>   lint:`）。
+落地走 PR **#9**（从 `main` 新切 `ci/0337-1-seed-lint-coverage-land`，**只含一个提交、只含 `gates.yml`**，
+实验提交全部留在 PR #8、不进 `main` 历史），run `32602725539` 十三绿后 `--ff-only` 落 `main`，
+**落地 sha `4476c470fb65e53d81faa1ee0cd84ea674330689` 与 PR #9 跑绿 head 逐字同一个**。
+**`main` `push` 权威运行 `32602915798` → `success`，13 个 job 全部 `success`**，
+新 job 分别为 `97103765758`（`seed-selfverify`）与 `97103765753`（`lint`）。
+
+### 它**不**覆盖什么（这一段不许省，也不许读成更强的说法）
+
+- **`lint` 只跑 ruff 的默认规则集。** 实读 `pyproject.toml` 的 `[tool.ruff]` **没有 `select` / `extend-select`**
+  （只有 `line-length` / `target-version` / `exclude`），因此生效的只有 **`E4,E7,E9,F`**。
+  **不得**把「ruff 进 CI 了」读成「全仓静态检查到位」——绝大部分风格与类型问题这条 job 一个都看不见。
+- **`tests/gates` 不在 lint 作用域内。** `[tool.ruff] exclude = ["tests/gates"]`，
+  理由逐字是「免得 lint 逼着去改裁判」。**扩作用域是另一个结果面，本次没做。**
+  作用域里的 `tests/contracts` **也未被变异实证**（实验 A 只覆盖了 `agenerp/` 与 `tests/unit/` 两处）。
+- **CI 覆盖 ≠ 门禁形态 ≠ `GATE_VERIFY` 可复跑，三者不得混为一谈。**
+  两个新 job 判的是**两条 CLI 的退出码（外加一条 stdout 断言）**，
+  **不使**其中任何一条成为门禁；`GATE_VERIFY` 与 `tools/gates/check_expected_red.py` **仍然只看 `tests/gates`**。
+  `missions/p0-foundation.json` 的 `commands.test` **仍然没有 `ruff`、没有 `agenerp.seed --verify`**，
+  **`missions/**` 本次一个字节未动**（角色 B 禁区）。后果照实说：loop 仍可能改坏这两条而
+  **当轮 `GATE_VERIFY` 绿、自己不知道**，**只是不再能合进 `main` 而不被发现**。
+  ⚠️ 特别照实记：`missions/p0-foundation.json:23` 的 `_notes.commands` 自己写着
+  「本机 ruff / mypy / docker 都还没有……**装上了再往这里加 lint / typecheck / build**」
+  ——**ruff 现在装上了，即该注释预告的条件已满足**，但动作在人手里。
+- **它不改变任何工作项的状态值。** 工作项 7 / 9 仍 `planned`；
+  尤其**不推动工作项 9 的 `done` 判据**——那条判据是「用判定器对 `tests/gates` 全部 19 条 live 判定并 `success`」，
+  与本节的两条命令**互不重叠**。本节是**覆盖面的扩展，不是判据的替换**。
+- **ruff 版本只钉在 CI，本机侧没有钉。** 本机装了别的版本时两侧会不一致
+  （表现为「本机绿 CI 红」或反之）；本次**不消除**这条不一致。
+  且**升 ruff 必须再动一次 `.github/workflows/**`**，届时要再摆一遍 D1。
+- **授权面欠着一次人的追认**（见本节第二段）。本次落地不因为跑绿而变成「已获授权」。

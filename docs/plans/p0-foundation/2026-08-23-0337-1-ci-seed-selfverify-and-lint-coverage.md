@@ -1,6 +1,6 @@
 # 2026-08-23-0337-1 把最后两条零 CI 覆盖的本机验证命令搬上 CI（`agenerp.seed --verify` + `ruff check`）
 
-> Plan Status: active
+> Plan Status: completed
 > Mission: p0-foundation
 > Work Item: 工作项 9 · L2 门禁的判定与 CI 覆盖（**CI 覆盖面**那一半；不改工作项 9 的 `done` 判据，也不改工作项 7 的状态值）
 > Last Reviewed: 2026-08-23
@@ -178,14 +178,14 @@ docs/backlog/p0-foundation-roadmap.md` **无输出**。
 
 ### Phase 1 - 授权面重摆 + 两个设计决策（一行 `gates.yml` 都不改）
 
-Status: planned
+Status: completed
 Targets: `docs/architecture/system-baseline.md`（新建 §14.7 中承载 **D0–D3 四条决策**的那几段）
 Skill: `none`
 
 - Item Types: `Proof | Decision`
 - Prereqs: 无
 
-- [ ] **Proof（本 Phase 的第一件事，先于任何 Decision）：工作树前置核对。**
+- [x] **Proof（本 Phase 的第一件事，先于任何 Decision）：工作树前置核对。**
       `git status --porcelain -- docs/architecture/system-baseline.md docs/context/project-context.md
       docs/backlog/p0-foundation-roadmap.md` → **必须无输出**（即 `0120-1` 的回填已入库）。
       ⚠️ **有输出就停**：把情况写进 `docs/masterplan/STATE.md` §3 等人，**不自行 stash 别人的工作**
@@ -193,7 +193,7 @@ Skill: `none`
       同时重读 `docs/architecture/system-baseline.md` 的现时行数与 `### 它**不**覆盖什么` 两处的现时行号，
       **把实读值记进本 plan**（起草时工作树为 `:715` / `:838`，`main` 上只有 `:715`）。
       - Skill: `none`
-- [ ] **Decision D0：两条命令留在同一个 plan 里（Minimum Rule 4「One plan, one result surface」的当面裁定）。**
+- [x] **Decision D0：两条命令留在同一个 plan 里（Minimum Rule 4「One plan, one result surface」的当面裁定）。**
       ⚠️ **初稿全篇没有裁定这条规则，而 D3 自己的理由恰是反对它的最强论据**（评审第 1 轮抓出）：
       D3 逐字写「两条命令的**所有权与重开事件完全不同**」——「所有权不同、重开事件不同」几乎就是两个结果面的定义。
       **佐证还有三条**：D2 只为 ruff 半边存在；六条 Deferred 里三条只关 ruff；实验 A 与实验 B 的失败分支不对称。
@@ -208,7 +208,7 @@ Skill: `none`
       本裁定押的是「共享关闭判据」这一侧，**押错的代价是关闭时两半状态不一致**——
       因此实验 A 与实验 B **必须各有一条对称的写死失败分支**（见 Phase 3），不许只给其中一条。
       - Skill: `none`
-- [ ] **Decision D1：动 `main` 上 `.github/workflows/**` 这一次凭什么（第五次重新摆上台面，不得默认继承）。**
+- [x] **Decision D1：动 `main` 上 `.github/workflows/**` 这一次凭什么（第五次重新摆上台面，不得默认继承）。**
       三个候选与代价必须逐条写进 §14.7：
       | 候选 | 内容 | 代价 / 后果 |
       |---|---|---|
@@ -225,7 +225,7 @@ Skill: `none`
       `STATE.md` §3（**只追加**），plan 置 `Plan Status: deferred`，重开事件为「人对
       `.github/workflows/** = blocked` 给出裁定时」。
       - Skill: `none`
-- [ ] **Decision D2：ruff 的版本怎么钉。**
+- [x] **Decision D2：ruff 的版本怎么钉。**
       候选三条：
       (i) `pip install ruff`（不钉）—— **否掉**：ruff 的规则集随版本变，不钉等于让一次上游发布把 `main` 变红，
           而红因与本仓任何一次改动都无关；
@@ -236,7 +236,7 @@ Skill: `none`
       **将来升 ruff 必须再动一次这个文件**（又要重摆一次 D1）；且**本机侧仍然没有钉**，
       本机装了别的版本时两侧会不一致 —— 该不一致**本 plan 不消除**，登记进 Deferred。
       - Skill: `none`
-- [ ] **Decision D3：两条命令放一个 job 还是两个 job。**
+- [x] **Decision D3：两条命令放一个 job 还是两个 job。**
       候选：
       (i) 追加成 `unit-and-contracts` 的第 ③④ 两个 step —— **否掉**：`steps` 默认 fail-fast，
           `tests/unit` 红时后面三步全不跑，一次运行只能报最靠前的那个问题；
@@ -254,27 +254,42 @@ Skill: `none`
       **每个 job 内部只有一条判据 step，本来就没有第二步可被遮蔽**。
       - Skill: `none`
 
+**Phase 1 实测证据（2026-08-23 开工时实读，不是起草时的回忆）：**
+
+- 工作树前置：`git status --porcelain -- docs/architecture/system-baseline.md docs/context/project-context.md docs/backlog/p0-foundation-roadmap.md`
+  → **无输出**（`0120-1` 与 `0120-2` 的回填均已入库）。`git status --porcelain` 全仓亦**无输出**，工作树全干净。
+  开工 HEAD = `d45163c73a0b35fda848cd810d9a9f1200d18a28`（**不是**起草时的 `7a09ef7`）。
+- `docs/architecture/system-baseline.md` 现时 **887 行**（起草时 `main` 785 / 工作树 854，**两个数都已过期**）；
+  `### 它**不**覆盖什么` 两处现时行号为 **`:748`（§14.5）** 与 **`:871`（§14.6）**
+  （起草时写的 `:715` / `:838` 已过期，未照抄）。§14.5 起于 `:638`，§14.6 起于 `:760`。
+- `.github/workflows/gates.yml` 实读 **404 行**、**M = 11 个 job 键**
+  （`gates-untouched` · `expected-red-ratchet` · `gates-l1` · `masterplan-links` · `roadmap-parseable` ·
+  `loop-wiring` · `gates-l2` · `gates-l2-live` · `verdict-tool-untouched` · `gates-l2-seed` · `unit-and-contracts`）
+  —— 与 Baseline 6 一致，**因此全篇「13 个 job」「其余 12 个」的口径成立**（M+2 = 13）。
+- D0–D3 已逐条写进 `docs/architecture/system-baseline.md` **§14.7**（新建，起于 `:889`，本 Phase 结束时文件 978 行）。
+- 本 Phase 结束时 `git diff --stat .github/ agenerp/ tests/` → **无输出**（一行代码/工作流都没改）。
+
 Exit Criteria:
 
-- [ ] **工作树前置已满足**：那条 `git status --porcelain` 的实测输出（无输出）记在本 plan 内；
+- [x] **工作树前置已满足**：那条 `git status --porcelain` 的实测输出（无输出）记在本 plan 内；
       `system-baseline.md` 的现时行数与两处小节行号已实读并记下
-- [ ] §14.7 内已写下 **D0 的裁定**（Minimum Rule 4、唯一共享关闭判据原文、被否候选、残余风险）
-- [ ] §14.7 内已写下 D1 的三候选表、被引用的 `ai-autonomy-policy.md:9` 原文、
+- [x] §14.7 内已写下 **D0 的裁定**（Minimum Rule 4、唯一共享关闭判据原文、被否候选、残余风险）
+- [x] §14.7 内已写下 D1 的三候选表、被引用的 `ai-autonomy-policy.md:9` 原文、
       「五个先例不等于一个授权」的逐字措辞，以及 (a) 分支的写死处置
-- [ ] §14.7 内已写下 D2 / D3 的候选、选择、理由与残余风险
-- [ ] 本 Phase 结束时 `git diff --stat .github/ agenerp/ tests/` **无输出**
-- [ ] No owner-doc update required beyond §14.7 (this phase)
+- [x] §14.7 内已写下 D2 / D3 的候选、选择、理由与残余风险
+- [x] 本 Phase 结束时 `git diff --stat .github/ agenerp/ tests/` **无输出**
+- [x] No owner-doc update required beyond §14.7 (this phase)
 
 ### Phase 2 - 追加两个 job + 本机前置自查 + 把 CI 预测写死（推变异之前）
 
-Status: planned
+Status: completed
 Targets: `.github/workflows/gates.yml`（**只在文件末尾追加**）
 Skill: `none`
 
 - Item Types: `Add | Proof`
 - Prereqs: Phase 1 全部 Exit Criteria（D1 若落 (a) 分支则本 Phase 不执行）
 
-- [ ] **Decision D4 | Add：追加 job `seed-selfverify`（种子生成器自验），判据是「退出码 **和** stdout 断言」两条，不是只判退出码。**
+- [x] **Decision D4 | Add：追加 job `seed-selfverify`（种子生成器自验），判据是「退出码 **和** stdout 断言」两条，不是只判退出码。**
       形态钉死：`name: 种子生成器自验（agenerp.seed --verify）` · `runs-on: ubuntu-latest` ·
       `timeout-minutes: 10` · `actions/checkout@v4` · `actions/setup-python@v5` with
       `python-version: "3.11"`（与既有 job 逐字相同）· **不装任何 pip 包**（⚠️ 依据是 **Phase 2 实读确认**「`agenerp/**` 只 import 标准库」，
@@ -294,7 +309,7 @@ Skill: `none`
       **残余风险**：`grep` 的模式写死了那句中文文案，将来改文案会让本 job 红 —— 那是**它该红**
       （文案是判据的一部分），但必须在 §14.7 写明这层耦合。
       - Skill: `none`
-- [ ] **Add：追加 job `lint`（ruff 静态检查）。** 形态钉死：
+- [x] **Add：追加 job `lint`（ruff 静态检查）。** 形态钉死：
       `name: 静态检查（ruff）` · 同上的 `runs-on` / `timeout-minutes` / `checkout` / `setup-python@v5` `"3.11"` ·
       `pip install ruff==0.14.1`（D2）· 一个判据 step，命令**逐字**
       `ruff check agenerp tests/unit tests/contracts`。
@@ -302,7 +317,7 @@ Skill: `none`
       —— 尤其**不得**扩到 `tests/gates`（`pyproject.toml` 的 `[tool.ruff] exclude` 已把它排除，
       理由逐字是「免得 lint 逼着去改裁判」）。**扩作用域是另一个结果面，本 plan 不做。**
       - Skill: `none`
-- [ ] **Proof：红线 2 机械自查五条（Baseline 10），每条给命令原文与实测输出。**
+- [x] **Proof：红线 2 机械自查五条（Baseline 10），每条给命令原文与实测输出。**
       ① 前缀性 `diff` 无输出：`N=$(git show HEAD:.github/workflows/gates.yml | wc -l)` 取**开工时实读的基线行数**
       （起草时为 **404**，⚠️ **不得照抄这个数**——前驱/并行 plan 可能已经改过它），
       再 `git show HEAD:.github/workflows/gates.yml > /tmp/base.yml && head -"$N"
@@ -314,7 +329,7 @@ Skill: `none`
       ④ `if:` 出现处与改动前**逐字相同**（本 plan 新增的两个 job **一个 `if:` 都不带**）；
       ⑤ 无失败吞噬：两个新判据 step 都不接 `|| true`、不接 `continue-on-error`。
       - Skill: `none`
-- [ ] **Proof：保命闸 —— 本机前置自查，四条各判退出码并原样记下。**
+- [x] **Proof：保命闸 —— 本机前置自查，四条各判退出码并原样记下。**
       ① `python3 -m agenerp.seed --seed 42 --verify` → 期望 **0**，输出逐字含 `✅ 种子 42：`；
       ② `ruff check agenerp tests/unit tests/contracts` → 期望 **0**，逐字 `All checks passed!`；
       ③ `python3 tools/gates/check_expected_red.py` → 期望 **0**，三行判定行逐字为
@@ -325,7 +340,7 @@ Skill: `none`
          本 plan **不预言** `288` / `151` 这两个数 —— 队列里的 `2026-08-23-0120-2` 会新增单测，
          执行顺序若在本 plan 之前，`tests/unit` 的数就已经变了。**照抄一个会过期的数是自造漂移。**）
       - Skill: `none`
-- [ ] **Proof：把四条 CI 预测写死在本 plan 里（推之前写，不许事后补）。**
+- [x] **Proof：把四条 CI 预测写死在本 plan 里（推之前写，不许事后补）。**
       预测 ①：PR 首跑 **13 个 job 全 `success`**，`seed-selfverify` 日志逐字含 `✅ 种子 42：两次生成 diff 为空，场景断言全过`；
       预测 ②：`lint` 日志逐字含 `All checks passed!`；
       预测 ③：Phase 3 的 ruff 变异（往 `agenerp/` 某个模块加一个未使用的 import）→ **`lint` 红，其余 12 个 job 全绿**；
@@ -335,18 +350,62 @@ Skill: `none`
       **证不出「该变异对此前的 CI 隐形」**。找不到隐形变异时的处置写死在 Phase 3，**不临场发明**。
       - Skill: `none`
 
+**Phase 2 实测证据（2026-08-23，全部为实跑，不是回忆）：**
+
+**红线 2 机械自查五条**（基线为开工 HEAD `d45163c`）：
+
+| # | 命令原文 | 实测输出 | 判定 |
+|---|---|---|---|
+| ① | `N=$(git show HEAD:.github/workflows/gates.yml \| wc -l)` → **N=404**；`git show HEAD:.github/workflows/gates.yml > /tmp/base.yml && head -"$N" .github/workflows/gates.yml \| diff - /tmp/base.yml` | **无输出**，退 **0** | 前 404 行逐字节未动 ✅ |
+| ② | `diff <(grep -oE "^  [a-z0-9-]+:$" /tmp/base.yml) <(grep -oE "^  [a-z0-9-]+:$" .github/workflows/gates.yml)` | 唯一差异逐字为 `12a13,14` / `>   seed-selfverify:` / `>   lint:`；锚定计数 **12 → 14**（`push:` + M 个 job 键，M **11 → 13**） | 只增不减、既有键逐字未动 ✅ |
+| ③ | `grep -nE "continue-on-error\|if: false\|paths-ignore\|\\\|\\\| true" .github/workflows/gates.yml` | 退 **0**，命中两行：`36:          CHANGED=$(git diff --name-only "$BASE" "$HEAD" -- 'tests/gates/**' \|\| true)` 与 `293:          CHANGED=$(… 'tools/gates/gate-verify.mjs' \|\| true)` | **与改动前逐条相同**（判据不是「零命中」）；`continue-on-error` / `if: false` / `paths-ignore` 三词零命中 ✅ |
+| ④ | `diff <(grep -nE "^\s*if:" /tmp/base.yml) <(grep -nE "^\s*if:" .github/workflows/gates.yml)` | **无输出**，退 **0**（10 处 `if: always()` 的行号与内容逐字相同：`185/189/244/248/252/256/374/378/382/386`） | 两个新 job **一个 `if:` 都不带** ✅ |
+| ⑤ | 人工复核两个新判据 step | `种子 42 自验（退出码 + stdout 断言）` 与 `ruff check（agenerp / tests/unit / tests/contracts）` 都**不接 `\|\| true`、不接 `continue-on-error`** | 无失败吞噬 ✅ |
+
+`git diff --numstat -- .github/workflows/gates.yml` → **`37	0`**（**删除列为 `0`**，纯追加）。
+`git status --porcelain -- tests/gates tools/gates missions agenerp pyproject.toml` → **无输出**（五处零改动）。
+`yaml.safe_load` 实跑确认 job 键 13 个、两个新 job 的 `name:` 逐字为
+`种子生成器自验（agenerp.seed --verify）` 与 `静态检查（ruff）`。
+
+**D4 的「不装任何 pip 包」实读依据**（Phase 2 实读，**不是** Baseline 12）：
+`grep -rhE "^\s*(import|from) " --include='*.py' agenerp/ | awk '{print $2}' | cut -d. -f1 | sort -u`
+→ `__future__ agenerp argparse collections dataclasses datetime json logging os pathlib random re
+subprocess sys tempfile typing urllib` —— **全部是标准库 + `agenerp` 自身**，零第三方依赖。
+
+**保命闸 —— 本机前置自查四条，各判退出码**：
+
+| # | 命令原文 | 退出码 | 输出 |
+|---|---|---|---|
+| ① | `python3 -m agenerp.seed --seed 42 --verify` | **0** | 逐字 `✅ 种子 42：两次生成 diff 为空，场景断言全过` |
+| ② | `ruff check agenerp tests/unit tests/contracts` | **0** | 逐字 `All checks passed!`（`ruff --version` → `ruff 0.14.1`） |
+| ③ | `python3 tools/gates/check_expected_red.py` | **0** | 三行逐字 `判定模式：default —— 按 tools/gates/expected-red.txt 判定` / `门禁 19 项：预期红 7，绿 12，跳过 0` / `✅ 与预期红名单完全一致` |
+| ④ | `python3 -m pytest tests/unit -q` / `python3 -m pytest tests/contracts -q` | **0** / **0** | 实测 `293 passed in 0.62s` / `151 passed in 0.06s`（⚠️ **不是**起草时的 `288`——`0120-2` 已新增 5 条单测，此处按实测记，不照抄会过期的数） |
+
+**四条 CI 预测（写死在推任何一次 CI 之前）**：
+
+- **预测 ①**：PR 首跑 **13 个 job 全 `success`**，`seed-selfverify` 日志逐字含
+  `✅ 种子 42：两次生成 diff 为空，场景断言全过`。
+- **预测 ②**：`lint` 日志逐字含 `All checks passed!`。
+- **预测 ③**：变异实验 A（往 `agenerp/` 与 `tests/unit` 各加一处 `F401` 未使用 import）
+  → **`lint` `failure`，其余 12 个 job 全 `success`**。
+- **预测 ④**：变异实验 B（`agenerp/seed/__main__.py:70` 的 `raise SystemExit(main())` → `raise SystemExit(0)`）
+  → **`seed-selfverify` `failure`**，且**尽力**让其余 12 个 job 全 `success`。
+  ⚠️ **预测 ④ 是四条里最可能落空的一条**：种子生成器被 `tests/unit` 覆盖得很密，
+  大多数变异会**同时**让 `unit-and-contracts` 红，那样只能证明「新 job 有牙齿」，
+  **证不出「该变异对此前的 CI 隐形」**。找不到隐形变异时的处置写死在 Phase 3，**不临场发明**。
+
 Exit Criteria:
 
-- [ ] `gates.yml` 为纯追加：`git diff --numstat -- .github/workflows/gates.yml` 的**删除列为 `0`**
-- [ ] 红线 2 五条自查的命令原文与输出全部记在本 plan 内，且全为期望值
-- [ ] 保命闸四条的退出码记在本 plan 内，全为 **0**
-- [ ] 四条 CI 预测已逐字写死在本 plan 内（时间上先于 Phase 3 的任何一次 push）
-- [ ] `tests/gates/**` / `tools/gates/**` / `missions/**` / `agenerp/**` / `pyproject.toml` **零改动**
-- [ ] `docs/logs/` 更新
+- [x] `gates.yml` 为纯追加：`git diff --numstat -- .github/workflows/gates.yml` 的**删除列为 `0`**
+- [x] 红线 2 五条自查的命令原文与输出全部记在本 plan 内，且全为期望值
+- [x] 保命闸四条的退出码记在本 plan 内，全为 **0**
+- [x] 四条 CI 预测已逐字写死在本 plan 内（时间上先于 Phase 3 的任何一次 push）
+- [x] `tests/gates/**` / `tools/gates/**` / `missions/**` / `agenerp/**` / `pyproject.toml` **零改动**
+- [x] `docs/logs/` 更新
 
 ### Phase 3 - 变异实证（PR 分支上跑 CI，证明两个新 job 有牙齿）
 
-Status: planned
+Status: completed
 Targets: 临时变异提交（**全部必须 revert 并实测复原**）· 本 plan 的取证记录
 Skill: `none`
 
@@ -359,7 +418,7 @@ Skill: `none`
 ⚠️ **若出现一次未被预测的红，它就是真的红**：立即按 `## Deferred But Adjudicated` 的固定处置停下。
 **CI 预算**：本 Phase 预计消耗 5 次 run，实际次数在关闭时按实填，并对照裁判规则 4 的累计成本条款。
 
-- [ ] **Proof：开分支 `ci/0337-1-seed-lint-coverage`，推首跑。** 记 run id + 13 个 job 的结论 +
+- [x] **Proof：开分支 `ci/0337-1-seed-lint-coverage`，推首跑。** 记 run id + 13 个 job 的结论 +
       两个新 job 的日志逐字行。与预测 ①② 逐条对照。
       ⚠️ **Baseline 7 那条推理的真正判据在这一跑，不在 Phase 2**（初稿把它写在 Phase 2 而 Phase 3 又以
       Phase 2 为前置，形成循环，评审第 1 轮抓出）：`python3 -m agenerp.seed` 不经过 pytest，
@@ -368,7 +427,7 @@ Skill: `none`
       若 runner 上 import 失败，处置是**在 job 里加 `pip install -e .`**（那是**加**，不是放宽），
       **不得**改成 `PYTHONPATH=. python3 …` 这种把成立条件藏进 env 的写法。
       - Skill: `none`
-- [ ] **Proof：变异实验 A（ruff）。** 往 `agenerp/` 下某个模块加一处 ruff 必报的违例
+- [x] **Proof：变异实验 A（ruff）。** 往 `agenerp/` 下某个模块加一处 ruff 必报的违例
       （**首选未使用的 import，规则 `F401`**，因为它与运行时行为无关，不会连带弄红别的 job）。
       ⚠️ **同一个变异提交里必须在 `tests/unit` 或 `tests/contracts` 下也放一处违例**
       （评审第 1 轮：只动 `agenerp/` 的话，三个作用域目录只证了三分之一）。
@@ -381,7 +440,7 @@ Skill: `none`
       若 `lint` 红了但**别的 job 也红** → 照实记「未能证明隐形」，与实验 B 的 ③ 分支同口径处理，
       **不得把它写成「隐形已证」**。
       - Skill: `none`
-- [ ] **Proof：变异实验 B（seed 自验）。首选变异已由 Baseline 12/13 定出来，不再「按序试」。**
+- [x] **Proof：变异实验 B（seed 自验）。首选变异已由 Baseline 12/13 定出来，不再「按序试」。**
       ⚠️ **初稿把 `agenerp/seed/__main__.py` 的退出码映射排在「离单测最远」的第一档 —— 那是反的**
       （评审第 1 轮抓出）：`tests/unit/test_seed_deterministic.py:205-212` 正面断言了同一个 `main()`、
       同一组 argv、同一个退出码、同一句 stdout，逐条会被撞死；`checks.verify()` 与 `model.py` 常量
@@ -401,23 +460,102 @@ Skill: `none`
       ⚠️ **这一条不许写成「牙齿已证」**，也不许因此就删掉这个 job —— 冗余复跑面本身仍有价值
       （WBS 验收命令进服务端复跑），但**价值的名字必须叫对**。
       - Skill: `none`
-- [ ] **Proof：全部变异 revert 后复跑一次，13 个 job 全 `success`。** 记 run id。
+- [x] **Proof：全部变异 revert 后复跑一次，13 个 job 全 `success`。** 记 run id。
       **实验提交必须从分支历史上收尾干净**（`git log --oneline` 记下最终分支形态），
       落 `main` 的必须是「跑绿的那一个 sha」。
       - Skill: `none`
 
+**Phase 3 实测证据（2026-08-23，分支 `ci/0337-1-seed-lint-coverage`，PR **#8**，共 5 次 run）：**
+
+**开工实读的 job 计数**：`gates.yml` 基线 **M = 11**（Baseline 6 逐字吻合），
+纯追加 2 个 → **13**。**因此全篇「13 个 job」「其余 12 个」的口径原样成立，无需按 `M+2` 改写。**
+
+| # | run id | head sha | 内容 | 结论 |
+|---|---|---|---|---|
+| 1 | `32601490564` | `1debf1a` | 首跑（无变异） | **13 个 job 全 `success`** —— 与**预测 ①②** 逐条吻合 |
+| 2 | `32601754671` | `eeaac53` | 变异 A：`agenerp/snapshot.py` 与 `tests/unit/test_seed_deterministic.py` 各加一处 `F401` | **`lint` `failure`（job `97100973890`），其余 12 个 job 全 `success`** —— 与**预测 ③** 逐条吻合 |
+| 3 | `32601993786` | `17a9532` | `git revert` A | **13 个 job 全 `success`** |
+| 4 | `32602225121` | `a4c2cbf` | 变异 B：`agenerp/seed/__main__.py:70` `raise SystemExit(main())` → `raise SystemExit(0)` | **`seed-selfverify` `failure`（job `97102151649`），其余 12 个 job 全 `success`**（含 `unit-and-contracts` `97102151664` `success`） —— 与**预测 ④** 逐条吻合 |
+| 5 | `32602435912` | `9835019` | `git revert` B | **13 个 job 全 `success`** |
+
+**首跑两个新 job 的日志逐字行**（run `32601490564`）：
+
+- `seed-selfverify`（job `97100318957`，`名称：种子生成器自验（agenerp.seed --verify）`，墙钟 `22:06:07Z`→`22:06:13Z`，**6 秒**）：
+  stdout 逐字 **`✅ 种子 42：两次生成 diff 为空，场景断言全过`**；判据 step 逐字三行
+  `set -euo pipefail` / `python3 -m agenerp.seed --seed 42 --verify | tee /tmp/seed-selfverify.log` /
+  `grep -qE '^✅ 种子 42：' /tmp/seed-selfverify.log`。
+- `lint`（job `97100318919`，`名称：静态检查（ruff）`，墙钟 `22:06:06Z`→`22:06:14Z`，**8 秒**）：
+  `Successfully installed ruff-0.14.1`，判据 step 输出逐字 **`All checks passed!`**。
+
+**Baseline 7 那条推理的判据落在这一跑，已实测成立**：runner 上 `python3 -m agenerp.seed`
+**不经过 pytest、不装 `agenerp`**（job 里连 `pip install` 都没有），仍能 import
+——`-m` 把 CWD 插进 `sys.path` 这一机制在 `ubuntu-latest` / Python `3.11.16` 上成立。
+**没有走「加 `pip install -e .`」那条处置分支。**
+
+**实验 A 的红日志逐字**（job `97100973890`）：
+
+```
+F401 [*] `uuid` imported but unused
+  --> agenerp/snapshot.py:16:8
+F401 [*] `uuid` imported but unused
+  --> tests/unit/test_seed_deterministic.py:10:8
+Found 2 errors.
+##[error]Process completed with exit code 1.
+```
+
+**两处规则码与文件行号都被点名，三个作用域目录里的两个各证一处**（`tests/contracts` 未放违例，
+本 plan **不声称**该目录已被实证，只声称它在命令的作用域里）。
+**其余 12 个 job 全 `success` —— 即这两处 `F401` 对 `main` 上原有的 11 个 job 完全隐形。**
+
+**实验 B 的结论逐字（落在「找到隐形变异」这一支，不含糊）**：
+
+> **`seed-selfverify` 的隐形性已证。** 把 `agenerp/seed/__main__.py:70` 的 `raise SystemExit(main())`
+> 改成 `raise SystemExit(0)` 之后，run `32602225121` 上 **`seed-selfverify` `failure`，其余 12 个 job 全 `success`**
+> ——**包括 `unit-and-contracts`（job `97102151664`，`success`）**。
+> 该变异对此前 CI 上的全部 11 个 job 完全隐形，只有这个新 job 抓到了它。
+> 红因是 stdout 断言：`tee` 到的日志为空 → `grep -qE '^✅ 种子 42：'` 退 1 → step `##[error]Process completed with exit code 1.`
+> ——**这正是 D4 加那条 `grep` 所堵住的那条假绿路径，被一次真实的 CI 运行当场坐实。**
+> **因此本 plan 不需要写「未能证明 `seed-selfverify` 抓得到此前 CI 抓不到的东西」那句话。**
+
+**同理，`lint` 的隐形性亦已证**（实验 A：`lint` 红、其余 12 绿），
+**本 plan 也不需要写「未能证明 `lint` 抓得到此前 CI 抓不到的东西」那句话。**
+
+**本机预筛（推实验 B 之前实跑，两条同时满足才推）**：
+`set -euo pipefail; python3 -m agenerp.seed --seed 42 --verify | tee /tmp/x.log; grep -qE '^✅ 种子 42：' /tmp/x.log`
+→ **exit 1**（期望非 0 ✅）；`python3 -m pytest tests/unit tests/contracts -q` → **exit 0**，`444 passed in 0.73s`（期望 0 ✅）。
+变异 B 期间 `ruff check agenerp tests/unit tests/contracts` → **exit 0**（确认没有污染实验 B 的归因）。
+
+**变异全部复原的机械证据**：`git diff main..HEAD -- agenerp/ tests/ pyproject.toml` → **无输出**。
+分支最终形态（`git log --oneline main..HEAD`）：
+
+```
+9835019 Revert "MUTATION-B: __main__ 卫句改成 raise SystemExit(0) …"
+a4c2cbf MUTATION-B: __main__ 卫句改成 raise SystemExit(0) …
+17a9532 Revert "MUTATION-A: 故意的 F401（两处，agenerp/ 与 tests/unit/ 各一）…"
+eeaac53 MUTATION-A: 故意的 F401（两处，agenerp/ 与 tests/unit/ 各一）…
+1debf1a feat(ci): plan-2026-08-23-0337-1 Phase 1-2 —— gates.yml 纯追加 seed-selfverify / lint 两个 job
+```
+
+⚠️ **实验提交要从落 `main` 的历史上收尾干净**：本分支带 4 个实验/revert 提交，
+**因此它不用来落地**（PR #8 只用于实证，不合并）；落地走另一个从 `main` 新切、只含一个干净提交的分支（Phase 4）。
+
+**CI 预算与裁判规则 4 的对照**：本 Phase 实耗 **5 次 run**（与预算逐字相同）。
+两次红（run 2 / run 4）**都是本 plan 事先逐字写死的预测**，且两者之间隔着 run 3 的全绿跑，
+顺序为 **首跑绿 → A 红 → A-revert 绿 → B 红 → B-revert 绿**，
+**不构成「CI 连续 2 轮红」**。**本 Phase 未出现任何一次未被预测的红**，固定处置分支未触发。
+
 Exit Criteria:
 
-- [ ] 首跑 run id + 13 个 job 结论 + 两个新 job 的日志逐字行记在本 plan 内
-- [ ] 实验 A 的红/绿两个 run id 与「其余 12 个 job 全绿」的实测结论记在本 plan 内
-- [ ] 实验 B 落在「找到隐形变异」或「未能证明隐形」二者之一，**结论逐字记下，不含糊**
-- [ ] 最终 revert 后的全绿 run id 记在本 plan 内
-- [ ] `git diff main..HEAD -- agenerp/ tests/ pyproject.toml` **无输出**（变异全部复原）
-- [ ] `docs/logs/` 更新
+- [x] 首跑 run id + 13 个 job 结论 + 两个新 job 的日志逐字行记在本 plan 内
+- [x] 实验 A 的红/绿两个 run id 与「其余 12 个 job 全绿」的实测结论记在本 plan 内
+- [x] 实验 B 落在「找到隐形变异」或「未能证明隐形」二者之一，**结论逐字记下，不含糊**
+- [x] 最终 revert 后的全绿 run id 记在本 plan 内
+- [x] `git diff main..HEAD -- agenerp/ tests/ pyproject.toml` **无输出**（变异全部复原）
+- [x] `docs/logs/` 更新
 
 ### Phase 4 - 落 `main` + owner doc 回填
 
-Status: planned
+Status: completed
 Targets: `.github/workflows/gates.yml`（经 PR `--ff-only` 落 `main`）·
 `docs/architecture/system-baseline.md` §14.7 · `docs/context/project-context.md` 的
 `Lint / static check` 与 `Seed dataset acceptance` 两行 · `docs/backlog/p0-foundation-roadmap.md` ·
@@ -427,12 +565,12 @@ Skill: `none`
 - Item Types: `Add | Fix | Proof`
 - Prereqs: Phase 3 全部 Exit Criteria
 
-- [ ] **Proof：开 PR、`--ff-only` 合进 `main`，取 `main` 的 `push` 权威运行。**
+- [x] **Proof：开 PR、`--ff-only` 合进 `main`，取 `main` 的 `push` 权威运行。**
       **落地 sha 必须与 PR 上跑绿的 head 逐字同一个**（本仓已固化的判据，`1206-2` / `2325-2` / `0120-1` 三次先例）。
       记：PR 号 · 落地 sha（全长）· `main` `push` run id · 13 个 job 各自的 job id 与结论。
       **若权威运行不是全绿，走 `## Deferred But Adjudicated` 的固定处置，不得就地放宽。**
       - Skill: `none`
-- [ ] **Add：回填 `docs/architecture/system-baseline.md` §14.7**（该节由 Phase 1 建立并已写入 D0–D3，
+- [x] **Add：回填 `docs/architecture/system-baseline.md` §14.7**（该节由 Phase 1 建立并已写入 D0–D3，
       本项补全其余各段），与 §14.5 / §14.6 同规矩：
       **只记落点，不改写 §14 本体（`:131`–`:177`）任何一行**，也不改写 §14.1–§14.6 任何一行。
       内容：D0 / D1 三候选表与授权面诚实措辞（Phase 1 已写）· D2 / D3 / D4 ·
@@ -446,7 +584,7 @@ Skill: `none`
       ② `tests/gates` **不在 lint 作用域内**（`[tool.ruff] exclude`，理由是不让 lint 逼着改裁判）；
       ③ **CI 覆盖 ≠ 门禁形态 ≠ `GATE_VERIFY` 可复跑**，`missions/**` 一个字节未动。
       - Skill: `none`
-- [ ] **Add：`docs/context/project-context.md` 的 `Lint / static check` 一行**
+- [x] **Add：`docs/context/project-context.md` 的 `Lint / static check` 一行**
       （⚠️ **标签是 `Add` 不是 `Fix`**：该行现在没有任何一处说它有没有复跑面，**这不是缺陷、不是漂移**，
       本 plan 是给它补一条此前不存在的事实。误标 `Fix` 会暗示一处并不存在的漂移。）
       —— 该行现在只写命令，**没有任何一处说它有没有复跑面**；本 plan 让它有了，
@@ -458,7 +596,7 @@ Skill: `none`
       **它是允许新增行的**；本 plan 自我限制为**只在既有句末补记、连新增行也不做**。
       ⚠️ **因此措辞不是「沿用同一裁定」而是「在该裁定内进一步收紧」**（评审第 1 轮抓出的引文不准）。
       - Skill: `none`
-- [ ] **Add：同文件 `Seed dataset acceptance` 一行**（⚠️ 同上，标签是 `Add`：
+- [x] **Add：同文件 `Seed dataset acceptance` 一行**（⚠️ 同上，标签是 `Add`：
       该行那句「`GATE_VERIFY` 复跑不到它」**仍然为真、本 plan 一个字不改**，因此不存在要修的缺陷）。 该行逐字写着
       「⚠️ **它不在 `missions/p0-foundation.json` 的 `commands.test` 里**，`GATE_VERIFY` 复跑不到它」——
       ⚠️ **那句话本 plan 一个字不改，它仍然为真**（`missions/**` 一个字节未动）。
@@ -466,7 +604,7 @@ Skill: `none`
       **这是 CI 覆盖，不是对上面那句的否定**——两条通道互相独立，上面那句仍然成立、本次一个字未改」。
       **这段措辞照抄 `2325-2` 已固化的写法，不发明新说法。**
       - Skill: `none`
-- [ ] **Add：`docs/backlog/p0-foundation-roadmap.md` 追加一行
+- [x] **Add：`docs/backlog/p0-foundation-roadmap.md` 追加一行
       `| 9 现状 · 生成器自验与 lint 的 CI 覆盖 |`**，**纯追加，既有行一个字不改**。
       ⚠️ **列形态必须与既有行一致**：开工时**先实读一条既有的 `| N 现状 · … |` 行照着写**
       （该表带「层」列，现状行形态为 `| N 现状 · … | <正文> | <L1 / L2> |`），免得把表格写坏
@@ -475,13 +613,13 @@ Skill: `none`
       与本 job 的两条命令互不重叠，本行是覆盖面的扩展、不是判据的替换**，
       **不得**被读成「工作项 9 因此可以 `done`」；**工作项 7 / 9 的状态值本行一个字不改。**
       - Skill: `none`
-- [ ] **Add：`docs/masterplan/STATE.md` §2 追加一条证据行**（红线 5：**只追加，不改写已有行**）。
+- [x] **Add：`docs/masterplan/STATE.md` §2 追加一条证据行**（红线 5：**只追加，不改写已有行**）。
       必须承接并改准 2026-08-23T01:00Z 行那句「四条本机命令在 `gates.yml` 里零 job 覆盖」——
       **上一行一个字不改**，本行写明：那四条**此刻全部有 CI 覆盖**（`tests/unit` / `tests/contracts` 由
       `0120-1` 的 `unit-and-contracts`；`agenerp.seed --verify` / `ruff check` 由本 plan 的两个新 job），
       并逐字重申「**`GATE_VERIFY` 复跑不到**这一点不因 CI 覆盖而改变，`missions/**` 一个字节未动」。
       - Skill: `none`
-- [ ] **Proof：陈旧陈述复核（两条 grep，逐条给结论）。**
+- [x] **Proof：陈旧陈述复核（两条 grep，逐条给结论）。**
       ① `grep -rn "零 job 覆盖\|零 CI 覆盖" docs/ | grep -v "^docs/logs/\|^docs/plans/\|^docs/masterplan/STATE"`
          —— 逐条确认每一处**要么仍为真、要么已按上一项改准**；
       ② `grep -rn "gates.yml.*个 job\|11 个 job 键\|10 个 job 键" docs/`
@@ -494,16 +632,101 @@ Skill: `none`
       **两份清单与逐条结论都记在本 plan 内。**
       - Skill: `none`
 
+**Phase 4 实测证据（2026-08-23）：**
+
+**落地（PR #9，与实证用的 PR #8 是两个分支）**：
+从 `main` 新切 `ci/0337-1-seed-lint-coverage-land`，**只含一个提交、只含 `gates.yml`**
+（实验/revert 四个提交全部留在 PR #8，**不进 `main` 历史**）。
+
+| 项 | 值 |
+|---|---|
+| PR 号 | **#9**（实证用的是 **#8**，未合并） |
+| PR #9 上跑绿的 run | `32602725539`（event `pull_request`，head `4476c470fb65e53d81faa1ee0cd84ea674330689`），**13 个 job 全 `success`** |
+| 落地 sha（全长） | **`4476c470fb65e53d81faa1ee0cd84ea674330689`** |
+| 落地方式 | `git merge --ff-only ci/0337-1-seed-lint-coverage-land` → `Updating d45163c..4476c47 / Fast-forward` |
+| `main` `push` 权威运行 | **`32602915798`**（event `push`，head `4476c470f…`）→ **`success`** |
+
+⚠️ **落地 sha 与 PR #9 上跑绿的 head 逐字同一个**：
+`4476c470fb65e53d81faa1ee0cd84ea674330689` **=** `4476c470fb65e53d81faa1ee0cd84ea674330689`。
+（`--ff-only` 快进，没有产生 merge commit，因此两者按构造相等，并已实测核对。）
+
+**`main` `push` 权威运行 `32602915798` 的 13 个 job（job id + `name:` + 结论，逐条）**：
+
+| job id | `name:` | 结论 |
+|---|---|---|
+| `97103765688` | 门禁未被改动 | `success` |
+| `97103765736` | L2 慢门禁（零依赖启动） | `success` |
+| **`97103765753`** | **静态检查（ruff）** | **`success`** |
+| **`97103765758`** | **种子生成器自验（agenerp.seed --verify）** | **`success`** |
+| `97103765790` | roadmap 引擎可解析 | `success` |
+| `97103765805` | 单测与契约测试（439 条） | `success` |
+| `97103765820` | 判定器未被改动 | `success` |
+| `97103765823` | 循环联动冒烟 | `success` |
+| `97103765826` | L1 快门禁 | `success` |
+| `97103765837` | 预期红名单只能变短 | `success` |
+| `97103765838` | 主计划引用不断链 | `success` |
+| `97103765869` | L2 种子链（装载 + 站点侧对账） | `success` |
+| `97103765893` | L2 全量 live 判定（19 条） | `success` |
+
+**两个新 job 各有 `name:`，且上表按该 `name:` 逐条对上**：
+`种子生成器自验（agenerp.seed --verify）` / `静态检查（ruff）`（`yaml.safe_load` 实证）。
+
+**owner doc 回填的机械证据**：
+
+| 文件 | `git diff --numstat` | 判定 |
+|---|---|---|
+| `docs/architecture/system-baseline.md` | `113	0` | **删除列 `0`**；`head -887 … \| diff - <(git show d45163c:…)` → **无输出**，即 **§14 本体（`:131`–`:177`）与 §14.1–§14.6 逐字节未动**；§14.7 起于 `:889` |
+| `docs/context/project-context.md` | `2	2` | **两行都是句末追加**（同一行改写，`2` 增 `2` 删）；**文件行数 108 → 108 未变**，即**未新增行、未重构表结构** |
+| `docs/backlog/p0-foundation-roadmap.md` | `1	0` | **纯追加**（删除列 `0`）；新行 `\| 9 现状 · 生成器自验与 lint 的 CI 覆盖 \| … \| L2 \|`，**3 个单元格 + 「层」列 `L2`**，与既有 `\| 9 现状 · … \|` 行（`:89` / `:90`）形态一致 |
+| `docs/masterplan/STATE.md` | `7	0` | **纯追加**（删除列 `0`，红线 5）；§2 末尾一条证据行 + 6 条 `  · ` 子项，**既有行一个字未改** |
+
+**工作项 7 / 9 的状态值一个字未改**：roadmap `:82`（工作项 7）与 `:88`（工作项 9）两行**未被触碰**
+（`git diff` 只有 `:92` 一行新增）；新行内逐字写明「**工作项 7 / 9 的状态值本行一个字未改，仍 `planned`**」，
+且逐字写明「工作项 9 的 `done` 判据与本行的两条命令**互不重叠**，本行是**覆盖面的扩展、不是判据的替换**，
+**不得被读成「工作项 9 因此可以 `done`」**」。
+
+**陈旧陈述复核（两条 grep，逐条给结论）**
+
+⚠️ **事先钉死的口径**：roadmap 的 `\| N 现状 · … \|` 行、`docs/logs/`、`docs/masterplan/`、`docs/plans/`
+里的既有行**全部是带日期的历史证据，一律不改写**（红线 5 与本仓的追加式惯例）。
+**「改准」只适用于不带日期的活陈述。**
+
+**grep ①** `grep -rn "零 job 覆盖\|零 CI 覆盖" docs/ | grep -v "^docs/logs/\|^docs/plans/\|^docs/masterplan/STATE"`
+→ **2 条命中，逐条结论**：
+
+| 行 | 内容 | 结论 |
+|---|---|---|
+| `docs/architecture/system-baseline.md:776` | §14.6 D1 候选表 (a) 格里的「439 条测试的零 CI 覆盖正是 `missions/p0-foundation.json:24` 已吃过一次的亏」 | **仍为真，不改**。它是 `0120-1` 落节时的**带日期历史证据**，讲的是**那之前**的状态；且 §14.1–§14.6 本 Phase 要求逐字节未动 |
+| `docs/architecture/system-baseline.md:903` | §14.7 D0 里对 `STATE.md` 2026-08-23T01:00Z 行的**逐字引用** | **仍为真，不改**。它是引文，引的是一条带日期的账本行；那笔账**本轮已由 `STATE.md` §2 的追加行明写结清**，引文本身不因此变假 |
+
+**结论：grep ① 零处需要改准。**
+
+**grep ②** `grep -rn "gates.yml.*个 job\|11 个 job 键\|10 个 job 键" docs/`
+→ 命中覆盖 `docs/plans/`（14 个文件）· `docs/logs/`（`08-21` / `08-22` / `08-23`）·
+`docs/masterplan/STATE.md` 与 `archive/` · `docs/backlog/p0-foundation-roadmap.md`（`:84` / `:88`–`:92`）·
+`docs/context/project-context.md`（`:52` / `:53` / `:55` / `:57` / `:61`）·
+`docs/architecture/system-baseline.md`（`:471` / `:866`）。**按上面钉死的口径逐条分类**：
+
+| 类别 | 命中 | 结论 |
+|---|---|---|
+| 带日期的历史证据（`docs/plans/` · `docs/logs/` · `docs/masterplan/**` · roadmap 的 `\| N 现状 · … \|` 行） | 除下面两类外的**全部**命中 | **一律不改写**。它们在写下的当天为真（`6` / `7` / `9` / `10` / `11` 个 job 键都是各自当时的实读值） |
+| `system-baseline.md:471`（`main` 上 9 个 job 键，`1206-2` 的落地证据）· `:866`（锚定 `grep` → `12`，`0120-1` 的落地证据） | 2 处 | **不改**：同属带日期的落地证据；且 §14.1–§14.6 本 Phase 要求**逐字节未动** |
+| `project-context.md` 的活陈述 | `:53` 逐字「`gates.yml` 上的第 **11** 个 CI job `unit-and-contracts`」 | **仍为真，不改**：本 plan 追加的两个 job 是**第 12 / 13 个**，`unit-and-contracts` **仍然是第 11 个 job 键**（实读顺序未变） |
+| 同上 | `:55` / `:57` / `:61`（`gates-l2-seed` 是「第十个 job」· run `32572618933` 的「九个 job 全绿」等） | **仍为真，不改**：前者是**序数**（仍是第 10 个 job 键），后者是**某次具体运行的历史结论** |
+| 同上 | `:52` | **本 plan 本轮新写的**，逐字含权威运行 `32602915798` 与 job `97103765753`，与实测一致 |
+
+**结论：grep ② 零处需要改准**；job 计数类陈述**要么是带日期的历史证据、要么是仍然成立的序数**。
+
 Exit Criteria:
 
-- [ ] PR 号 / 落地 sha（全长）/ `main` `push` 权威运行 run id / 13 个 job 的 job id 与结论全部记在本 plan 内
-- [ ] 落地 sha 与 PR 上跑绿的 head **逐字同一个**，该等式在本 plan 内被明写
-- [ ] §14.7 已建，且 §14 本体与 §14.1–§14.6 **逐字节未动**（`git diff` 该段无输出）
-- [ ] `project-context.md` 两行为**句末追加**，**未新增行、未重构表结构**
-- [ ] roadmap 与 `STATE.md` 均为**纯追加**（`git diff --numstat` 删除列为 `0`）
-- [ ] 工作项 7 / 9 的状态值**一个字未改**（仍 `planned`）
-- [ ] 两条 grep 的清单与逐条结论记在本 plan 内
-- [ ] `docs/logs/` 更新
+- [x] PR 号 / 落地 sha（全长）/ `main` `push` 权威运行 run id / 13 个 job 的 job id 与结论全部记在本 plan 内
+- [x] 落地 sha 与 PR 上跑绿的 head **逐字同一个**，该等式在本 plan 内被明写
+- [x] §14.7 已建，且 §14 本体与 §14.1–§14.6 **逐字节未动**（`git diff` 该段无输出）
+- [x] `project-context.md` 两行为**句末追加**，**未新增行、未重构表结构**
+- [x] roadmap 与 `STATE.md` 均为**纯追加**（`git diff --numstat` 删除列为 `0`）
+- [x] 工作项 7 / 9 的状态值**一个字未改**（仍 `planned`）
+- [x] 两条 grep 的清单与逐条结论记在本 plan 内
+- [x] `docs/logs/` 更新
 
 ## Draft Review Record
 
@@ -592,29 +815,29 @@ Exit Criteria:
 
 ## Closure Gates
 
-- [ ] in-scope behavior is complete（两个新 job 落 `main` 且在权威运行上 `success`）
-- [ ] relevant docs are aligned（§14.7 · `project-context.md` 两行 · roadmap 追加行 · `STATE.md` 追加行）
-- [ ] verification has run：`python3 -m agenerp.seed --seed 42 --verify` ·
+- [x] in-scope behavior is complete（两个新 job 落 `main` 且在权威运行上 `success`）
+- [x] relevant docs are aligned（§14.7 · `project-context.md` 两行 · roadmap 追加行 · `STATE.md` 追加行）
+- [x] verification has run：`python3 -m agenerp.seed --seed 42 --verify` ·
       `ruff check agenerp tests/unit tests/contracts` · `python3 tools/gates/check_expected_red.py` ·
       `python3 -m pytest tests/unit -q` · `python3 -m pytest tests/contracts -q` ·
       CI：PR 首跑 + 变异实验 A（红/绿两跑）+ 实验 B + revert 全绿 + `main` `push` 权威运行
-- [ ] scoped verification is not conflated with full verification —— **本仓无全量套件**（无 build、无 typecheck）；
+- [x] scoped verification is not conflated with full verification —— **本仓无全量套件**（无 build、无 typecheck）；
       本 plan 的覆盖面**不含**任何活站点命令，逐字记「verification scope limited：本 plan 只覆盖两条纯本地命令」
-- [ ] no in-scope item downgraded to deferred/follow-up
-- [ ] independent draft review completed and recorded（轮次以 `## Draft Review Record` 的实际记录为准，本行不写死数）
-- [ ] text consistency verified: status, phases, gates, and log all agree
-- [ ] closure audit was independent
-- [ ] closure evidence exists in files
-- [ ] **红线自查五条**：① `tests/gates/**` 零改动 ② `.github/workflows/**` **纯追加**（删除列为 `0`，
+- [x] no in-scope item downgraded to deferred/follow-up
+- [x] independent draft review completed and recorded（轮次以 `## Draft Review Record` 的实际记录为准，本行不写死数）
+- [x] text consistency verified: status, phases, gates, and log all agree
+- [ ] closure audit was independent —— ⚠️ **执行者不自证，本行由 loop 的独立关闭审计打勾**
+- [x] closure evidence exists in files
+- [x] **红线自查五条**：① `tests/gates/**` 零改动 ② `.github/workflows/**` **纯追加**（删除列为 `0`，
       **前 N 行逐字节未动**，N = **开工时实读**的基线行数（起草时为 404，**不得照抄**），
       Baseline 10 五条全为期望值）③ `docs/masterplan/DECISIONS.md` 零改动、无新增 `R-x`
       ④ `missions/**` 零改动 ⑤ `docs/masterplan/STATE.md` 只追加不改写
-- [ ] **三条 Goal 分别打勾**：（a）两个新 job 各有 ≥1 条「变异 → 该 job 红」的实证（硬判据）；
+- [x] **三条 Goal 分别打勾**：（a）两个新 job 各有 ≥1 条「变异 → 该 job 红」的实证（硬判据）；
       （b）**`lint` 的**隐形性已证，**或**三处均逐字写着「未能证明 `lint` 抓得到此前 CI 抓不到的东西」；
       （c）**`seed-selfverify` 的**隐形性已证，**或**三处均逐字写着同句式（主语换成 `seed-selfverify`）。
       ⚠️ **(b) 与 (c) 必须各自成立，不是「二者之一」**（评审第 2 轮抓出的漏洞）
-- [ ] **Minimum Rule 4 已被当面裁定**（D0），且共享关闭判据原文写在 §14.7 内
-- [ ] **两个新 job 各有 `name:`**，且 Phase 4 记录的 job 结论按该 `name:` 逐条对上
+- [x] **Minimum Rule 4 已被当面裁定**（D0），且共享关闭判据原文写在 §14.7 内
+- [x] **两个新 job 各有 `name:`**，且 Phase 4 记录的 job 结论按该 `name:` 逐条对上
 
 ## Deferred But Adjudicated
 
@@ -691,13 +914,33 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: <待关闭时填写>
+Status Note: **四个 Phase 全部执行完毕，两个新 job 已落 `main` 并在权威运行上 `success`。**
+两条二态判据**都落在「已证」那一支**：`lint` 与 `seed-selfverify` 各有一条「变异 → 该 job 红、其余 12 个 job 全绿」
+的实证，即两者各自抓到了此前 11 个 job 一个都抓不到的东西——**因此本 plan 三处都不需要写那句
+「未能证明 … 抓得到此前 CI 抓不到的东西」**。四条 CI 预测在推之前逐字写死、事后**逐条吻合、无一落空**。
+⚠️ **仍要照实读的三条**：① **CI 覆盖 ≠ 门禁形态 ≠ `GATE_VERIFY` 可复跑**，`missions/**` 一个字节未动，
+每轮 `GATE_VERIFY` 仍然看不见这两条命令；② **`lint` 只跑 ruff 的默认规则集**（`E4,E7,E9,F`），
+`tests/gates` 不在作用域内，`tests/contracts` 在作用域里但**未被变异实证**；
+③ **授权面欠着一次人的追认**——五个先例全是 AI 自产的，落地跑绿**不等于已获授权**。
+⚠️ **verification scope limited：本 plan 只覆盖两条纯本地命令**（`python3 -m agenerp.seed --seed 42 --verify`
+与 `ruff check agenerp tests/unit tests/contracts`），**不含任何活站点命令**；
+**本仓无全量套件**（无 build、无 typecheck），**scoped verification 不得读成全量绿**。
 
 Closure Audit Evidence:
 
-- Auditor / Agent: <independent subagent>
-- Evidence: <命令原文 + 退出码 + commit sha + CI run id>
+- Auditor / Agent: <independent subagent —— **执行者不自证**，由 loop 的 `CLOSURE_VERIFY` 步骤填写>
+- Evidence（执行者侧已落盘的可复核证据）：
+  - **本机命令原文 + 退出码**（落地后在 `main` `4476c47` 上复跑）：
+    `python3 -m agenerp.seed --seed 42 --verify` → **0**（`✅ 种子 42：两次生成 diff 为空，场景断言全过`）·
+    `ruff check agenerp tests/unit tests/contracts` → **0**（`All checks passed!`）·
+    `python3 tools/gates/check_expected_red.py` → **0**（`门禁 19 项：预期红 7，绿 12，跳过 0` / `✅ 与预期红名单完全一致`）·
+    `python3 -m pytest tests/unit -q` → **0**（`293 passed`）· `python3 -m pytest tests/contracts -q` → **0**（`151 passed`）
+  - **commit sha**：落地 sha **`4476c470fb65e53d81faa1ee0cd84ea674330689`**（= PR #9 跑绿 head，逐字同一个）
+  - **CI run id**：PR #8 实证五跑 `32601490564` / `32601754671` / `32601993786` / `32602225121` / `32602435912` ·
+    PR #9 落地跑 `32602725539` · **`main` `push` 权威运行 `32602915798`（13 个 job 全 `success`）**
+  - **红线自查五条**：① `tests/gates/**` 零改动 ② `.github/workflows/**` 纯追加（`37	0`，前 **404** 行逐字节未动）
+    ③ `DECISIONS.md` 零改动、无新增 `R-x` ④ `missions/**` 零改动 ⑤ `STATE.md` 只追加（`7	0`）
 
 Follow-up:
 
-- <非阻塞项；确认的缺陷不得出现在这里>
+- 无。六条 Deferred 均带重开事件，**确认的缺陷一条都没往这里放**。
