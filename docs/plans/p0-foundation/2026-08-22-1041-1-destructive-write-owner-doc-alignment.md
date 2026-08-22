@@ -232,14 +232,14 @@ Exit Criteria:
 
 ### Phase 2 - Protected Areas 具体化到落点一级（D1，加严）
 
-Status: planned
+Status: completed
 Targets: `docs/context/ai-autonomy-policy.md`
 Skill: `none`
 
 - Item Types: `Decision | Add`（2 项：1 个 `Decision`、1 个 `Add`）
 - Prereqs: Phase 1 完成（D2/D3 改准之后，落点表才和本行说的是同一套事实）
 
-- [ ] `Decision`：定死加严的**幅度**，并把候选、排除理由、残余风险三样写进该文件表下的说明段。
+- [x] `Decision`：定死加严的**幅度**，并把候选、排除理由、残余风险三样写进该文件表下的说明段。
       候选：
       **(a) 在现有「对活站点的破坏性写」行的落点列表里追加 `agenerp/oob.py` · `drop_columns`，
       并给该行的 Required Evidence 补一条对不可逆性说话的要求**；
@@ -253,7 +253,7 @@ Skill: `none`
       残余风险必须写明：**文档级约束对拿着 shell 的执行器没有强制力**
       （该文件表下已有同样的自述，本条沿用同一措辞，不发明新说法）。
       - Skill: `none`
-- [ ] `Add`：按 `Decision` 的结论改 `docs/context/ai-autonomy-policy.md`，并在表下说明段照实写清
+- [x] `Add`：按 `Decision` 的结论改 `docs/context/ai-autonomy-policy.md`，并在表下说明段照实写清
       **本次是「具体化 + 加严」而不是「补一处漏掉的行」**——`execute_plan` 那一处在区域意义上
       本来就罩着 `drop_columns`（调用链 `apply.py:251`→`:254`→`:304`），
       本次补的是**落点名字**与**对不可逆性说话的证据要求**。**不许把它写成发现了一个漏洞。**
@@ -261,8 +261,8 @@ Skill: `none`
 
 Exit Criteria:
 
-- [ ] `grep -n "drop_columns" docs/context/ai-autonomy-policy.md` → **有命中**（此前为零命中）
-- [ ] **只加严不放宽的自查，按「行内三格」比对，不数 diff 的加减行**
+- [x] `grep -n "drop_columns" docs/context/ai-autonomy-policy.md` → **有命中**（此前为零命中）
+- [x] **只加严不放宽的自查，按「行内三格」比对，不数 diff 的加减行**
       （原因：候选 (a) 是**就地改表格行**，一次 in-place 改动必然产出一条 `-` 行与一条 `+` 行，
       那条 `-` 行里必然带着 `plan-first` 与全部既有 Required Evidence 条目——
       用「删除行里不许出现 plan-first」当判据，**正确的加严也会被判成放宽**，那种判据不可满足）。
@@ -272,8 +272,35 @@ Exit Criteria:
       ② **Required Evidence 格**：新值是旧值的**超集**——旧的每一条逐字仍在，只许增不许删；
       ③ **Area 格**：落点列表只增不减（旧的两处仍在，新增 `agenerp/oob.py` · `drop_columns`）。
       三条的旧值/新值原文都记进本 plan，`grep -c` 之类的计数不作为判据
-- [ ] `Decision` 的候选 / 排除理由 / 残余风险三样**已写进 `ai-autonomy-policy.md` 本身**，不是只写在本 plan 里
-- [ ] `docs/logs/2026/08-22.md` 追加本阶段条目
+- [x] `Decision` 的候选 / 排除理由 / 残余风险三样**已写进 `ai-autonomy-policy.md` 本身**，不是只写在本 plan 里
+- [x] `docs/logs/2026/08-22.md` 追加本阶段条目
+
+#### Phase 2 执行记录（2026-08-22 回填，实跑）
+
+**Decision 结论：取 (a)。** 候选 / 否决 (b)(c) 的理由 / 残余风险三样**已写进
+`docs/context/ai-autonomy-policy.md` 本身**（该表下方新增的说明段
+「2026-08-22 · 「对活站点的破坏性写」那一行为什么被加严第二次」），不是只写在本 plan 里。
+
+**「只加严不放宽」的行内三格比对**（旧行取自 `git show 4ac3517:docs/context/ai-autonomy-policy.md | sed -n '87p'`）：
+
+| 格 | 旧值 | 新值 | 判定 |
+|---|---|---|---|
+| ① Rule | `plan-first` | `plan-first` | **逐字节相同** ✅ |
+| ② Required Evidence | 见下「旧行原文」 | 见下「新行原文」 | **新值是旧值的超集**（旧三条「独立草案评审」「独立关闭审计」「实跑前后全量 `capture` 对照（差集必须只含本次探针）」+ 补行自述 + 加严自述，**逐字全部仍在**，只增了一条）✅ |
+| ③ Area | 点名 2 处 | 点名 3 处 | 旧两处逐字仍在，**只增 `agenerp/oob.py` · `drop_columns`** ✅ |
+
+**`ai-autonomy-policy.md:87` 改动前后原文并排**：
+
+- 旧：`| 对活站点的破坏性写（删除 Custom Field：`agenerp/site.py` · `SiteClient.delete_custom_field`、`agenerp/apply.py` · `execute_plan` 的删除路径） | plan-first | 独立草案评审 + 独立关闭审计 + **实跑前后全量 `capture` 对照**（差集必须只含本次探针）。2026-08-21 由 plan `2026-08-21-1922-3-execute-plan-site-delete.md` 补行——该 plan 落地前本表此行不存在，本行是**加严**（此前默认 `implement`） |`
+- 新：`| 对活站点的破坏性写（删除 Custom Field：`agenerp/site.py` · `SiteClient.delete_custom_field`、`agenerp/apply.py` · `execute_plan` 的删除路径；**直发物理 DDL**：`agenerp/oob.py` · `drop_columns`（`ALTER TABLE … DROP COLUMN`，经 `agenerp/apply.py` · `drop_orphan_columns` 挂在同一条调用链上）） | plan-first | 独立草案评审 + 独立关闭审计 + **实跑前后全量 `capture` 对照**（差集必须只含本次探针）+ **对「删错了能不能回来」说话的一条**：动 `agenerp/oob.py` · `drop_columns` 这条**不可逆**路径的 plan，必须在 plan 里逐字写明本次改动之后**站点侧回滚仍然只能手工做**（含手工前置动作的原文命令），或写明它交付了什么代码级前置/取证并给出实跑证据；**两者取其一，不许略过不谈**。2026-08-21 由 plan `2026-08-21-1922-3-execute-plan-site-delete.md` 补行——该 plan 落地前本表此行不存在，本行是**加严**（此前默认 `implement`）。**2026-08-22 由 plan `2026-08-22-1041-1-destructive-write-owner-doc-alignment.md` 就地加严第二次**：落点列表点名 `drop_columns`，Required Evidence 增上面那一条，旧的三条**逐字未动** |`
+
+**其余判据实测**：
+
+| 命令 | 结果 |
+|---|---|
+| `grep -n "drop_columns" docs/context/ai-autonomy-policy.md` | 命中 `:87`（改动前**零命中**，exit 1）✅ |
+| `python3 -m pytest tests/unit -q` | **exit 0**，`221 passed in 0.55s` ✅ |
+| `python3 tools/gates/check_expected_red.py` | **exit 0**，`门禁 19 项：预期红 7，绿 12，跳过 0` / `✅ 与预期红名单完全一致` ✅ |
 
 ### Phase 3 - 把「不可逆 DDL 无代码级前置」登记进 backlog，交人裁定
 

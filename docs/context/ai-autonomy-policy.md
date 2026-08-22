@@ -84,8 +84,44 @@ If this table still contains placeholders, AI must treat payment, auth/permissio
 | 项目名 / 包名 / 命名空间 | ask first | 名字由 D-1 定；复核发现被占用须停机等人拍板（红线 4） |
 | 运行时 Server Script 生成 | blocked | 等同 RCE，产品上不做（红线 7） |
 | `missions/*.json` | blocked | 角色 B 禁区（`docs/masterplan/01-EXECUTION-MODEL.md` §1 禁止项 ③），由人编辑 |
-| 对活站点的破坏性写（删除 Custom Field：`agenerp/site.py` · `SiteClient.delete_custom_field`、`agenerp/apply.py` · `execute_plan` 的删除路径） | plan-first | 独立草案评审 + 独立关闭审计 + **实跑前后全量 `capture` 对照**（差集必须只含本次探针）。2026-08-21 由 plan `2026-08-21-1922-3-execute-plan-site-delete.md` 补行——该 plan 落地前本表此行不存在，本行是**加严**（此前默认 `implement`） |
+| 对活站点的破坏性写（删除 Custom Field：`agenerp/site.py` · `SiteClient.delete_custom_field`、`agenerp/apply.py` · `execute_plan` 的删除路径；**直发物理 DDL**：`agenerp/oob.py` · `drop_columns`（`ALTER TABLE … DROP COLUMN`，经 `agenerp/apply.py` · `drop_orphan_columns` 挂在同一条调用链上）） | plan-first | 独立草案评审 + 独立关闭审计 + **实跑前后全量 `capture` 对照**（差集必须只含本次探针）+ **对「删错了能不能回来」说话的一条**：动 `agenerp/oob.py` · `drop_columns` 这条**不可逆**路径的 plan，必须在 plan 里逐字写明本次改动之后**站点侧回滚仍然只能手工做**（含手工前置动作的原文命令），或写明它交付了什么代码级前置/取证并给出实跑证据；**两者取其一，不许略过不谈**。2026-08-21 由 plan `2026-08-21-1922-3-execute-plan-site-delete.md` 补行——该 plan 落地前本表此行不存在，本行是**加严**（此前默认 `implement`）。**2026-08-22 由 plan `2026-08-22-1041-1-destructive-write-owner-doc-alignment.md` 就地加严第二次**：落点列表点名 `drop_columns`，Required Evidence 增上面那一条，旧的三条**逐字未动** |
 | `tools/gates/check_expected_red.py`（**门禁判定器本体**） | plan-first | 独立草案评审 + 独立关闭审计 + **「默认判定环境输出逐字节不变」的前后两次实跑** + **判定器自身的变异验证**（改坏它必须让 `tests/unit` 红）。2026-08-22 由 plan `2026-08-22-0027-1-live-mode-gate-verdict.md` 补行，本行是**加严**（此前默认 `implement`）。**边界：本行只覆盖 `check_expected_red.py`，不覆盖 `tools/gates/expected-red.txt`** —— 账本允许在同一提交里划短，出处是 `AGENTS.md` 红线 1 的「边界」句（「预期红名单 `tools/gates/expected-red.txt` 不在此列——它是账本不是裁判，测试转绿时应当在同一提交里划掉对应行（只能变短）」）与本表第 2 行（`allowed（只能变短）`，名单**变长**才需 `Gates-Change-Approved-By:`，服务端控制是 `expected-red-ratchet` job）。把账本圈进守卫会让每一次合法的划短在 CI 上失败 |
+
+**2026-08-22 · 「对活站点的破坏性写」那一行为什么被加严第二次（Decision，照实记，不粉饰）**：
+
+**先说清本次不是「发现了一处漏掉的落点」。** `agenerp/apply.py` · `execute_plan` 早已在该行的落点列表里，
+而 `execute_plan`（`apply.py:251`）→ `drop_orphan_columns`（`:254`）→ `agenerp/oob.py` · `drop_columns`（`:304`）
+是**一条调用链**——`drop_columns` **在「区域」意义上本来就被那一行罩住了**。
+本次补的是两件更具体的事：① **落点的名字**（读这一行的将来会话此前看不出链条末端有一处
+**直发 `ALTER TABLE … DROP COLUMN`、绕过 Frappe 一切执行面、且不可逆**的写动作——
+该行原先点名的两处都是**经 Frappe** 的删除，删 Custom Field 甚至不删物理列）；
+② **一条对不可逆性说话的 Required Evidence**（原先三条逐字是「独立草案评审 + 独立关闭审计 +
+实跑前后全量 `capture` 对照（差集必须只含本次探针）」，
+那三条**只回答「删对了没有」，一条都不回答「删错了能不能回来」**）。
+**把它写成「补一处漏洞」是不诚实的**，本段不这么写。
+
+**候选与否决理由**（三选一，取 (a)）：
+
+| 候选 | 说明 | 结论 |
+|---|---|---|
+| **(a)** 在现有行的落点列表里点名 `agenerp/oob.py` · `drop_columns`，并补一条对不可逆性说话的 Required Evidence；Rule 格仍是 `plan-first` | 只把要求写具体，不改变谁能动这条路径 | **取此** |
+| **(b)** 另起一行「不可逆的物理 DDL」，定级 `ask first` | 任何后继 plan 动这条链之前都必须先等人 | 否决 |
+| **(c)** 同上但定级 `blocked` | AI 不得改动这条链的产品行为 | 否决 |
+
+**否决 (b)/(c) 的理由（必须落在本文件里，不能只落在 plan 里）**：`apply_pack` 的物理列清除面
+**不是一段闲置代码**——它是工作项 5/6 已交付的活路径，门禁
+`tests/gates/test_customization_roundtrip_delete.py::test_no_orphan_column_left_behind` **正在判它**。
+把它锁进 `ask first` / `blocked`，等于让**一条绿着的门禁的实现面**进入不可维护状态：
+门禁一旦转红，修它的每一步都要先停机等人。(a) 保持 `plan-first` 不变、只把证据要求写具体，
+是**能加严又不制造死锁**的那一档。**这是取舍，不是「(b)/(c) 更严所以更好」**。
+
+**残余风险（沿用本表下方「门禁判定器本体」那段的同一措辞，不发明新说法）**：
+**文档级约束对拿着 shell 的执行器没有强制力**，真正的强制力在 CI 侧守卫。
+本行加严之后，`drop_columns` 这条路径在**代码侧**仍然零备份、零取证——
+`grep -rn "backup" agenerp/*.py` → **零命中**（实测 2026-08-22）。
+那条真实风险**不由本行处置**，它登记在
+[`docs/backlog/irreversible-ddl-has-no-code-level-precondition.md`](../backlog/irreversible-ddl-has-no-code-level-precondition.md)，
+带触发条件，**由人裁定**。**本行不假装已经把它解决了。**
 
 **为什么「门禁判定器本体」这一行此前不存在，以及它此刻还缺什么（照实记，不粉饰）**：
 2026-08-22 逐条实测过三层既有保护，**没有一层覆盖判定器**——
