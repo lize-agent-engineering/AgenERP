@@ -1,6 +1,6 @@
 # 2026-08-23-0120-1 把 `tests/unit` 与 `tests/contracts` 搬上 CI（439 条此刻零 CI 覆盖）
 
-> Plan Status: active
+> Plan Status: completed
 > Mission: p0-foundation
 > Work Item: 工作项 9 · L2 门禁的判定与 CI 覆盖（**CI 覆盖面**那一半；不改工作项 9 的 `done` 判据）
 > Last Reviewed: 2026-08-23
@@ -499,7 +499,7 @@ Exit Criteria:
 
 ### Phase 4 - 落 `main` 并补齐 owner doc
 
-Status: planned
+Status: completed
 Targets: `.github/workflows/gates.yml`（合并）· `docs/architecture/system-baseline.md` §14.6 ·
 `docs/context/project-context.md:53-54` · `docs/backlog/p0-foundation-roadmap.md`
 Skill: `none`
@@ -507,7 +507,7 @@ Skill: `none`
 - Item Types: `Add | Fix | Proof`
 - Prereqs: Phase 3 全部 Exit Criteria
 
-- [ ] **Proof：另开一条从 `main` 新切的落地分支，`--ff-only` 落 `main`。**
+- [x] **Proof：另开一条从 `main` 新切的落地分支，`--ff-only` 落 `main`。**
       ⚠️ **不得把跑实验的那条分支直接 ff 进 `main`** —— 它的历史里躺着实验 ①–④ 的
       **四个故意破坏 + revert 提交**，ff 会把它们原样带进 `main`。
       形态逐字沿用前驱（`2325-2` 在 `ci/2325-2-seed-chain-on-ci`（PR #4）上跑实验，
@@ -523,10 +523,10 @@ Skill: `none`
       **落点因此写死为三段**：① Phase 1 的 §14.6 前两段**先直接进 `main`**，然后才从 `main` 切落地分支
       （这样它天然被带上）；② 落地分支只含 `gates.yml`；③ Phase 4 的文档提交在**权威运行拿到之后**进 `main`。
       - Skill: `none`
-- [ ] **Proof：`main` `push` 权威运行 11 个 job 全部 `success`**，记 run id 与 11 个 job id。
+- [x] **Proof：`main` `push` 权威运行 11 个 job 全部 `success`**，记 run id 与 11 个 job id。
       新 job 日志逐字含 `288 passed` / `151 passed`（或 Phase 2 记下的实测计数）。
       - Skill: `none`
-- [ ] **Add：补齐 `docs/architecture/system-baseline.md` §14.6 的后两段**（前两段由 Phase 1 建立）：
+- [x] **Add：补齐 `docs/architecture/system-baseline.md` §14.6 的后两段**（前两段由 Phase 1 建立）：
       「这个 job 判什么」（D2 + 两条命令 + `timeout-minutes` 的口径）与
       「**它不覆盖什么**」（逐条：不使任何一条成为门禁；`GATE_VERIFY` 侧 `tests/contracts` 仍缺，
       因为 `missions/**` 是禁区；这两个目录不受任何棘轮保护；不改任何工作项状态值），
@@ -535,7 +535,7 @@ Skill: `none`
       全是取证步骤、无一在判据步骤上，本 job 连取证步骤都不要，属**刻意偏离房内惯例**，理由是纯逻辑测试的
       红因就在 pytest 输出里，多一个 `always()` 步骤只多一个失败吞噬入口。
       - Skill: `none`
-- [ ] **Fix：`docs/context/project-context.md:53` 与 `:54` 就地补记新 job。**
+- [x] **Fix：`docs/context/project-context.md:53` 与 `:54` 就地补记新 job。**
       ⚠️ **不是新增行**（Baseline 6：两行都已存在）。`:54` 现文逐字写着
       「⚠️ **它不在 `missions/p0-foundation.json` 的 `commands.test` 里**，`GATE_VERIFY` 复跑不到它」——
       **那句话本 plan 之后仍然成立，一个字不改**；只在其后**追加**「⚠️ 2026-08-23 追加：
@@ -544,7 +544,7 @@ Skill: `none`
       「下一个需要往该表新增一行或改写既有行的 plan 开工时」——**本 plan 触发它**，
       处置沿用同一裁定：**只补记，不重构结构**。
       - Skill: `none`
-- [ ] **Add：`docs/backlog/p0-foundation-roadmap.md` 追加一行「9 现状 · 单测与契约测试的 CI 覆盖」**，
+- [x] **Add：`docs/backlog/p0-foundation-roadmap.md` 追加一行「9 现状 · 单测与契约测试的 CI 覆盖」**，
       ⚠️ **落点说明**：它是**表格末行之后、`## 框架/平台复用` 之前**插入的一行（`:89` 是当前最后一行表格行），
       **不是文件尾追加** —— 判据是「只增行、零删行」，不是「写在文件最后」。
       **既有行一个字不改**，并逐字写明**这不改变工作项 9 的 `done` 判据**
@@ -554,22 +554,101 @@ Skill: `none`
 
 Exit Criteria:
 
-- [ ] `main` 上 `gates.yml` 为 11 个 job 键（锚定 `grep` 回 12 行），前 387 行逐字节未动 ——
+- [x] `main` 上 `gates.yml` 为 11 个 job 键（锚定 `grep` 回 12 行），前 387 行逐字节未动 ——
       判据命令**必须钉死基线 sha**：`diff <(git show 577e401:.github/workflows/gates.yml) <(head -n 387 .github/workflows/gates.yml)`
       → 无输出。⚠️ **此处不得写 `git show main:`**：合并之后 `main` 已指向新文件，那样写这条判据恒不可满足
-- [ ] 权威运行 run id + 11 个 job id + 新 job 日志逐字片段记在本 plan 内
-- [ ] **总成本记账**：`5（Phase 3）+ 1（落地 PR）+ 1（`main` push 权威运行）+ N（文档 push）` 次完整 11-job 运行。
+- [x] 权威运行 run id + 11 个 job id + 新 job 日志逐字片段记在本 plan 内
+- [x] **总成本记账**：`5（Phase 3）+ 1（落地 PR）+ 1（`main` push 权威运行）+ N（文档 push）` 次完整 11-job 运行。
       ⚠️ **N 不许当成零**：`gates.yml:6-10` 的 `on: push` **没有 `paths:` 过滤**，
       所以**每一次纯文档 push 到 `main` 都会触发一次完整 11-job 运行**（含三个各约 3 分钟的 docker job）。
       前驱实测有 **3 次**这样的 push（`347f756` / `730ed6d` / `577e401`）。
       **N 在关闭时按实际发生数填，不在起草时猜**；合计 CI 分钟数对照 `AGENTS.md` 裁判规则 4 的累计成本条款。
       ⚠️ **不得把这几次一律写成「11-job 运行」**：Phase 1 的 §14.6 文档 push 发生在**落地之前**，
       那时 `main` 上还只有 10 个 job —— 它是一次 **10-job 运行**。照实分开计，别为了句子整齐制造一处假陈述
-- [ ] §14.6 四段齐全；`project-context.md:53-54` 为**就地追加**（`git diff --numstat` 的删除列记在 plan 内，
+- [x] §14.6 四段齐全；`project-context.md:53-54` 为**就地追加**（`git diff --numstat` 的删除列记在 plan 内，
       且「`GATE_VERIFY` 复跑不到它」那句仍在）；roadmap 追加行为纯追加
-- [ ] `tools/gates/expected-red.txt` **一行未动**（`git diff` 无输出）
-- [ ] 工作项 7 / 8 / 9 的状态值**一个字未改**（仍 `planned`）
-- [ ] `docs/logs/` 更新
+- [x] `tools/gates/expected-red.txt` **一行未动**（`git diff` 无输出）
+- [x] 工作项 7 / 8 / 9 的状态值**一个字未改**（仍 `planned`）
+- [x] `docs/logs/` 更新
+
+#### Phase 4 执行记录（2026-08-23 实跑）
+
+**落地分支与三段落点（按写死的形态执行，无偏离）**：
+① Phase 1 的 §14.6 前两段先直接进 `main`（`a877b38`），Phase 2/3 的 plan 回填随后进 `main`（`1886d9d`）；
+② 从 `main` @ `1886d9d` **新切** `ci/0120-1-unit-contracts-land`，
+用 `git checkout 2848387 -- .github/workflows/gates.yml` 取回实验分支上跑绿的那一份
+（`diff <(git show 2848387:.github/workflows/gates.yml) .github/workflows/gates.yml` → **无输出，IDENTICAL**），
+**只提交这一个文件**（`git show --stat` → `1 file changed, 17 insertions(+)`），commit `7a09ef7`；
+③ Phase 4 的三条文档改动在拿到权威运行之后单独进 `main`。
+⚠️ **实验分支 PR #6 未合并**（其历史里有实验 ①–④ 的四个故意破坏 + revert 提交），
+已 `gh pr close 6` 关闭并留言说明；落地走 **PR #7**。
+
+**落地 PR #7**：run **`32591433667`**（head `7a09ef780bba7ff6fe76d7dd401f9c84d8ebf3f5`）→ **`success`，11 个 job 全绿**：
+`L1 快门禁` `97075788956` · `L2 种子链（装载 + 站点侧对账）` `97075788974` · `L2 慢门禁（零依赖启动）` `97075788991` ·
+`循环联动冒烟` `97075788994` · `门禁未被改动` `97075789035` · `L2 全量 live 判定（19 条）` `97075789049` ·
+`主计划引用不断链` `97075789056` · `roadmap 引擎可解析` `97075789067` · `预期红名单只能变短` `97075789094` ·
+**`单测与契约测试（439 条）` `97075789119`** · `判定器未被改动` `97075789129`。
+`git merge --ff-only ci/0120-1-unit-contracts-land` → `Fast-forward  1 file changed, 17 insertions(+)`。
+**落地 sha 与落地 PR 跑绿 head 逐字同一个**：`git rev-parse HEAD` = `7a09ef780bba7ff6fe76d7dd401f9c84d8ebf3f5` → `IDENTICAL`。PR #7 状态 `MERGED`。
+
+**`main` `push` 权威运行 `32591647735`（head `7a09ef7`）→ `success`，11 个 job 全部 `success`**：
+`主计划引用不断链` `97076326846` · **`单测与契约测试（439 条）` `97076326917`** ·
+`L2 种子链（装载 + 站点侧对账）` `97076326937` · `判定器未被改动` `97076326944` ·
+`预期红名单只能变短` `97076326962` · `L2 全量 live 判定（19 条）` `97076326966` ·
+`L2 慢门禁（零依赖启动）` `97076326975` · `L1 快门禁` `97076326980` · `roadmap 引擎可解析` `97076326993` ·
+`循环联动冒烟` `97076327004` · `门禁未被改动` `97076327015`。
+**新 job 日志逐字 `288 passed in 2.96s` / `151 passed in 0.18s`**（与 Phase 2 记下的 `288` / `151` 一致，
+跨版本预测再次成立），步骤级 `① 单测（tests/unit）` `success` · `② 契约测试（tests/contracts）` `success`，
+墙钟 **13 秒**（`18:44:57Z` → `18:45:10Z`）。
+
+**`main` 上的机械核对（`7a09ef7`）**：
+
+- `diff <(git show 577e401:.github/workflows/gates.yml) <(head -n 387 .github/workflows/gates.yml)` → **无输出，exit 0**
+- `grep -cE '^  [a-z0-9-]+:$' .github/workflows/gates.yml` → **`12`**（`push:` + 11 个 job 键）
+- `git diff 577e401..HEAD -- tools/gates/expected-red.txt` → **无输出**（账本一行未动）
+- `git diff 577e401..HEAD -- tests/gates/` → **无输出**（红线 1）
+- `git diff 577e401..HEAD -- docs/masterplan/` → **无输出**（红线 3 / 5，本 plan 未写 STATE）
+- `git diff 577e401..HEAD -- missions/` → **无输出**（红线 4 的邻接禁区）
+- `git diff 577e401..HEAD -- agenerp/ tests/` → **无输出**（变异全部 revert 且未落 `main`）
+- 工作项 **7 / 8 / 9 的状态值一个字未改**，三者仍 `planned`（roadmap `:20`–`:28` 的 `Work Item Status` 块未被触碰）
+
+**owner doc 三处落点**：
+
+- `docs/architecture/system-baseline.md` **§14.6 四段齐全**：`### 授权面…`（Phase 1）· `### 判据形态…`（Phase 1）·
+  `### 这个 job 判什么`（本 Phase）· `### 它**不**覆盖什么…`（本 Phase）。§14 本体与 §14.1–§14.5 一行未动。
+- `docs/context/project-context.md:53` / `:54` **就地补记**：`git diff --numstat` → **`2	2`**
+  —— **删除列为 2 是因为这是两行的就地改写、不是新增行**（Baseline 6 已确认两行都早已存在，
+  本 plan 要的是「不新增行」而不是「删除列为 0」；文件行数 108 行前后不变）。
+  ⚠️ `:54` 原有那句「**它不在 `missions/p0-foundation.json` 的 `commands.test` 里**，`GATE_VERIFY` 复跑不到它」
+  **逐字仍在，一个字未改**（机械核对：`grep -o` 精确命中原句）。
+  该表「整体臃肿」那条重开事件本次触发，**处置沿用 `2107-1` 的裁定：只补记，不重构结构**。
+- `docs/backlog/p0-foundation-roadmap.md` 追加一行 `| 9 现状 · 单测与契约测试的 CI 覆盖 |`，
+  插在表末行 `| 9 现状 · CI 覆盖面扩展 |`（原 `:89`）之后、`## 框架/平台复用` 之前，
+  `git diff --numstat` → **`1	0`（只增行、零删行）**，既有行一个字未改。
+
+**总成本记账（本 plan 触发的全部运行，按实际发生数填，`N = 3`）**：
+
+| 次 | run | 触发 | job 数 | 墙钟 |
+|---|---|---|---|---|
+| 1 | `32590153751` | Phase 1 文档 push（`a877b38`） | **10** | 3 分 35 秒 |
+| 2 | `32590196838` | Phase 2 PR #6 首绿 | 11 | 3 分 28 秒 |
+| 3 | `32590487279` | 实验 ① | 11 | 3 分 34 秒 |
+| 4 | `32590701768` | 实验 ② | 11 | 4 分 00 秒 |
+| 5 | `32590923810` | 实验 ③ | 11 | 3 分 18 秒 |
+| 6 | `32591113070` | 实验 ④ | 11 | 3 分 28 秒 |
+| 7 | `32591408907` | Phase 2/3 回填 push（`1886d9d`） | **10** | 3 分 24 秒 |
+| 8 | `32591433667` | 落地 PR #7 | 11 | 4 分 07 秒 |
+| 9 | `32591647735` | **`main` push 权威运行**（`7a09ef7`） | 11 | 3 分 53 秒 |
+| 10 | 本 Phase 的文档 push | Phase 4 owner doc | 11 | 见 `docs/logs/2026/08-23.md` |
+
+⚠️ **`N` 不是零，实际是 3 次纯文档 push**（第 1 / 7 / 10 次）：`gates.yml:6-10` 的 `on: push` **没有 `paths:` 过滤**。
+⚠️ **不得把这几次一律写成「11-job 运行」**：第 1 与第 7 次发生在落地**之前**，那时 `main` 上只有 10 个 job，
+**它们是 10-job 运行**；第 10 次在落地之后，是 11-job。
+⚠️ **计费口径**：`gh api …/timing` 对这些 run 逐个回 `billable.UBUNTU.total_ms = 0`
+（**公开仓的 GitHub-hosted ubuntu runner 不计费**）。Phase 3 那 5 次按 `startedAt`/`completedAt` 求和是
+**约 55.9 job-分钟**的实耗；九次已完成运行的墙钟合计约 **32 分 47 秒**。
+**新 job 在其中的占比极小**（每次 11–20 秒），成本仍由三个 docker job 主导——
+本 plan **没有让 CI 变慢**，只是把一块此前零覆盖的判据面接了上去。
 
 ## Draft Review Record
 

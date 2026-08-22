@@ -783,3 +783,72 @@ or remove blockers **without explicit human confirmation or owner-doc evidence m
 ⚠️ 这条残余风险有**直接的执行后果**：本 plan 的变异实证里，
 「变异点必须选 `tests/unit` 碰不到的一处」正是被它逼出来的——
 `tests/unit` 可见的变异会让步骤 ① 先红、步骤 ② 根本不跑，「红在步骤 ②」的预测按构造落空。
+
+### 这个 job 判什么
+
+在一个**不起 docker、不连站点、零 env 变量**的 runner 上跑两条 pytest，**每步独立判退出码**（决策 D2）：
+
+| 步 | 命令（逐字） | 判据 |
+|---|---|---|
+| ① | `python3 -m pytest tests/unit -q` | 退出码 0（`main` 权威运行逐字 `288 passed in 2.96s`） |
+| ② | `python3 -m pytest tests/contracts -q` | 退出码 0（逐字 `151 passed in 0.18s`） |
+
+依赖只有 `actions/setup-python@v5`（`python-version: "3.11"`，与 `gates-l1` 逐字相同）+ `pip install pytest`。
+`agenerp` 的可导入性由 `pyproject.toml` 的 `[tool.pytest.ini_options] pythonpath = ["."]` 给，
+**不需要 `pip install -e .`**；命令写成 `python3 -m pytest …` 而不是裸 `pytest`。
+
+**跨版本预测已实测成立**：本机是 Python **3.12.9**，job 钉 **3.11**，
+两边给出的是**同样的 288 / 151**，没有走「计数不符」那条处置。
+
+`timeout-minutes: 10` 的口径与 §14.5 同样照实说：新 job 实测墙钟 **11–13 秒**
+（PR #6 首跑 `18:15:24Z`→`18:15:35Z`；`main` 权威运行 `18:44:57Z`→`18:45:10Z`），
+上限是它的约 **50 倍**——**它挡的是「卡死」，不是「变慢」**。整个 run 的墙钟仍由三个 docker job 主导，
+本 job 没有让 run 变长（对照 `gates-l2-seed` 的 3 分 06 秒，本 job 是它的约 1/17）。
+
+**本 job 刻意不设 `if: always()` 取证步骤，这是一处对房内惯例的有意偏离**：
+`gates.yml` 现有 **10 处** `if: always()`（实测计数），**全部在取证步骤上，无一在判据步骤上**；
+本 job 连取证步骤都不要。理由是纯逻辑测试的红因就在 pytest 自己的输出里，
+多一个 `always()` 步骤只多一个失败吞噬的入口。
+
+**变异实证（四条，plan `2026-08-23-0120-1` Phase 3，分支 `ci/0120-1-unit-contracts`，PR #6 未合并）**：
+
+| 实验 | 变异 | run | 结果 |
+|---|---|---|---|
+| ① | `agenerp/contracts.py::_validate_returns` → no-op | `32590487279` | 新 job `failure`，**红在步骤 ②、步骤 ① 绿**；**其余 10 个 job 全部 `success`** |
+| ② | `git revert` ① | `32590701768` | 11 个 job 全 `success` |
+| ③ | `agenerp/snapshot.py::diff()` 的 `changed = ()` | `32590923810` | 新 job `failure`，**红在步骤 ①、步骤 ② 逐字 `skipped`**；`gates-l1` `success` |
+| ④ | `git revert` ③ | `32591113070` | 11 个 job 全 `success` |
+
+**实验 ① 是本小节最要紧的一条**：那一处变异**对 `main` 上原有的 10 个 job 完全隐形**，
+只有新 job 抓到了它——即这个 job 覆盖的是一块此前没有任何 CI 判据的面。
+**结论只写到这么窄**：这一次、这一处变异如此，不得读成「新 job 能抓到所有 `agenerp/**` 的回归」。
+
+**实验 ③ 顺带把 D2 的 fail-fast 残余风险第一次坐实**：步骤 ② 的结论逐字就是 `skipped`，
+**一次红确实只报了一半**。这不是缺陷被发现，是起草时就写死的代价被实测确认。
+实验 ③ 的独占性**事先声明不预测**；实测其余 10 个 job 全绿（含两条活站点链），
+**这只是观察，不得反推成「`diff()` 不在活站点链上」这类更强的结论**。
+
+**落地形态（纯追加，机械证据）**：`gates.yml` **387 → 404 行**（`git diff --numstat` → `17	0`，删除列 `0`），
+新增段 `:388`–`:404`；`diff <(git show 577e401:.github/workflows/gates.yml) <(head -n 387 .github/workflows/gates.yml)`
+→ **无输出**；锚定 `grep -cE '^  [a-z0-9-]+:$'` → **12**（`push:` + 11 个 job 键）。
+落地走 PR **#7**（从 `main` 新切 `ci/0120-1-unit-contracts-land`，只含一个提交、只含 `gates.yml`），
+run `32591433667` 十一绿后 `--ff-only` 落 `main`，**落地 sha `7a09ef7` 与 PR #7 跑绿 head 逐字同一个**。
+**`main` `push` 权威运行 `32591647735` → `success`，11 个 job 全部 `success`**，新 job `97076326917`。
+
+### 它**不**覆盖什么（这一段不许省，也不许读成更强的说法）
+
+- **它不使 `tests/unit` / `tests/contracts` 里的任何一条成为门禁。** 本 job 判的是 **pytest 退出码**，
+  与 `tests/gates/**` 的 19 条互不重叠；`GATE_VERIFY` 与 `tools/gates/check_expected_red.py`
+  **仍然只看 `tests/gates`**。**CI 覆盖 ≠ 门禁形态，两者不得混为一谈。**
+- **`GATE_VERIFY` 侧 `tests/contracts` 仍然缺着。** `missions/p0-foundation.json:16` 的 `commands.test`
+  逐字仍是 `python3 tools/gates/check_expected_red.py && python3 -m pytest tests/unit -q`，
+  **没有 `tests/contracts`**；改它要动 `missions/**`，那是角色 B 禁区，**loop 无权改**。
+  后果照实说：loop 仍可能改坏契约层而**当轮 `GATE_VERIFY` 绿、自己不知道**，
+  **只是不再能合进 `main` 而不被发现**——两条通道互相独立，本节不假装前一条被修好了。
+- **这两个目录不受任何棘轮保护。** 红线 1 只圈 `tests/gates/**`，loop 可以合法地改它们。
+  本 job 判的是「改完之后还绿不绿」，**判不了「有没有人把一条断言删掉」**。
+  唯一的代偿是 plan 里逐字写死了 `288` / `151` 两个数，且**只在关闭当次核对过一次，此后不再复核**。
+- **它不改变任何工作项的状态值。** 工作项 7 / 8 / 9 仍 `planned`；
+  尤其**不推动工作项 9 的 `done` 判据**——那条判据是「用判定器对 `tests/gates` 全部 19 条 live 判定并 `success`」，
+  与本 job 的 439 条**互不重叠**。本节是**覆盖面的扩展，不是判据的替换**。
+- **授权面欠着一次人的追认**（见本节第一段）。本次落地不因为跑绿而变成「已获授权」。
