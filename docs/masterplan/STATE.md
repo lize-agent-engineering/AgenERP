@@ -157,6 +157,20 @@
   · **验证范围（scoped，照实写，不得读成 full green）**：本仓**无全量套件**。本行覆盖 11 条本机命令，**不含 CI**；其中五条活站点命令 `GATE_VERIFY` 复跑不到。
   · **红线 5**：本行只追加，不改写 `STATE.md` 已有任何一行。
 
+- 2026-08-23T00:00Z · P0.6/工作项 7（`ACC_OPERATING` 活缺陷修复 + 常量机械判据） · `python3 -m pytest tests/unit -q` → **exit 0**（283 → **288 passed**）· `ruff check agenerp tests/unit tests/contracts` → **exit 0** · `python3 tools/gates/check_expected_red.py` → **exit 0**（`门禁 19 项：预期红 7，绿 12，跳过 0`）· `AGENERP_HTTP_PORT=18080 AGENERP_LIVE=1 AGENERP_SITE=frontend AGENERP_SITE_URL=http://127.0.0.1:18080 AGENERP_ADMIN_PASSWORD=admin python3 tools/gates/check_expected_red.py` → **exit 0**（`门禁 19 项：红 0，绿 19，跳过 0`）· `python3 -m agenerp.seed --seed 42 --verify` → **exit 0** · sha `7f47ed5` · plan `2026-08-22-2325-1-acc-operating-constant-fix.md` 四个 Phase 执行完毕，下一项是本批第二个 plan `2026-08-22-2325-2`（CI 覆盖面：种子链的 seed-site verification）
+  · **修的是一处已登记的活缺陷，不是新功能**：`agenerp/seed/model.py:60` `生产费用（计入估值）- XM` → `生产费用（计入估值） - XM`，**只加一个空格**，`git diff agenerp/seed/` 的增删行恰好只有这一对。bug note `docs/bugs/01-...md` 由 `open（登记不修）` 转 `fixed`，`Problem` / `Reproduction` / `Diagnostic Method` **三节一个字未改**（那是证据）。
+  · **判据先立后修，红的形态逐字记录**：修复之前 `python3 -m pytest tests/unit -q` → **exit 1**，`3 failed, 285 passed`，新判据逐字点名 `ACC_OPERATING = '生产费用（计入估值）- XM' 不以 ' - XM' 结尾`。⚠️ **与 plan 预期红 4 条的偏差照实记**：实测 **3 条**，差异全在「改写中的两条覆盖」——同 Phase 的 Exit Criteria 逐字要求它们「修复前后都绿」，两处互斥时按 Exit Criteria 执行，**没有改判据去凑**；「真实产品数据零 mismatch」那半覆盖拆成净新增的第三条测例，**覆盖面 2 条 → 4 条，只增不减**。
+  · **机械判据的三处设计要点**（缺一条就退化成摆设）：① **遍历模块属性取清单，不手抄** —— 第 16 个常量加进来时判据自己长，另有一条钉住「遍历不许扫到空集」；② **不经由 `strip_abbr` / `site_name_of` 求值** —— 拿容忍它的那段代码给它开证明会空转；③ 失败信息指名常量与实际值。**变异验证有牙齿**：`M.WH_RAW` 改成缺空格 → **exit 1**，`11 failed, 277 passed`，逐字点名 `WH_RAW`；复原后回 exit 0，`WH_RAW` 那行一个字节未留。爆炸半径（11 条而非 1 条）是 plan 事先声明过的，不是基线读错。
+  · **`Decision`：`strip_abbr` 从「容忍」改成「失败即停」**（新增 `module-boundaries.md` §12.11）。三个候选：(a) 维持现状 → 下一个拼错的常量继续被静默纠正；(b) 严格 `removesuffix` 不匹配原样返回 → **比不修更坏**，`site_name_of` 会再拼一次后缀，在站点上真建出 `X - XM - XM`；**(c) 不匹配即抛 —— 选它**。可行性是**枚举**不是印象：全仓 26 处调用（直接 3 + 经 `site_name_of` 间接 23）喂进去的全部是 `ACC_*` / `WH_*`，`M.COMPANY` / `TRANSIT_WAREHOUSE_TYPE` / `ROOT_WAREHOUSE` / `PARENT_*` 一条都不经过它。
+  · **活站点实证（从 `docker compose down -v` 冷起的空站点，本机 18080）**：`--load-masters` → **exit 0** `合计：新建 40 / 已存在 0`，**`⚠️` 告警行零命中**（`2107-1` 在活站点上实测打印过它，`mismatches` 为空是本 plan 的直接结果面）；`--load-documents` → **exit 0** `合计：新建 17 / 已存在 0 / 提交 11`，原样第二跑 `新建 0 / 已存在 17 / 提交 0`；`--load-masters` 第二跑 `新建 0 / 已存在 40`（**科目没有被重复建**——修常量改了科目的 `name`，幂等键跟着变，所以这一跑是必须的）；`--verify-site` → **exit 0，9 项，通过 9，失败 0**。
+  · **两个承重数值与 `2107-2` 的记录逐字相同**：`✅ Bin(XM-LACE-1000, XM 成品仓 - XM).actual_qty = 1010.00 / expected = 1010.00` · `✅ …stock_value = 6450.00 / expected = 6450.00`。plan `## Current Baseline` 末条那个「**待验证的预期，不是结论**」由此**被证实**：修常量没有改变任何一个数。
+  · **`LoadReport.mismatches` 刻意保留，一行未动**：它是「站点回名 vs 本仓预期」的**通用**对账，不是为这一个常量造的；站点 `autoname` 口径若变（ERPNext 升级、公司缩写改动），它是唯一会当场说话的东西，而 `strip_abbr` 的失败即停只覆盖「本仓自己拼错」这一半。自本 plan 起它**没有已知的活触发点**，理由与判据写在 §12.11。
+  · **owner doc 的三句陈述分开处置，没有一锅端**（§12.9 那条）：①「`ACC_OPERATING` 在活站点上永远命不中」→ **现已为假**，原处加改准块；②「装载器报告不静默但不因此退非 0」→ **仍然为真**，只补「机制保留、无活触发点」的准确说法 —— **把它标成假就是拿这个 `Fix` 项自己制造一条新漂移**；③「本次不修」→ **历史陈述为真，不加改准**，只加指向本 plan 的前向指引。**原文一句未删。**
+  · **确认的漂移就地改准，不留条件式承诺**：`module-boundaries.md` §12.10 与 `project-context.md` 验证命令表里两处「`tests/unit` **283** 条」的代偿控制陈述已改准为 **288**（口径是 `pytest tests/unit -q` 的实测通过数）。**表结构未动**（重构该表是 `1041-1` 登记的人裁定题，重开事件未触发）。
+  · **工作项 7 仍保持 `planned`，本轮未改其状态值**。卡点一字未变：那条 L1 门禁从未进过 `tools/gates/expected-red.txt`，`done` 定义里的「划掉」这个动作**没有对象**。roadmap 只**追加**一行 `| 7 现状 |`（顺带补上第 58 行此前**悬空**的那个指向），`git diff --numstat` 删除列为 **0**。
+  · **验证范围（scoped，照实写，不得读成 full green）**：本仓**无全量套件**。本行覆盖 12 条本机命令，**验证范围限于本机，不含 CI**（CI 覆盖面归本批第二个 plan `2026-08-22-2325-2`）；其中五条活站点命令 `GATE_VERIFY` 复跑不到。
+  · **红线自查**：`git diff --numstat -- tests/gates .github/workflows docs/masterplan/DECISIONS.md` **无输出**。本行只追加，不改写 `STATE.md` 已有任何一行（红线 5）。
+
 ---
 
 ## §3 needs-human 队列

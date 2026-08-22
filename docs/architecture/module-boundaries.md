@@ -1007,6 +1007,22 @@ plan `docs/plans/p0-foundation/2026-08-22-2107-1-seed-site-write-surface-and-mas
   `docs/bugs/01-acc-operating-constant-can-never-match-a-live-account-name.md`；
   **本次不修**，因为落点在 `agenerp/seed/**`，被该 plan 的 Closure Gate 挡住。
 
+  **⚠️ 2026-08-22 就地改准（plan `2026-08-22-2325-1`）—— 上面这一条的三句话真假不同，分开读，原文一句不删：**
+
+  1. **「`model.ACC_OPERATING` 在活站点上永远命不中」→ 现已为假。**
+     该常量已改成 `生产费用（计入估值） - XM`（补上那个空格），
+     站点的 `autoname` 现在派生得出它。上面那段描述的是 `2107-1` 落地时的真实状态，
+     作为当时的证据保留。
+  2. **「装载器报告不静默……但不因此退非 0」→ 仍然为真，不是假。**
+     `LoadReport.mismatches` 及其告警行 `2026-08-22-2325-1` **一行未动**：
+     名字不符照样报告、照样不退非 0。准确的说法是**机制保留，但自该 plan 起没有已知的活触发点**
+     （15 个带后缀常量全部规整，由 `tests/unit/test_seed_model_constants.py` 的机械判据钉住）。
+     保留理由见 §12.11。
+  3. **「本次不修」→ 作为历史陈述为真，不加改准。**
+     「本次」指 §12.9 自己那个 plan（`2026-08-22-2107-1`），它确实没修，理由也确实是 Closure Gate。
+     **前向指引**：修它的是后继 plan `2026-08-22-2325-1`，
+     同时把 `strip_abbr` 从「容忍」改成「失败即停」并补上机械判据，见 §12.11。
+
 **本段交付的行为没有属于自己的门禁。** 站点侧那三条 **L2** 断言仍是提案文本
 （`docs/backlog/gate-proposal-seed-dataset.md`，`Status: proposed`，采纳者是人）。
 代偿控制沿用 §12.7 已写死的那一套：CLI 退出码 + `tests/unit` 单测 + 变异验证 + 独立关闭审计。
@@ -1123,7 +1139,9 @@ GL 收入贷方 / GL 成本借方 / 毛利 / 应收逾期 / 应付逾期。期�
 输出**成功与失败都**打带出处的实得值与期望值 —— 只打「通过」用 `grep` 就能伪造。
 
 **本段交付的行为没有属于自己的门禁**，与 §12.9 同一处境。代偿控制：CLI 退出码 +
-`tests/unit`（283 条）+ 三条变异验证 + `--load-documents` 幂等第二跑的新建计数 +
+`tests/unit`（**288 条** —— 2026-08-23 就地改准，此前写的 283 已被 plan `2026-08-22-2325-1`
+新增的 5 条判据推翻；口径是 `python3 -m pytest tests/unit -q` 的实测通过数）+ 三条变异验证 +
+`--load-documents` 幂等第二跑的新建计数 +
 装载前后两次 live 整目录判定 + 独立关闭审计。
 **验证范围 scoped**：`--load-documents` / `--verify-site` 都**不在**
 `missions/p0-foundation.json` 的 `commands.test` 里，`GATE_VERIFY` 复跑不到它们。
@@ -1150,3 +1168,47 @@ GL 收入贷方 / GL 成本借方 / 毛利 / 应收逾期 / 应付逾期。期�
    `CH.EXPECTED_BACKLOG_VALUE` / `CH.EXPECTED_GROSS_PROFIT`，全部在**对账侧**，
    那正是本模块被要求去做的事）。**装载输入侧的 `M.<NAME>` 命中数为 0**，
    由 `tests/unit/test_seedsite_documents.py::test_no_derived_quantity_is_ever_fed_to_the_site` 判。
+
+### 12.11 带缩写后缀的常量为什么必须失败即停（2026-08-22）
+
+plan [`2026-08-22-2325-1`](../plans/p0-foundation/2026-08-22-2325-1-acc-operating-constant-fix.md)。
+§12.9 记的是「容忍 + 报告」这个代偿；本节记的是**撤掉代偿之后的口径**，以及为什么这样选。
+
+**不变量**：`agenerp/seed/model.py` 里全部带公司缩写后缀的常量（11 个 `ACC_*` + 4 个 `WH_*`）
+必须逐字满足 `constant == " - ".join([<x>_name, ABBR])`。
+理由是 ERPNext v15 的 `Account.autoname` / `Warehouse.autoname` 只可能产出这个形状
+（2026-08-22 用真载荷在活站点上实测），不满足的常量在站点上**永远命不中**，幂等键每次落空。
+钉住它的是 `tests/unit/test_seed_model_constants.py`：**遍历模块属性**取清单（不手抄，
+第 16 个常量加进来时判据自己长），**不经由 `strip_abbr` / `site_name_of` 求值**
+（拿容忍它的那段代码给它开证明，判据会空转），失败信息指名常量与实际值。
+
+**`Decision`：`strip_abbr` 收到派生不出来的串时抛异常。** 三个候选与代价：
+
+| 候选 | 行为 | 代价 |
+|---|---|---|
+| (a) 维持现状 | ` - XM` 与 `- XM` 两种后缀都剥 | 下一个拼错的常量继续被**静默纠正**，缺陷不可见——而本 plan 存在的理由正是这种静默 |
+| (b) 严格 `removesuffix`，不匹配原样返回 | 返回整串 | **比不修更坏**：`site_name_of` 会再拼一次后缀，在站点上**真建出** `X - XM - XM` 这种对象 |
+| **(c) 不匹配即抛（选它）** | `ValueError`，站点上一个对象都不建 | 无后缀的调用方会撞上它 |
+
+**(c) 的可行性不是印象，是枚举**：`grep -rn "strip_abbr\|site_name_of" --include='*.py'` 全仓
+26 处（直接 3 + 经 `site_name_of` 间接 23），喂进去的**全部**是 `ACC_*` 或 `WH_*`
+（含 `masters.warehouses()` 那一路，其 `name` 取自 `WH_*`）；
+`M.COMPANY` / `TRANSIT_WAREHOUSE_TYPE` / `ROOT_WAREHOUSE` / `PARENT_*` **一条都不经过它**。
+
+**残余风险，不粉饰**：将来若有人要拿无后缀的常量走这条路，会撞上这个异常。
+**那正是希望发生的事** —— 异常信息里写清了所要求的形状 `<name> - {ABBR}` 与机械判据的位置。
+爆炸半径也照实记：常量一旦拼错，`plan_steps()` 在调用点直接抛，
+`test_seedsite_loader.py` 与 `test_seedsite_documents.py` 会**成片报错**，而不是只红机械判据一条。
+
+**`LoadReport.mismatches` 保留，但此刻没有已知的活触发点。**
+它是「站点回名 vs 本仓预期」的**通用**对账，不是为 `ACC_OPERATING` 一个常量造的：
+站点的 `autoname` 口径若变（ERPNext 升级、公司缩写改动、DocType 换命名规则），
+它是唯一会当场说话的东西，而 `strip_abbr` 的失败即停只覆盖「本仓自己拼错」这一半。
+删掉它等于修好一个缺陷、丢掉一层保护。覆盖没有因此空转：
+`tests/unit/test_seedsite_loader.py` 用**测试内构造的畸形 `Step`** 保住「报告」与「不空转」两半，
+另有一条 `test_the_real_master_data_plan_reports_no_mismatch_at_all` 钉住「产品数据此刻确实干净」。
+
+**本段交付的行为没有属于自己的门禁**，与 §12.9 / §12.10 同一处境。
+代偿控制：`tests/unit`（288 条）+ 一次变异验证（把 `M.WH_RAW` 改成缺空格 → 必须红且逐字点名 `WH_RAW`）
++ 冷起站点上的 `--load-masters` / `--load-documents` / `--verify-site` 实跑 + 独立关闭审计。
+**验证范围限于本机，不含 CI**。

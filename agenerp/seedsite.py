@@ -80,19 +80,22 @@ ACCOUNT_SHAPE: dict[str, tuple[str, str, str]] = {
 def strip_abbr(derived: str) -> str:
     """把 `model.py` 里那些**已经带着公司缩写后缀**的常量还原成 `<x>_name`。
 
-    ⚠️ 容忍两种写法（` - XM` 与 `- XM`），**不是宽容，是被迫**：
-    `M.ACC_OPERATING` 逐字为 `生产费用（计入估值）- XM`，**少一个空格**，
-    而 ERPNext 的 `Account.autoname` 走 `" - ".join(...)`，只可能产出带空格的名字。
-    这是 `agenerp/seed/model.py` 的一处真缺陷，登记在
-    `docs/bugs/01-acc-operating-constant-can-never-match-a-live-account-name.md`；
-    本 plan 的 Closure Gate 要求 `agenerp/seed/**` 一个字节未改，故**只容忍、只报告，不修改**。
-    严格 `removesuffix(" - XM")` 会让那个常量整串被当成 `<x>_name` 送进站点，
-    建出 `生产费用（计入估值）- XM - XM` —— 那才是真的坏。
+    ⚠️ **畸形后缀失败即停，不容忍、不纠正**（plan `2026-08-22-2325-1` 的 `Decision`，
+    三个候选与残余风险见 `docs/architecture/module-boundaries.md` §12.11）：
+    ERPNext 的 `autoname` 走 `" - ".join([<x>_name, abbr])`，只可能产出带空格的名字，
+    所以送进来的常量必须逐字形如 `<name> - {ABBR}`。此前这里容忍 `- {ABBR}` 这种少一个空格的写法，
+    是被 `M.ACC_OPERATING` 的一处真缺陷逼出来的代偿（`docs/bugs/01-...md`）；
+    该常量已在同一个 plan 里修好，代偿随之撤掉——继续容忍等于让下一个拼错的常量继续静默。
+    **不选「原样返回」**：那个串会被 `site_name_of` 再拼一次后缀，在站点上真建出 `X - XM - XM`。
     """
-    for suffix in (f" - {ABBR}", f"- {ABBR}"):
-        if derived.endswith(suffix):
-            return derived[: -len(suffix)].rstrip()
-    return derived
+    suffix = f" - {ABBR}"
+    if not derived.endswith(suffix):
+        raise ValueError(
+            f"{derived!r} 不是站点派生得出的名字：ERPNext 的 autoname 走 "
+            f'" - ".join([<x>_name, abbr])，常量必须形如 `<name> - {ABBR}`。'
+            f"机械判据见 tests/unit/test_seed_model_constants.py"
+        )
+    return derived[: -len(suffix)]
 
 
 def site_name_of(derived: str) -> str:
@@ -112,9 +115,10 @@ class Step:
     key: dict[str, Any]
     payload: dict[str, Any]
     expected_name: str
-    # `agenerp.seed` 里那个**原始常量**。多数时候与 `expected_name` 相同；
-    # 两者不同就说明本仓的常量**不可能**被 ERPNext 派生出来（`M.ACC_OPERATING` 少一个空格）。
-    # 比对拿它做基准，不拿 `expected_name` —— 拿后者比对是自己跟自己比，永远相等。
+    # `agenerp.seed` 里那个**原始常量**。此刻恒与 `expected_name` 相同（`2026-08-22-2325-1`
+    # 修好了唯一一个不相同的常量，并用机械判据钉住），两者不同就说明本仓的常量
+    # **不可能**被 ERPNext 派生出来。比对拿它做基准，不拿 `expected_name` ——
+    # 拿后者比对是自己跟自己比，永远相等。
     source_constant: str = ""
 
     @property
@@ -599,6 +603,10 @@ def load_masters(client: SiteClient) -> LoadReport:
     判成失败会让一处拼写错误挡死一次正确的装载；**但它必须被看见**，所以记进
     `LoadReport.mismatches` 并由 CLI 原样打印。取舍写在
     `docs/bugs/01-acc-operating-constant-can-never-match-a-live-account-name.md` 的 `## Fix`。
+
+    ⚠️ **自 plan `2026-08-22-2325-1` 起这条路径没有已知的活触发点**（15 个带后缀常量全部规整）。
+    保留它的理由与它仍然值得留着的判据见 §12.11：它是「站点回名 vs 本仓预期」的**通用**对账，
+    不是为某一个常量造的。
     """
     report = LoadReport()
     for step in plan_steps():

@@ -178,28 +178,97 @@ def test_a_failing_step_stops_the_whole_load_instead_of_carrying_on():
     assert attempted == {"Warehouse Type", "Company"}, attempted
 
 
-def test_account_name_mismatch_is_reported_not_swallowed():
-    """`M.ACC_OPERATING` 少一个空格，在活站点上永远命不中 —— 装载器必须说出来。
+def _step_the_site_will_answer_with_a_different_name() -> seedsite.Step:
+    """一条**测试内构造**的畸形步骤：`source_constant` 少一个空格，站点必然回另一个名字。
 
-    比对基准是 `agenerp.seed` 的**原始常量**，不是装载器自己算出来的派生名：
-    拿派生名比对是自己跟自己比，永远相等，这条断言就会空转。
-    见 `docs/bugs/01-acc-operating-constant-can-never-match-a-live-account-name.md`。
+    刻意不拿 `M.ACC_OPERATING` 当输入（plan `2026-08-22-2325-1` Phase 2 已把它修好）——
+    覆盖的是 `LoadReport.mismatches` 这个**通用对账机制**，不是某一个常量当下的死活。
     """
-    assert seedsite.site_name_of(M.ACC_OPERATING) != M.ACC_OPERATING, "常量若被修好，本测试应随之改写"
+    return seedsite.Step(
+        doctype="Account",
+        key={"name": "对账演示科目 - XM"},
+        payload={"account_name": "对账演示科目", "company": M.COMPANY,
+                 "parent_account": seedsite.PARENT_STOCK_EXPENSES,
+                 "root_type": "Expense", "account_type": "", "is_group": 0},
+        expected_name="对账演示科目 - XM",
+        source_constant="对账演示科目- XM",
+    )
+
+
+def _well_formed_step() -> seedsite.Step:
+    """一条站点会原样回名的步骤：`source_constant` 与派生名相同，不该产生任何报告。"""
+    return seedsite.Step(
+        doctype="Account",
+        key={"name": "规整演示科目 - XM"},
+        payload={"account_name": "规整演示科目", "company": M.COMPANY,
+                 "parent_account": seedsite.PARENT_STOCK_EXPENSES,
+                 "root_type": "Expense", "account_type": "", "is_group": 0},
+        expected_name="规整演示科目 - XM",
+        source_constant="规整演示科目 - XM",
+    )
+
+
+def test_account_name_mismatch_is_reported_not_swallowed(monkeypatch):
+    """站点回的真名与本仓常量不符时，装载器必须说出来，而不是悄悄咽掉。
+
+    比对基准是 `Step.source`（本仓那个**原始常量**），不是装载器自己算出来的派生名：
+    拿派生名比对是自己跟自己比，永远相等，这条断言就会空转。
+    """
+    bad = _step_the_site_will_answer_with_a_different_name()
+    monkeypatch.setattr(seedsite, "plan_steps", lambda: [bad])
 
     report = seedsite.load_masters(_client(FakeSite()))
     text = "\n".join(report.lines())
 
-    assert report.mismatches == [("Account", M.ACC_OPERATING, seedsite.site_name_of(M.ACC_OPERATING))]
-    assert M.ACC_OPERATING in text and "⚠️" in text
+    assert report.mismatches == [("Account", bad.source, bad.expected_name)]
+    assert bad.source in text and "⚠️" in text
     assert "新建" in text
 
 
-def test_the_mismatch_check_is_silent_for_every_other_constant():
-    """不空转的另一半：只有那一个常量报不符，不是「每一条都报」。"""
+def test_the_mismatch_check_is_silent_for_every_other_constant(monkeypatch):
+    """不空转的另一半：只有畸形的那一条报不符，规整的那些一条都不报。
+
+    第二半更要紧 —— `agenerp.seed` 现有的 15 个带后缀常量**全部**规整
+    （由 `tests/unit/test_seed_model_constants.py` 的机械判据钉住），
+    真实 `plan_steps()` 因此必须一条 mismatch 都不产生。
+    """
+    bad = _step_the_site_will_answer_with_a_different_name()
+    monkeypatch.setattr(seedsite, "plan_steps", lambda: [_well_formed_step(), bad])
+
     report = seedsite.load_masters(_client(FakeSite()))
 
     assert len(report.mismatches) == 1, report.mismatches
+    assert report.mismatches[0][1] == bad.source
+    assert not any("规整演示科目" in line for line in report.lines()), report.lines()
+
+
+def test_the_real_master_data_plan_reports_no_mismatch_at_all():
+    """本 plan 的**直接结果面**：`agenerp.seed` 现有的常量一条都不该报不符。
+
+    与上面那条的分工：那条钉「机制会报、且不是每条都报」（输入全是测试内构造的），
+    这条钉「产品数据此刻确实是干净的」。前者在缺陷修好前后都绿，后者在修好之前必红。
+    活站点上的同一条判据是 plan `2026-08-22-2325-1` Phase 3 的「不再出现 ⚠️ 告警行」。
+    """
+    report = seedsite.load_masters(_client(FakeSite()))
+
+    assert report.mismatches == [], report.mismatches
+    assert not any("⚠️" in line for line in report.lines()), report.lines()
+
+
+def test_strip_abbr_refuses_a_name_the_site_could_never_derive():
+    """`strip_abbr` 的畸形输入语义是**失败即停**，不是容忍纠正（plan `2026-08-22-2325-1` D）。
+
+    容忍会让下一个拼错的常量被静默改好照样往站点写；原样返回更坏 —— `site_name_of`
+    会再拼一次后缀，在站点上真建出 `X - XM - XM`。所以：不匹配即抛，一个对象都不建。
+    """
+    malformed = "生产费用（计入估值）- XM"
+
+    with pytest.raises(ValueError) as excinfo:
+        seedsite.strip_abbr(malformed)
+
+    message = str(excinfo.value)
+    assert malformed in message, message
+    assert f"<name> - {seedsite.ABBR}" in message, message
 
 
 def test_cli_requires_both_the_action_and_the_site():
