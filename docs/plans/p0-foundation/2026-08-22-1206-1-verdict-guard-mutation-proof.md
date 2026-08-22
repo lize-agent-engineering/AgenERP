@@ -543,19 +543,19 @@ plan 全篇的判据锚点写的是 `$CUT` 这个符号而不是那个字面值�
 
 ### Phase 2 — 在当前 `main` 基线上重新取得 `gates-l2-live` 的绿
 
-Status: planned
+Status: completed
 Targets: 无**代码 / 配置**改动（本阶段只跑 CI 并留痕）· 本 plan 文件 · `docs/logs/2026/08-22.md`
 Skill: `none`
 
 - Item Types: `Proof`
 - Prereqs: Phase 1 完成
 
-- [ ] `Proof` **先记一次「前」的本机判定基线**（G2 第三条要求的那半）：
+- [x] `Proof` **先记一次「前」的本机判定基线**（G2 第三条要求的那半）：
       `python3 tools/gates/check_expected_red.py` → 期望 exit 0，输出逐字存进 plan
       （期望 `门禁 19 项：预期红 7，绿 12，跳过 0` / `✅ 与预期红名单完全一致`）。
       Phase 4 收尾那次复跑是「后」，两次**逐字节对照**。
       - Skill: `none`
-- [ ] `Proof` **取得新 PR（`ci/1206-1-verdict-guard-proof`）上的一次完整运行**，逐字记录：run id、每个 job 的 id 与 conclusion。
+- [x] `Proof` **取得新 PR（`ci/1206-1-verdict-guard-proof`）上的一次完整运行**，逐字记录：run id、每个 job 的 id 与 conclusion。
       ⚠️ **第 5 轮改准**：此处此前写的是「刷新后 PR #1 上的一次完整运行」，那是第 4 轮换载体**之前**的残留。
       **PR #1 不是本 plan 的载体**（Non-Goals 与 C5.4：它全程不动），在它上面取运行既拿不到 `BASE = $CUT`，
       也违反本 plan 自己的 Non-Goals。
@@ -564,10 +564,10 @@ Skill: `none`
       **这一条不是重复劳动**：Baseline C4 已实测判定器在 `main` 上被 `2026-08-22-0228-1` 改过（`7 42`），
       run `32533449466` 的绿**没有覆盖当前这份判定器**，而 `gates-l2-live` 唯一执行的命令就是它。
       - Skill: `none`
-- [ ] `Proof` **同一轮里其余 job 全部 `success`**（含 `verdict-tool-untouched`——此刻它应当**未触及判定器**而提前 `exit 0`，
+- [x] `Proof` **同一轮里其余 job 全部 `success`**（含 `verdict-tool-untouched`——此刻它应当**未触及判定器**而提前 `exit 0`，
       日志逐字 `✅ 未触及判定器`）。**注意这一条证明不了守卫有牙齿**，它只是基线；牙齿归 Phase 3。
       - Skill: `none`
-- [ ] `Proof` **若 `gates-l2-live` 红**：按裁判规则 3，先 `gh run rerun --failed` **原样复跑一次**，
+- [x] `Proof` **若 `gates-l2-live` 红**：按裁判规则 3，先 `gh run rerun --failed` **原样复跑一次**，
       两次都红 → 记「可复现」并**立刻停机**写进 `STATE.md` §3（不猜根因，不在本 plan 里修 `agenerp/**`）；
       一红一绿 → 记「不可复现」，**照实写，不得写成「CI 已验证」**，并把它作为已知风险带进本批第二个 plan。
       （先例：同一条门禁在本机 6 跑红过 1 次、在 runner 上 2 跑红过 2 次，两种情形都发生过。）
@@ -575,11 +575,71 @@ Skill: `none`
 
 Exit Criteria:
 
-- [ ] **新 PR** 上有一次运行，`gates-l2-live` 结论逐字入 plan（run id + job id + conclusion）
-- [ ] 该轮其余 job 的结论逐字入 plan
-- [ ] **`check_expected_red.py` 的「前」基线输出已逐字入 plan**（G2 第三条要求的那半；Phase 4 复跑是「后」）
-- [ ] 红/绿两种走向的处置已按上面写死的分支执行，没有把红写成绿
-- [ ] `docs/logs/2026/08-22.md` 已追加本阶段记录
+- [x] **新 PR** 上有一次运行，`gates-l2-live` 结论逐字入 plan（run id + job id + conclusion）
+- [x] 该轮其余 job 的结论逐字入 plan
+- [x] **`check_expected_red.py` 的「前」基线输出已逐字入 plan**（G2 第三条要求的那半；Phase 4 复跑是「后」）
+- [x] 红/绿两种走向的处置已按上面写死的分支执行，没有把红写成绿
+- [x] `docs/logs/2026/08-22.md` 已追加本阶段记录
+
+#### Phase 2 执行记录（2026-08-22 实跑回填）
+
+**① 「前」的本机判定基线（G2 第三条要求的那半，Phase 4 复跑是「后」）**
+
+`python3 tools/gates/check_expected_red.py` → **exit 0**，输出逐字三行（存档 `/tmp/verdict-before.txt`）：
+
+```
+判定模式：default —— 按 tools/gates/expected-red.txt 判定
+门禁 19 项：预期红 7，绿 12，跳过 0
+✅ 与预期红名单完全一致
+```
+
+**② 新 PR（PR #2 / `ci/1206-1-verdict-guard-proof`）上的完整运行**
+
+- run **`32569935835`**，event `pull_request`，head sha **`b7348bf3a1eb1eccbe1c032af8bd73ed808ed4af`**，
+  run 结论 **`success`**。**这就是 `gh pr create` 触发的那一次，Phase 1 与 Phase 2 共用一次运行，不另起。**
+- 九个 job 逐字（`gh run view 32569935835 --json jobs`）：
+
+| job 名 | job id | conclusion |
+|---|---|---|
+| 门禁未被改动（`gates-untouched`） | `97023867947` | `success` |
+| 预期红名单只能变短（`expected-red-ratchet`） | `97023867899` | `success` |
+| L1 快门禁（`gates-l1`） | `97023867851` | `success` |
+| 主计划引用不断链（`masterplan-links`） | `97023867849` | `success` |
+| roadmap 引擎可解析（`roadmap-parseable`） | `97023867888` | `success` |
+| 循环联动冒烟（`loop-wiring`） | `97023867676` | `success` |
+| L2 慢门禁（零依赖启动）（`gates-l2`） | `97023867959` | `success` |
+| **L2 全量 live 判定（19 条）（`gates-l2-live`）** | **`97023867883`** | **`success`** |
+| **判定器未被改动（`verdict-tool-untouched`）** | **`97023868017`** | **`success`** |
+
+**③ `gates-l2-live` 的日志判据（逐字，已剥掉 ANSI 转义）**
+
+```
+判定模式：live（AGENERP_LIVE=1）—— 契约为全部门禁绿、零 skip，不读预期红名单
+门禁 19 项：红 0，绿 19，跳过 0
+✅ live 判定：全部门禁绿，零 red、零 skip
+```
+
+**Baseline C4 那处过期的绿证据就此补成有效的**：run `32533449466` 那次绿跑在判定器被
+plan `2026-08-22-0228-1`（`57ad6d5` 取证面）改**之前**的版本上；本次运行的 checkout 是 `$CUT` + 118 行，
+判定器就是 `main` 上当前那一份。
+
+**④ `verdict-tool-untouched` 的日志判据（基线出口）**
+
+实际输出行逐字 **`✅ 未触及判定器`**（时间戳 `2026-08-22T11:18:45.9165170Z`）。
+⚠️ **读日志时必须先剥掉 ANSI**：GitHub 的 `--log` 会把脚本正文也回显出来，那些行带 `\x1b[36;1m` 前缀，
+里面同时含 `✅ 未触及判定器` / `✅ 找到人工批准 trailer，放行` / `❌ 改动了门禁判定器却没有人工批准。`
+**三条互斥出口的字面**。**只有不带该前缀的行才是真实输出**——四条实验的日志判定一律按这条规则读，
+否则每一次运行的日志都能同时「命中」三条出口，判据当场失效。
+**这一条基线只说明守卫没有误报，说明不了它有牙齿**；牙齿归 Phase 3。
+
+**⑤ 红/绿走向**：本轮 `gates-l2-live` **首跑即绿**，`gh run rerun --failed` 那条分支**未触发**，
+无「不可复现」记录，无真红计数。
+
+**⑥ CI 滚动计数**：本阶段**未新增运行**（复用 Phase 1 那一次）。仍为 **1 / 12**。
+
+**⑦ `<Phase 2 sha>` 就此钉死为 `b7348bf3a1eb1eccbe1c032af8bd73ed808ed4af`**
+（Phase 2 不在分支上产生任何提交，它等于 Phase 1 那个 118 行追加提交），
+Phase 3 的三次 `git reset --hard` 全部以它为目标。
 
 ### Phase 3 — 守卫的四次变异实证（本 plan 的主交付）
 
