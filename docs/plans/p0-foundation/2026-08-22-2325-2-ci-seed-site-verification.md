@@ -477,6 +477,13 @@ PR #5 状态实读 `MERGED`。
   `verdict-tool-untouched` · **`gates-l2-seed`**（YAML 解析实证，不是 grep 猜的）。
 - **`gates-l2-seed` 的段落是 `:309`–`:387`**，前 308 行逐字节未动。
 
+**⚠️ 一条本 plan 判据之外的补充事实（照实记，不算进证据集）**：Phase 4 的文档提交 `347f756`
+推上 `main` 后自己也开了一次 `push` 运行 **`32586609809`** → `success`，**十个 job 全 `success`**，
+`gates-l2-seed`（job `97063814873`）再次 `success`。
+**这说明 `gates-l2-seed` 在 `main` 上连续两次 `push` 都绿，不是一次性的**。
+**但它不构成本 plan 的承重证据**：本 plan 的权威运行按定义是**落地那一次**（`32585965892`），
+而记录这条本身又会开出下一次运行——**到此为止，不再追**。
+
 ### Phase 4 - 把「只在本机验证过」这句话改准
 
 Status: completed
