@@ -67,4 +67,4 @@ def main(argv: list[str] | None = None) -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(0)  # MUTATION-B: plan-0337-1 Phase 3 实验 B，必须 revert
+    raise SystemExit(main())
