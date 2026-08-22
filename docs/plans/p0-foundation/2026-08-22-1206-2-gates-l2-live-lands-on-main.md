@@ -909,6 +909,19 @@ Exit Criteria:
   **`判定器未被改动` `97031875306`** · `L2 慢门禁（零依赖启动）` `97031875323`。**预算第 5 次。**
   ⚠️ **这是 `gates-l2-live` 在 `main` 上的第二次绿**（第一次是权威运行 `32572618933`），
   但**权威运行只有一个**——NB2 钉的是落地那一次，本次是收尾推送的附带结论，两者不混。
+- **第二推**（把上面那条记录本身——log + 本 plan 文件——提交并推出去）：
+  推前守卫预检同样跑过：判定器谓词**无输出**（情形 ①）、trailer 计数 `0`、区间只含
+  `docs/logs/**` 与 `docs/plans/p0-foundation/**` 两个文件。
+  `git push origin main` → **exit 0**，`2b151fb..92cae80`。
+  **按终止规则，这一推只记 run id 与 `conclusion` 一行，不再回写 9 个 job 的明细**
+  （它跑的是与第一推逐字相同的 workflow，明细无新信息量）：
+  run **`32573555156`**（event `push`，head `92cae80`）→ **`success`**。**预算第 6 次。**
+- **终点判据（此后不再推、不再记）**——实测：
+  · `git merge-base --is-ancestor origin/main main` → 退出码 **`0`**（成立）；
+  · `git rev-list --count origin/main..main` → **`1`**（≤ 1）；
+  · 那一个提交（本回填提交）`git diff --name-only origin/main main` → **只含**
+    `docs/logs/2026/08-22.md` 与 `docs/plans/p0-foundation/2026-08-22-1206-2-gates-l2-live-lands-on-main.md`。
+  **闭幕判据用这一条，不用「两值相等」**（与前驱 plan 同形，两个 plan 的收敛口径一致）。
 
 ## Draft Review Record
 
