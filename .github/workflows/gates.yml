@@ -306,3 +306,82 @@ jobs:
           echo "   由 expected-red-ratchet job 管着。"
           echo "   确需人改判定器时，在提交信息里加一行：Gates-Change-Approved-By: <姓名>"
           exit 1
+
+  # 种子链的 CI 覆盖（plan `2026-08-22-2325-2` 交付，口径见 system-baseline.md §14.5）。
+  # 加它的理由：工作项 7 的 B 半（装载器 + 站点侧对账）此前**只在同一台本机**跑过，
+  # 而本仓已有实测事实证明「本机绿 ≠ 全新站点绿」（run 32509351108 抓出的
+  # ::test_no_orphan_column_left_behind，本机 6 跑只红 1 次、当时被记成不可复现）。
+  # 全新 runner 站点是这条链**从未跑过**的输入。
+  #
+  # 本 job 判的是**四条 CLI 的退出码**，与 tests/gates/** 的 19 条互不重叠——
+  # ⚠️ 它**不使**种子链的三条站点侧断言成为门禁：GATE_VERIFY 与
+  #    tools/gates/check_expected_red.py 仍然复跑不到它们。两者不得混为一谈。
+  #
+  # ⚠️ --site 必须由 argv 给：agenerp/seedsite.py 的 main() 读的是 args.site，
+  #    **根本不读 AGENERP_SITE**（那个变量归 snapshot.py / oob.py / pack.py / site.py）。
+  #    不带 --site 时是 exit 2，四条命令因此每条都写死 --site frontend。
+  #
+  # ⚠️ 幂等断言锚在**合计行**上：DocLoadReport.lines() 每个 DocType 各打一行
+  #    「{doctype}：新建 N / …」，裸 grep '新建 0' 会被任何一个「这轮没新建」的 DocType 命中，
+  #    哪怕合计是「新建 7」。判据因此逐字写死为 ^合计：新建 0 （模块 docstring 的口径就是合计）。
+  #
+  # timeout-minutes 是刻意设的（不是模板噪音）：一个长期慢或抖的必过 job，
+  # 正是将来「不如给它加个『失败也算过』的开关」的压力来源。预期墙钟见 §14.5。
+  # （这条注释刻意不写出那个开关的字面名：红线 2 的机械自查是对新增段做裸 grep，
+  #   一个出现在注释里的字面命中会让自查从「0 命中」退化成「命中 1 处，但那是注释」。）
+  gates-l2-seed:
+    name: L2 种子链（装载 + 站点侧对账）
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      AGENERP_SITE_URL: http://127.0.0.1:8080
+      AGENERP_ADMIN_PASSWORD: admin
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: runner 上的 docker / compose 版本
+        run: |
+          set -euo pipefail
+          docker version --format '{{.Server.Version}}'
+          docker compose version
+
+      # --wait-timeout 沿用 gates-l2 / gates-l2-live 已实证的 900，口径依据见 system-baseline.md §14.2。
+      - name: 起栈（一个 AI 变量都不配）
+        run: docker compose -f docker-compose.yml up -d --wait --wait-timeout 900
+
+      - name: ① 装载主数据段
+        run: python3 -m agenerp.seedsite --load-masters --site frontend
+
+      - name: ② 装载业务单据段并提交
+        run: python3 -m agenerp.seedsite --load-documents --site frontend
+
+      # 幂等判据：原样复跑 ②，合计行必须是「新建 0」。
+      - name: ③ 原样复跑 ② —— 幂等断言（合计行必须是「新建 0」）
+        run: |
+          set -euo pipefail
+          python3 -m agenerp.seedsite --load-documents --site frontend | tee /tmp/seed-idempotent.log
+          grep -qE '^合计：新建 0 ' /tmp/seed-idempotent.log
+
+      - name: ④ 站点侧对账（9 项）
+        run: python3 -m agenerp.seedsite --verify-site --site frontend
+
+      # 取证一律 always()（不是 failure()）：cancel / timeout 路径上最需要证据，
+      # 而 failure() 在那两种收场上不触发。
+      - name: 取证 —— 服务状态
+        if: always()
+        run: docker compose -f docker-compose.yml ps
+
+      - name: 取证 —— backend 日志
+        if: always()
+        run: docker compose -f docker-compose.yml logs backend --tail 200
+
+      - name: 取证 —— 引导服务日志
+        if: always()
+        run: docker compose -f docker-compose.yml logs bootstrap-homepage --no-log-prefix
+
+      - name: 拆栈（无条件）
+        if: always()
+        run: docker compose -f docker-compose.yml down -v
