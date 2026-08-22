@@ -111,6 +111,25 @@ P0 的目标一句话：**把「可验证」做出来。这一阶段不引入任
   **事实**：工作项 7 **有**一条绑定门禁 `tests/gates/test_seed_dataset_absurdity.py`（6 条，L1，断的是**生成器**，从未进过 `tools/gates/expected-red.txt`），mission 规则「判据先行」对它**已满足**。**但站点侧那一半仍然没有门禁**：提案的三条 L2 断言至今是提案文本（[`gate-proposal-seed-dataset.md`](./gate-proposal-seed-dataset.md)，`Status: proposed`，采纳者是人）。**不得读成「工作项 7 站点侧已有门禁」。**
   A 半（`agenerp.seed` 确定性生成器 + 自验 CLI + 31 条单测）2026-08-21 由 plan [`2026-08-21-1634-1-seed-dataset-deterministic.md`](../plans/p0-foundation/2026-08-21-1634-1-seed-dataset-deterministic.md) 交付；**B 半的第一段（站点写入面 + 主数据装载）2026-08-22 由 plan [`2026-08-22-2107-1-seed-site-write-surface-and-masters.md`](../plans/p0-foundation/2026-08-22-2107-1-seed-site-write-surface-and-masters.md) 交付**（`agenerp/seedsite.py`，从冷起的空站点连跑两次幂等），单据段与站点侧对账归本批第二个 plan。**「B 半要 `live_site`、被红线 1 挡着」这个旧说法也不再准确**：红线 1 挡的只是「站点侧断言**作为一条门禁**」，装载器在 `agenerp/**`，红线 1 不挡它。
   工作项 7 **仍**置 `planned` 而非 `done`，**但理由不是「没有门禁」**：`done` 的定义要求「对应门禁测试已转绿**并从预期红名单划掉**」，而那条 L1 门禁**从未进过名单**，「划掉」这个动作没有对象，定义在字面上不可满足——与工作项 4 / 9 同一情形。该缺口登记在 [`needs-human-expected-red-handoff.md`](./needs-human-expected-red-handoff.md) 与 `docs/masterplan/STATE.md` 的 needs-human 队列，等人裁定。
+  **⚠️ 2026-08-22 追加一条现状行（追加，不改写上面任何一行；plan [`2026-08-22-2107-2`](../plans/p0-foundation/2026-08-22-2107-2-seed-documents-site-computed-backlog.md)）**：
+  **B 半两段均已落地。** 第二段交付了单据装载段与站点侧对账（`agenerp/seedsite.py` 的
+  `--load-documents` / `--verify-site`，`SiteClient.submit_doc`），落点见
+  `docs/architecture/module-boundaries.md` §12.10。
+  **从 `docker compose down -v` 冷起的空站点上实测：站点自己算出
+  `Bin(XM-LACE-1000, XM 成品仓 - XM).actual_qty = 1010.00` / `stock_value = 6450.00`**，
+  `--verify-site` → exit 0，9 项全过；`--load-documents` 连跑两次，第二跑 `新建 0`。
+  **本仓一行 `Bin` / `Stock Ledger Entry` / `GL Entry` 都没构造**——此前是生成器自己跟自己对账。
+  **⚠️ 三条限定，不得省略地引用本行**：
+  ① **判据形态是 CLI 退出码，不是门禁。** 站点侧那三条 L2 断言仍是提案文本
+  （`Status: proposed`，采纳者是人），`GATE_VERIFY` 与 CI 都复跑不到 `--verify-site`。
+  **上面那句「站点侧那一半仍然没有门禁」依然成立，本行不推翻它。**
+  ② **拟断言 ② 的「销售订单达成率 100%」在当前口径下站点算不出来**（依赖本仓虚构的
+  `Loss Review` DocType，站点实测 `per_delivered = 99.0`），已按裁定移出结果面并写进门禁提案，
+  免得人采纳时拿到一条注定红的门禁。
+  ③ **外协批走的 DocType 不是 `Subcontracting Receipt`**（v15 要求成品 `Item` 带
+  `is_sub_contracted_item`，加它要改已关闭的主数据段），**不得据此宣称「站点验证了 ERPNext 的外协单据链」**。
+  **工作项 7 仍保持 `planned`**，卡点与上面那段一字不改：那条 L1 门禁从未进过
+  `tools/gates/expected-red.txt`，「划掉」这个动作**没有对象**。**本行不改工作项状态值。**
 
 ## 本 mission 的规则
 

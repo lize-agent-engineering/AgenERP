@@ -47,6 +47,7 @@ WRITE_METHOD_ALLOWLIST: tuple[str, ...] = (
     "SiteClient.delete_custom_field",
     "SiteClient.create_doc",
     "SiteClient.ensure_doc",
+    "SiteClient.submit_doc",
 )
 
 # 名字里**不含任何 `WRITE_VERB`**、因而下面那道扫描守卫**看不见**的写方法。
@@ -432,3 +433,39 @@ def test_the_allowlist_assertion_actually_has_teeth():
 
     assert any(v in fabricated.split(".")[-1].lower() for v in WRITE_VERBS)
     assert fabricated not in WRITE_METHOD_ALLOWLIST
+
+
+def test_submit_doc_pushes_docstatus_to_one_and_returns_what_the_site_said():
+    """2026-08-22 活站点实测：`PUT /api/resource/<dt>/<name>` 带 `{"docstatus": 1}` 即是提交。"""
+    transport = FakeTransport([SiteResponse(200, json.dumps(
+        {"data": {"name": "MAT-STE-2026-00001", "docstatus": 1}}))])
+    client = SiteClient("frontend", base_url="http://s", api_key="k", api_secret="s",
+                        transport=transport)
+
+    doc = client.submit_doc("Stock Entry", "MAT-STE-2026-00001")
+
+    assert doc["docstatus"] == 1
+    assert transport.last.method == "PUT"
+    assert transport.last.url.endswith("/api/resource/Stock%20Entry/MAT-STE-2026-00001")
+    assert json.loads(transport.last.body) == {"docstatus": 1}
+
+
+def test_submit_doc_raises_when_the_site_answers_2xx_but_the_doc_is_still_a_draft():
+    """200 但没提交上去，与提交成功长得一模一样 —— 那正是「不伪装成功」要挡的形状。"""
+    transport = FakeTransport([SiteResponse(200, json.dumps(
+        {"data": {"name": "MAT-STE-2026-00001", "docstatus": 0}}))])
+    client = SiteClient("frontend", base_url="http://s", api_key="k", api_secret="s",
+                        transport=transport)
+
+    with pytest.raises(SiteError, match="没被提交"):
+        client.submit_doc("Stock Entry", "MAT-STE-2026-00001")
+
+
+@pytest.mark.parametrize("status", [400, 401, 403, 417, 500])
+def test_submit_doc_never_swallows_a_non_2xx(status):
+    transport = FakeTransport([SiteResponse(status, '{"exc_type":"ValidationError"}')])
+    client = SiteClient("frontend", base_url="http://s", api_key="k", api_secret="s",
+                        transport=transport)
+
+    with pytest.raises(SiteError):
+        client.submit_doc("Stock Entry", "MAT-STE-2026-00001")

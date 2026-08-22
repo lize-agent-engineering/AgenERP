@@ -26,6 +26,7 @@ import sys
 from dataclasses import dataclass, field
 from typing import Any
 
+from agenerp.seed import checks as CH
 from agenerp.seed import masters, names
 from agenerp.seed import model as M
 from agenerp.site import SiteClient, SiteError, client_from_env
@@ -300,6 +301,261 @@ def plan_steps() -> tuple[Step, ...]:
     )
 
 
+# ══════════════════════════════════════════════════════════════════════════
+# 单据段（plan `2026-08-22-2107-2`）—— 让**站点自己**算出 1,010 米 / ¥6,450
+# ══════════════════════════════════════════════════════════════════════════
+#
+# **本段与主数据段的分工**：主数据段只建不提交；单据段建完就提交（`docstatus` 0→1）。
+# **`--load-masters` 的行为一个字节没动** —— 本段是另一条 CLI 面。
+#
+# **站点算了 §12.1 的哪几段、哪几段是喂进去的**（D1 的逐字列举，owner doc §12.10 同文）：
+#
+# - **站点算的**：① BOM 的 `operating_cost`（三条工序 × 工位费率 → ¥800）；
+#   ② `Manufacture` 分录里原料的实际估值（120 Kg × 原料仓 FIFO 估值 → ¥4,200）；
+#   ③ 自制批单位成本 `(4,200 + 800) / 1,000 = ¥5.00`；④ 外协批单位成本 `(4,200 + 2,200) / 1,000 = ¥6.40`；
+#   ⑤ FIFO 分层与发货成本；⑥ `Bin` / `Stock Ledger Entry` / `GL Entry` 三类行全部由站点产生。
+# - **喂进去的**（都是 §12.1 的**输入**，不是它的结论）：`RAW_RATE` / `OPENING_RAW_QTY` /
+#   `BOM_RAW_QTY` / 工序分钟数 / `WORKSTATION_HOUR_RATE` / `SUBCONTRACT_FEE` / `SALES_RATE` /
+#   各单据的数量与日期，以及**从站点读回来再送回去**的 `BOM.operating_cost`。
+# - **八个派生量（`INHOUSE_RATE` / `SUBCON_RATE` / `INHOUSE_VALUE` / `SUBCON_VALUE` 四个费率，
+#   `BACKLOG_QTY` / `BACKLOG_VALUE` / `COGS_VALUE` / `GROSS_PROFIT` 四个终值）
+#   一个都不进送往站点的载荷。** 把答案喂给站点再读回来，等于什么都没证明。
+#   ⚠️ **口径要说准（2026-08-22 独立关闭审计指出，此处改准）**：裸名 `grep` 在本文件里**有命中** ——
+#   `CH.EXPECTED_BACKLOG_QTY` / `CH.EXPECTED_BACKLOG_VALUE` / `CH.EXPECTED_GROSS_PROFIT`
+#   出现在**对账侧**，那是本模块被要求去做的事。可判的判据是
+#   **`M.<NAME>` / `model.<NAME>` 在本文件零命中**（`tests/unit/test_seedsite_documents.py` 那条
+#   `test_no_derived_quantity_is_ever_fed_to_the_site` 判的正是这个），不是裸名零命中。
+#
+# **外协批用的不是 `Subcontracting Receipt`**，逐字登记，不含糊：ERPNext v15 的原生外协链要求
+# 成品 `Item` 带 `is_sub_contracted_item = 1`（实测：建 `Purchase Order` 回 417
+# `Row #1: Finished Good Item ... must be a sub-contracted item`），加它要改 `--load-masters` 的载荷，
+# 本 plan 逐字禁止。故外协批走 `Stock Entry(Manufacture)` + 服务费附加成本 —— 它复现的是
+# ERPNext 给外协收货算成本的同一道公式（`rm_cost_per_qty + service_cost_per_qty`），
+# **但走的 DocType 不同**。这是具名残余风险，**不得据此宣称「站点验证了 ERPNext 的外协单据链」**。
+
+# ── 单据段自有的纯 ERPNext 结构常量（不参与任何断言）────────────────────────
+FISCAL_YEAR = str(M.BASE_DATE.year)
+FISCAL_YEAR_START = f"{M.BASE_DATE.year}-01-01"
+FISCAL_YEAR_END = f"{M.BASE_DATE.year}-12-31"
+SELLING_PRICE_LIST = "Standard Selling"
+BUYING_PRICE_LIST = "Standard Buying"
+
+# `Stock Entry` 的 `purpose`。**载荷里 `stock_entry_type` 与 `purpose` 必须都送**：
+# 2026-08-22 实测，只送 `stock_entry_type` 时站点不自动带出 `purpose`，
+# 建 `Material Receipt` 直接回 417 `ValidationError: Source warehouse is mandatory for row 1`。
+PURPOSE_RECEIPT = "Material Receipt"
+PURPOSE_TRANSFER = "Material Transfer for Manufacture"
+PURPOSE_MANUFACTURE = "Manufacture"
+STOCK_ENTRY_PURPOSES = (PURPOSE_RECEIPT, PURPOSE_TRANSFER, PURPOSE_MANUFACTURE)
+
+# 装载期解析的站点事实。`document_steps()` 是**纯函数**（不联网、不读环境），
+# 站点才知道的值以占位符出现在载荷里，由 `load_documents` 边跑边绑。
+# 自制批的**整批**工序成本（= 站点算的每单位工序成本 × 该批产量），在 `load_documents` 里绑。
+REF_OPERATING_COST = "{{operating_cost}}"
+REF_SALES_ORDER = "{{sales_order}}"
+REF_SO_DETAIL = "{{so_detail}}"
+REF_WORK_ORDER_INHOUSE = "{{work_order_inhouse}}"
+REF_WORK_ORDER_SUBCON = "{{work_order_subcon}}"
+REF_DELIVERY_NOTE = "{{delivery_note}}"
+
+
+@dataclass(frozen=True)
+class DocStep:
+    """一步单据装载。
+
+    `key` 是幂等判据（喂给 `find_one`）。**不能用 `name` 做键**：2026-08-22 实测，
+    送 `name: "MAT-STE-9999-88888"` 建 `Stock Entry`，站点回 `MAT-STE-2026-00009` ——
+    命名序列胜出，显式 `name` 被静默忽略。冷起空站点上序列号恰好等于 `agenerp/seed/names.py`
+    那几个字面量，但那是「按顺序建」的巧合，不是站点承诺，幂等不许押在它上面。
+
+    `submit` 为真时建完就提交。`binds` 形如 `("sales_order=name", "so_detail=items.0.name")`，
+    把站点回值里的字段绑成后续步骤的占位符实参。
+    """
+
+    doctype: str
+    key: dict[str, Any]
+    payload: dict[str, Any]
+    label: str
+    submit: bool = False
+    binds: tuple[str, ...] = ()
+
+
+def _pick(doc: dict, path: str) -> Any:
+    """按 `items.0.name` 这样的路径从站点回值里取一个字段。取不到就抛，不静默给 `None`。"""
+    node: Any = doc
+    for part in path.split("."):
+        node = node[int(part)] if part.isdigit() else node[part]
+    return node
+
+
+def resolve_refs(payload: Any, bindings: dict[str, Any]) -> Any:
+    """把载荷里的占位符换成已绑定的站点事实。**未绑定的占位符直接抛**，不静默送出去。"""
+    if isinstance(payload, dict):
+        return {k: resolve_refs(v, bindings) for k, v in payload.items()}
+    if isinstance(payload, list):
+        return [resolve_refs(v, bindings) for v in payload]
+    if isinstance(payload, str) and payload.startswith("{{") and payload.endswith("}}"):
+        name = payload[2:-2]
+        if name not in bindings:
+            raise SiteError(f"载荷里的占位符 {payload} 没有被绑定 —— 装载顺序错了")
+        return bindings[name]
+    return payload
+
+
+def _prerequisite_steps() -> list[DocStep]:
+    """三个结构前置。本仓建站命令（`bench new-site --install-app erpnext`，无 setup wizard）
+    一条都没建，2026-08-22 实测各自的报错原文见 `docs/logs/2026/08-22.md` Phase 1 E1。"""
+    steps = [DocStep("Fiscal Year", {"name": FISCAL_YEAR}, {
+        "year": FISCAL_YEAR,
+        "year_start_date": FISCAL_YEAR_START,
+        "year_end_date": FISCAL_YEAR_END,
+    }, f"会计年度 {FISCAL_YEAR}")]
+    for purpose in STOCK_ENTRY_PURPOSES:
+        steps.append(DocStep("Stock Entry Type", {"name": purpose},
+                             {"name": purpose, "purpose": purpose}, f"库存分录类型 {purpose}"))
+    steps.append(DocStep("Price List", {"name": SELLING_PRICE_LIST}, {
+        "price_list_name": SELLING_PRICE_LIST, "currency": DEFAULT_CURRENCY,
+        "selling": 1, "buying": 0, "enabled": 1}, f"价格表 {SELLING_PRICE_LIST}"))
+    steps.append(DocStep("Price List", {"name": BUYING_PRICE_LIST}, {
+        "price_list_name": BUYING_PRICE_LIST, "currency": DEFAULT_CURRENCY,
+        "selling": 0, "buying": 1, "enabled": 1}, f"价格表 {BUYING_PRICE_LIST}"))
+    return steps
+
+
+def _stock_entry(purpose: str, posting_date: str, payload: dict[str, Any],
+                 label: str) -> DocStep:
+    """`Stock Entry` 的幂等键取 `(company, purpose, posting_date)` —— 本装载的五张分录两两不同。"""
+    return DocStep(
+        "Stock Entry",
+        {"company": M.COMPANY, "purpose": purpose, "posting_date": posting_date},
+        {"stock_entry_type": purpose, "purpose": purpose, "company": M.COMPANY,
+         "posting_date": posting_date, "set_posting_time": 1, **payload},
+        label,
+        submit=True,
+    )
+
+
+def _work_order_step(wip_warehouse: str, transaction_date: str, start: str,
+                     label: str, bind: str) -> DocStep:
+    """`Work Order` 的幂等键取 `(company, production_item, wip_warehouse)` —— 自制批与外协批靠在制仓分开。
+
+    **`required_items` 不往载荷里塞**：站点自己从 BOM 派生（实测回
+    `required_qty 120.0 / rate 35.0 / amount 4200.0`），塞进去等于用本仓的数覆盖站点的数。
+    """
+    return DocStep(
+        "Work Order",
+        {"company": M.COMPANY, "production_item": M.FINISHED_ITEM, "wip_warehouse": wip_warehouse},
+        {"production_item": M.FINISHED_ITEM, "bom_no": names.BOM, "company": M.COMPANY,
+         "qty": M.ORDER_QTY, "wip_warehouse": wip_warehouse, "fg_warehouse": M.WH_FINISHED,
+         "source_warehouse": M.WH_RAW, "transaction_date": transaction_date,
+         "planned_start_date": f"{start} 09:00:00"},
+        label,
+        submit=True,
+        binds=(f"{bind}=name",),
+    )
+
+
+def _manufacture_step(work_order_ref: str, wip_warehouse: str, posting_date: str,
+                      produced_qty: int, additional_cost: Any, cost_label: str,
+                      label: str) -> DocStep:
+    """`Manufacture` 分录：消耗在制仓的原料、产出成品。
+
+    **成品行不送 `basic_rate`**：站点自己算（实测 `basic_rate 4.2 + additional_cost → valuation_rate 5.0`）。
+    **`additional_costs` 必须由装载器送**：2026-08-22 实测，走 `/api/resource` 建档时
+    ERPNext 的 `add_operations_cost()` 不跑（它只在服务端 `make_stock_entry` 路径上跑），
+    不送时成品行回 `valuation_rate 4.2` —— 工序成本整段丢掉。
+    """
+    return _stock_entry(PURPOSE_MANUFACTURE, posting_date, {
+        "work_order": work_order_ref, "from_bom": 1, "bom_no": names.BOM,
+        "fg_completed_qty": produced_qty, "use_multi_level_bom": 0,
+        "additional_costs": [{
+            "expense_account": site_name_of(M.ACC_OPERATING),
+            "description": cost_label,
+            "amount": additional_cost,
+        }],
+        "items": [
+            {"item_code": M.RAW_ITEM, "s_warehouse": wip_warehouse, "qty": M.BOM_RAW_QTY},
+            {"item_code": M.FINISHED_ITEM, "t_warehouse": M.WH_FINISHED,
+             "qty": produced_qty, "is_finished_item": 1},
+        ],
+    }, label)
+
+
+def document_steps() -> tuple[DocStep, ...]:
+    """全部单据步骤，**依赖顺序写死在这里**。纯函数：不读环境、不联网，可被单测直接判。"""
+    steps = _prerequisite_steps()
+    steps += [
+        _stock_entry(PURPOSE_RECEIPT, M.day(0), {
+            "items": [{"item_code": M.RAW_ITEM, "t_warehouse": M.WH_RAW,
+                       "qty": M.OPENING_RAW_QTY, "basic_rate": M.RAW_RATE}],
+        }, "期初原料入库"),
+        DocStep("Sales Order",
+                {"company": M.COMPANY, "customer": M.CUSTOMER, "transaction_date": M.day(0)},
+                {"customer": M.CUSTOMER, "company": M.COMPANY, "transaction_date": M.day(0),
+                 "delivery_date": M.day(14), "currency": DEFAULT_CURRENCY, "conversion_rate": 1,
+                 "selling_price_list": SELLING_PRICE_LIST, "price_list_currency": DEFAULT_CURRENCY,
+                 "plc_conversion_rate": 1,
+                 "items": [{"item_code": M.FINISHED_ITEM, "qty": M.ORDER_QTY, "rate": M.SALES_RATE,
+                            "warehouse": M.WH_FINISHED, "delivery_date": M.day(14)}]},
+                "销售订单", submit=True,
+                binds=("sales_order=name", "so_detail=items.0.name")),
+        _work_order_step(M.WH_WIP, M.day(0), M.day(1), "工单（自制批）", "work_order_inhouse"),
+        _stock_entry(PURPOSE_TRANSFER, M.day(1), {
+            "work_order": REF_WORK_ORDER_INHOUSE, "from_bom": 1, "bom_no": names.BOM,
+            "fg_completed_qty": M.INHOUSE_QTY,
+            "items": [{"item_code": M.RAW_ITEM, "s_warehouse": M.WH_RAW,
+                       "t_warehouse": M.WH_WIP, "qty": M.BOM_RAW_QTY}],
+        }, "原料转在制品仓（自制批）"),
+        _manufacture_step(REF_WORK_ORDER_INHOUSE, M.WH_WIP, M.day(3), M.INHOUSE_QTY,
+                          REF_OPERATING_COST, "工序费用（站点按 BOM 工序汇总）", "自制批入库"),
+        _work_order_step(M.WH_SUBCON, M.day(3), M.day(4), "工单（外协批）", "work_order_subcon"),
+        _stock_entry(PURPOSE_TRANSFER, M.day(4), {
+            "work_order": REF_WORK_ORDER_SUBCON, "from_bom": 1, "bom_no": names.BOM,
+            "fg_completed_qty": M.SUBCON_QTY,
+            "items": [{"item_code": M.RAW_ITEM, "s_warehouse": M.WH_RAW,
+                       "t_warehouse": M.WH_SUBCON, "qty": M.BOM_RAW_QTY}],
+        }, "原料转外协仓（外协批）"),
+        _manufacture_step(REF_WORK_ORDER_SUBCON, M.WH_SUBCON, M.day(5), M.SUBCON_QTY,
+                          M.SUBCONTRACT_FEE, "外协服务费", "外协批入库"),
+        DocStep("Delivery Note",
+                {"company": M.COMPANY, "customer": M.CUSTOMER, "posting_date": M.day(6)},
+                {"customer": M.CUSTOMER, "company": M.COMPANY, "posting_date": M.day(6),
+                 "set_posting_time": 1, "currency": DEFAULT_CURRENCY, "conversion_rate": 1,
+                 "selling_price_list": SELLING_PRICE_LIST, "price_list_currency": DEFAULT_CURRENCY,
+                 "plc_conversion_rate": 1,
+                 "items": [{"item_code": M.FINISHED_ITEM, "warehouse": M.WH_FINISHED,
+                            "qty": M.DELIVERY_QTY, "rate": M.SALES_RATE,
+                            "expense_account": site_name_of(M.ACC_COGS),
+                            "against_sales_order": REF_SALES_ORDER,
+                            "so_detail": REF_SO_DETAIL}]},
+                "发货单", submit=True, binds=("delivery_note=name",)),
+        DocStep("Sales Invoice",
+                {"company": M.COMPANY, "customer": M.CUSTOMER, "posting_date": M.day(6)},
+                {"customer": M.CUSTOMER, "company": M.COMPANY, "posting_date": M.day(6),
+                 "set_posting_time": 1, "due_date": M.day(6 + M.INVOICE_TERM_DAYS),
+                 "currency": DEFAULT_CURRENCY, "conversion_rate": 1,
+                 "selling_price_list": SELLING_PRICE_LIST, "price_list_currency": DEFAULT_CURRENCY,
+                 "plc_conversion_rate": 1, "update_stock": 0,
+                 "debit_to": site_name_of(M.ACC_RECEIVABLE),
+                 "items": [{"item_code": M.FINISHED_ITEM, "qty": M.DELIVERY_QTY,
+                            "rate": M.SALES_RATE,
+                            "income_account": site_name_of(M.ACC_REVENUE),
+                            "delivery_note": REF_DELIVERY_NOTE}]},
+                "销售发票（逾期）", submit=True),
+        DocStep("Purchase Invoice",
+                {"company": M.COMPANY, "supplier": M.SUPPLIER, "posting_date": M.day(5)},
+                {"supplier": M.SUPPLIER, "company": M.COMPANY, "posting_date": M.day(5),
+                 "set_posting_time": 1, "due_date": M.day(5 + M.INVOICE_TERM_DAYS),
+                 "currency": DEFAULT_CURRENCY, "conversion_rate": 1,
+                 "buying_price_list": BUYING_PRICE_LIST, "price_list_currency": DEFAULT_CURRENCY,
+                 "plc_conversion_rate": 1,
+                 "credit_to": site_name_of(M.ACC_PAYABLE),
+                 "items": [{"item_code": M.SERVICE_ITEM, "qty": 1, "rate": M.SUBCONTRACT_FEE,
+                            "expense_account": site_name_of(M.ACC_OPERATING)}]},
+                "采购发票（逾期）", submit=True),
+    ]
+    return tuple(steps)
+
 @dataclass
 class LoadReport:
     """一次装载的结果。`created` / `existing` 按 DocType 计数；`mismatches` 是不静默的那一半。"""
@@ -354,34 +610,272 @@ def load_masters(client: SiteClient) -> LoadReport:
     return report
 
 
+@dataclass
+class DocLoadReport:
+    """一次单据装载的结果。三个计数分开记：**新建 / 已存在 / 补提交**。
+
+    「补提交」不算「新建」：`find_one` 不分 `docstatus`，命中一份 `docstatus 0` 的草稿时
+    装载器把它推到 1。没有这一格，一次中途失败留下的草稿会让第二跑「新建 0」照样绿。
+    """
+
+    created: dict[str, int] = field(default_factory=dict)
+    existing: dict[str, int] = field(default_factory=dict)
+    submitted: dict[str, int] = field(default_factory=dict)
+    order: list[str] = field(default_factory=list)
+    lines_detail: list[str] = field(default_factory=list)
+
+    def record(self, doctype: str, label: str, was_created: bool, was_submitted: bool,
+               name: str) -> None:
+        if doctype not in self.order:
+            self.order.append(doctype)
+            for bucket in (self.created, self.existing, self.submitted):
+                bucket.setdefault(doctype, 0)
+        (self.created if was_created else self.existing)[doctype] += 1
+        if was_submitted:
+            self.submitted[doctype] += 1
+        verb = "新建" if was_created else "已存在"
+        tail = " + 补提交" if was_submitted and not was_created else ""
+        self.lines_detail.append(f"  {label}（{doctype}）→ {name} · {verb}{tail}")
+
+    @property
+    def total_created(self) -> int:
+        return sum(self.created.values())
+
+    def lines(self) -> list[str]:
+        out = list(self.lines_detail)
+        out += [
+            f"{doctype}：新建 {self.created[doctype]} / 已存在 {self.existing[doctype]}"
+            f" / 提交 {self.submitted[doctype]}"
+            for doctype in self.order
+        ]
+        out.append(
+            f"合计：新建 {self.total_created} / 已存在 {sum(self.existing.values())}"
+            f" / 提交 {sum(self.submitted.values())}"
+        )
+        return out
+
+
+def operating_cost_per_unit(client: SiteClient) -> float:
+    """从**站点**读回它自己算的 BOM 工序成本，换算成每单位。
+
+    ERPNext 自己的 `get_operating_cost_per_unit()` 在拿不到工单实际工时时走的正是
+    `BOM.operating_cost / BOM.quantity`（容器内实读 `stock_entry.py:3776-3779`）。
+    本函数复现的是那一行，**数是站点的，不是本仓的** —— `agenerp/seed` 里没有任何常量参与这里。
+    """
+    bom = client.get(f"/api/resource/BOM/{names.BOM}")
+    doc = bom.get("data") if isinstance(bom, dict) else None
+    if not isinstance(doc, dict):
+        raise SiteError(f"读 BOM {names.BOM} 的响应缺少 data 对象：{str(bom)[:200]}")
+    quantity = float(doc.get("quantity") or 0)
+    if quantity <= 0:
+        raise SiteError(f"站点上的 BOM {names.BOM} 的 quantity 是 {doc.get('quantity')!r}，无法换算工序成本")
+    return float(doc.get("operating_cost") or 0) / quantity
+
+
+def load_documents(client: SiteClient) -> DocLoadReport:
+    """按 `document_steps()` 的顺序把业务单据装进站点并提交。**任一步抛就整段停**。
+
+    占位符（站点才知道的名字、以及站点自己算出的工序成本）在这里边跑边绑。
+    """
+    report = DocLoadReport()
+    # 自制批那张 `Manufacture` 分录的工序附加成本。换算方式**照抄 ERPNext 自己那一行**
+    # （`bom.py:add_operations_cost` → `operating_cost_per_unit * flt(stock_entry.fg_completed_qty)`，
+    # 容器内实读）；`operating_cost_per_unit()` 的输入是**站点算出来的** `BOM.operating_cost`。
+    inhouse_operating_cost = operating_cost_per_unit(client) * M.INHOUSE_QTY
+    bindings: dict[str, Any] = {"operating_cost": inhouse_operating_cost}
+    for step in document_steps():
+        payload = resolve_refs(step.payload, bindings)
+        doc, created = client.ensure_doc(step.doctype, step.key, payload)
+        name = str(doc.get("name"))
+        submitted = False
+        if step.submit and int(doc.get("docstatus") or 0) == 0:
+            doc = client.submit_doc(step.doctype, name)
+            submitted = True
+        report.record(step.doctype, step.label, created, submitted, name)
+        if step.binds:
+            full = client.get(f"/api/resource/{step.doctype}/{name}").get("data", doc)
+            for spec in step.binds:
+                key, _, path = spec.partition("=")
+                bindings[key] = _pick(full, path)
+    return report
+
+
+# ── 站点侧对账（`--verify-site`）─────────────────────────────────────────────
+#
+# ⚠️ **期望值一律从 `agenerp.seed.checks` 取，本模块里不得出现第二份**。
+# `checks.py:23-24` 自述「刻意不从 `agenerp.seed.model` 取数」——它才是判官侧那份副本；
+# 在这里写一个新的字面量等于给判据加第四份副本，改一处就能让对账静默变绿。
+# `tests/unit/test_seedsite_documents.py` 有一条结构断言把这件事钉死。
+
+
+@dataclass(frozen=True)
+class CheckResult:
+    """一条对账结果。**成功与失败都打出带出处的实得值与期望值** —— 只打「通过」用 grep 就能伪造。"""
+
+    label: str
+    actual: str
+    expected: str
+    source: str
+    ok: bool
+
+    def line(self) -> str:
+        return (f"{'✅' if self.ok else '❌'} {self.label} = {self.actual}"
+                f" / expected = {self.expected}（出处：{self.source}）")
+
+
+def _close(actual: float, expected: float) -> bool:
+    return abs(actual - expected) < M.MONEY_TOLERANCE
+
+
+def _numeric_check(label: str, actual: float, expected: float, source: str) -> CheckResult:
+    return CheckResult(label, f"{actual:.2f}", f"{expected:.2f}", source, _close(actual, expected))
+
+
+def _finished_bin(client: SiteClient) -> dict | None:
+    for row in client.list_resource(
+        "Bin", ("item_code", "warehouse", "actual_qty", "stock_value", "valuation_rate")
+    ):
+        if row["item_code"] == M.FINISHED_ITEM and row["warehouse"] == M.WH_FINISHED:
+            return row
+    return None
+
+
+def _live_gl_rows(client: SiteClient) -> list[dict]:
+    rows = client.list_resource(
+        "GL Entry", ("account", "debit", "credit", "voucher_type", "voucher_no", "is_cancelled")
+    )
+    return [row for row in rows if not row.get("is_cancelled")]
+
+
+def _account_side(rows: list[dict], account: str, side: str) -> float:
+    return sum(float(row[side]) for row in rows if row["account"] == account)
+
+
+def _backlog_checks(client: SiteClient) -> list[CheckResult]:
+    """承重判据：站点自己算出的成品仓结存。**这是整个工作项存在的理由。**"""
+    where = f"Bin({M.FINISHED_ITEM}, {M.WH_FINISHED})"
+    row = _finished_bin(client)
+    if row is None:
+        return [CheckResult(f"{where}.actual_qty", "站点上没有这条 Bin",
+                            f"{CH.EXPECTED_BACKLOG_QTY:.2f}",
+                            "agenerp.seed.checks.EXPECTED_BACKLOG_QTY", False)]
+    return [
+        _numeric_check(f"{where}.actual_qty", float(row["actual_qty"]),
+                       CH.EXPECTED_BACKLOG_QTY, "agenerp.seed.checks.EXPECTED_BACKLOG_QTY"),
+        _numeric_check(f"{where}.stock_value", float(row["stock_value"]),
+                       CH.EXPECTED_BACKLOG_VALUE, "agenerp.seed.checks.EXPECTED_BACKLOG_VALUE"),
+    ]
+
+
+def _books_checks(client: SiteClient) -> list[CheckResult]:
+    """拟断言 ② 中**站点算得出来**的三项。达成率那一项按 D2 明确移出本 plan 结果面。"""
+    rows = _live_gl_rows(client)
+    debit = sum(float(row["debit"]) for row in rows)
+    credit = sum(float(row["credit"]) for row in rows)
+    revenue = _account_side(rows, site_name_of(M.ACC_REVENUE), "credit")
+    cogs = _account_side(rows, site_name_of(M.ACC_COGS), "debit")
+    negative = [
+        row for row in client.list_resource("Bin", ("item_code", "warehouse", "actual_qty"))
+        if float(row["actual_qty"]) < 0
+    ] + [
+        row for row in client.list_resource(
+            "Stock Ledger Entry", ("item_code", "warehouse", "qty_after_transaction", "is_cancelled"))
+        if not row.get("is_cancelled") and float(row["qty_after_transaction"]) < 0
+    ]
+    return [
+        _numeric_check("GL 借贷差额（借合计 − 贷合计）", debit - credit, 0.0,
+                       "复式记账的结构不变量（不是业务期望值，故无 checks.EXPECTED_* 出处）"),
+        CheckResult("负库存条目数（Bin.actual_qty < 0 + SLE.qty_after_transaction < 0）",
+                    str(len(negative)), "0",
+                    "复式记账的结构不变量（不是业务期望值，故无 checks.EXPECTED_* 出处）",
+                    not negative),
+        _numeric_check(f"GL 收入贷方合计（{site_name_of(M.ACC_REVENUE)}）", revenue,
+                       CH.EXPECTED_RECEIVABLE_OVERDUE,
+                       "agenerp.seed.checks.EXPECTED_RECEIVABLE_OVERDUE"),
+        _numeric_check(f"GL 成本借方合计（{site_name_of(M.ACC_COGS)}）", cogs,
+                       CH.EXPECTED_COGS, "agenerp.seed.checks.EXPECTED_COGS"),
+        _numeric_check("毛利（GL 收入贷方 − GL 成本借方）", revenue - cogs,
+                       CH.EXPECTED_GROSS_PROFIT, "agenerp.seed.checks.EXPECTED_GROSS_PROFIT"),
+    ]
+
+
+def _overdue_checks(client: SiteClient) -> list[CheckResult]:
+    """拟断言 ③：两笔逾期由站点上的 `status == "Overdue"` 查到。
+
+    ⚠️ **成立条件照实说**：`status` 是站点拿**真实时钟**跟 `due_date` 比出来的，
+    不是拿数据集的 `as_of` 比的。种子日期固定在过去，故恒成立 —— 但这条断言依赖
+    「今天 > due_date」，不写出来会被误读成结构性成立。
+    """
+    results = []
+    for doctype, expected, source in (
+        ("Sales Invoice", CH.EXPECTED_RECEIVABLE_OVERDUE,
+         "agenerp.seed.checks.EXPECTED_RECEIVABLE_OVERDUE"),
+        ("Purchase Invoice", CH.EXPECTED_PAYABLE_OVERDUE,
+         "agenerp.seed.checks.EXPECTED_PAYABLE_OVERDUE"),
+    ):
+        rows = client.list_resource(
+            doctype, ("name", "status", "outstanding_amount", "due_date", "docstatus"))
+        overdue = [r for r in rows if r["status"] == "Overdue" and int(r["docstatus"]) == 1]
+        total = sum(float(r["outstanding_amount"]) for r in overdue)
+        results.append(_numeric_check(
+            f"{doctype} 中 status == 'Overdue' 的 outstanding_amount 合计"
+            f"（命中 {len(overdue)} 张：{', '.join(r['name'] for r in overdue) or '无'}）",
+            total, expected, source))
+    return results
+
+
+def verify_site(client: SiteClient) -> list[CheckResult]:
+    """站点侧对账：读回**站点自己算出来**的数，跟 `checks.EXPECTED_*` 比。"""
+    return _backlog_checks(client) + _books_checks(client) + _overdue_checks(client)
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="python3 -m agenerp.seedsite",
-        description="把 agenerp.seed 的主数据装进活站点（幂等，只建不改）",
+        description="把 agenerp.seed 的主数据与业务单据装进活站点，并做站点侧对账（幂等）",
     )
-    parser.add_argument("--load-masters", action="store_true", help="装载主数据段")
+    parser.add_argument("--load-masters", action="store_true", help="装载主数据段（只建不改，不提交）")
+    parser.add_argument("--load-documents", action="store_true",
+                        help="装载业务单据段并提交（前置：--load-masters 已跑过）")
+    parser.add_argument("--verify-site", action="store_true",
+                        help="站点侧对账：读回站点自己算出的数，跟 agenerp.seed.checks 的期望值比")
     parser.add_argument("--site", default="", help="站点名（必填，例如 frontend）")
     return parser
+
+
+ACTIONS = ("load_masters", "load_documents", "verify_site")
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
-    if not args.load_masters:
-        print("需要 --load-masters：本模块此刻只有主数据装载这一个动作", file=sys.stderr)
+    chosen = [name for name in ACTIONS if getattr(args, name)]
+    if len(chosen) != 1:
+        print("需要且只需要一个动作：--load-masters / --load-documents / --verify-site",
+              file=sys.stderr)
         return 2
     if not args.site:
         print("需要 --site <站点名>：不猜站点，产品代码不内置默认站点", file=sys.stderr)
         return 2
     try:
         client = client_from_env(args.site)
-        report = load_masters(client)
+        if args.load_masters:
+            lines, code = load_masters(client).lines(), 0
+        elif args.load_documents:
+            lines, code = load_documents(client).lines(), 0
+        else:
+            results = verify_site(client)
+            lines = [r.line() for r in results]
+            failed = [r for r in results if not r.ok]
+            lines.append(
+                f"站点侧对账：{len(results)} 项，通过 {len(results) - len(failed)}，失败 {len(failed)}"
+            )
+            code = 1 if failed else 0
     except SiteError as exc:  # 失败即停：不留半装状态，不吞错误原文
-        print(f"装载失败，已停在出错那一步：{exc}", file=sys.stderr)
+        print(f"失败，已停在出错那一步：{exc}", file=sys.stderr)
         return 1
-    for line in report.lines():
+    for line in lines:
         print(line)
-    return 0
+    return code
 
 
 if __name__ == "__main__":

@@ -15,8 +15,10 @@
 4. **写方法必须登记。** 公开方法名里出现 `agenerp.contracts.WRITE_VERBS` 的，
    必须在 `tests/unit/test_site_client.py` 的 `WRITE_METHOD_ALLOWLIST` 里逐条列名。
    2026-08-21 起有 `SiteClient.delete_custom_field`（差集 apply 的 B 半，plan `2026-08-21-1922-3`）；
-   **2026-08-22 起再加两条**：`SiteClient.create_doc` 与 `SiteClient.ensure_doc`
-   （种子主数据装载，plan `2026-08-22-2107-1`）。这是**收窄式演进**——
+   **2026-08-22 起再加三条**：`SiteClient.create_doc` 与 `SiteClient.ensure_doc`
+   （种子主数据装载，plan `2026-08-22-2107-1`），以及 `SiteClient.submit_doc`
+   （种子单据装载，plan `2026-08-22-2107-2`；名字里含 `submit`，扫描守卫看得见它，仍逐条登记）。
+   这是**收窄式演进**——
    每加一个写方法就要付一次 diff 和一次留痕，不是把只读约束取消了。
    ⚠️ `ensure_doc` 的名字里**一个 `WRITE_VERB` 都没有**，守卫扫不到它；
    它是**主动登记**的——漏登记等于把「加写面要付一次留痕」这条规矩掏空。
@@ -25,7 +27,10 @@
    是**通用建档面**，覆盖业务主数据（公司 / 科目 / 仓库 / 物料 / BOM…）。
    代偿有三条，且都可判：`docs/context/ai-autonomy-policy.md` Protected Areas 新增的
    「对活站点的非破坏性写（建 / 改）」行（`plan-first`）· 上面那道登记守卫 ·
-   `agenerp/seedsite.py` 是这两个方法**目前唯一的调用方**。落点见 §11.7 与 §12.9。
+   `agenerp/seedsite.py` 是这三个方法**目前唯一的调用方**。落点见 §11.7 与 §12.9 / §12.10。
+   ⚠️ **`submit_doc` 比另外两个更进一步：它不可逆**——本模块没有 cancel/amend，
+   提交过的单据在站点侧回不去，只能由人手工 cancel/amend 或 `docker compose down -v` 冷起丢掉整站数据。
+   代价逐字写在 §12.10，不粉饰。
 
 两条实测得来的硬约束（不是猜的）：
 
@@ -79,6 +84,9 @@ SINGLE_PAGE_LENGTH = "1"
 # 名字形如 `Item-agenerp_gate_roundtrip` —— 2026-08-21 在活站点上实测确认
 # （`POST /api/resource/Custom Field` 回的 `data.name`），不是从 fixture 推断的。
 CUSTOM_FIELD_DOCTYPE = "Custom Field"
+
+# 提交后的 `docstatus`。ERPNext 的三态是 0 草稿 / 1 已提交 / 2 已取消；本模块只推 0→1。
+SUBMITTED_DOCSTATUS = 1
 
 
 def custom_field_name(doctype: str, fieldname: str) -> str:
@@ -152,7 +160,7 @@ def default_base_url() -> str:
 
 
 class SiteClient:
-    """活站点的客户端：读全部；写三条（`create_doc` / `ensure_doc` / `delete_custom_field`，见模块头第 4 条）。
+    """活站点的客户端：读全部；写四条（`create_doc` / `ensure_doc` / `submit_doc` / `delete_custom_field`，见模块头第 4 条）。
 
     认证取「token 优先、会话登录回退」：token 贴生产且不把口令带进每次运行，
     但零依赖栈上没有现成的 key，只做 token 会让 L2 门禁跑不起来。取舍与残余风险
@@ -265,6 +273,35 @@ class SiteClient:
         if existing is not None:
             return existing, False
         return self.create_doc(doctype, payload), True
+
+    def submit_doc(self, doctype: str, name: str) -> dict:
+        """把一份已存在的文档由 `docstatus 0` 推到 `1`（提交），返回站点回的 `data`。
+
+        实测语义（2026-08-22，活站点 ERPNext v15.119.3，plan `2026-08-22-2107-2` Phase 1 E1）：
+        `PUT /api/resource/<doctype>/<name>` 带 `{"docstatus": 1}` 即是提交，成功回
+        **HTTP 200** `{"data": {...整份文档...}}` 且 `data.docstatus == 1`；
+        提交期的业务校验失败回 **HTTP 417**（实测撞到过 `FiscalYearError` / `NegativeStockError`），
+        沿用 `_request` 抛 `SiteError`，站点错误原文进消息。
+
+        ⚠️ **`submit` 是不可逆动作**：本模块**不提供** cancel/amend，站点侧回滚只能由人手工做，
+        或用 `docker compose down -v` 冷起丢掉整站数据。取舍见 `docs/architecture/module-boundaries.md` §12.10。
+
+        回值的 `docstatus` 不为 1 时**主动抛错**，不看 HTTP 状态码就算数 ——
+        200 但没提交上去，与提交成功长得一模一样，那正是「不伪装成功」这条约束要挡的形状。
+        """
+        self._ensure_authenticated()
+        response = self._request(
+            "PUT", f"{RESOURCE_PATH}/{doctype}/{name}", body={"docstatus": SUBMITTED_DOCSTATUS}
+        )
+        doc = response.get("data") if isinstance(response, dict) else None
+        if not isinstance(doc, dict):
+            raise SiteError(f"提交 {doctype} {name!r} 的响应缺少 data 对象：{str(response)[:200]}")
+        if doc.get("docstatus") != SUBMITTED_DOCSTATUS:
+            raise SiteError(
+                f"提交 {doctype} {name!r} 后站点回的 docstatus 是 {doc.get('docstatus')!r}，不是 "
+                f"{SUBMITTED_DOCSTATUS} —— 站点回了 2xx 但文档没被提交"
+            )
+        return doc
 
     def delete_custom_field(self, doctype: str, fieldname: str) -> None:
         """删掉站点上的一条 Custom Field。**本模块唯一的写动作**（见模块头第 4 条）。

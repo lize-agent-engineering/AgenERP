@@ -891,6 +891,15 @@ Custom Field 不删列，所以此前每跑一轮就留一条孤儿列——清�
 至今是提案文本，`Status: proposed`，采纳者是人（`Gates-Change-Approved-By:`）。
 **不得把本段读成「工作项 7 站点侧已有门禁」——那是假的。**
 
+**⚠️ 改准二（2026-08-22，plan `2026-08-22-2107-2`）· 站点侧那三条断言现在有了「可执行形式」，
+但它仍然不是门禁。** 上一段那句「站点侧那一半仍然没有门禁」**依然成立，不得删**；
+本段只补一件事：`python3 -m agenerp.seedsite --verify-site --site <site>` 已落地，
+它读回站点自己算出的数、跟 `agenerp/seed/checks.py` 的 `EXPECTED_*` 比，
+**不通过就退 1**（三条变异实测：见 §12.10）。
+**它是一条 CLI 退出码，不是 `tests/gates/**` 下的测例**，`GATE_VERIFY` 复跑不到它，
+CI 不跑它，任何人都可以不跑它。**因此「工作项 7 已有站点侧门禁」这句话仍然是假的。**
+把提案变成门禁只差人的一次带 `Gates-Change-Approved-By:` trailer 的提交。
+
 **改准二 · 红线 1 挡的是「站点侧断言**作为一条门禁**」，不是装载器。**
 装载器落在 `agenerp/seedsite.py`（见 §12.9），**红线 1 不挡它**——2026-08-22 它已经落地并在活站点上跑通。
 被挡着的只有「把站点侧断言写成 `tests/gates/**` 下的一条测试」这一件事，**那一半仍需人批，这一半没有变**。
@@ -908,6 +917,14 @@ Custom Field 不删列，所以此前每跑一轮就留一条孤儿列——清�
   引用时容易再次被读成「均价 6.39」。本节即为那两处的解释落点。
 - 站点的存货计价方法（FIFO）是**从两个实测数反推出来的**，证据仓里没有一行直接写着 `valuation_method`。
   §12.1 给了可证伪的对照（均价口径应得 ¥5,757），但这仍是推断而非直证。
+  **⚠️ 这一条 2026-08-22 起仍然开着，不得写成已闭合。** 它说的是**冻结证据仓**那个站点
+  （`docs/masterplan/evidence-repo.env` 的 `XM_PATH`，红线 6，只读），本仓无法对它取新证。
+- **（2026-08-22 新增，plan `2026-08-22-2107-2`）本仓 `frontend` 站点的计价方法是实读的，不是推断的。**
+  `GET /api/resource/Stock Settings/Stock Settings` → `valuation_method = "FIFO"`、
+  `allow_negative_stock = 0`；`Item[XM-LACE-1000].valuation_method = ""`（空 → 回落到全局 FIFO）。
+  同一站点上由**站点自己**算出 `Bin(XM-LACE-1000, XM 成品仓 - XM) = 1010.0 米 / ¥6,450.00`
+  （`valuation_rate 6.386138614`）。**即 ¥6,450 在本仓是「在这个 `valuation_method` 下由站点实算成立」的**，
+  不再只是算术对账。**这条实读事实只覆盖本仓站点，不覆盖上一条**——两者是两个站点，不要合并读。
 
 ### 12.9 主数据装载在本仓的落点（工作项 7 的 B 半第一段，2026-08-22）
 
@@ -995,3 +1012,141 @@ plan `docs/plans/p0-foundation/2026-08-22-2107-1-seed-site-write-surface-and-mas
 代偿控制沿用 §12.7 已写死的那一套：CLI 退出码 + `tests/unit` 单测 + 变异验证 + 独立关闭审计。
 **验证范围 scoped**：`python3 -m agenerp.seedsite --load-masters --site frontend` **不在**
 `missions/p0-foundation.json` 的 `commands.test` 里，`GATE_VERIFY` 复跑不到它。
+
+### 12.10 单据装载与站点侧对账在本仓的落点（工作项 7 的 B 半第二段，2026-08-22）
+
+plan `docs/plans/p0-foundation/2026-08-22-2107-2-seed-documents-site-computed-backlog.md`。
+§12.9 把**主数据**装进了活站点；本节讲**业务单据**那一段，以及它证明了什么、没证明什么。
+
+**它存在的理由，一句话**：在本节之前，`agenerp/seed/ledger.py` **自己构造** `Bin` /
+`Stock Ledger Entry` / `GL Entry` 三类行，`checks.py` 再拿这些构造出来的行去断言 ——
+**那是生成器自己跟自己对账**。本节之后，这三类行全部由**站点自己**产生。
+
+#### 选定的单据链，以及被否掉的两条
+
+装载顺序（依赖顺序写死在 `agenerp/seedsite.py:document_steps()`，纯函数，可被单测直接判）：
+
+`Fiscal Year` → `Stock Entry Type` ×3 → `Price List` ×2（三个结构前置）→
+`Stock Entry(Material Receipt)` 期初原料 300 Kg → `Sales Order` 1,000 米 →
+`Work Order`#1（在制仓）→ `Stock Entry(Material Transfer for Manufacture)` 120 Kg →
+`Stock Entry(Manufacture)` + 工序附加成本 → `Work Order`#2（外协仓）→
+`Stock Entry(MTfM)` 120 Kg → `Stock Entry(Manufacture)` + 外协服务费附加成本 →
+`Delivery Note` 990 米 → `Sales Invoice` → `Purchase Invoice`。
+
+**被否掉的备选，记名不省略**：
+
+- **收窄链**（`Stock Entry` 直接按批次价 ¥5.00 / ¥6.40 入库）—— 否决。那把 §12.1 里*产生*
+  这两个费率的成本汇总整段喂给站点，站点只剩最后一次 FIFO 减法。
+- **ERPNext v15 原生外协链**（`Purchase Order(is_subcontracted)` → `Subcontracting Order` →
+  `Subcontracting Receipt`）—— **实测撞死，不是嫌麻烦**：建 PO 回 417
+  `ValidationError: Row #1: Finished Good Item ... must be a sub-contracted item`，
+  即成品 `Item` 必须带 `is_sub_contracted_item = 1`（且 `Subcontracting Order.purchase_order` 必填）。
+  加这个字段要改 `--load-masters` 的载荷，而那是前一个 plan 已关闭的交付面。
+
+#### 站点算了 §12.1 的哪几段、哪几段是喂进去的（逐字列举，不含糊）
+
+**站点算的**（本仓载荷里一个都没送）：
+
+1. `BOM.operating_cost = ¥800`（站点按三条工序 400 / 240 / 160 汇总 = `600 分钟 ÷ 60 × ¥80/小时`）；
+2. `Manufacture` 分录里原料的实际估值 `120 Kg × 原料仓 FIFO 估值 ¥35 = ¥4,200`；
+3. 自制批单位成本 `(4,200 + 800) ÷ 1,000 = ¥5.00/米`；
+4. 外协批单位成本 `(4,200 + 2,200) ÷ 1,000 = ¥6.40/米`；
+5. FIFO 分层与发货成本（`Delivery Note` 行回 `incoming_rate` 取**最早那一层**）；
+6. `Bin` / `Stock Ledger Entry` / `GL Entry` 三类行，以及 `Work Order.required_items`。
+
+**喂进去的**（都是 §12.1 的**输入**，不是它的结论）：`RAW_RATE` ¥35/Kg · `OPENING_RAW_QTY` 300 Kg ·
+`BOM_RAW_QTY` 120 Kg · 三条工序的分钟数与 `WORKSTATION_HOUR_RATE` ¥80/小时（前一段装的主数据）·
+`SUBCONTRACT_FEE` ¥2,200 · `SALES_RATE` ¥18.8/米 · 各单据的数量与日期 ·
+以及**从站点读回来再送回去**的 `BOM.operating_cost`（换算方式照抄 ERPNext 自己那一行，
+`bom.py:add_operations_cost` → `operating_cost_per_unit × fg_completed_qty`）。
+
+**`INHOUSE_RATE` / `SUBCON_RATE` / `INHOUSE_VALUE` / `SUBCON_VALUE` 与
+`BACKLOG_QTY` / `BACKLOG_VALUE` / `COGS_VALUE` / `GROSS_PROFIT` 八个派生量，
+在 `agenerp/seedsite.py` 里零命中**（两条单测 + 关闭时的 `grep` 双判）。
+
+**⚠️ 结论强度的两条限定，写在这里免得被引用得比实际强**：
+
+- **外协批走的 DocType 不是 `Subcontracting Receipt`**，是 `Stock Entry(Manufacture)` +
+  服务费附加成本。它复现的是 ERPNext 给外协收货算成本的**同一道公式**
+  （`rm_cost_per_qty + service_cost_per_qty`），**但走的单据不同**。
+  **不得据此宣称「站点验证了 ERPNext 的外协单据链」。**
+- 自制批的工序成本 ¥800 是站点算的，但**它由装载器搬运了一次**（读 `BOM.operating_cost` 再送回
+  `additional_costs`）。原因是 ERPNext 的 `add_operations_cost()` 只在服务端 `make_stock_entry`
+  路径上跑，走 `/api/resource` 建档时不跑（实测：不送 `additional_costs` 时成品行回 `valuation_rate 4.2`，
+  工序成本整段丢掉）。**搬运不等于重算**，但也不等于「站点端到端自动完成」。
+
+#### 幂等口径
+
+**站点不采纳显式 `name`**（实测：送 `name: "MAT-STE-9999-88888"` 建 `Stock Entry`，
+站点回 `MAT-STE-2026-00009`，命名序列胜出）。冷起空站点上序列号恰好等于 `agenerp/seed/names.py`
+那几个字面量，**但那是「按顺序建」的巧合，不是站点承诺**。幂等键因此用业务字段过滤：
+
+| DocType | 幂等键 |
+|---|---|
+| `Fiscal Year` / `Stock Entry Type` / `Price List` | `name`（这三类站点采纳显式 `name`） |
+| `Stock Entry` | `(company, purpose, posting_date)` —— 五张分录两两不同 |
+| `Work Order` | `(company, production_item, wip_warehouse)` —— **两张工单只有在制仓不同** |
+| `Sales Order` | `(company, customer, transaction_date)` |
+| `Delivery Note` / `Sales Invoice` | `(company, customer, posting_date)` |
+| `Purchase Invoice` | `(company, supplier, posting_date)` |
+
+`find_one` **不分 `docstatus`**，因此命中一份 `docstatus 0` 的草稿时装载器**补提交**，
+计入 `submitted` 而不计入 `created`。没有这一格，一次中途失败留下的草稿会让第二跑「新建 0」照样绿。
+
+#### 干净站点循环为什么是强制前置
+
+**站点没有单据级撤销手段**，本模块也不提供（`SiteClient` 没有 cancel/amend）。
+在已装载的站点上再跑一次业务链会让 `Bin.actual_qty` 变成 2020 而不是 1010 ——
+**承重判据按构造不可达**，变异验证同理不可执行。因此每一次测量与每一次变异实验都从
+`docker compose down -v` 冷起开始（`down -v` → `up -d --wait --wait-timeout 300` →
+`--load-masters` → `--load-documents`，实测单轮约 60 秒起栈 + 装载）。
+
+**代价照实说**：`down -v` 丢掉整站数据。首次冷起前必须先 `bench backup`
+（本次实测：`database.sql.gz` 832,967 B / `site_config_backup.json` 94 B）。
+`restore` **不在** `agenerp/oob.py` 的 `ALLOWED_CALLS` 内，恢复只能由人手工做。
+
+#### 达成率那一项：站点上算不出来
+
+拟断言 ② 的四项里，「销售订单达成率 100%」**在当前口径下站点算不出来**。
+它依赖 `Loss Review`（本仓虚构 DocType）与 `Delivery Note.xm_loss_review`（本仓虚构自定义字段），
+**ERPNext v15 里两者都不存在**；站点实测算出 `Sales Order.per_delivered = 99.0`。
+给站点建它们要发 DDL（造物理表），本 plan 逐字禁止，且会改变 `schema_drift` 的观测面。
+处置**不是静默丢弃**：该项已移出 `--verify-site` 的结果面，并写进
+`docs/backlog/gate-proposal-seed-dataset.md`，免得人采纳提案时拿到一条注定红的门禁。
+
+#### 判据归属与验证范围
+
+`--verify-site` 覆盖 **9 项**：结存数量 / 结存金额 / GL 借贷差额 / 负库存条目数 /
+GL 收入贷方 / GL 成本借方 / 毛利 / 应收逾期 / 应付逾期。期望值**一律**从
+`agenerp/seed/checks.py` 的 `EXPECTED_*` 取（`checks.py` 自述「刻意不从 `agenerp.seed.model` 取数」，
+它才是判官侧那份副本），本模块里没有第二份；一条 AST 结构单测把这件事钉死。
+输出**成功与失败都**打带出处的实得值与期望值 —— 只打「通过」用 `grep` 就能伪造。
+
+**本段交付的行为没有属于自己的门禁**，与 §12.9 同一处境。代偿控制：CLI 退出码 +
+`tests/unit`（283 条）+ 三条变异验证 + `--load-documents` 幂等第二跑的新建计数 +
+装载前后两次 live 整目录判定 + 独立关闭审计。
+**验证范围 scoped**：`--load-documents` / `--verify-site` 都**不在**
+`missions/p0-foundation.json` 的 `commands.test` 里，`GATE_VERIFY` 复跑不到它们。
+
+⚠️ **一条不粉饰的时间依赖**：两张发票的 `status == "Overdue"` 是站点拿**真实时钟**跟 `due_date`
+比出来的，不是拿数据集的 `as_of` 比的。种子日期固定在 2026-02/03，故恒成立 ——
+但这条断言的成立条件是「今天 > `due_date`」，不是结构性成立。
+
+**⚠️ 三条由 2026-08-22 独立关闭审计当场指出、就地记准的限定**（不改代码，改说法）：
+
+1. **「9 项」是打印出来的行数，不是 9 条互相独立的约束 —— 独立约束是 8 条。**
+   `verify_site()` 的第 5 / 6 / 7 项分别钉 `revenue == EXPECTED_RECEIVABLE_OVERDUE`、
+   `cogs == EXPECTED_COGS`、`revenue − cogs == EXPECTED_GROSS_PROFIT`，
+   而 `checks.py` 里 `EXPECTED_GROSS_PROFIT = 18612 − 4950`。
+   **第 7 项因此不可能在第 5、6 项都绿时单独发红。** 引用「9 项全过」时不得读成 9 条独立判据。
+2. **`EXPECTED_RECEIVABLE_OVERDUE` 被复用在了它声明含义之外的一处。**
+   `checks.py` 对它的声明是「应收**逾期**合计 = 990 × ¥18.8」，而 `verify_site()` 的第 5 项
+   拿它当「GL 收入贷方合计」的期望值。两者此刻相等**只因为那张发票 100% 未收款**；
+   一旦种子里出现部分收款，这一项会因为一个与它名字无关的原因发红。
+   **它没有违反本 plan 的要求**（要求是「不得引入新的期望值字面量」，此处确实没有），
+   但打给操作者的 `出处` 标注**比实际含义窄**。修法归后续 plan，此处只登记。
+3. **派生量零命中的可判形式是 `M.<NAME>` / `model.<NAME>`，不是裸名。**
+   裸名 `grep` 在 `agenerp/seedsite.py` 里**有命中**（`CH.EXPECTED_BACKLOG_QTY` /
+   `CH.EXPECTED_BACKLOG_VALUE` / `CH.EXPECTED_GROSS_PROFIT`，全部在**对账侧**，
+   那正是本模块被要求去做的事）。**装载输入侧的 `M.<NAME>` 命中数为 0**，
+   由 `tests/unit/test_seedsite_documents.py::test_no_derived_quantity_is_ever_fed_to_the_site` 判。

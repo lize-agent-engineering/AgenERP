@@ -63,6 +63,42 @@ loop 走不了最后一步（带 trailer 的提交只有人能做），但可以
    逾期落在一个字段上、积压不落在任何字段上——两类异常的可发现性根本不同，
    只有荒谬没有对照组，这个测例证明不了「schema 能表达是什么、表达不了什么样算不对」。
 
+### ⚠️ 三条拟断言的现状（2026-08-22 由 plan `2026-08-22-2107-2` 在活站点上实测后逐条标注）
+
+**`Status: proposed` 未改，不代人采纳。** 本节只把「人采纳时会拿到什么」写准。
+实现已就绪的形态是一条 **CLI 退出码**（`python3 -m agenerp.seedsite --verify-site --site <site>`），
+**不是门禁**；把它变成门禁只差人的一次带 `Gates-Change-Approved-By:` trailer 的提交。
+
+- **拟断言 ① —— 实现已就绪，站点上实测通过，期望值 = 实测值。**
+  从 `docker compose down -v` 冷起的空站点装载后，站点自己算出
+  `Bin(XM-LACE-1000, XM 成品仓 - XM).actual_qty = 1010.00`、`stock_value = 6450.00`。
+  **本仓一行 `Bin` / `Stock Ledger Entry` / `GL Entry` 都没构造**，这三类行全部由站点产生。
+  两条变异实测该断言有牙齿：改发货量 990→980 → 站点算出 `1020.00`，断言红；
+  改外协服务费 2200→2100 → 数量仍 `1010.00` 而金额红在 `6350.00`。
+- **拟断言 ② —— ⚠️ 四项里有一项在当前口径下站点算不出来，采纳前必须知道。**
+  · GL 借贷差额为 0 → **实测 `0.00`，可查**（`GL Entry` 滤掉 `is_cancelled` 后借贷合计相等）；
+  · 负库存条目数为 0 → **实测 `0`，可查**（`Bin.actual_qty < 0` + `SLE.qty_after_transaction < 0`）；
+  · 毛利与凭证差额 < ¥0.01 → **实测 `13662.00`，可查**（GL 收入贷方 `18612.00` − GL 成本借方 `4950.00`）；
+  · **销售订单达成率 100% → 站点上算不出来。** 站点实测 `Sales Order.per_delivered = 99.0`。
+    **原因**：达成率 100% 依赖「已审批合理损耗 10 米」，而它落在 `Loss Review` 这个
+    **本仓虚构的 DocType** 与 `Delivery Note.xm_loss_review` 这个**本仓虚构的自定义字段**上，
+    **ERPNext v15 里两者都不存在**。给站点建它们会造出物理表（**DDL**），
+    并改变 `schema_drift` 的观测面（可能弄红既有门禁）。
+    **人采纳提案时若照抄这一项，会拿到一条注定红的门禁。**
+    可选处置由人裁定：(a) 允许为 `Loss Review` 建 DocType / 自定义字段；
+    (b) 给出一条站点可表达的达成率口径；(c) 采纳时把这一项摘掉，只留前三项。
+- **拟断言 ③ —— 实现已就绪，站点上实测通过，期望值 = 实测值。**
+  `Sales Invoice` 中 `status == "Overdue"` 的 `outstanding_amount` 合计 = **¥18,612.00**（`ACC-SINV-2026-00001`）；
+  `Purchase Invoice` 同口径 = **¥2,200.00**（`ACC-PINV-2026-00001`）。
+  ⚠️ **一条成立条件照实写**：`status` 是站点拿**真实时钟**跟 `due_date` 比出来的，
+  不是拿数据集的 `as_of` 比的。种子日期固定在 2026-02/03 故恒成立，但这不是结构性成立。
+
+**采纳时可直接照抄的读取路径与期望值出处**：全部 9 项的实现见
+`agenerp/seedsite.py` 的 `verify_site()`；期望值一律取自 `agenerp/seed/checks.py` 的 `EXPECTED_*`
+（`checks.py` 自述「刻意不从 `agenerp.seed.model` 取数」，它才是判官侧那份副本）。
+落点与残余风险见 `docs/architecture/module-boundaries.md` §12.10 ——
+其中**外协批走的 DocType 不是 `Subcontracting Receipt`**，采纳时不要把结论写得比这更强。
+
 ## 放在哪个文件
 
 `tests/gates/test_seed_dataset_backlog.py`（新建）。
