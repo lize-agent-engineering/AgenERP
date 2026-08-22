@@ -87,6 +87,19 @@
 >     **本 plan 自己欠的两项仍然欠着，一个勾未改**：守卫 `verdict-tool-untouched` 的三次变异实证
 >     仍**没有任何 run id**（successor 的 Non-Goals 明列不补它），Phase 3 的「前驱两条 Deferred 记为了结」
 >     仍未落地。所以 19 个 `[ ]` 依旧是真未做——**重开条件满足 ≠ 可以关闭**，两件事不要混。
+>   - 2026-08-22 · **事实追加（不是审计结论，不改本 plan 的 `Plan Status`，不勾任何一个 `[ ]`）**：
+>     本 plan Phase 2 欠的那一项「守卫 job 的变异实证」已由 successor plan
+>     `docs/plans/p0-foundation/2026-08-22-1206-1-verdict-guard-mutation-proof.md` **在它自己那里**还上。
+>     本 plan 原文只要求**三条**实验，successor 多补了「触及 + 带 trailer → 放行」那条出口，**多给不算少给**。
+>     四条实验的 run id 与守卫 job 结论：① 正向必红 run `32570222139` / job `97024540387` → `failure`
+>     （红 job 集合恰好 `{verdict-tool-untouched}`）· ② revert 必绿 run `32570426423` / job `97025008659` → `success`
+>     · ③ 只动账本必不触发 run `32570691388` / job `97025611324` → `success`（同轮棘轮 `97025611265` 亦 `success`）
+>     · ④ 带 trailer 放行 run `32570942284`：attempt 1 job `97026197943` → **`failure`**、
+>     attempt 2（原样复跑）job `97026657710` → `success`，**同一 sha 一红一绿，按裁判规则 3 记「不可复现」**，
+>     该出口只证到「可达」、未证到「可靠」，已登记为 needs-human。
+>     **本 plan 欠的第二项（Phase 3「把前驱两条 Deferred 记为了结」）仍欠着**，归本批第二个 plan
+>     `2026-08-22-1206-2`。**本条不代本 plan 打勾**：19 个 `[ ]` 属于本 plan 自己的交付面，
+>     由 successor 在 successor 里满足其中一项，不等于本 plan 可以自称做过——那正是前三次审计拒绝过的事。
 
 ## 术语约定：本 plan 说的「判定方式节」在哪
 

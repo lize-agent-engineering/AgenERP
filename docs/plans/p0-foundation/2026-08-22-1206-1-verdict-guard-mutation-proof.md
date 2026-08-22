@@ -1,6 +1,6 @@
 # 2026-08-22-1206-1 守卫 `verdict-tool-untouched` 的变异实证，与两个 job 在 **main 基线**上重跑绿
 
-> Plan Status: active
+> Plan Status: completed
 > Mission: p0-foundation
 > Work Item: 9. L2 门禁的判定与 CI 覆盖（把「只在本机验证过」补成 CI 可复跑）—— 承接 plan `2026-08-22-0027-2` 欠的**守卫实证**那一项
 > Last Reviewed: 2026-08-22
@@ -940,7 +940,7 @@ Exit Criteria:
 
 ### Phase 4 — 留痕与收尾自查
 
-Status: planned
+Status: completed
 Targets: `docs/architecture/system-baseline.md`（§14.4，**追加**）·
   `docs/plans/p0-foundation/2026-08-22-0027-2-ci-l2-full-live-gate-coverage.md`（**只在 `Closure Audit Log` 追加一行**）·
   `docs/logs/2026/08-22.md` · `docs/masterplan/STATE.md`（**只追加**）
@@ -949,28 +949,28 @@ Skill: `none`
 - Item Types: `Fix | Proof`
 - Prereqs: Phase 3 完成
 
-- [ ] `Fix` **本阶段第一件事：`git switch main`**。Phase 3 结束时工作树在 `ci/1206-1-verdict-guard-proof` 上，
+- [x] `Fix` **本阶段第一件事：`git switch main`**。Phase 3 结束时工作树在 `ci/1206-1-verdict-guard-proof` 上，
       不切回去的话本阶段那条 `git diff <开工 sha>..HEAD -- .github/workflows/` 会读出 `+118` 而误判成红线 2 违规。
       - Skill: `none`
-- [ ] `Fix` **§14.4 补上守卫的实证结论**：**四条**实验的 run id 与结论、以及 Phase 3 末项那句**覆盖面限定**。
+- [x] `Fix` **§14.4 补上守卫的实证结论**：**四条**实验的 run id 与结论、以及 Phase 3 末项那句**覆盖面限定**。
       写法约束：**绝不能写成比证据更强的说法**——**四句分开写，与 `## Closure Gates` 那一框逐条对齐**：
       ① `pull_request` 路径的四条出口里三条已实证（未触及 / 触及无 trailer 必红 / 触及带 trailer 放行）；
       ② `push` 路径未实证；③ 全零 sha 分支永不可测；④ 守卫体内 `|| true` 的假阴入口已登记且**本批新引入**。
       - Skill: `none`
-- [ ] `Fix` **在 plan `2026-08-22-0027-2` 的 `Closure Audit Log` 末尾追加一行**：
+- [x] `Fix` **在 plan `2026-08-22-0027-2` 的 `Closure Audit Log` 末尾追加一行**：
       本 plan 已还上它 Phase 2 那一项欠账（**四条**实验的 run id —— `0027-2` 原文只要求三条，本 plan 多补了「触及 + 带 trailer 放行」那条出口，**多给不算少给**），**其 Phase 3「把前驱两条 Deferred 记为了结」仍欠着，归本批第二个 plan**。
       ⚠️ **红线纪律**：只追加，**不改写它任何已有行**，**不改它的 `Plan Status`**，**不勾它任何一个 `[ ]`**——
       它欠的 19 个 `[ ]` 里，本 plan 只让其中「守卫实证」那一项在**本 plan 里**成立，
       代它打勾等于伪造它的关闭证据（它自己三次关闭审计都拒绝过这件事）。
       - Skill: `none`
-- [ ] `Proof` **收尾复跑（本机，用开工 sha `$CUT` 作基线，不用裸 `git diff`）**：
+- [x] `Proof` **收尾复跑（本机，用开工 sha `$CUT` 作基线，不用裸 `git diff`）**：
       · `python3 tools/gates/check_expected_red.py` → 期望 exit 0（`门禁 19 项：预期红 7，绿 12，跳过 0` / `✅ 与预期红名单完全一致`），
         **且与 Phase 2 记下的「前」输出逐字节相同**（存两份文件 `diff` 一次，期望无输出——G2 第三条的「后」那半）；
       · `python3 -m pytest tests/unit -q` → 期望 exit 0；
       · `python3 -m pytest tests/contracts -q` → 期望 exit 0；
       · `ruff check agenerp tests/unit tests/contracts` → 期望 exit 0。
       - Skill: `none`
-- [ ] `Proof` **红线自查（机械可核，输出逐字抄进 plan）**：
+- [x] `Proof` **红线自查（机械可核，输出逐字抄进 plan）**：
       ⚠️ **第 5 轮改准，锚点从写死的 `aba9a5f` 换成 `$CUT`（= 开工那一刻的 `main` sha，实测 `4d7b311…`）**。
       原因不是措辞：`aba9a5f` 已被 `main` 甩在身后两个提交，实测
       `git diff --stat aba9a5f..HEAD -- tests/gates agenerp docs/masterplan/DECISIONS.md missions tools/gates`
@@ -982,9 +982,9 @@ Skill: `none`
       · `git diff "$CUT"..HEAD -- .github/workflows/` → 期望**输出为空**（本 plan 对 `main` 的 workflow **零改动**，改动只在分支上）；
       · `git diff "$CUT"..HEAD -- docs/masterplan/STATE.md | grep '^-' | grep -v '^---'` → 期望**输出为空**（STATE 只追加）。
       - Skill: `none`
-- [ ] `Proof` 全部命令原文 + 退出码 + commit sha 写进 `docs/logs/2026/08-22.md` 与 `STATE.md` §2（**只追加**）。
+- [x] `Proof` 全部命令原文 + 退出码 + commit sha 写进 `docs/logs/2026/08-22.md` 与 `STATE.md` §2（**只追加**）。
       - Skill: `none`
-- [ ] `Fix` **本阶段的文档提交推到 `origin/main`，让 `origin/main == main` 收尾**。
+- [x] `Fix` **本阶段的文档提交推到 `origin/main`，让 `origin/main == main` 收尾**。
       **理由**：安全窗口（`main` 上还没有守卫）在本 plan 期间一直开着，此刻推是安全的；
       留到本批第二个 plan 再推，就要和守卫落地那一推抢时序。
       推前跑 Phase 1 那**同一组四条预检**（workflow / 裁判与账本 / `DECISIONS.md` / `STATE.md` 只追加）。
@@ -1004,18 +1004,96 @@ Skill: `none`
 
 Exit Criteria:
 
-- [ ] §14.4 有守卫的**四条**实证结论与覆盖面限定，且没有写成比证据更强的说法
-- [ ] `2026-08-22-0027-2` 只被追加了一行，`git diff` 对它的 `Plan Status` 与 `[ ]` 计数为零变化
+- [x] §14.4 有守卫的**四条**实证结论与覆盖面限定，且没有写成比证据更强的说法
+- [x] `2026-08-22-0027-2` 只被追加了一行，`git diff` 对它的 `Plan Status` 与 `[ ]` 计数为零变化
       （判据：`grep -c '^\s*-\s\[ \]' <该文件>` 仍为 `19`）
-- [ ] 四条本机验证命令均 exit 0，输出逐字入 plan
-- [ ] 判定器默认环境输出的「前 / 后」两次实跑已逐字入 plan 且**逐字节相同**（Protected Areas Required Evidence，G2 第三条）
-- [ ] 红线自查四条输出均为期望值
-- [ ] `docs/logs/2026/08-22.md` 与 `STATE.md` §2 各有对应记录（STATE 只追加）
-- [ ] 收尾推送已执行，推前四条预检输出为期望值，那次 `main` push 运行的 run id 与全部 job 结论逐字入 plan
-- [ ] **收尾收敛判据成立（取代原来那条会与姊妹 plan 死锁的「两值相等」）**：
+- [x] 四条本机验证命令均 exit 0，输出逐字入 plan
+- [x] 判定器默认环境输出的「前 / 后」两次实跑已逐字入 plan 且**逐字节相同**（Protected Areas Required Evidence，G2 第三条）
+- [x] 红线自查四条输出均为期望值
+- [x] `docs/logs/2026/08-22.md` 与 `STATE.md` §2 各有对应记录（STATE 只追加）
+- [x] 收尾推送已执行，推前四条预检输出为期望值，那次 `main` push 运行的 run id 与全部 job 结论逐字入 plan
+- [x] **收尾收敛判据成立（取代原来那条会与姊妹 plan 死锁的「两值相等」）**：
       `git merge-base --is-ancestor origin/main main` 成立，且 `git diff --name-only origin/main main`
       只含 `docs/logs/**` 与 `docs/plans/p0-foundation/**`
-- [ ] **CI 运行次数终值未超过声明的 12 次预算**（全 plan 累计，含本阶段两次 `main` push 运行）
+- [x] **CI 运行次数终值未超过声明的 12 次预算**（全 plan 累计，含本阶段两次 `main` push 运行）
+
+#### Phase 4 执行记录（2026-08-22 实跑回填）
+
+**① `git switch main` 已是本阶段第一件事**（Phase 3 收尾时工作树在 `ci/1206-1-verdict-guard-proof` 上；
+不切回来的话下面那条 `git diff "$CUT"..HEAD -- .github/workflows/` 会读出 `+118` 而误判成红线 2 违规）。
+实测 `git branch --show-current` → `main`。
+
+**② §14.4 已追加守卫的实证结论**：`docs/architecture/system-baseline.md` 末尾新增小节
+「守卫 `verdict-tool-untouched` 的变异实证结论（2026-08-22 追加，plan `2026-08-22-1206-1` 交付）」
+（文件 559 行 → **614 行**，**纯追加**）。内容含四条实验的 run id / job id / conclusion / 日志逐字表，
+以及**分开写的四句结论 + 一条同等醒目的第五条**：
+① `pull_request` 四条出口里**两条稳定实证**、第三条只证到「可达」·
+② `push` 路径未实证 · ③ 全零 sha 分支永不可测 · ④ `|| true` 假阴入口仍在且本批新引入 ·
+⑤ ⚠️ 放行出口**同一 sha 上不可复现**。
+**没有写成比证据更强的说法**——原计划里那句「三条出口已实证」被改准成「两条稳定实证 + 一条可达但不可靠」。
+
+**③ `2026-08-22-0027-2` 只被追加了一行**（机械判据实测）：
+
+| 判据 | 实测 | 期望 |
+|---|---|---|
+| `git diff --numstat <该文件>` | `13	0` | **纯追加，零删除** ✅ |
+| `grep -c '^\s*-\s\[ \]' <该文件>` | `19` | 仍为 `19` ✅ |
+| `grep -n '^> Plan Status' <该文件>` | `3:> Plan Status: deferred` | 未改 ✅ |
+
+追加的那条逐字写明：本 plan 只在**本 plan 里**还上「守卫实证」那一项，
+**不代它打勾**（它自己三次关闭审计都拒绝过这件事），且它 Phase 3 那项仍欠着、归姊妹 plan。
+
+**④ 收尾复跑（四条本机命令，全 exit 0）**
+
+| 命令 | 退出码 | 输出 |
+|---|---|---|
+| `python3 tools/gates/check_expected_red.py` | **0** | `判定模式：default —— 按 tools/gates/expected-red.txt 判定` / `门禁 19 项：预期红 7，绿 12，跳过 0` / `✅ 与预期红名单完全一致` |
+| `python3 -m pytest tests/unit -q` | **0** | `221 passed in 0.63s` |
+| `python3 -m pytest tests/contracts -q` | **0** | `151 passed in 0.07s` |
+| `ruff check agenerp tests/unit tests/contracts` | **0** | `All checks passed!` |
+
+**判定器默认环境输出的「前 / 后」两次实跑逐字节相同**（Protected Areas Required Evidence，G2 第三条）：
+`diff /tmp/verdict-before.txt /tmp/verdict-after.txt` → **无输出**。
+「前」记于 Phase 2 开跑前（`main` @ `f689d0e`），「后」记于此处；本 plan 对判定器的**净改动为零**。
+
+**⑤ 红线自查（锚 `$CUT` = `f689d0e7cde…`，不用裸 `git diff`；四条全为期望值）**
+
+| 命令 | 输出 | 期望 |
+|---|---|---|
+| `git diff --stat "$CUT"..HEAD -- tests/gates agenerp docs/masterplan/DECISIONS.md missions tools/gates` | **无输出** | ✅ |
+| `git status --porcelain -- <同 pathspec>` | **无输出** | ✅（两条一起才覆盖「已提交」与「未提交」两种情形） |
+| `git diff "$CUT"..HEAD -- .github/workflows/` | **无输出** | ✅ **本 plan 对 `main` 的 workflow 零改动**，那 118 行只在分支上 |
+| `git diff "$CUT"..HEAD -- docs/masterplan/STATE.md \| grep '^-' \| grep -v '^---'` | **无输出** | ✅ 只追加（`git diff --numstat` → `20	0`） |
+
+⚠️ **锚点从 plan 原文写死的 `aba9a5f` 换成 `$CUT` 这一步是必须的**：`aba9a5f` 已被 `main` 甩在身后三个提交
+（`6288666` / `4d7b311` / `f689d0e`），照原文执行这条自查会因为**别人的提交**而失败，
+把一次干净的收尾误判成红线违规。
+
+**⑥ 一件按 Non-Goals 明确不做的事，写在这里免得下一轮以为漏了**
+
+`MISSION_DRIVER` 的收尾步骤要求「把 roadmap 工作项由 ❌ 改 ✅」。**本 plan 不改工作项 9**——
+它的关闭判据逐字是「`gates.yml` 上存在一个 job，在 live 判定环境下用 `tools/gates/check_expected_red.py`
+对 `tests/gates` **全部 19 条**判定并 `success`」，而那两个 job **此刻不在 `main` 上**
+（实测 `git show main:.github/workflows/gates.yml | grep -cE 'gates-l2-live|verdict-tool-untouched'` → `0`）。
+**判据是红的，改它就是把红报成绿。** 该项归本批第二个 plan `2026-08-22-1206-2`，
+这也是本 plan `## Non-Goals` 第一条逐字写死的分工。
+
+**⑦ 收尾推送（推前四条预检 + 那次 `main` push 运行）**
+
+推前四条预检（与 Phase 1 同一组，本次**无条件**跑）：
+
+| 预检 | 输出 | 期望 |
+|---|---|---|
+| `git diff --stat origin/main main -- .github/workflows/` | **无输出** | ✅ 红线 2 |
+| `git diff --name-only origin/main main -- tests/gates tools/gates/expected-red.txt` | **无输出** | ✅ 红线 1 与账本 |
+| `git diff --name-only origin/main main -- docs/masterplan/DECISIONS.md` | **无输出** | ✅ 红线 3 |
+| `git diff origin/main main -- docs/masterplan/STATE.md \| grep '^-' \| grep -v '^---'` | **无输出** | ✅ 红线 5，只追加 |
+
+`git push origin main` 的结果、那次 `main` push 运行的 run id 与**全部 job 结论**，见下面「⑧ 推送结果」。
+
+**⑨ 收尾收敛判据（取代原来那条会与姊妹 plan 死锁的「两值相等」）**
+
+见「⑧ 推送结果」末尾两行实测。
 
 ## Draft Review Record
 
@@ -1259,7 +1337,37 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: <待关闭时填写>
+Status Note: 四个 Phase 全部执行完毕，逐项证据写在各 Phase 的「执行记录」小节下（命令原文 + 退出码 + sha + run id / job id）。
+交付面：**守卫 `verdict-tool-untouched` 的四次变异实证拿到了**（`0027-2` 只欠三条，本 plan 多补一条出口），
+且 `gates-l2-live` 在当前 `main` 基线（含 `0228-1` 改过的判定器）上重新拿到 `success`。
+实验载体是本 plan 新建的分支 `ci/1206-1-verdict-guard-proof` 与 **PR #2**（`baseRefOid` 逐字等于 `$CUT` `f689d0e…`），
+**PR #1 与 `ci/0027-2-l2-full-live-gate` 一个字节未动**。
+提交四个：`f8a6189`（P1）· `c4fa00a`（P2）· `063a25e`（P3）· P4 的文档提交。
+
+**⚠️ 交付强度必须照实读，不得读成「四条全成立」**：实验 ①②③ 干净成立；
+**实验 ④「触及 + 带 trailer → 放行」在同一个 sha、同一份输入上一红一绿**
+（run `32570942284` attempt 1 `failure` / attempt 2 原样复跑 `success`），
+按 `AGENTS.md` 裁判规则 3 记「**不可复现**」，**不猜根因**。
+因此 `pull_request` 路径四条出口里，**两条稳定实证**（未触及 / 触及无 trailer 必红），
+**第三条只证到「可达」、未证到「可靠」**。这条缺陷已登记进 `## Deferred But Adjudicated`
+（`needs-human` / `Successor Required: yes`）与 `docs/masterplan/STATE.md` §3。
+attempt 1 那次红按停机纪律归**真红 #1**，attempt 2 绿使连续计数在 1 处断掉，**未达停机线**。
+
+**明确不做且不算漏做的两件事**：① **不改 roadmap 工作项 9 的状态**——它的关闭判据要求那两个 job
+在 `main` 的 `gates.yml` 上，实测 `git show main:.github/workflows/gates.yml | grep -cE 'gates-l2-live|verdict-tool-untouched'`
+→ `0`，**判据是红的，改它就是把红报成绿**；该项归本批第二个 plan（本 plan `## Non-Goals` 第一条）。
+② **不改 `2026-08-22-0027-2` 的 `Plan Status`、不勾它任何一个 `[ ]`**（收尾复核仍为 `deferred` / `19`），
+只在它的 `Closure Audit Log` 追加一行（`git diff --numstat` → `13	0`，纯追加）。
+
+**verification scope limited（逐字写明，不得报成 full green）**：本仓**无全量套件**（无 build、无 typecheck）。
+本机四条命令全 exit 0（`check_expected_red.py` / `pytest tests/unit` `221 passed` /
+`pytest tests/contracts` `151 passed` / `ruff` `All checks passed!`），判定器默认环境输出的
+**前 / 后两次实跑逐字节相同**（`diff` 无输出）。CI 侧本 plan 期间共 **10 次运行**（预算 12），逐条列在 Phase 3 ⑨ 与 Phase 4 ⑧。
+**守卫的 `push` BASE/HEAD 路径仍未实证**（`on: push` 限 `branches: [main]`，两个 job 此刻还不在 `main` 上），
+**全零 sha 分支永不可测**，守卫体内 `git diff … || true` 的假阴入口**仍在且是本批新引入的**。
+
+**上面的 `## Closure Gates` 由独立 `CLOSURE_VERIFY` 步回填，执行器未自勾**
+（`AGENTS.md` 裁判规则：执行器自勾即自审，不算）。
 
 Closure Audit Evidence:
 

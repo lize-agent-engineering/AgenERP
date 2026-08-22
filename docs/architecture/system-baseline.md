@@ -557,3 +557,58 @@ env 为 `AGENERP_LIVE=1` · `AGENERP_ADMIN_PASSWORD=admin` · `AGENERP_SITE=fron
 `tests/unit/test_gate_verdict.py` 的取证面判据**全部建在合成 junit 字符串上**——
 本机默认判定环境的 7 条预期红是 `failed on setup with "Failed: compose_stack 需要 AGENERP_LIVE=1`
 这类 setup error，里面根本没有断言原文，冒充不了这些判据。
+
+### 守卫 `verdict-tool-untouched` 的变异实证结论（2026-08-22 追加，plan `2026-08-22-1206-1` 交付）
+
+上一小节那句「守卫的三次变异实验全部在 PR 分支上做」在写下时**还没有任何 run id**——
+plan `2026-08-22-0027-2` 自己逐字写着「拿不到这三条，守卫不算交付：绿的 CI 证明不了一个从不触发的守卫」。
+本小节还上这笔账，并把**实际拿到的证据强度**如实写下来（**多做了一条实验，但其中一条只证到一半**）。
+
+实验载体是 plan `2026-08-22-1206-1` 从 `main` @ `f689d0e` 新切的分支
+`ci/1206-1-verdict-guard-proof` 与 **PR #2**（`baseRefOid` 逐字等于 `f689d0e`）；
+四条实验的临时提交在收尾时已从分支上 reset 掉，**不进 `main`、不留在 PR 最终形态里**
+（措辞准确性：那些提交按 sha 在 GitHub 上仍可访问，不是「抹掉」）。
+
+| 实验 | 载荷 | run id | 守卫 job id | conclusion | 日志真实输出（逐字） |
+|---|---|---|---|---|---|
+| ① 正向 | 判定器末尾加空行，**不带** trailer | `32570222139` | `97024540387` | **`failure`** | `本次改动触及判定器：` / `❌ 改动了门禁判定器却没有人工批准。` |
+| ② 复原 | `git revert` 掉 ①，仍不带 trailer | `32570426423` | `97025008659` | `success` | `✅ 未触及判定器` |
+| ③ 边界 | 只给 `expected-red.txt` 加一行 `#` 注释 | `32570691388` | `97025611324` | `success` | `✅ 未触及判定器`（同轮 `expected-red-ratchet` `97025611265` 亦 `success`，`✅ 名单没有变长`） |
+| ④ 放行 | 判定器末尾加空行，**带** trailer | `32570942284` | attempt 1 `97026197943` / attempt 2 `97026657710` | **`failure` → `success`** | attempt 1 `❌ 改动了门禁判定器却没有人工批准。` / attempt 2 `✅ 找到人工批准 trailer，放行` |
+
+**实验 ① 是本小节最要紧的一条**：它是守卫第一次被证明**有牙齿**——在它之前，守卫所有的绿
+都可能只是「从不触发」。该轮红 job 集合**恰好是 `{verdict-tool-untouched}`**，
+`gates-l1` / `gates-untouched` / `expected-red-ratchet` / `masterplan-links` / `roadmap-parseable` /
+`loop-wiring` / `gates-l2` 七个 job 全部 `success`（`gates-l2-live` 亦绿），因此那一红**不是环境抖动**。
+实验 ② 顺带证明了守卫比的是 `BASE..HEAD` 的**累积** diff 而不是逐提交。
+实验 ③ 让「账本不在守卫路径清单内、注释不计数」这条此前只是一句话的硬边界第一次拿到实证。
+
+**四句结论分开写，一句都不许合并成更强的说法：**
+
+- ① **`pull_request` 路径的四条出口里，两条稳定实证**（「未触及」→ 绿 · 「触及 + 无 trailer」→ 红），
+  **第三条「触及 + 带 trailer → 放行」只证到「可达」，没证到「可靠」**——见下面那条 ⚠️。
+- ② **`push` 那条 `BASE`/`HEAD` 推导路径仍未实证**。`on: push` 限定 `branches: [main]`，
+  而两个 job 此刻**还不在 `main` 上**，合并前无法实测；它归 plan `2026-08-22-1206-2` 的 `main` push 运行。
+- ③ **全零 sha 那个「首次推送」提前 `exit 0` 分支永远不可实测**：`main` 早已存在，
+  `github.event.before` 在 `main` 上永远不会是全零。这是本 plan 与后继 plan 都覆盖不到的残余面。
+- ④ **守卫体内 `CHANGED=$(git diff … || true)` 那个假阴入口仍在，且它是本批新引入的**
+  （在那 118 行追加内容里，不是继承来的）：`git diff` 出错时 `CHANGED` 为空 → 走 `✅ 未触及判定器` 并 `exit 0`。
+  不修的**唯一成立的理由**是：修它会让那 118 行与 run `32533449466` 已实测那一份不再逐字一致，
+  而「落地的就是已实测那一份」是本批两个 plan 共同的承重判据。
+
+> ⚠️ **第五条，本批实测新发现，必须与上面四条同等醒目**：守卫的「触及 + 带 trailer → 放行」出口
+> **在同一个 sha、同一份输入上不可复现**。实验 ④ 的提交 `cf73d90` 在 run `32570942284` 上跑了两次 attempt：
+> attempt 1 `failure`、attempt 2（`gh run rerun --failed` 原样复跑）`success`。
+> 两次的 merge ref（`1b3e5ea2…`）、`fetch` 命令行、脚本插值出的 `BASE`/`HEAD`
+> （`f689d0e7cde…` / `cf73d90c0dd…`）**经机械核对逐字相同**，attempt 1 日志里**没有任何 `fatal:` / `error:` 行**。
+> 按 `AGENTS.md` 裁判规则 3 记「**不可复现**」，**此处不给根因，也不写「大概是因为……」**。
+> **后果对人是直接的**：守卫落进 `main` 之后，**一次合法的判定器改动可能被随机挡下**
+> （带了批准 trailer 却仍然红）。**处置办法：`gh run rerun --failed` 原样复跑。**
+> 根治需要一个专门的 successor plan（改守卫脚本体 = 改 `.github/workflows/**`，且要重取一次全套 CI 证据）。
+> 已登记进 plan `2026-08-22-1206-1` 的 `## Deferred But Adjudicated`（`needs-human` / `Successor Required: yes`）
+> 与 `docs/masterplan/STATE.md` §3 的 needs-human 队列。
+
+**同一批实测顺带钉死一条此前本仓明写「没实测过」的 CI 行为**：
+**force-push 回一个已经跑过绿的 sha，每一次都会触发一次完整运行**——
+三次 `git reset --hard b7348bf` + `--force-with-lease` 各自开出 `32570657720` / `32570916073` / `32571266013`。
+估 CI 预算时不得假设「reset 到已跑过的 sha 不另计」。
