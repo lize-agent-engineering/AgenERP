@@ -50,8 +50,11 @@ case "${1:-status}" in
     <key>AGENERP_MISSION</key><string>$MISSION</string>
     <key>AGENERP_TODO</key><string>$TODO</string>
     <key>LOOPX_BIN</key><string>$LOOPX_DEFAULT</string>
-    <!-- 日预算：写进 plist 才能在重启后存活。改它要在 STATE 留证据行说明为什么。 -->
-    <key>AGENERP_DAILY_TOKEN_BUDGET</key><string>${AGENERP_DAILY_TOKEN_BUDGET:-200000000}</string>
+    <!-- 刻意**不**在这里注入 AGENERP_DAILY_TOKEN_BUDGET。
+         阈值的唯一真相源是 tools/gates/budget.json；环境变量优先级更高，
+         plist 一旦写入就会把配置文件盖掉。实测踩过：重装时没带前缀，
+         plist 写进默认值 2 亿，监督器据此停机，而配置文件里明明是 10 亿。
+         「单一真相源」只要还留着一个注入口，就不是单一的。 -->
   </dict>
 </dict>
 </plist>
