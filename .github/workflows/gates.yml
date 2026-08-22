@@ -385,3 +385,20 @@ jobs:
       - name: 拆栈（无条件）
         if: always()
         run: docker compose -f docker-compose.yml down -v
+
+  unit-and-contracts:
+    name: 单测与契约测试（439 条）
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install pytest
+
+      - name: ① 单测（tests/unit）
+        run: python3 -m pytest tests/unit -q
+
+      - name: ② 契约测试（tests/contracts）
+        run: python3 -m pytest tests/contracts -q
