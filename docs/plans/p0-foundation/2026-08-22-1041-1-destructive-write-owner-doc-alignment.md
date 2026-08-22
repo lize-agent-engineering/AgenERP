@@ -1,6 +1,6 @@
 # 2026-08-22-1041-1 破坏性写这一族：owner-doc 与实现面对齐（两处确认漂移 + 两处具体化）
 
-> Plan Status: active
+> Plan Status: completed
 > Mission: p0-foundation
 > Work Item: 工作项 5/6 落地之后遗留的 owner-doc 面（两处确认漂移 D2/D3 + 两处具体化 D1/D4；不是新实现面）
 > Last Reviewed: 2026-08-22
@@ -367,20 +367,20 @@ Exit Criteria:
 
 ### Phase 4 - 全量复跑与红线自查
 
-Status: planned
+Status: completed
 Targets: 无（产出是证据）
 Skill: `none`
 
 - Item Types: `Proof`（2 项全部为 `Proof`）
 - Prereqs: Phase 1–3 全部完成
 
-- [ ] `Proof`：四条基线命令原样复跑，命令原文 + 退出码 + 输出尾行三样记进本 plan：
+- [x] `Proof`：四条基线命令原样复跑，命令原文 + 退出码 + 输出尾行三样记进本 plan：
       `ruff check agenerp tests/unit tests/contracts` · `python3 -m pytest tests/unit -q` ·
       `python3 -m pytest tests/contracts -q` · `python3 tools/gates/check_expected_red.py`。
       **本 plan 不改代码，因此四条的结论必须与 Baseline 逐字一致**（221 / 151 / 判定行不变）；
       任何一条不一致即说明本 plan 碰了不该碰的东西，按下面的失败分支处置。
       - Skill: `none`
-- [ ] `Proof`：**红线自查，基线 sha 钉死为 `4ac3517`，不用裸 `git diff`**：
+- [x] `Proof`：**红线自查，基线 sha 钉死为 `4ac3517`，不用裸 `git diff`**：
       `git diff --name-only 4ac3517 HEAD -- tests/gates .github/workflows missions
       docs/masterplan/DECISIONS.md tools/gates/expected-red.txt tools/gates/check_expected_red.py agenerp`
       → 期望**无输出**（注意 `agenerp` 也在清单里：本 plan 明示不改一行代码）；
@@ -389,14 +389,71 @@ Skill: `none`
 
 Exit Criteria:
 
-- [ ] 四条基线命令全部 exit 0，且结论与 `## Current Baseline` 逐字一致
-- [ ] `git diff --name-only 4ac3517 HEAD -- <上面那串 pathspec>` → **无输出**
-- [ ] **本 plan 全程零 `git push`**：`git rev-list --count origin/main..main` 的值与开工时（5）相比
+- [x] 四条基线命令全部 exit 0，且结论与 `## Current Baseline` 逐字一致
+- [x] `git diff --name-only 4ac3517 HEAD -- <上面那串 pathspec>` → **无输出**
+- [x] **本 plan 全程零 `git push`**：`git rev-list --count origin/main..main` 的值与开工时（5）相比
       只因本 plan 的提交而增加（输出记进本 plan）。
       再取一条远端证据：`git ls-remote origin main` 仍指向开工时的 `origin/main`；
       **无网络时的离线替代**（照实标注为离线证据，不假装跑过网络）：
       `git rev-parse origin/main` 与开工时逐字相同 + `git reflog show origin/main` 无本轮新条目
-- [ ] `docs/logs/2026/08-22.md` 的本 plan 条目覆盖 Phase 1–4 **四个阶段**，不是只到 Phase 3
+- [x] `docs/logs/2026/08-22.md` 的本 plan 条目覆盖 Phase 1–4 **四个阶段**，不是只到 Phase 3
+
+#### Phase 4 执行记录（2026-08-22 回填，实跑）
+
+**四条基线命令原样复跑，命令原文 + 退出码 + 输出尾行**：
+
+| 命令原文 | 退出码 | 输出尾行 | 与 Baseline 一致 |
+|---|---|---|---|
+| `ruff check agenerp tests/unit tests/contracts` | **0** | `All checks passed!` | ✅ |
+| `python3 -m pytest tests/unit -q` | **0** | `221 passed in 0.55s` | ✅ 条数不变 |
+| `python3 -m pytest tests/contracts -q` | **0** | `151 passed in 0.09s` | ✅ 条数不变 |
+| `python3 tools/gates/check_expected_red.py` | **0** | `门禁 19 项：预期红 7，绿 12，跳过 0` / `✅ 与预期红名单完全一致` | ✅ 判定行逐字节不变 |
+
+四条结论与 `## Current Baseline` **逐字一致** —— 本 plan 确实一行代码未改。
+
+**红线自查（基线 sha 钉死 `4ac3517`，不用裸 `git diff`）**：
+
+```
+$ git diff --name-only 4ac3517 HEAD -- tests/gates .github/workflows missions \
+    docs/masterplan/DECISIONS.md tools/gates/expected-red.txt \
+    tools/gates/check_expected_red.py agenerp
+<无输出>
+$ git status --porcelain
+<无输出>
+```
+
+**✅ 无输出，红线自查通过（`agenerp` 也在清单里，本 plan 明示不改一行代码）；工作区无遗留未提交改动。**
+
+**本 plan 全部变更文件（`git diff --name-only 4ac3517 HEAD`，8 个，全部在 `docs/**` 下）**：
+
+```
+docs/architecture/module-boundaries.md
+docs/audits/p0-foundation/2026-08-22-1041-1-draft-review-iteration-1.md
+docs/backlog/irreversible-ddl-has-no-code-level-precondition.md
+docs/backlog/p0-foundation-roadmap.md
+docs/context/ai-autonomy-policy.md
+docs/context/project-context.md
+docs/logs/2026/08-22.md
+docs/plans/p0-foundation/2026-08-22-1041-1-destructive-write-owner-doc-alignment.md
+```
+
+**三个提交**：`e91f56e`（Phase 1）· `9ed1d41`（Phase 2）· `3b9fc9b`（Phase 3）。
+iteration 2 评审要求入库的 durable 证据
+`docs/audits/p0-foundation/2026-08-22-1041-1-draft-review-iteration-1.md` 已随 `e91f56e` 一起入库。
+
+**零 `git push` 的证据（**在线证据，不是离线替代**）**：
+
+- `git rev-list --count origin/main..main` → **8**。开工时是 **5**，增量 **3** = 本 plan 的三个提交，
+  **没有任何提交被推走**（推走会让计数下降）。
+- **远端证据**：`git ls-remote origin main` → `508c75b0c8a0b2af30285d293b5ab694922d3eaa`，
+  与 `git rev-parse origin/main` **逐字节相同** —— `origin/main` 仍停在开工时那个 sha。
+- `git reflog show --date=iso origin/main` 最新一条是 `508c75b … @{2026-08-22 05:55:52 +0800}: update by push`，
+  **本轮（2026-08-22 11:20 起）无新条目**。
+- 因此 `.github/workflows/gates.yml` 的 `push: branches: [main]` **本轮一次都没被触发，零 CI 消耗**。
+
+**验证范围（照实写，不得报成 full green）**：本仓**无全量套件**（无 build、无 typecheck，见
+`docs/context/project-context.md`），且本 plan **不跑 L2 / 不起 docker 栈 / 不连活站点**。
+上面四条是本机 L1 判定环境的全部可跑验证。**CI 未跑，且本 plan 明示不跑** —— 不得被读成「CI 已验证」。
 
 **失败分支的固定处置（现在写死，执行时不许临场发挥）**：
 任一阶段的 Exit Criteria 拿不到 → 记录所有已跑命令与输出原文 → 追加进 `docs/masterplan/STATE.md` §3
@@ -505,7 +562,24 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: <未开始，执行完毕后回填>
+Status Note: 四个 Phase 全部执行完毕，逐项证据写在各 Phase 的「执行记录」小节下（命令原文 + 退出码 + sha）。
+交付面五件事全部落地：D1 加严（`ai-autonomy-policy.md:87` 点名 `drop_columns` + 补一条对不可逆性说话的
+Required Evidence，行内三格比对确认只加严不放宽）· D2/D3 两处假陈述就地改准（`module-boundaries.md` §11.7）·
+D4 效力范围具体化（`project-context.md:60`，纯追加，原句一字未删未弱化）· 新建 backlog 条目
+`irreversible-ddl-has-no-code-level-precondition.md`（三条触发条件 + 四档可选处置，交人裁定）·
+roadmap「5 现状」/「6 现状」行内追加（`planned` 一个字未改）。
+
+**`agenerp/**` 一行未改**，红线自查（基线 `4ac3517`，含 `agenerp` 的 pathspec）**无输出**。
+提交三个：`e91f56e` · `9ed1d41` · `3b9fc9b`。
+
+**verification scope limited（逐字写明，不得报成 full green）**：本仓**无全量套件**（无 build、无 typecheck，
+见 `docs/context/project-context.md`），且本 plan **不跑 L2 / 不起 docker 栈 / 不连活站点**。
+可跑验证只有四条本机 L1 命令，全部 exit 0 且结论与 Baseline 逐字一致（221 / 151 / 判定行不变）。
+**CI 未跑，且本 plan 明示不跑**（零 CI 消耗，全程零 `git push` 含 `main`；`git ls-remote origin main` 仍是
+`508c75b`，与开工时逐字节相同）—— **这一点不得被读成「CI 已验证」。**
+
+**下面的 Closure Gates 十二框与 Closure Audit Evidence 由独立 `CLOSURE_VERIFY` 步回填，执行器不自勾**
+（`AGENTS.md` 裁判规则：执行器自勾即自审，不算）。
 
 Closure Audit Evidence:
 
