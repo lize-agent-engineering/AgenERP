@@ -13,6 +13,8 @@
 
 from __future__ import annotations
 
+import uuid  # MUTATION-A: 故意的 F401，实验后必须 revert
+
 import json
 import os
 from dataclasses import dataclass, field
