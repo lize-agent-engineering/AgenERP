@@ -304,14 +304,14 @@ Exit Criteria:
 
 ### Phase 3 - 把「不可逆 DDL 无代码级前置」登记进 backlog，交人裁定
 
-Status: planned
+Status: completed
 Targets: `docs/backlog/`（新建一个条目文件）、`docs/backlog/p0-foundation-roadmap.md`
 Skill: `none`
 
 - Item Types: `Add`（2 项全部为 `Add`）
 - Prereqs: Phase 2 完成（backlog 条目要引用改准后的 Protected Areas 行）
 
-- [ ] `Add`：新建 `docs/backlog/irreversible-ddl-has-no-code-level-precondition.md`，
+- [x] `Add`：新建 `docs/backlog/irreversible-ddl-has-no-code-level-precondition.md`，
       形态照抄本目录既有条目 `gate-fixtures-pollute-the-live-site.md` 的写法
       （`Status:` / `Created:` / 事实 / 现状 / **触发条件** / 可选处置 / 现在就能做的）。
       内容必须包含且不得含糊：**事实**（调用链、`DROP COLUMN` 不可逆、`grep -rn "backup" agenerp/*.py` 零命中、
@@ -320,17 +320,17 @@ Skill: `none`
       **相邻已裁定项**（`1922-3` Deferred 第一条逐字含「站点侧的回滚只能手工做」，重开事件未满足）·
       **可选处置（loop 不替人选）**，至少三项且每项标出代价。
       - Skill: `none`
-- [ ] `Add`：`docs/backlog/p0-foundation-roadmap.md` 的「5 现状」/「6 现状」两行**各追加一句**，
+- [x] `Add`：`docs/backlog/p0-foundation-roadmap.md` 的「5 现状」/「6 现状」两行**各追加一句**，
       指向本 plan 与新建的 backlog 条目。**两行的 `planned` 状态一个字不改**
       （本 plan 不划 `expected-red.txt`，`done` 的字面条件依旧不可满足，沿用人在 `STATE.md` §2 11:20Z 的裁定）。
       - Skill: `none`
 
 Exit Criteria:
 
-- [ ] `ls docs/backlog/irreversible-ddl-has-no-code-level-precondition.md` → 文件存在，
+- [x] `ls docs/backlog/irreversible-ddl-has-no-code-level-precondition.md` → 文件存在，
       且 `grep -c "触发条件" docs/backlog/irreversible-ddl-has-no-code-level-precondition.md` → **≥1**
-- [ ] `grep -n "1041-1" docs/backlog/p0-foundation-roadmap.md` → 「5 现状」/「6 现状」两行**各有命中**
-- [ ] **roadmap 只在行内追加、状态未动，按「行内比对」判，不数 diff 的加减行**
+- [x] `grep -n "1041-1" docs/backlog/p0-foundation-roadmap.md` → 「5 现状」/「6 现状」两行**各有命中**
+- [x] **roadmap 只在行内追加、状态未动，按「行内比对」判，不数 diff 的加减行**
       （原因与 Phase 2 同：「5 现状」/「6 现状」各是**一整行表格行**，在行末追加一句是 in-place 改动，
       必然产出一条 `-` 行与一条 `+` 行——`grep -c "^-[^-]"` → 0 在这里**恒不可满足**，那种判据不可用）。
       实际判据三条：
@@ -340,8 +340,30 @@ Exit Criteria:
       用 `git show 4ac3517:docs/backlog/p0-foundation-roadmap.md | sed -n '62p;64p'` 取旧行，与新行并排贴进本 plan；
       ③ 两行里的 `保持 \`planned\`` 逐字仍在：`git diff 4ac3517 HEAD -- docs/backlog/p0-foundation-roadmap.md | grep -c "^-.*保持 \`planned\`"` 与
       `... | grep -c "^+.*保持 \`planned\`"` **两值相等**（`-`/`+` 两侧都有，说明状态词没被动过）
-- [ ] `python3 tools/gates/check_expected_red.py` → exit 0 且判定行逐字节不变
-- [ ] `docs/logs/2026/08-22.md` 追加本阶段条目
+- [x] `python3 tools/gates/check_expected_red.py` → exit 0 且判定行逐字节不变
+- [x] `docs/logs/2026/08-22.md` 追加本阶段条目
+
+#### Phase 3 执行记录（2026-08-22 回填，实跑）
+
+| 判据 | 结果 |
+|---|---|
+| `ls docs/backlog/irreversible-ddl-has-no-code-level-precondition.md` | 文件存在（8865 字节）✅ |
+| `grep -c "触发条件" docs/backlog/irreversible-ddl-has-no-code-level-precondition.md` | **1**（≥1）✅ |
+| `grep -n "1041-1" docs/backlog/p0-foundation-roadmap.md` | 命中 `:62`（5 现状）与 `:64`（6 现状），**各一处** ✅ |
+| ① `git diff --name-only 4ac3517 -- docs/backlog/p0-foundation-roadmap.md` | 只有这一个文件名；`git diff --stat` → `1 file changed, 2 insertions(+), 2 deletions(-)`，**恰好那两行，没碰第三行** ✅ |
+| ② 旧行是新行的**前缀**（纯追加，旧文本一字节未改） | `5 现状` **True**（3720 → 4787 字符）· `6 现状` **True**（4110 → 5177 字符）。旧行取自 `git show 4ac3517:docs/backlog/p0-foundation-roadmap.md \| sed -n '62p;64p'` ✅ |
+| ③ diff 中含「保持 `planned`」的 `-` 行数与 `+` 行数 | **2 与 2，两值相等** —— `-`/`+` 两侧都有，状态词未被动过 ✅ |
+| `python3 tools/gates/check_expected_red.py` | **exit 0**，`门禁 19 项：预期红 7，绿 12，跳过 0` / `✅ 与预期红名单完全一致` ✅ |
+
+**新增 backlog 条目的内容自查（对着 Phase 3 执行项的逐条要求）**：事实四条（调用链 / `DROP COLUMN` 不可逆 /
+`grep -rn "backup" agenerp/*.py` 零命中 / 被删列可能带业务数据）✅ ·
+为什么 loop 不能自己做（判据先行豁免不适用 + 红线 1 要 `Gates-Change-Approved-By:`，
+并标明「豁免只适用于 4/7/9」是**推论**不是原文）✅ ·
+相邻已裁定项（`1922-3` Deferred 第一条逐字含「站点侧的回滚只能手工做」，重开事件未满足）✅ ·
+可选处置**四项**（≥3），每项标出代价 ✅ · 触发条件三条，明确 ✅。
+
+**roadmap 两行追加的内容**：指向本 plan 与新条目、写明代码侧缺口不由本 plan 实现及其两条硬拦；
+**`planned` 状态一个字未改**（不划 `expected-red.txt`，沿用人在 `STATE.md` §2 11:20Z 的裁定）。
 
 ### Phase 4 - 全量复跑与红线自查
 
