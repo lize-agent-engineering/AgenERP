@@ -1068,7 +1068,7 @@ Exit Criteria:
 - [x] no in-scope item downgraded to deferred/follow-up
 - [x] independent draft review completed and recorded
 - [x] text consistency verified: status, phases, gates, and log all agree
-- [ ] closure audit was independent —— **执行期不自勾，留给独立关闭审计**（`AGENTS.md` 裁判规则 1/2：过没过不由执行器自报；这一框的证据只能由未参与实现的审计员产生）
+- [x] closure audit was independent —— 由**独立关闭审计员**（未参与本 plan 任何实现，`MISSION_DRIVER:2026-08-22-185331-mission-driver`）复跑锚点后勾选；证据见下面 `Closure Audit Evidence`（`AGENTS.md` 裁判规则 1/2：执行期不自勾）
 - [x] closure evidence exists in files
 
 ## Deferred But Adjudicated
@@ -1150,15 +1150,38 @@ Status Note: **三个 Phase 全部执行完毕，逐项证据写在各 Phase 的
 不勾它任何一个未勾框（四条计数前后同为 `19` / `26` / `36` / `1`）；不删任何远程分支；
 不改 `docs/context/ai-autonomy-policy.md` 的 Rule 列；不改 `tests/gates/**` / `agenerp/**` / 判定器 / `DECISIONS.md`。
 
-**CI 运行 6 / 7，未超本 plan 声明的预算**：`32572388207`（第 0 步）· `32572416547`（PR #3）·
-`32572618933`（**权威运行**）· `32573304204`（收尾第一推）· 收尾第二推 · 机动 1 次未用。
+**CI 运行 5 / 7，未超本 plan 声明的预算**：`32572388207`（第 0 步）· `32572416547`（PR #3）·
+`32572618933`（**权威运行**，也就是 `--ff-only` 落地那一推触发的那一次）· `32573304204`（收尾第一推）·
+`32573555156`（收尾第二推）· **机动 2 次全部未用**。
+⚠️ **计数改准（独立关闭审计 2026-08-22）**：Phase 2 执行记录里的「预算第 3 次」（`--ff-only` 落地）
+与「预算第 4 次」（NB2 权威运行）**是同一次 GitHub Actions 运行** `32572618933`——那一推只触发一个 run，
+被记成了两格，因此收尾时的自计数偏大 1。实测口径以 `gh run list` 为准：
+本 plan 期间归属它的 run **恰为上列五个**。结论方向不变（更省，不是更超）。
 **本 plan 期间零红**——停机纪律的三条走向一条都没走到。
 
 Closure Audit Evidence:
 
-- Auditor / Agent: **<待独立关闭审计填写>** —— 执行器不自填、不自勾
-  `closure audit was independent` 那一框（裁判规则 1/2）。
-- Evidence: **<待独立关闭审计填写>**。审计员可直接复跑的锚点：
+- Auditor / Agent: **独立关闭审计员**（`MISSION_DRIVER:2026-08-22-185331-mission-driver`，fresh session，
+  未参与本 plan 三个 Phase 的任何实现），2026-08-22。
+- Verdict: **approved** —— 逐条复跑下列锚点，读数与 plan 逐字相符；`plan-check --strict` 通过。
+- 审计实跑（命令原文 → 读数）：
+  · `git diff --numstat 79184e5..HEAD -- .github/workflows/gates.yml` → `118	0`（纯追加、零删除）
+  · `diff <(git show 79184e5:.github/workflows/gates.yml) <(head -190 .github/workflows/gates.yml)` → 无输出，退出码 `0`（前 190 行逐字节未动）
+  · `wc -l .github/workflows/gates.yml` → `308`；`jobs:` 下 job 键 **9 个**，新增两个在末尾
+  · `gh run view 32572618933 --json ...` → `conclusion=success`、`event=push`、`headSha=3503f2c89…`，
+    **九个 job 全部 `success`**（含 `L2 全量 live 判定（19 条）` `97030229667` 与 `判定器未被改动` `97030229697`）
+  · `gh pr list --state all` → PR #3 `MERGED`（mergeCommit `3503f2c89…`）· PR #2 `CLOSED` · PR #1 `CLOSED`；
+    `gh run view 32509351108/32533449466` 仍可查（`failure` / `success`）；`git ls-remote --heads origin` → 五个分支，**一个未删**
+  · 红线复核：`git diff --numstat 79184e5..HEAD -- tests/gates docs/masterplan/DECISIONS.md tools/gates/expected-red.txt agenerp` → **无输出**；
+    `git diff 79184e5..HEAD -- docs/masterplan/STATE.md | grep "^-" | grep -v "^---"` → 无输出（`19	0`，只追加）；
+    `2026-08-21-2220-2` → `2	0`；`0027-2` → `11	0`，四条计数实测 `19` / `26` / `36` / `1`
+  · owner-doc 处置复核：`docs/architecture/module-boundaries.md` **numstat 无输出**（裁定为非漂移的那一处确实未被照改）；
+    roadmap `## Work Item Status` 的工作项 9 仍 `planned`（未自行置 `done`）
+  · 反空壳：两个新 job 不是壳——`gates-l2-live` 真起 compose 栈并跑 `check_expected_red.py`（live 判定，19 条全绿），
+    `verdict-tool-untouched` 有真实 `exit 1` 出口；`|| true` 假阴入口已如实登记在 `## Deferred But Adjudicated`，未被藏进 follow-up
+  · `node tools/mission-driver/src/plan-check.mjs <本文件> --strict` → `passed: true`
+- 审计发现（已就地改准，非阻断）：Closure 的 CI 计数由 `6 / 7` 改准为 `5 / 7`，理由写在上面那条 ⚠️。
+- Evidence: 审计员可直接复跑的锚点：
   开工 sha `79184e5` · 落地 sha `3503f2c` · 权威运行 `32572618933`（九个 job） ·
   PR #3 `MERGED` / PR #1 与 PR #2 `CLOSED` · `git diff --numstat 79184e5..HEAD -- .github/workflows/gates.yml` → `118	0` ·
   `docs/masterplan/STATE.md` → `19	0`（只追加）· `2026-08-21-2220-2` → `2	0` · `0027-2` → `11	0`。
