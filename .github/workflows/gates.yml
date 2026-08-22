@@ -188,3 +188,121 @@ jobs:
       - name: 拆栈（无条件）
         if: always()
         run: docker compose -f docker-compose.yml down -v
+
+  # L2 全量 live 判定：在 runner 上起栈，然后用**判定器**对全部 19 条门禁做一次判定。
+  # 加它的理由：工作项 9 的判据是「L2 的判定与 CI 覆盖」，而在它之前本仓所有 live 全绿证据
+  # 都带着「只在本机做过」的限定。见 plan docs/plans/p0-foundation/2026-08-22-0027-2-…。
+  #
+  # 与上面 gates-l2 的关系是**包含**，不是并列：gates-l2 只跑 test_zero_dep_boot.py 三条，
+  # 本 job 跑的 19 条完全包住它。两者因此冗余。**没有就地合并/替换 gates-l2**，是因为本仓对红线 2
+  # 的自查已固化成「新文件以旧文件为行前缀」——改现有 job 会直接打掉那条机械判据，
+  # 此后每一轮都要重新论证「这次的改动不算变松」。退休 gates-l2 是删除动作，已登记为人动作 Deferred。
+  #
+  # 与 gates-l2 的另一处差别：本 job 走 tools/gates/check_expected_red.py 而不是裸 pytest。
+  # live 模式的契约是「全部绿、零 red、零 skip」，比预期红名单棘轮更紧——棘轮只拦「名单变长」，
+  # live 契约连一条 skip 都不放过。gates-l2 注释里那条「L2 在 CI 上不受棘轮保护」的残余风险，
+  # 在本 job 的覆盖面（19 条全部）上因此收口。判定契约本身见 system-baseline.md §14.4。
+  #
+  # ⚠️ AGENERP_SITE 是 job 级的，它有一个副作用：把 test_snapshot_diff_structured.py 的
+  #    ::test_two_snapshots_of_unchanged_site_diff_empty 与 ::test_diff_is_structured_not_text
+  #    从离线来源翻到活站点上（这两条不取 fixture、直接调 capture()，只能由 env 供给站点）。
+  #    实测影响面恰好只有这两条。两条在 gates-l1 里仍按离线判定，两处判据来源不同。
+  gates-l2-live:
+    name: L2 全量 live 判定（19 条）
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      # 不可省：check_expected_red.py 用 sys.executable -m pytest 起子进程，
+      # pytest 必须装在这个解释器里。
+      - run: pip install pytest
+
+      - name: runner 上的 docker / compose 版本
+        run: |
+          set -euo pipefail
+          docker version --format '{{.Server.Version}}'
+          docker compose version
+
+      # --wait-timeout 沿用 gates-l2 已实证的 900，口径依据见 system-baseline.md §14.2。
+      - name: 起栈（一个 AI 变量都不配）
+        run: docker compose -f docker-compose.yml up -d --wait --wait-timeout 900
+
+      # AGENERP_HTTP_PORT 不设：走 compose 默认 127.0.0.1:8080，runner 上已实证空闲。
+      # AGENERP_SITE_URL 是冗余而非新耦合——agenerp/site.py 的 default_base_url() 本来就回落到
+      # DEFAULT_HTTP_PORT = "8080"，写出来只是更好读。
+      - name: 全部 19 条门禁的 live 判定
+        env:
+          AGENERP_LIVE: "1"
+          AGENERP_ADMIN_PASSWORD: admin
+          AGENERP_SITE: frontend
+          AGENERP_SITE_URL: http://127.0.0.1:8080
+        run: python3 tools/gates/check_expected_red.py
+
+      - name: 取证 —— 服务状态
+        if: always()
+        run: docker compose -f docker-compose.yml ps
+
+      - name: 取证 —— backend 日志
+        if: always()
+        run: docker compose -f docker-compose.yml logs backend --tail 200
+
+      - name: 取证 —— 引导服务日志
+        if: always()
+        run: docker compose -f docker-compose.yml logs bootstrap-homepage --no-log-prefix
+
+      - name: 拆栈（无条件）
+        if: always()
+        run: docker compose -f docker-compose.yml down -v
+
+  # 判定器的 CI 侧守卫。加它的理由：AGENTS.md 裁判规则 1 把「测试过没过」的裁定权交给判定器的退出码，
+  # 而在它之前三层既有保护没有一层覆盖判定器本身——gates-untouched 只 diff tests/gates/**、
+  # gate-verify.mjs 的 PROTECTED = ["tests/gates/"]、expected-red-ratchet 只数账本行数。
+  # 而 gates-l1 跑的就是判定器：判定器被改废之后会在 CI 上自证为绿。见 system-baseline.md §14.4。
+  #
+  # 脚本体与上面的 gates-untouched **同构**：同一套 BASE/HEAD 推导（pull_request 走 base.sha/head.sha，
+  # push 走 event.before/sha）、同一个全零 sha（首次推送）分支、同一个 ^Gates-Change-Approved-By: 匹配式。
+  # 唯一的差别是 diff 路径。两个 job 逻辑近似重复，已登记为人动作 Deferred；
+  # 没有合并进 gates-untouched，同样是因为改它的脚本体会打掉行前缀自查。
+  #
+  # ⚠️ 硬边界：路径清单里**没有** tools/gates/expected-red.txt，这是刻意的。
+  #    账本允许在同一提交里划短（AGENTS.md 红线 1 的「边界」句 + Protected Areas 表第 2 行
+  #    allowed（只能变短）），服务端控制是上面的 expected-red-ratchet job。
+  #    把账本圈进来会让**每一次合法的划短**在 CI 上失败。
+  verdict-tool-untouched:
+    name: 判定器未被改动
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 检查本次改动是否触及门禁判定器
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE="${{ github.event.pull_request.base.sha }}"; HEAD="${{ github.event.pull_request.head.sha }}"
+          else
+            BASE="${{ github.event.before }}"; HEAD="${{ github.sha }}"
+            # 新分支首次推送时 before 是全零
+            if [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
+              echo "首次推送，跳过 diff 比对"; exit 0
+            fi
+          fi
+          CHANGED=$(git diff --name-only "$BASE" "$HEAD" -- 'tools/gates/check_expected_red.py' 'tools/gates/gate-verify.mjs' || true)
+          if [ -z "$CHANGED" ]; then
+            echo "✅ 未触及判定器"; exit 0
+          fi
+          echo "本次改动触及判定器："; echo "$CHANGED"
+          # 人工批准是唯一放行方式：提交信息里带 trailer
+          if git log --format=%B "$BASE..$HEAD" | grep -q '^Gates-Change-Approved-By:'; then
+            echo "✅ 找到人工批准 trailer，放行"; exit 0
+          fi
+          echo "❌ 改动了门禁判定器却没有人工批准。"
+          echo "   判定器产出的退出码是「测试过没过」的唯一裁定（AGENTS.md 裁判规则 1），"
+          echo "   而 gates-l1 跑的就是它自己——改废了会在 CI 上自证为绿。"
+          echo "   边界：tools/gates/expected-red.txt 不在此清单内。它是账本不是裁判，只能变短，"
+          echo "   由 expected-red-ratchet job 管着。"
+          echo "   确需人改判定器时，在提交信息里加一行：Gates-Change-Approved-By: <姓名>"
+          exit 1
