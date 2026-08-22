@@ -1139,7 +1139,9 @@ GL 收入贷方 / GL 成本借方 / 毛利 / 应收逾期 / 应付逾期。期�
 输出**成功与失败都**打带出处的实得值与期望值 —— 只打「通过」用 `grep` 就能伪造。
 
 **本段交付的行为没有属于自己的门禁**，与 §12.9 同一处境。代偿控制：CLI 退出码 +
-`tests/unit`（**288 条** —— 2026-08-23 就地改准，此前写的 283 已被 plan `2026-08-22-2325-1`
+`tests/unit`（**293 条** —— 2026-08-23 二次就地改准，此前写的 288 已被 plan `2026-08-23-0120-2`
+新增的 5 条 overdue 诊断判据推翻；口径同样是 `python3 -m pytest tests/unit -q` 的实测通过数。
+再上一次由 283 改成 288 的记述保留在下一行：此前写的 283 已被 plan `2026-08-22-2325-1`
 新增的 5 条判据推翻；口径是 `python3 -m pytest tests/unit -q` 的实测通过数）+ 三条变异验证 +
 `--load-documents` 幂等第二跑的新建计数 +
 装载前后两次 live 整目录判定 + 独立关闭审计。
@@ -1149,6 +1151,33 @@ GL 收入贷方 / GL 成本借方 / 毛利 / 应收逾期 / 应付逾期。期�
 ⚠️ **一条不粉饰的时间依赖**：两张发票的 `status == "Overdue"` 是站点拿**真实时钟**跟 `due_date`
 比出来的，不是拿数据集的 `as_of` 比的。种子日期固定在 2026-02/03，故恒成立 ——
 但这条断言的成立条件是「今天 > `due_date`」，不是结构性成立。
+**⚠️ 2026-08-23 补取证出处（句子本体未改，因为实测证实了它）**，plan `2026-08-23-0120-2` Proof A/B/C 分流 (i)：
+写 `status` 的是**提交时的同步调用链**，容器内 ERPNext v15.119.3 实读 ——
+`erpnext/accounts/doctype/sales_invoice/sales_invoice.py:274 validate()` → `:350 self.set_status()`
+→ `:2037-2038 elif is_overdue(self, total): self.status = "Overdue"` → `:2077-2100 is_overdue()`
+里逐字 `today = getdate()`（`purchase_invoice.py:258` / `:292` / `:2012-2013` 同构，`:22` 直接 import 同一个函数）。
+`scheduler` 的日任务 `erpnext.controllers.accounts_controller.update_invoice_status`
+（`erpnext/hooks.py:447` → `accounts_controller.py:3530-3583`）**不参与**：它的 `conditions` 逐字只更新
+`status LIKE "Unpaid%" / "Partly Paid%"` 的行，且本仓站点侧 scheduler 实测为 disabled、
+`tabScheduled Job Log` 0 行。⚠️ **一处比上面这句更细的实读**：两张发票都有 `payment_schedule`，
+`is_overdue` 走子表分支，比的是 `payment_schedule.due_date`（实测与发票头 `due_date` 同值，结论不变）。
+
+**⚠️ 2026-08-23 新增：诊断与承重断言的分工（plan `2026-08-23-0120-2`，D1 (d)）。**
+`_overdue_checks` 那两条 `CheckResult` 的 `label` 里现在折进了一段**诊断**：按**装载器自己的幂等键**
+（`{company, customer|supplier, posting_date}`，直接取 `document_steps()` 里那两步的 `key`，不复制第二份字面量）
+把本仓预期的那两张发票在站点上认出来，逐条打出 `status` / `due_date` / `docstatus` / `outstanding_amount`。
+**三条边界必须一起读，否则会被读成「判据加严了」**：
+① **它不参与 `ok` 的计算** —— `ok` 仍只由 `_numeric_check` → `_close(total, expected)` 决定，
+筛选条件逐字仍是 `status == "Overdue" and int(docstatus) == 1`，`EXPECTED_*` 一分未改；
+② **它不新增结果行** —— 对账仍是 **9 项**，上面 `--verify-site` 覆盖 9 项那句与「独立约束是 8 条」那条**仍然为真**；
+③ **它加严的是可诊断性，不是判据** —— 既不新增红的入口，也不新增绿的入口，只改变红的时候读得到什么。
+**候选集刻意不取自站点的 `status == "Overdue"` 过滤结果**：那样站点回零张 `Overdue` 时候选集为空，
+诊断会在它唯一存在理由的那个场景下空转；**也不取自 `agenerp/seed/names.py` 的单据号字面量**，
+理由是 `seedsite.py` 的 `DocStep` docstring 已经写明那几个号「是『按顺序建』的巧合，不是站点承诺」。
+⚠️ **诊断里那个「今天」是宿主时钟，不是站点时钟**，消息里逐字标注 `（宿主侧）`：
+2026-08-23 实测 `/api/method/frappe.utils.nowdate` **HTTP 403（没 whitelist）**，
+`SiteClient` 的只读面读不到站点侧的「今天」（读得到的只有 `frappe.client.get_time_zone`）。
+两者若有差，表现是**诊断文字略有偏差，不是判定结果错**。
 
 **⚠️ 三条由 2026-08-22 独立关闭审计当场指出、就地记准的限定**（不改代码，改说法）：
 
@@ -1209,6 +1238,7 @@ plan [`2026-08-22-2325-1`](../plans/p0-foundation/2026-08-22-2325-1-acc-operatin
 另有一条 `test_the_real_master_data_plan_reports_no_mismatch_at_all` 钉住「产品数据此刻确实干净」。
 
 **本段交付的行为没有属于自己的门禁**，与 §12.9 / §12.10 同一处境。
-代偿控制：`tests/unit`（288 条）+ 一次变异验证（把 `M.WH_RAW` 改成缺空格 → 必须红且逐字点名 `WH_RAW`）
+代偿控制：`tests/unit`（**293 条**，2026-08-23 就地改准，此前写的 288 已被 plan `2026-08-23-0120-2`
+新增的 5 条判据推翻）+ 一次变异验证（把 `M.WH_RAW` 改成缺空格 → 必须红且逐字点名 `WH_RAW`）
 + 冷起站点上的 `--load-masters` / `--load-documents` / `--verify-site` 实跑 + 独立关闭审计。
 **验证范围限于本机，不含 CI**。

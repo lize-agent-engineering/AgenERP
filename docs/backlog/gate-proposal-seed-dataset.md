@@ -92,6 +92,17 @@ loop 走不了最后一步（带 trailer 的提交只有人能做），但可以
   `Purchase Invoice` 同口径 = **¥2,200.00**（`ACC-PINV-2026-00001`）。
   ⚠️ **一条成立条件照实写**：`status` 是站点拿**真实时钟**跟 `due_date` 比出来的，
   不是拿数据集的 `as_of` 比的。种子日期固定在 2026-02/03 故恒成立，但这不是结构性成立。
+  **⚠️ 2026-08-23 补取证出处（句子本体未改 —— 实测证实了它）**，plan `2026-08-23-0120-2` 分流 (i)：
+  写 `status` 的是**提交时的同步调用链**，容器内 ERPNext v15.119.3 实读
+  `erpnext/accounts/doctype/sales_invoice/sales_invoice.py:274 validate()` → `:350 self.set_status()`
+  → `:2037-2038` → `:2077-2100 is_overdue()`（逐字 `today = getdate()`）；
+  `purchase_invoice.py:258` / `:292` / `:2012-2013` 同构，`:22` 直接 import 同一个 `is_overdue`。
+  `scheduler` 的日任务 `erpnext.controllers.accounts_controller.update_invoice_status`
+  （`erpnext/hooks.py:447`）**不参与** —— 它只更新 `status LIKE "Unpaid%" / "Partly Paid%"` 的行；
+  本仓站点侧 scheduler 实测 disabled、`tabScheduled Job Log` 0 行。
+  ⚠️ 精确形态：两张发票都有 `payment_schedule`，`is_overdue` 走子表分支，比的是
+  `payment_schedule.due_date`（实测与发票头 `due_date` 同值）。
+  **采纳时这段出处可以一并照抄；本 plan 不改本文件的 `Status: proposed`，不代人采纳。**
 
 **采纳时可直接照抄的读取路径与期望值出处**：全部 9 项的实现见
 `agenerp/seedsite.py` 的 `verify_site()`；期望值一律取自 `agenerp/seed/checks.py` 的 `EXPECTED_*`

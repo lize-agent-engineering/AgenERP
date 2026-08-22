@@ -1,6 +1,6 @@
 # 2026-08-23-0120-2 取证 `_overdue_checks` 的成立机制，并让它的红自解释
 
-> Plan Status: active
+> Plan Status: completed
 > Mission: p0-foundation
 > Work Item: 工作项 7 · 种子数据（站点侧对账那一段；**不改工作项 7 的状态值**）
 > Last Reviewed: 2026-08-23
@@ -461,7 +461,7 @@ Exit Criteria:
 
 ### Phase 3 - 活站点实证 + 按 Phase 1 的分流改准文档
 
-Status: planned
+Status: completed
 Targets: `agenerp/seedsite.py:811-816`（docstring）· `docs/architecture/system-baseline.md` §14.5 ·
 `docs/architecture/module-boundaries.md` §12.10 + `:1149-1151` + `:1142` + `:1212` · `docs/context/project-context.md:57` ·
 `docs/backlog/gate-proposal-seed-dataset.md:93-94` · `docs/backlog/p0-foundation-roadmap.md`
@@ -470,20 +470,20 @@ Skill: `none`
 - Item Types: `Fix | Add | Proof`
 - Prereqs: Phase 2 全部 Exit Criteria
 
-- [ ] **Proof：从 `down -v` 冷起的空站点跑完整条链**，四条命令各判退出码（端口 18080，每条带 `--site frontend`）：
+- [x] **Proof：从 `down -v` 冷起的空站点跑完整条链**，四条命令各判退出码（端口 18080，每条带 `--site frontend`）：
       `--load-masters` → 0 · `--load-documents` → 0 · 原样复跑（`^合计：新建 0 `）→ 0 · `--verify-site` → **0**。
       **`--verify-site` 必须仍打「9 项，通过 9，失败 0」**；承重两行 `actual_qty = 1010.00` /
       `stock_value = 6450.00` 必须与 `2107-2` / `2325-1` / `2325-2` 的记录**逐字相同**——
       任一个数变了即说明动到了不该动的东西，**立即停并回 Phase 2**。
       - Skill: `none`
-- [ ] **Proof：贴出改动后两条 overdue 行的实际输出原文**（绿的那次），供审计确认诊断内容真的出现在消息里、
+- [x] **Proof：贴出改动后两条 overdue 行的实际输出原文**（绿的那次），供审计确认诊断内容真的出现在消息里、
       且没有把承重的 `= 18612.00 / expected = 18612.00` 挤掉。
       - Skill: `none`
-- [ ] **Fix：按 Phase 1 C 的分流改准 `agenerp/seedsite.py:813-815` 的 docstring。**
+- [x] **Fix：按 Phase 1 C 的分流改准 `agenerp/seedsite.py:813-815` 的 docstring。**
       - 分流 (i)：把「是……比出来的」改成「**已实测**：……，证据见 `<容器内路径>:<行号>`」；
       - 分流 (ii)/(iii)：该句**被证伪**，此时才是 Minimum Rule 14 的确认漂移，就地改准为实测结论。
       - Skill: `none`
-- [ ] **Fix：`docs/architecture/system-baseline.md` §14.5「起草时点名的头号候选，被实测证伪」段。**
+- [x] **Fix：`docs/architecture/system-baseline.md` §14.5「起草时点名的头号候选，被实测证伪」段。**
       该段逐字写着「**本 plan 没有查证**」——本 plan 查证了，那句话的效力就此被接管。
       按本仓已固化做法**追加一段「⚠️ 2026-08-23 补记」**，⚠️ **保留原句不删**
       （它是当时诚实的限定，删掉等于抹掉「曾经不知道」这个事实），只指明其现时效力已被接管。
@@ -492,7 +492,7 @@ Skill: `none`
       它仍是**当时那次运行的真实记录**，处置是在补记段里点明「那两行是 run `32585965892` 的历史记录，
       不是改动后的现时输出」，**不改写它**。
       - Skill: `none`
-- [ ] **Fix（两分支，与 docstring 那项同构）：`docs/context/project-context.md:57` 末句**
+- [x] **Fix（两分支，与 docstring 那项同构）：`docs/context/project-context.md:57` 末句**
       （「⚠️ 两张发票的 `Overdue` 依赖真实时钟（今天 > `due_date`），不是结构性成立」）。
       - 分流 (i)：该句**取证成立** → **只在句末补上取证出处**，句子本体不动；
       - 分流 (ii)/(iii)：该句**被证伪** → 此时它是 Minimum Rule 14 的确认漂移，**必须就地改准**
@@ -502,7 +502,7 @@ Skill: `none`
       「下一个需要往该表新增一行或改写既有行的 plan 开工时」——**本 plan 触发它**，
       处置沿用同一裁定：**只在既有句末补出处，不重构结构、不新增行**。
       - Skill: `none`
-- [ ] **Fix（两分支）：`docs/architecture/module-boundaries.md` §12.10。**
+- [x] **Fix（两分支）：`docs/architecture/module-boundaries.md` §12.10。**
       ① 无条件：补一小段说明诊断与承重断言的分工。
       ② **`:1149-1151` 那段机制复述**按分流处理：(i) 句末补取证出处；
       (ii)/(iii) **就地改准**（Rule 14）。⚠️ 承重那半句「但这条断言的成立条件是『今天 > `due_date`』」
@@ -510,16 +510,16 @@ Skill: `none`
       ⚠️ **`:1135` 的「覆盖 9 项」与 `:1155-1159` 的「9 项是打印行数、独立约束是 8 条」两处一个字不改**——
       D1 选了 (d)，两处仍然为真。**这是刻意不改，不是遗漏。**
       - Skill: `none`
-- [ ] **Fix（两分支）：`docs/backlog/gate-proposal-seed-dataset.md:93-94`。**
+- [x] **Fix（两分支）：`docs/backlog/gate-proposal-seed-dataset.md:93-94`。**
       它是**给人照抄用的门禁提案正文**（`:96` 逐字「采纳时可直接照抄」），因此比另两处更要紧：
       (i) 句末补取证出处；(ii)/(iii) 就地改准。**本 plan 不改该文件的 `Status: proposed`，不代人采纳。**
       - Skill: `none`
-- [ ] **Add：`docs/backlog/p0-foundation-roadmap.md` 追加一行「7 现状 · overdue 机制取证」**，
+- [x] **Add：`docs/backlog/p0-foundation-roadmap.md` 追加一行「7 现状 · overdue 机制取证」**，
       **纯追加，既有行一个字不改**（`:83` / `:84` / `:123` 的「9 项」是历史证据记录，**按红线式做法不改写**），
       并逐字写明：**工作项 7 的状态值不因此变动**（卡点仍是「那条 L1 门禁从未进过 `expected-red.txt`，
       『划掉』这个动作没有对象」），**也不得**被读成「站点侧那三条断言已成为门禁」。
       - Skill: `none`
-- [ ] **Fix（本 plan 自己制造的 owner-doc 漂移，Minimum Rule 14，必须同一批改掉）：三处 `tests/unit` 条数就地改准。**
+- [x] **Fix（本 plan 自己制造的 owner-doc 漂移，Minimum Rule 14，必须同一批改掉）：三处 `tests/unit` 条数就地改准。**
       Baseline 9：`tests/unit` 现为 **288 条**，本 plan 的 Phase 2 会新增用例 → 三处写死 288 的陈述当场变假：
       `docs/context/project-context.md:57` · `docs/architecture/module-boundaries.md:1142` · `:1212`。
       **口径与前例一致**（`STATE.md:169` / `docs/logs/2026/08-23.md` 记的 `283 → 288` 那次）：
@@ -527,7 +527,7 @@ Skill: `none`
       ⚠️ **这一项不受本 Phase 其他项「只补句末 / 不新增行」限制的约束** —— 那些限制说的是**结构**，
       这里改的是**一个已经变假的数字**，两者不冲突；**是本 plan 自己造成的漂移，必须自己收拾。**
       - Skill: `none`
-- [ ] **Proof：陈旧陈述复核（两条 grep，不只一条）。**
+- [x] **Proof：陈旧陈述复核（两条 grep，不只一条）。**
       ① `grep -rn "9 项" docs/ .github/ agenerp/ tools/ | grep -v "门禁 19 项"` —— 逐条确认**每一处仍然为真**
       （D1 选 (d) 的直接收益）；
       ② `grep -rn "288 条" docs/ | grep -v "^docs/logs/\|^docs/plans/\|^docs/masterplan/STATE"` ——
@@ -539,17 +539,141 @@ Skill: `none`
       ⚠️ 若发现任一处因本 plan 而不再为真，**立即停并回 Phase 2**——因为那意味着 D1 (d) 没有被真正贯彻。
       - Skill: `none`
 
+#### Phase 3 实做记录（2026-08-23）
+
+**四条 CLI（从 `down -v` 冷起的空站点，端口 18080，每条带 `--site frontend`）**：
+
+| # | 命令 | 退出码 | 关键输出（逐字） |
+|---|---|---|---|
+| 0a | `AGENERP_HTTP_PORT=18080 docker compose -f docker-compose.yml down -v` | **0** | — |
+| 0b | `AGENERP_HTTP_PORT=18080 docker compose -f docker-compose.yml up -d --wait --wait-timeout 300` | **0** | — |
+| ① | `… python3 -m agenerp.seedsite --load-masters --site frontend` | **0** | `合计：新建 40 / 已存在 0` |
+| ② | `… python3 -m agenerp.seedsite --load-documents --site frontend` | **0** | `合计：新建 17 / 已存在 0 / 提交 11` |
+| ③ | 同 ②，原样复跑 | **0** | `合计：新建 0 / 已存在 17 / 提交 0`（`grep -c "^合计：新建 0 "` → `1`） |
+| ④ | `… python3 -m agenerp.seedsite --verify-site --site frontend` | **0** | `站点侧对账：9 项，通过 9，失败 0` |
+
+**承重两行与 `2107-2` / `2325-1` / `2325-2` 的记录逐字对照 —— 相同，未动到不该动的东西**：
+
+```
+✅ Bin(XM-LACE-1000, XM 成品仓 - XM).actual_qty = 1010.00 / expected = 1010.00（出处：agenerp.seed.checks.EXPECTED_BACKLOG_QTY）
+✅ Bin(XM-LACE-1000, XM 成品仓 - XM).stock_value = 6450.00 / expected = 6450.00（出处：agenerp.seed.checks.EXPECTED_BACKLOG_VALUE）
+```
+
+**改动后两条 overdue 行的活站点实际输出原文（绿的那次，`--verify-site` exit 0）**：
+
+```
+✅ Sales Invoice 中 status == 'Overdue' 的 outstanding_amount 合计（命中 1 张：ACC-SINV-2026-00001；本仓预期 —— ACC-SINV-2026-00001：status=Overdue / due_date=2026-03-10（已到期，今天 2026-08-23（宿主侧）） / docstatus=1（已提交） / outstanding_amount=18612.00） = 18612.00 / expected = 18612.00（出处：agenerp.seed.checks.EXPECTED_RECEIVABLE_OVERDUE）
+✅ Purchase Invoice 中 status == 'Overdue' 的 outstanding_amount 合计（命中 1 张：ACC-PINV-2026-00001；本仓预期 —— ACC-PINV-2026-00001：status=Overdue / due_date=2026-03-09（已到期，今天 2026-08-23（宿主侧）） / docstatus=1（已提交） / outstanding_amount=2200.00） = 2200.00 / expected = 2200.00（出处：agenerp.seed.checks.EXPECTED_PAYABLE_OVERDUE）
+```
+
+承重的 `= 18612.00 / expected = 18612.00` / `= 2200.00 / expected = 2200.00`
+与 `（出处：agenerp.seed.checks.EXPECTED_*_OVERDUE）` **都在行尾，没有被诊断挤掉**。
+
+**docstring 的新文（`agenerp/seedsite.py` 的 `_overdue_checks`，⚠️ 分流 (i) 故句子本体未改、只补出处）**：
+
+```
+⚠️ **成立条件照实说**：`status` 是站点拿**真实时钟**跟 `due_date` 比出来的，
+不是拿数据集的 `as_of` 比的。种子日期固定在过去，故恒成立 —— 但这条断言依赖
+「今天 > due_date」，不写出来会被误读成结构性成立。
+**2026-08-23 已实测取证**（plan `2026-08-23-0120-2` Proof A/B/C，分流 (i)）：写 `status` 的是
+**提交时的同步调用链** `validate()` → `set_status()` → `is_overdue()`
+（容器内 ERPNext v15.119.3 `erpnext/accounts/doctype/sales_invoice/sales_invoice.py:350`
+/ `:2037-2038` / `:2077-2100`，`purchase_invoice.py:292` / `:2012-2013` 且 `:22` 直接 import 同一个
+`is_overdue`），比的是 `today = getdate()`（真实时钟）；`scheduler` 的日任务
+`erpnext.controllers.accounts_controller.update_invoice_status`（`erpnext/hooks.py:447`）**不参与** ——
+它的 `conditions` 只更新 `status LIKE "Unpaid%" / "Partly Paid%"` 的行。
+⚠️ 精确形态：本仓两张发票都有 `payment_schedule`，`is_overdue` 走的是子表分支，
+比的是 `payment_schedule.due_date`（实测与发票头上的 `due_date` 同值）。
+```
+
+**`system-baseline.md` §14.5 的新文（⚠️ 纯追加，`git diff --numstat` = `33	0`，删除列为 `0`，原句一个字未删）**：
+新段以「**⚠️ 2026-08-23 补记（原句一个字未删；plan `2026-08-23-0120-2` 已把上面那个「本 plan 没有查证」查证掉了）**」开头，
+分四小节给出源码面 / scheduler 路径不可达 / 运行面 / 「不再是推理」，并逐字点明
+「上面那两行 `✅ Sales Invoice …` 引文是 run `32585965892` 的历史记录，不是改动后的现时输出」**且不改写它**，
+末句逐字「**对账仍是 9 项**，本节 `--verify-site` 那句「9 项对账全过」**仍然为真，一个字未改**」。
+
+**分流 (i) 下的四处措辞处置（都只补出处，不改句子本体）**：
+
+| # | 文件 | 处置 | `--numstat` |
+|---|---|---|---|
+| 1 | `agenerp/seedsite.py` `_overdue_checks` docstring | 句后补「2026-08-23 已实测取证……」 | 随 Phase 2 一并提交 |
+| 2 | `docs/context/project-context.md:57` 末句 | **句末补出处**，句子本体未动 | `2	2`（另一处删除来自 `tests/unit` 条数改准） |
+| 3 | `docs/architecture/module-boundaries.md:1149-1151` | **句后补出处**，含 `:1151` 那半句「成立条件是『今天 > `due_date`』」——**未改写** | `32	2` |
+| 4 | `docs/backlog/gate-proposal-seed-dataset.md:93-94` | **句后补出处**并逐字写明「采纳时这段出处可以一并照抄」；**`Status: proposed` 未改** | `11	0` |
+
+**`module-boundaries.md` §12.10 的无条件新段**：写明诊断与承重断言的分工三条边界
+（① 不参与 `ok` 的计算 ② 不新增结果行、仍是 9 项 ③ 加严的是可诊断性不是判据），
+并写明候选集为何不取自站点 `Overdue` 过滤结果 / 不取自 `names.py` 字面量，以及「今天」是宿主时钟。
+⚠️ **`:1135` 的「覆盖 9 项」与 `:1155-1159`（现 `:1184-1188`）的「9 项是打印行数、独立约束是 8 条」两处一个字未改** —— 刻意不改，不是遗漏。
+
+**`docs/backlog/p0-foundation-roadmap.md`：纯追加一行**「`7 现状 · overdue 机制取证`」，
+`git diff --numstat` = `1	0`（**删除列为 `0`**），`:83` / `:84` / `:123`（现 `:125`）一个字未改；
+行内逐字写明「**工作项 7 的状态值不因此变动，仍 `planned`**，卡点仍是那条 L1 门禁从未进过
+`expected-red.txt`、『划掉』这个动作没有对象」，以及「**不得**被读成『站点侧那三条断言已成为门禁』」。
+
+**`tests/unit` 条数就地改准（本 plan 自己制造的漂移，Minimum Rule 14）**：
+按 `python3 -m pytest tests/unit -q` 的**实测通过数 293** 改准三处 —— `docs/context/project-context.md:57`
+（代偿控制那句）· `docs/architecture/module-boundaries.md:1142` · `:1212`。
+⚠️ **另外发现第四处，一并处置，照实记**：`docs/context/project-context.md` 的 `Unit tests` 那一行
+（前驱 plan `0120-1` 于本轮之前写入）里的 `288 passed in 2.96s` 是**run `32591647735` 的日志逐字转录**，
+按历史证据不改写，改为在其后补一句「那是当次运行的历史证据，不是活计数；活计数现为 **293 条**」。
+
+**陈旧陈述复核 —— 两条 grep 的清单与逐条结论：**
+
+**grep ①**：`grep -rn "9 项" docs/ .github/ agenerp/ tools/ | grep -v "门禁 19 项"` —— 共 **64 行命中**。
+按归属分两类，**每一处仍然为真**（D1 选 (d)、项数未变的直接收益）：
+
+- **活陈述（10 处，逐条确认仍为真）**：`docs/context/project-context.md:57`（对账仍 9 项 ✅）·
+  `docs/architecture/module-boundaries.md:1135`（覆盖 9 项 ✅）· `:1172`（本 plan 新写的「仍是 9 项」✅）·
+  `:1184` / `:1188`（9 项是打印行数、独立约束 8 条 ✅，本 plan 未改结果集故仍成立）·
+  `docs/backlog/gate-proposal-seed-dataset.md:107`（「全部 9 项的实现见 `verify_site()`」✅）·
+  `docs/backlog/p0-foundation-roadmap.md:83` / `:84` / `:125`（✅）·
+  `docs/architecture/system-baseline.md:682`（`--verify-site` 退出码 0、9 项对账全过 ✅，本轮实跑复证）·
+  `.github/workflows/gates.yml:368`（step 名 `④ 站点侧对账（9 项）` ✅ —— **本 plan 一行未动该文件**）·
+  `docs/bugs/01-…:82`（9 项全过 ✅）。
+- **历史证据（其余，按红线式做法不改写）**：`docs/plans/**`（`2325-2` / `2107-2` / `2325-1` / `1922-1` / 本 plan）·
+  `docs/logs/2026/08-21.md` / `08-22.md` / `08-23.md` · `docs/masterplan/STATE.md:66/165/173/176` ·
+  `docs/masterplan/02-WBS.md:53` · `docs/masterplan/archive/STATE-2026-08-22.md:98/156`
+  （⚠️ 后四者受**红线 5** 保护，本 plan 一个字节未改）。
+- **✅ 结论：无一处因本 plan 而不再为真**，因此不触发「立即停并回 Phase 2」。
+
+**grep ②**：`grep -rn "288 条" docs/ | grep -v "^docs/logs/\|^docs/plans/\|^docs/masterplan/STATE"` ——
+改准前命中 **1 行**：`docs/backlog/p0-foundation-roadmap.md:91`（前驱 plan `0120-1` 的那一行，
+「跑 `python3 -m pytest tests/unit -q`（288 条）」）。
+**处置**：该数字是权威运行 `32591647735` 的日志转录（同段逐字有 `288 passed in 2.96s`），属**历史证据**；
+且本 plan 对 roadmap 的授权是**纯追加、既有行一个字不改**。因此**不改写它**，改为在本 plan 自己追加的
+`7 现状 · overdue 机制取证` 行里补一句跨行说明：那两处是 run `32591647735` 的转录，
+`tests/unit` 的**活计数**现为 **293 条**，已在 `project-context.md` 与 `module-boundaries.md` 两处就地改准。
+⚠️ **这是刻意的取舍，照实记**：两条约束（「自己造的漂移自己收拾」与「roadmap 只能追加」）在这一行上直接相撞，
+选了「不改写历史证据 + 就地加指向」，代价是**这一行仍然写着 288**，读的人必须连着读下一段才拿得到活计数。
+改准后同一条 grep 的命中**仍是这 1 行**（形态未变，见上）；`docs/logs/` / `docs/plans/` / `STATE.md`
+里的 `288` 一律不改写（红线 5 与追加式惯例）。
+
+**本 Phase 的验证（命令原文 + 退出码）**：
+
+```
+$ python3 tools/gates/check_expected_red.py                       -> 0（判定行逐字节不变）
+$ python3 -m pytest tests/unit -q                                 -> 0   （293 passed）
+$ python3 -m pytest tests/contracts -q                            -> 0   （151 passed）
+$ ruff check agenerp tests/unit tests/contracts                   -> 0   （All checks passed!）
+$ git status --porcelain tests/gates .github tools/gates missions docker-compose.yml docs/masterplan
+                                                                  -> 无输出（红线自查五条全部为期望值）
+```
+
+⚠️ **verification scope limited：活站点证据限于本机**（端口 18080，本机 docker 栈）。
+合并后由既有 CI job `gates-l2-seed` 在 `main` 上自然复跑一次，**该 run id 必须补记进 `## Closure`**。
+
 Exit Criteria:
 
-- [ ] 四条 CLI 的退出码 + 「9 项，通过 9，失败 0」+ 两个承重数字的逐字对照记在本 plan 内
-- [ ] 改动后两条 overdue 行的输出原文贴在本 plan 内
-- [ ] docstring 与 §14.5 的新文并列贴在本 plan 内，供审计逐字比对
-- [ ] `grep -rn "9 项"` 的清单与「每一处仍然为真」的逐条结论记在本 plan 内
-- [ ] 三处 `tests/unit` 条数已按实测改准（`project-context.md:57` · `module-boundaries.md:1142` · `:1212`），
+- [x] 四条 CLI 的退出码 + 「9 项，通过 9，失败 0」+ 两个承重数字的逐字对照记在本 plan 内
+- [x] 改动后两条 overdue 行的输出原文贴在本 plan 内
+- [x] docstring 与 §14.5 的新文并列贴在本 plan 内，供审计逐字比对
+- [x] `grep -rn "9 项"` 的清单与「每一处仍然为真」的逐条结论记在本 plan 内
+- [x] 三处 `tests/unit` 条数已按实测改准（`project-context.md:57` · `module-boundaries.md:1142` · `:1212`），
       且第二条 grep 的清单记在本 plan 内
-- [ ] roadmap 与（若触发）`STATE.md` 均为**纯追加**（`git diff --numstat` 的删除列为 `0`）
-- [ ] 工作项 7 / 9 的状态值**一个字未改**（仍 `planned`）
-- [ ] `docs/logs/` 更新
+- [x] roadmap 与（若触发）`STATE.md` 均为**纯追加**（`git diff --numstat` 的删除列为 `0`）
+- [x] 工作项 7 / 9 的状态值**一个字未改**（仍 `planned`）
+- [x] `docs/logs/` 更新
 
 ## Draft Review Record
 
@@ -657,28 +781,30 @@ Exit Criteria:
 
 ## Closure Gates
 
-- [ ] in-scope behavior is complete（机制取证到位、红自解释、文档按分流改准）
-- [ ] relevant docs are aligned（`seedsite.py` docstring · §14.5 · §12.10 · `project-context.md:57` · roadmap 追加行）
-- [ ] verification has run：`python3 tools/gates/check_expected_red.py`（默认判定环境，判定行必须**逐字节不变**，
+- [x] in-scope behavior is complete（机制取证到位、红自解释、文档按分流改准）
+- [x] relevant docs are aligned（`seedsite.py` docstring · §14.5 · §12.10 · `project-context.md:57` · roadmap 追加行）
+- [x] verification has run：`python3 tools/gates/check_expected_red.py`（默认判定环境，判定行必须**逐字节不变**，
       基线三行逐字为 `判定模式：default —— 按 tools/gates/expected-red.txt 判定` /
       `门禁 19 项：预期红 7，绿 12，跳过 0` / `✅ 与预期红名单完全一致`，exit 0）·
       `python3 -m pytest tests/unit -q` · `python3 -m pytest tests/contracts -q` ·
       `ruff check agenerp tests/unit tests/contracts`（`project-context.md:52`；本 plan 动了 `tests/unit` 里的文件）·
       冷起站点四条 CLI · **三条**变异验证共六次
-- [ ] scoped verification is not conflated with full verification —— **本 plan 的活站点证据只在本机取得**；
+- [x] scoped verification is not conflated with full verification —— **本 plan 的活站点证据只在本机取得**；
       合并后由既有 `gates-l2-seed` 在 `main` 上自然复跑一次，**该 run id 必须补记进 `## Closure`**。
       在拿到它之前，必须逐字记「verification scope limited：活站点证据限于本机」
-- [ ] **合并后 `main` 上 `gates-l2-seed` 为 `success`**（本 plan 改的 `--verify-site` 正是它的第 ④ 步；
+- [ ] ⚠️ **仍未满足（照实记，不勾）**：**合并后 `main` 上 `gates-l2-seed` 为 `success`**（本 plan 改的 `--verify-site` 正是它的第 ④ 步；
       若它红，走 `## Deferred But Adjudicated` 的落 `main` 后处置）
-- [ ] no in-scope item downgraded to deferred/follow-up —— ⚠️ 若走首条固定处置，
+- [x] no in-scope item downgraded to deferred/follow-up —— ⚠️ 若走首条固定处置，
       「按分流改准措辞」那三项的落点是 `adjudicated as residual-risk-only`（Anti-Slacking 允许的四态之一），
       **不是** downgrade 成 follow-up，两者不得混同
-- [ ] independent draft review completed and recorded —— 轮次以 `## Draft Review Record` 的**实际记录**为准，
+- [x] independent draft review completed and recorded —— 轮次以 `## Draft Review Record` 的**实际记录**为准，
       **本行刻意不写死一个数**（首轮推翻了承重前提，此后每轮都在改，写死就会立刻过期）
-- [ ] text consistency verified: status, phases, gates, and log all agree
-- [ ] closure audit was independent
-- [ ] closure evidence exists in files
-- [ ] **红线自查五条**：① `tests/gates/**` 零改动 ② `.github/workflows/**` 零改动
+- [x] text consistency verified: status, phases, gates, and log all agree
+- [ ] ⚠️ **仍未满足（照实记，不勾）**：closure audit was independent —— 本轮执行未跑独立关闭审计，
+      `docs/context/ai-autonomy-policy.md` 的 Reviewer availability 是 `subagent`，该审计归 loop 的 `CLOSURE_VERIFY` 步；
+      **不得**把本轮的自查读成独立审计
+- [x] closure evidence exists in files
+- [x] **红线自查五条**：① `tests/gates/**` 零改动 ② `.github/workflows/**` 零改动
       ③ `docs/masterplan/DECISIONS.md` 零改动、无新增 `R-x` ④ `missions/**` 零改动
       ⑤ `docs/masterplan/STATE.md` 只追加不改写（仅分流 (ii)/(iii) 或停机时才写）
 
@@ -775,13 +901,35 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: <待关闭时填写>
+Status Note: **三个 Phase 全部执行完毕并全绿。** Phase 1 取证落在**分流 (i)**（提交时即时计算，`scheduler` 不参与）；
+Phase 2 交付「红自解释」且**结果集仍是 9 项**、`ok` 的算法一字未改；Phase 3 完成冷起活站点实证并按 (i) 把
+docstring 与三处活陈述**只补出处、不改本体**，`system-baseline.md` §14.5 纯追加补记、原句未删。
+⚠️ **verification scope limited：活站点证据限于本机**（端口 18080 的本机 docker 栈）；
+合并后由既有 CI job `gates-l2-seed` 在 `main` 上自然复跑一次，**该 run id 尚未取得，必须补记进本节**。
+⚠️ **本 plan 新增的 5 条单测是否被 CI 复跑，取决于前驱 `2026-08-23-0120-1` 是否已落 `main`** ——
+它此刻 `Plan Status: completed`、其 CI job `unit-and-contracts` 的落地 sha 记为 `7a09ef7`，
+因此**预期会被复跑**，但**本 plan 未亲自取得那次 run id，不得含糊成「已有 CI 覆盖」**。
+⚠️ **两条 Closure Gate 仍未满足并已就地标注**：合并后的 `gates-l2-seed` run、独立关闭审计。
+⚠️ **工作项 7 的状态值一个字未改，仍 `planned`**（工作项 9 同样未改）。
 
 Closure Audit Evidence:
 
-- Auditor / Agent: <independent subagent>
-- Evidence: <命令原文 + 退出码 + commit sha>
+- Auditor / Agent: **本轮未跑独立关闭审计**（归 loop 的 `CLOSURE_VERIFY` 步；`ai-autonomy-policy` 的
+  Reviewer availability 为 `subagent`）。**照实记，不得读成已审计。**
+- Evidence（命令原文 + 退出码 + commit sha，全部为本机实跑）：
+  - `python3 tools/gates/check_expected_red.py` → **0**，判定三行逐字节为基线值
+    （`判定模式：default —— 按 tools/gates/expected-red.txt 判定` / `门禁 19 项：预期红 7，绿 12，跳过 0` /
+    `✅ 与预期红名单完全一致`）
+  - `python3 -m pytest tests/unit -q` → **0**（`293 passed`）
+  - `python3 -m pytest tests/contracts -q` → **0**（`151 passed`）
+  - `ruff check agenerp tests/unit tests/contracts` → **0**（`All checks passed!`）
+  - 冷起活站点四条 CLI → **0 / 0 / 0 / 0**，`站点侧对账：9 项，通过 9，失败 0`
+  - 三条变异共六次 `python3 -m pytest tests/unit -q` → **1 / 0 / 1 / 0 / 1 / 0**
+  - commit sha：Phase 1 `9144408` · Phase 2 `798b97c` · Phase 3 见本次提交
 
 Follow-up:
 
-- <非阻塞项；确认的缺陷不得出现在这里>
+- **（非阻塞）** `docs/backlog/p0-foundation-roadmap.md:91` 里的「（288 条）」仍写着 288。
+  它是权威运行 `32591647735` 的日志转录（历史证据），且本 plan 对 roadmap 只有「纯追加」授权，
+  故**不改写**，改为在本 plan 追加的那一行里补了指向活计数 293 的跨行说明。
+  ⚠️ **这不是被降级的缺陷**：它是两条约束相撞时的就地取舍，代价已在 Phase 3 记录里逐字写明。

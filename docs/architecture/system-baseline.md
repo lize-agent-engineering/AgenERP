@@ -712,6 +712,39 @@ runner 站点上最可能红的一项」——理由是那个值由站点拿**�
 `status` 是不是由 `scheduler` 而非提交时的即时计算给出，**本 plan 没有查证**，因此
 **不得把这条读成「overdue 判定与时钟无关」**。它仍是这个 job 未来最可能先红的一项。
 
+**⚠️ 2026-08-23 补记（原句一个字未删；plan `2026-08-23-0120-2` 已把上面那个「本 plan 没有查证」查证掉了）。**
+上面那半句「`status` 是不是由 `scheduler` 而非提交时的即时计算给出，**本 plan 没有查证**」
+**记的是当时诚实的限定，保留不删**；它的现时效力**已被接管** —— 现在查证过了，结论是**提交时的即时计算**：
+
+- **源码面**（容器内 ERPNext v15.119.3 实读）：`erpnext/accounts/doctype/sales_invoice/sales_invoice.py:274`
+  `def validate(self):` → `:350` `self.set_status()` → `:2037-2038`
+  `elif is_overdue(self, total): / self.status = "Overdue"` → `:2077-2100` `def is_overdue(doc, total):`
+  里逐字 `today = getdate()`（不带参 = 真实时钟）。`purchase_invoice.py:258` / `:292` / `:2012-2013` 同构，
+  且 `purchase_invoice.py:22` 逐字 `is_overdue,` —— **直接 import 销售发票那一个函数，不是各写一份**。
+  ⚠️ **起草本次取证时点名的 `erpnext/controllers/status_updater.py` 是错的**：
+  `grep -n "Overdue"` 对该文件 **exit 1、零命中**。照实记。
+- **`scheduler` 那条路径确实存在，但对这两行按构造不可达**：
+  `erpnext/hooks.py:444` `"daily_maintenance": [` → `:447`
+  `"erpnext.controllers.accounts_controller.update_invoice_status",`；本体在
+  `accounts_controller.py:3530-3583`，docstring 逐字 `Updates status as Overdue for applicable invoices. Runs daily.`，
+  同样 `today = getdate()`，但 `conditions` 逐字含
+  `& (invoice.status.like("Unpaid%") | invoice.status.like("Partly Paid%"))` ——
+  **提交时已经写成 `Overdue` 的行不在它的更新集里**。
+- **运行面**：容器 `agenerp-scheduler-1` 起着，但 `bench --site frontend scheduler status` →
+  `Scheduler is disabled for site frontend`，`frappe.utils.scheduler.is_scheduler_inactive` → `true`，
+  `select count(*) from tabScheduled Job Log` → **0**（这个站点上定期任务一次都没跑过）。
+  `down -v` 冷起后立刻读回：`creation 03:05:56.475591` / `modified 03:05:56.569227`（相差 **94 ms**，同秒），
+  站点存活不到两分钟，`status` 已是 `Overdue`。
+- **因此 Baseline 里那句「两条路径都是拿真实时钟比 `due_date`」不再是推理**，两处各自逐字 `today = getdate()`。
+  ⚠️ 更细的一层：两张发票都有 `payment_schedule`，`is_overdue` 走子表分支，
+  比的是 `payment_schedule.due_date`（实测与发票头 `due_date` 同值，结论不变）。
+
+⚠️ **上面那两行 `✅ Sales Invoice …` / `✅ Purchase Invoice …` 引文是 run `32585965892` 的历史记录，
+不是改动后的现时输出**：`2026-08-23-0120-2` 把诊断折进了那两条的 `label`，现时输出形如
+`… （命中 1 张：ACC-SINV-2026-00001；本仓预期 —— ACC-SINV-2026-00001：status=Overdue / due_date=2026-03-10（已到期，今天 2026-08-23（宿主侧）） / docstatus=1（已提交） / outstanding_amount=18612.00） = 18612.00 / expected = 18612.00…`。
+**历史引文不改写**（它是当时那次运行的真实记录）。
+⚠️ **对账仍是 9 项**，本节 `--verify-site` 那句「9 项对账全过」**仍然为真，一个字未改**。
+
 ### 它**不**覆盖什么（这一段不许省，也不许读成更强的说法）
 
 - **它不使种子链的三条站点侧断言成为门禁。** 本 job 判的是 **CLI 退出码**，
