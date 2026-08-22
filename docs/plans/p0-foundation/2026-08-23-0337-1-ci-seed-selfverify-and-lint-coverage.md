@@ -405,7 +405,7 @@ Exit Criteria:
 
 ### Phase 3 - 变异实证（PR 分支上跑 CI，证明两个新 job 有牙齿）
 
-Status: planned
+Status: completed
 Targets: 临时变异提交（**全部必须 revert 并实测复原**）· 本 plan 的取证记录
 Skill: `none`
 
@@ -418,7 +418,7 @@ Skill: `none`
 ⚠️ **若出现一次未被预测的红，它就是真的红**：立即按 `## Deferred But Adjudicated` 的固定处置停下。
 **CI 预算**：本 Phase 预计消耗 5 次 run，实际次数在关闭时按实填，并对照裁判规则 4 的累计成本条款。
 
-- [ ] **Proof：开分支 `ci/0337-1-seed-lint-coverage`，推首跑。** 记 run id + 13 个 job 的结论 +
+- [x] **Proof：开分支 `ci/0337-1-seed-lint-coverage`，推首跑。** 记 run id + 13 个 job 的结论 +
       两个新 job 的日志逐字行。与预测 ①② 逐条对照。
       ⚠️ **Baseline 7 那条推理的真正判据在这一跑，不在 Phase 2**（初稿把它写在 Phase 2 而 Phase 3 又以
       Phase 2 为前置，形成循环，评审第 1 轮抓出）：`python3 -m agenerp.seed` 不经过 pytest，
@@ -427,7 +427,7 @@ Skill: `none`
       若 runner 上 import 失败，处置是**在 job 里加 `pip install -e .`**（那是**加**，不是放宽），
       **不得**改成 `PYTHONPATH=. python3 …` 这种把成立条件藏进 env 的写法。
       - Skill: `none`
-- [ ] **Proof：变异实验 A（ruff）。** 往 `agenerp/` 下某个模块加一处 ruff 必报的违例
+- [x] **Proof：变异实验 A（ruff）。** 往 `agenerp/` 下某个模块加一处 ruff 必报的违例
       （**首选未使用的 import，规则 `F401`**，因为它与运行时行为无关，不会连带弄红别的 job）。
       ⚠️ **同一个变异提交里必须在 `tests/unit` 或 `tests/contracts` 下也放一处违例**
       （评审第 1 轮：只动 `agenerp/` 的话，三个作用域目录只证了三分之一）。
@@ -440,7 +440,7 @@ Skill: `none`
       若 `lint` 红了但**别的 job 也红** → 照实记「未能证明隐形」，与实验 B 的 ③ 分支同口径处理，
       **不得把它写成「隐形已证」**。
       - Skill: `none`
-- [ ] **Proof：变异实验 B（seed 自验）。首选变异已由 Baseline 12/13 定出来，不再「按序试」。**
+- [x] **Proof：变异实验 B（seed 自验）。首选变异已由 Baseline 12/13 定出来，不再「按序试」。**
       ⚠️ **初稿把 `agenerp/seed/__main__.py` 的退出码映射排在「离单测最远」的第一档 —— 那是反的**
       （评审第 1 轮抓出）：`tests/unit/test_seed_deterministic.py:205-212` 正面断言了同一个 `main()`、
       同一组 argv、同一个退出码、同一句 stdout，逐条会被撞死；`checks.verify()` 与 `model.py` 常量
@@ -460,19 +460,98 @@ Skill: `none`
       ⚠️ **这一条不许写成「牙齿已证」**，也不许因此就删掉这个 job —— 冗余复跑面本身仍有价值
       （WBS 验收命令进服务端复跑），但**价值的名字必须叫对**。
       - Skill: `none`
-- [ ] **Proof：全部变异 revert 后复跑一次，13 个 job 全 `success`。** 记 run id。
+- [x] **Proof：全部变异 revert 后复跑一次，13 个 job 全 `success`。** 记 run id。
       **实验提交必须从分支历史上收尾干净**（`git log --oneline` 记下最终分支形态），
       落 `main` 的必须是「跑绿的那一个 sha」。
       - Skill: `none`
 
+**Phase 3 实测证据（2026-08-23，分支 `ci/0337-1-seed-lint-coverage`，PR **#8**，共 5 次 run）：**
+
+**开工实读的 job 计数**：`gates.yml` 基线 **M = 11**（Baseline 6 逐字吻合），
+纯追加 2 个 → **13**。**因此全篇「13 个 job」「其余 12 个」的口径原样成立，无需按 `M+2` 改写。**
+
+| # | run id | head sha | 内容 | 结论 |
+|---|---|---|---|---|
+| 1 | `32601490564` | `1debf1a` | 首跑（无变异） | **13 个 job 全 `success`** —— 与**预测 ①②** 逐条吻合 |
+| 2 | `32601754671` | `eeaac53` | 变异 A：`agenerp/snapshot.py` 与 `tests/unit/test_seed_deterministic.py` 各加一处 `F401` | **`lint` `failure`（job `97100973890`），其余 12 个 job 全 `success`** —— 与**预测 ③** 逐条吻合 |
+| 3 | `32601993786` | `17a9532` | `git revert` A | **13 个 job 全 `success`** |
+| 4 | `32602225121` | `a4c2cbf` | 变异 B：`agenerp/seed/__main__.py:70` `raise SystemExit(main())` → `raise SystemExit(0)` | **`seed-selfverify` `failure`（job `97102151649`），其余 12 个 job 全 `success`**（含 `unit-and-contracts` `97102151664` `success`） —— 与**预测 ④** 逐条吻合 |
+| 5 | `32602435912` | `9835019` | `git revert` B | **13 个 job 全 `success`** |
+
+**首跑两个新 job 的日志逐字行**（run `32601490564`）：
+
+- `seed-selfverify`（job `97100318957`，`名称：种子生成器自验（agenerp.seed --verify）`，墙钟 `22:06:07Z`→`22:06:13Z`，**6 秒**）：
+  stdout 逐字 **`✅ 种子 42：两次生成 diff 为空，场景断言全过`**；判据 step 逐字三行
+  `set -euo pipefail` / `python3 -m agenerp.seed --seed 42 --verify | tee /tmp/seed-selfverify.log` /
+  `grep -qE '^✅ 种子 42：' /tmp/seed-selfverify.log`。
+- `lint`（job `97100318919`，`名称：静态检查（ruff）`，墙钟 `22:06:06Z`→`22:06:14Z`，**8 秒**）：
+  `Successfully installed ruff-0.14.1`，判据 step 输出逐字 **`All checks passed!`**。
+
+**Baseline 7 那条推理的判据落在这一跑，已实测成立**：runner 上 `python3 -m agenerp.seed`
+**不经过 pytest、不装 `agenerp`**（job 里连 `pip install` 都没有），仍能 import
+——`-m` 把 CWD 插进 `sys.path` 这一机制在 `ubuntu-latest` / Python `3.11.16` 上成立。
+**没有走「加 `pip install -e .`」那条处置分支。**
+
+**实验 A 的红日志逐字**（job `97100973890`）：
+
+```
+F401 [*] `uuid` imported but unused
+  --> agenerp/snapshot.py:16:8
+F401 [*] `uuid` imported but unused
+  --> tests/unit/test_seed_deterministic.py:10:8
+Found 2 errors.
+##[error]Process completed with exit code 1.
+```
+
+**两处规则码与文件行号都被点名，三个作用域目录里的两个各证一处**（`tests/contracts` 未放违例，
+本 plan **不声称**该目录已被实证，只声称它在命令的作用域里）。
+**其余 12 个 job 全 `success` —— 即这两处 `F401` 对 `main` 上原有的 11 个 job 完全隐形。**
+
+**实验 B 的结论逐字（落在「找到隐形变异」这一支，不含糊）**：
+
+> **`seed-selfverify` 的隐形性已证。** 把 `agenerp/seed/__main__.py:70` 的 `raise SystemExit(main())`
+> 改成 `raise SystemExit(0)` 之后，run `32602225121` 上 **`seed-selfverify` `failure`，其余 12 个 job 全 `success`**
+> ——**包括 `unit-and-contracts`（job `97102151664`，`success`）**。
+> 该变异对此前 CI 上的全部 11 个 job 完全隐形，只有这个新 job 抓到了它。
+> 红因是 stdout 断言：`tee` 到的日志为空 → `grep -qE '^✅ 种子 42：'` 退 1 → step `##[error]Process completed with exit code 1.`
+> ——**这正是 D4 加那条 `grep` 所堵住的那条假绿路径，被一次真实的 CI 运行当场坐实。**
+> **因此本 plan 不需要写「未能证明 `seed-selfverify` 抓得到此前 CI 抓不到的东西」那句话。**
+
+**同理，`lint` 的隐形性亦已证**（实验 A：`lint` 红、其余 12 绿），
+**本 plan 也不需要写「未能证明 `lint` 抓得到此前 CI 抓不到的东西」那句话。**
+
+**本机预筛（推实验 B 之前实跑，两条同时满足才推）**：
+`set -euo pipefail; python3 -m agenerp.seed --seed 42 --verify | tee /tmp/x.log; grep -qE '^✅ 种子 42：' /tmp/x.log`
+→ **exit 1**（期望非 0 ✅）；`python3 -m pytest tests/unit tests/contracts -q` → **exit 0**，`444 passed in 0.73s`（期望 0 ✅）。
+变异 B 期间 `ruff check agenerp tests/unit tests/contracts` → **exit 0**（确认没有污染实验 B 的归因）。
+
+**变异全部复原的机械证据**：`git diff main..HEAD -- agenerp/ tests/ pyproject.toml` → **无输出**。
+分支最终形态（`git log --oneline main..HEAD`）：
+
+```
+9835019 Revert "MUTATION-B: __main__ 卫句改成 raise SystemExit(0) …"
+a4c2cbf MUTATION-B: __main__ 卫句改成 raise SystemExit(0) …
+17a9532 Revert "MUTATION-A: 故意的 F401（两处，agenerp/ 与 tests/unit/ 各一）…"
+eeaac53 MUTATION-A: 故意的 F401（两处，agenerp/ 与 tests/unit/ 各一）…
+1debf1a feat(ci): plan-2026-08-23-0337-1 Phase 1-2 —— gates.yml 纯追加 seed-selfverify / lint 两个 job
+```
+
+⚠️ **实验提交要从落 `main` 的历史上收尾干净**：本分支带 4 个实验/revert 提交，
+**因此它不用来落地**（PR #8 只用于实证，不合并）；落地走另一个从 `main` 新切、只含一个干净提交的分支（Phase 4）。
+
+**CI 预算与裁判规则 4 的对照**：本 Phase 实耗 **5 次 run**（与预算逐字相同）。
+两次红（run 2 / run 4）**都是本 plan 事先逐字写死的预测**，且两者之间隔着 run 3 的全绿跑，
+顺序为 **首跑绿 → A 红 → A-revert 绿 → B 红 → B-revert 绿**，
+**不构成「CI 连续 2 轮红」**。**本 Phase 未出现任何一次未被预测的红**，固定处置分支未触发。
+
 Exit Criteria:
 
-- [ ] 首跑 run id + 13 个 job 结论 + 两个新 job 的日志逐字行记在本 plan 内
-- [ ] 实验 A 的红/绿两个 run id 与「其余 12 个 job 全绿」的实测结论记在本 plan 内
-- [ ] 实验 B 落在「找到隐形变异」或「未能证明隐形」二者之一，**结论逐字记下，不含糊**
-- [ ] 最终 revert 后的全绿 run id 记在本 plan 内
-- [ ] `git diff main..HEAD -- agenerp/ tests/ pyproject.toml` **无输出**（变异全部复原）
-- [ ] `docs/logs/` 更新
+- [x] 首跑 run id + 13 个 job 结论 + 两个新 job 的日志逐字行记在本 plan 内
+- [x] 实验 A 的红/绿两个 run id 与「其余 12 个 job 全绿」的实测结论记在本 plan 内
+- [x] 实验 B 落在「找到隐形变异」或「未能证明隐形」二者之一，**结论逐字记下，不含糊**
+- [x] 最终 revert 后的全绿 run id 记在本 plan 内
+- [x] `git diff main..HEAD -- agenerp/ tests/ pyproject.toml` **无输出**（变异全部复原）
+- [x] `docs/logs/` 更新
 
 ### Phase 4 - 落 `main` + owner doc 回填
 
