@@ -1268,38 +1268,42 @@ run 结论 **`success`**。**七个 job 全部 `success`**：
 
 ## Closure Gates
 
-- [ ] in-scope behavior is complete（**四条**实验证据齐 + 建 PR 前 `origin/main == main` 已核验 +
+- [x] in-scope behavior is complete（**四条**实验证据齐 + 建 PR 前 `origin/main == main` 已核验 +
       新分支从 `main` 切出且新 PR 就绪 + `main` 基线上的 `gates-l2-live` 绿）
-- [ ] relevant docs are aligned（`docs/architecture/system-baseline.md` §14.4 · `docs/logs/2026/08-22.md` · `STATE.md` §2）
-- [ ] verification has run：**四条**实验的 run id 与 job 结论逐字 · Phase 2 的全绿运行 run id 逐字
+- [x] relevant docs are aligned（`docs/architecture/system-baseline.md` §14.4 · `docs/logs/2026/08-22.md` · `STATE.md` §2）
+- [x] verification has run：**四条**实验的 run id 与 job 结论逐字 · Phase 2 的全绿运行 run id 逐字
       （Phase 3 清理后 head sha 与之相同，**同一个 run id 即可**；head sha 不同时才另记一条）·
       本机四条命令 exit 0
-- [ ] **守卫的覆盖面限定已逐字落地**：`pull_request` 路径的**四条出口里三条**（未触及 / 触及无 trailer 必红 / 触及带 trailer 放行）已实证 /
+- [x] **守卫的覆盖面限定已逐字落地**（⚠️ **独立关闭审计就地改准**：本框原文写「四条出口里**三条已实证**」，
+      **强于实际证据**——实验 ④ 在同一 sha、同一输入上一红一绿，按裁判规则 3 记「不可复现」。
+      Phase 4 记录 ②、§14.4、`## Closure` 三处都已按弱读法写，唯独本框漏改，此处补齐）：
+      `pull_request` 路径四条出口里**两条稳定实证**（未触及 → 绿 / 触及无 trailer → 必红）、
+      **第三条「触及 + 带 trailer → 放行」只证到「可达」，未证到「可靠」** /
       `push` 路径未实证 / 全零 sha 分支永不可测 / `|| true` 假阴入口已登记**且写明是本批新引入而非继承**，四句分开
-- [ ] **安全窗口论证与两条 `main` 面留痕已落地**（⚠️ 第 5 轮改准：此前这一框要求「`origin/main` 追平那一推」的
+- [x] **安全窗口论证与两条 `main` 面留痕已落地**（⚠️ 第 5 轮改准：此前这一框要求「`origin/main` 追平那一推」的
       预检与 run 结论，而 A3 实测那一推已是 no-op，该框原样保留会永远勾不上）：
       · 建 PR 前 `git rev-parse main origin/main` 两值相等（= `$CUT`）已逐字入 plan；
         若核验不等而补推，则那一推的**四条**预检输出与 run id + 全部 job 结论也逐字入 plan；
       · `main` 上此刻零 `verdict-tool-untouched`（安全窗口仍开着）已逐字入 plan；
       · Phase 4 收尾那一推的**四条**预检（workflow / 裁判与账本 / `DECISIONS.md` / `STATE.md` 只追加）
         输出为期望值，且那次 `main` push 运行的 run id 与全部 job 结论逐字入 plan
-- [ ] **实验载体是本 plan 新建的分支与新 PR，PR #1 一个字节未动**：新 PR 的 `baseRefOid` 逐字等于 `$CUT`，
+- [x] **实验载体是本 plan 新建的分支与新 PR，PR #1 一个字节未动**：新 PR 的 `baseRefOid` 逐字等于 `$CUT`，
       PR #1 的 `state` / `headRefOid` / `baseRefOid` 与开工时相同
-- [ ] **预期红与真红的区分已按「停机纪律」执行**：实验 ① 的红 job 集合是 `{verdict-tool-untouched}`，
+- [x] **预期红与真红的区分已按「停机纪律」执行**：实验 ① 的红 job 集合是 `{verdict-tool-untouched}`，
       **或** `{verdict-tool-untouched, gates-l2-live}` 且后者已按停机纪律**原样复跑一次**并**照常计入真红计数**
       （**这两种都算实验 ① 成立**——停机纪律给 `gates-l2-live` 单开了一格，本 gate 此前写「恰好是」与它直接打架，
       第 4 轮评审改准）；且没有把任何真红计成实验红
-- [ ] 实验提交已清理，清理项那五条机械判据为期望值；`tools/gates/check_expected_red.py` 与 `expected-red.txt` 的净 diff 为空
-- [ ] `main` 上 `.github/workflows/**` 一行未改（本 plan 的 workflow 改动只在分支上；`main` 只收到文档提交）
-- [ ] `2026-08-22-0027-2` 未被改写：`Plan Status` 仍 `deferred`，`[ ]` 计数仍为 `19`，只多了一行 `Closure Audit Log`
-- [ ] scoped verification is not conflated with full verification —— 本仓无全量套件，本 plan 的证据面是
+- [x] 实验提交已清理，清理项那五条机械判据为期望值；`tools/gates/check_expected_red.py` 与 `expected-red.txt` 的净 diff 为空
+- [x] `main` 上 `.github/workflows/**` 一行未改（本 plan 的 workflow 改动只在分支上；`main` 只收到文档提交）
+- [x] `2026-08-22-0027-2` 未被改写：`Plan Status` 仍 `deferred`，`[ ]` 计数仍为 `19`，只多了一行 `Closure Audit Log`
+- [x] scoped verification is not conflated with full verification —— 本仓无全量套件，本 plan 的证据面是
       「CI 上两个 job 的结论 + 本机四条命令」，**不得报成「全量验证通过」**
-- [ ] no in-scope item downgraded to deferred/follow-up
-- [ ] independent draft review completed and recorded
-- [ ] text consistency verified: status, phases, gates, and log all agree
-- [ ] closure audit was independent
-- [ ] 判定器默认环境输出的「前 / 后」两次实跑已逐字入 plan 且逐字节相同（Protected Areas Required Evidence）
-- [ ] closure evidence exists in files
+- [x] no in-scope item downgraded to deferred/follow-up
+- [x] independent draft review completed and recorded
+- [x] text consistency verified: status, phases, gates, and log all agree
+- [x] closure audit was independent
+- [x] 判定器默认环境输出的「前 / 后」两次实跑已逐字入 plan 且逐字节相同（Protected Areas Required Evidence）
+- [x] closure evidence exists in files
 
 ## Deferred But Adjudicated
 
@@ -1412,5 +1416,43 @@ attempt 1 那次红按停机纪律归**真红 #1**，attempt 2 绿使连续计�
 
 Closure Audit Evidence:
 
-- Auditor / Agent: <independent auditor or independent subagent>
-- Evidence: <task id / log link / walkthrough record>
+- Auditor / Agent: **独立关闭审计子代理**（`MISSION_DRIVER` 的 `CLOSURE_VERIFY` 步，task `2026-08-22-185331-mission-driver`）——
+  **不是本 plan 的执行器**。`## Closure Gates` 的 17 个勾**全部由本步回填，执行器一个未自勾**（`AGENTS.md` 裁判规则：自勾即自审）。
+- Evidence —— **以下读数全部为本次审计当场实跑所得，不是从 plan 正文抄的**：
+  - **红线自查复跑**（锚 `$CUT` = `f689d0e`）：
+    `git diff --stat f689d0e..HEAD -- tests/gates agenerp docs/masterplan/DECISIONS.md missions tools/gates` → **无输出**；
+    `git diff --stat f689d0e..HEAD -- .github/workflows/` → **无输出**；
+    `git diff f689d0e..HEAD -- docs/masterplan/STATE.md | grep '^-' | grep -v '^---'` → **无输出**（只追加）；
+    `git status --porcelain` → **空**。→ 红线 1 / 2 / 3 / 5 未越。
+  - **本机四条命令复跑，全 exit 0，与 plan 记录逐字一致**：
+    `python3 tools/gates/check_expected_red.py` → `判定模式：default —— 按 tools/gates/expected-red.txt 判定` /
+    `门禁 19 项：预期红 7，绿 12，跳过 0` / `✅ 与预期红名单完全一致`；
+    `python3 -m pytest tests/unit -q` → `221 passed`；`python3 -m pytest tests/contracts -q` → `151 passed`；
+    `ruff check agenerp tests/unit tests/contracts` → `All checks passed!`。
+  - **四条实验的 run / job 结论经 `gh` 当场复核，与 plan 逐字一致**：
+    ① run `32570222139` → `failure`，红 job 集合**恰好** `{判定器未被改动 `97024540387`}`，其余八个 job（含 `L2 全量 live 判定（19 条）` `97024540342`）全 `success`；
+    ② run `32570426423` → `success`（守卫 job `97025008659`）；
+    ③ run `32570691388` → `success`（守卫 job `97025611324`，同轮棘轮 `97025611265` `success`）；
+    ④ run `32570942284`：attempt 1 守卫 job `97026197943` → **`failure`**、attempt 2 守卫 job `97026657710` → **`success`**，
+    **一红一绿属实**。→ 本审计**拒绝任何「四条全成立」的读法**，并已就地改准 `## Closure Gates` 覆盖面那一框的措辞（见该框内 ⚠️）。
+  - **载体隔离属实**：`gh pr view 1` → `OPEN` / `c2c688b7f6bc…` / `7b0f585f7c80…`（与开工时逐字相同，**PR #1 一字节未动**）；
+    `gh pr view 2` → `OPEN` / `b7348bf3a1eb…` / **`baseRefOid` = `f689d0e7cde3…`，逐字等于 `$CUT`**。
+  - **实验提交已清理**：`git diff --name-only f689d0e b7348bf` → **只有 `.github/workflows/gates.yml` 一个文件**；
+    `git diff --stat f689d0e b7348bf -- tools/gates/check_expected_red.py tools/gates/expected-red.txt` → **无输出**（净 diff 为空）；
+    `git log --format=%B f689d0e..b7348bf | grep -c '^Gates-Change-Approved-By:'` → `0`。
+  - **`2026-08-22-0027-2` 未被改写**：`grep '^> Plan Status'` → `deferred`；`grep -c '^\s*-\s\[ \]'` → **`19`**。
+  - **两次 `main` / PR 全绿运行属实**：`main` push run `32571701925`（head `10da9e7506…`）→ `success`，**七个 job 全 `success`**；
+    Phase 2 run `32569935835`（head `b7348bf3a1…`）→ **九个 job 全 `success`**（含 `L2 全量 live 判定（19 条）` `97023867883` 与守卫 `97023868017`）。
+  - **「不得把红报成绿」的两条经当场复核仍成立**：
+    `git show main:.github/workflows/gates.yml | grep -cE 'gates-l2-live|verdict-tool-untouched'` → **`0`**，该文件 **190 行**。
+    两个 job 确实**不在 `main` 上**，因此本 plan **不改 roadmap 工作项 9** 是正确处置，改了才是把红报成绿。
+  - **收尾收敛判据成立**：`git merge-base --is-ancestor origin/main main` → 成立；
+    `git diff --name-only origin/main main` → **只含** `docs/logs/2026/08-22.md` 与本 plan 文件。
+  - **文档同步属实**：`docs/architecture/system-baseline.md` **614 行**，新小节「守卫 `verdict-tool-untouched` 的变异实证结论」自第 **561** 行起，
+    四句结论 + 第五条 ⚠️ 分开写，**未写成比证据更强的说法**；`docs/logs/2026/08-22.md` 有 Phase 1–4 共五条记录；
+    `docs/masterplan/STATE.md` §2 有回填行、§3 有一条 `[open]` needs-human（放行出口不可复现）。
+- **审计结论**：四个 Phase 的 Exit Criteria **逐条经实跑核对成立**；Deferred 五条**无一是被藏起来的在范围内缺陷**
+  （`push` 路径与全零 sha 分支在分支上物理不可测；放行出口不可复现与 `|| true` 假阴入口均已逐字登记并写明后果与处置，
+  且已进 `STATE.md` §3 needs-human 队列；policy 措辞不一致是人动作项）。
+  唯一发现的问题是 `## Closure Gates` 覆盖面那一框措辞强于证据，**已就地改准**，
+  不构成打回 `EXECUTE` 的实质缺口（交付物本身与三处正文早已按弱读法写）。**准予关闭。**
