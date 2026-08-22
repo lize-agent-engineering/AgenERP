@@ -164,7 +164,7 @@ Exit Criteria:
 
 ### Phase 2 - 追加新 job、跑保命闸、在 PR 上拿第一次绿
 
-Status: planned
+Status: completed
 Targets: `.github/workflows/gates.yml`
 Skill: `none`
 
@@ -177,7 +177,7 @@ Phase 1 时那一段还不存在 —— 届时 ② 会回 `11` 而不是 `12`、
 （①②④⑦ 测的是**前 387 行的前缀 / 空段**，本身在 Phase 1 也跑得动；把整组放在一起是为了红因可归属。）
 前驱 `2325-2` 也是把 `Decision` / `Add` / 保命闸放在同一个 Phase 内的。
 
-- [ ] **Add：往 `gates.yml` 末尾追加第 11 个 job `unit-and-contracts`**（name：`单测与契约测试（439 条）`）。
+- [x] **Add：往 `gates.yml` 末尾追加第 11 个 job `unit-and-contracts`**（name：`单测与契约测试（439 条）`）。
       形态写死如下，**不多不少**：`runs-on: ubuntu-latest` · `timeout-minutes: 10` ·
       `actions/checkout@v4` → `actions/setup-python@v5`（`python-version: "3.11"`，与 `gates-l1` 逐字相同）
       → `pip install pytest` → 两个判据步骤：
@@ -194,7 +194,7 @@ Phase 1 时那一段还不存在 —— 届时 ② 会回 `11` 而不是 `12`、
       `timeout-minutes: 10` 的依据照实说：**它是「测试运行时长」的约 760–880 倍上限（实测 439 条 0.68–0.79 秒，随机器波动），不是整个 job 的那么多倍**——
       job 的墙钟由 `checkout` + `setup-python` + `pip install` 主导。**它挡的是「卡死」，不是「变慢」。**
       - Skill: `none`
-- [ ] **Proof：保命闸七条，逐条实跑并记命令原文 + 期望值 + 实测值。任一条不为期望值即停，不推分支。**
+- [x] **Proof：保命闸七条，逐条实跑并记命令原文 + 期望值 + 实测值。任一条不为期望值即停，不推分支。**
       ⚠️ **本组刻意不用 markdown 表格排版**：表格里 `|` 必须写成 `\|`，而 `\|` 在 ERE 里是**字面竖线**，
       会把 `grep -cE 'a\|b'` 变成一个永不匹配的字面串 —— 那样它在**违规文件上也输出 `0`**，
       即整条红线 2 的机械判据静默假通过。**下面每条都是可直接粘的 shell 原文，不含表格转义。**
@@ -216,7 +216,7 @@ Phase 1 时那一段还不存在 —— 届时 ② 会回 `11` 而不是 `12`、
         → 输出 **`0`**（退码口径同 ③）。⚠️ **③ 只抓 `if: false`，抓不到裸 `if:`**，
         而 Add 项把「无 `if:`」写成了形态要求 —— 没有这一条，那条形态要求就只是散文。
       - Skill: `none`
-- [ ] **Proof：保命闸的阳性对照（planted violation）—— 不做这一步，上面七条只被证明「在干净文件上输出 0」。**
+- [x] **Proof：保命闸的阳性对照（planted violation）—— 不做这一步，上面七条只被证明「在干净文件上输出 0」。**
       把 `.github/workflows/gates.yml` 复制到 `/tmp` 的 scratch 副本，往副本第 388 行之后**植入**
       `continue-on-error: true`、`run: foo || true`、`set +e` 三行，对**副本**跑 ③ 与 ⑤，
       判据是**两条都必须命中非零计数**（即 `grep -c` 退 0）。跑完删掉副本。
@@ -224,27 +224,91 @@ Phase 1 时那一段还不存在 —— 届时 ② 会回 `11` 而不是 `12`、
       **这一步是为了防止「判据本身坏掉却一路绿」这一类假绿**，与 `0228-2` 记的
       「门禁对『巡检坏掉』零覆盖」是同一类风险。
       - Skill: `none`
-- [ ] **Proof：新建分支 → 推 → 开 PR → 拿第一次运行**。判据是 **11 个 job 全部 `success`**，
+- [x] **Proof：新建分支 → 推 → 开 PR → 拿第一次运行**。判据是 **11 个 job 全部 `success`**，
       且新 job 的日志逐字含 `288 passed` 与 `151 passed`。记下 run id + job id + **墙钟耗时**
       （对照 `gates-l2-seed` 的 3 分 06 秒，说明本 job 的成本量级）。
       ⚠️ **若 `passed` 计数与本机不符**（3.11 vs 3.12），**不改断言、不放宽**：照实记下两个计数，
       查明是哪几条的差异，把结论写进 §14.6；差异若指向真实行为分歧则停并交人。
       - Skill: `none`
-- [ ] **Proof：`git diff --numstat .github/workflows/gates.yml` 的删除列必须为 `0`**（纯追加的机械证据）。
+- [x] **Proof：`git diff --numstat .github/workflows/gates.yml` 的删除列必须为 `0`**（纯追加的机械证据）。
       其余 pathspec（`agenerp/**` · `tests/**` · `tools/gates/**` · `missions/**` ·
       `docs/masterplan/DECISIONS.md`）`git diff --stat` **无输出**。
       - Skill: `none`
 
 Exit Criteria:
 
-- [ ] 保命闸**七条**的命令原文、期望值、实测值全部记在本 plan 内
-- [ ] **阳性对照的证据单独记一格**：植入三行后 ③ 与 ⑤ 在 `/tmp` 副本上的实测计数（**两条都必须非零**）、
+- [x] 保命闸**七条**的命令原文、期望值、实测值全部记在本 plan 内
+- [x] **阳性对照的证据单独记一格**：植入三行后 ③ 与 ⑤ 在 `/tmp` 副本上的实测计数（**两条都必须非零**）、
       以及跑完 `rm` 掉副本、仓内 `git status --porcelain` 无新增 —— 三样都记在本 plan 内。
       ⚠️ **不得与上一格合并**：它是本轮评审补进来的那条修法自己的唯一证据，合并就等于没有证据槽
-- [ ] 新 job 在 PR 上首跑 `success`，11 个 job 全绿，run id / job id / 墙钟耗时记在本 plan 内
-- [ ] `git diff --numstat` 删除列为 `0`；受保护 pathspec 零改动，两条命令原文与输出记在本 plan 内
-- [ ] No owner-doc update required (this phase)（owner doc 在 Phase 4）
-- [ ] `docs/logs/` 更新（本 Phase 动了 `gates.yml`，按 `AGENTS.md` 操作规则记一笔）
+- [x] 新 job 在 PR 上首跑 `success`，11 个 job 全绿，run id / job id / 墙钟耗时记在本 plan 内
+- [x] `git diff --numstat` 删除列为 `0`；受保护 pathspec 零改动，两条命令原文与输出记在本 plan 内
+- [x] No owner-doc update required (this phase)（owner doc 在 Phase 4）
+- [x] `docs/logs/` 更新（本 Phase 动了 `gates.yml`，按 `AGENTS.md` 操作规则记一笔）
+
+#### Phase 2 执行记录（2026-08-23 实跑）
+
+**追加形态**：`gates.yml` 由 **387 行 → 404 行**（`+17 / -0`），新增段落 `:388`–`:404`，
+第 11 个 job 键 `unit-and-contracts`（`:389`），name `单测与契约测试（439 条）`。
+`runs-on: ubuntu-latest` · `timeout-minutes: 10` · `actions/checkout@v4` → `actions/setup-python@v5`
+（`python-version: "3.11"`）→ `pip install pytest` → 两个判据步骤
+`① 单测（tests/unit）` = `python3 -m pytest tests/unit -q` · `② 契约测试（tests/contracts）` =
+`python3 -m pytest tests/contracts -q`。**无 `env:` / 无 `if:` / 无 `continue-on-error` / 无 `|| true` / 无注释块。**
+YAML 解析实证：`yaml.safe_load` 出 **11 个 job 键**，顺序为原 10 个 + `unit-and-contracts`。
+
+**保命闸七条（命令原文 · 期望值 · 实测值，全部为期望值）**：
+
+- ① 前缀性 —— `diff <(git show 577e401:.github/workflows/gates.yml) <(head -n 387 .github/workflows/gates.yml)`
+  · 期望 **无输出** · 实测 **无输出，exit 0**
+- ② job 键只增不减 —— `grep -nE '^  [a-z0-9-]+:$' .github/workflows/gates.yml`
+  · 期望 **12 行** · 实测 **12 行**（`7: push:` + 11 个 job 键，末行 `389:  unit-and-contracts:`）；
+  前 11 行与 `577e401` 逐字相同、顺序不变，机械核对
+  `diff <(git show 577e401:… | grep -nE '^  [a-z0-9-]+:$') <(head -n 11 …)` → **无输出，exit 0**
+- ③ 禁用词 —— `sed -n '388,$p' .github/workflows/gates.yml | grep -cE 'continue-on-error|if: false'`
+  · 期望 **`0`** · 实测 **`0`（退 1，退 1 即通过）**
+- ④ 既有 `if:` 未改 —— `diff <(git show 577e401:.github/workflows/gates.yml | grep -n 'if:') <(head -n 387 .github/workflows/gates.yml | grep -n 'if:')`
+  · 期望 **无输出** · 实测 **无输出，exit 0**（照实说：本条由 ① 蕴含，不是独立证据）
+- ⑤ 无失败吞噬 —— `sed -n '388,$p' .github/workflows/gates.yml | grep -cE '\|\| true|set \+e'`
+  · 期望 **`0`** · 实测 **`0`（退 1）**
+- ⑥ 新增段带超时 —— `sed -n '388,$p' .github/workflows/gates.yml | grep -c 'timeout-minutes'`
+  · 期望 **`1`** · 实测 **`1`（退 0）**
+- ⑦ 新增段内无任何 `if:` —— `sed -n '388,$p' .github/workflows/gates.yml | grep -c 'if:'`
+  · 期望 **`0`** · 实测 **`0`（退 1）**
+
+**阳性对照（planted violation，仅在 `/tmp` 副本上做）**：
+`cp .github/workflows/gates.yml /tmp/gates-planted.yml` 后往副本尾部植入三行
+`continue-on-error: true` / `- run: foo || true` / `- run: set +e`，对副本跑 ③ 与 ⑤：
+**③ 实测 `1`（退 0，开火）· ⑤ 实测 `2`（退 0，开火）—— 两条都命中非零计数**，
+即保命闸不是「在任何文件上都输出 0」的假判据。
+跑完 `rm -f /tmp/gates-planted.yml` → exit 0，`ls /tmp/gates-planted.yml` → `No such file or directory`。
+**仓内 `git status --porcelain` 在阳性对照前后只有 `M .github/workflows/gates.yml` 与
+`?? docs/plans/…0120-2…md`（本批另一个 plan，本 plan 未跟踪它），零新增。**
+
+**纯追加的机械证据**：
+`git diff --numstat .github/workflows/gates.yml` → **`17	0	.github/workflows/gates.yml`**，删除列 **`0`**。
+`git diff --stat -- 'agenerp/**' 'tests/**' 'tools/gates/**' 'missions/**' docs/masterplan/DECISIONS.md`
+→ **无输出，exit 0**（受保护 pathspec 零改动）。
+
+**PR 首跑（第一次绿）**：分支 `ci/0120-1-unit-contracts`（从 `main` @ `a877b38` 切出），
+其上只有一个提交 **`2848387`**、只含 `gates.yml`（`1 file changed, 17 insertions(+)`）。
+**PR #6**，head `28483876fe8aa9ebf8df67135db11ad7fbc236a8`，
+run **`32590196838`**（`pull_request`）→ **`success`，11 个 job 全部 `success`**：
+
+`L2 慢门禁（零依赖启动）` `97072710424` · `预期红名单只能变短` `97072710441` ·
+`主计划引用不断链` `97072710468` · `roadmap 引擎可解析` `97072710475` ·
+`L2 全量 live 判定（19 条）` `97072710477` · `循环联动冒烟` `97072710486` ·
+**`单测与契约测试（439 条）` `97072710514`** · `门禁未被改动` `97072710523` ·
+`L1 快门禁` `97072710540` · `判定器未被改动` `97072710546` ·
+`L2 种子链（装载 + 站点侧对账）` `97072710591`。
+
+**新 job 日志逐字**：`288 passed in 3.45s` · `151 passed in 0.17s` ——
+**跨版本预测成立**：CI 的 3.11 与本机的 3.12.9 给出**同样的 288 / 151**，无需走「计数不符」那条处置。
+**墙钟 11 秒**（`18:15:24Z` → `18:15:35Z`）。逐步：`Set up job` 1s · `checkout` 1s · `setup-python` 0s ·
+`pip install pytest` 3s · 步骤 ① **3s** · 步骤 ② **1s** · 收尾 2s。
+**成本量级对照**：`gates-l2-seed` 同类首跑是 **3 分 06 秒**，本 job 是它的约 **1/17**；
+整个 run 的墙钟 3 分 28 秒（`18:15:21Z` → `18:18:49Z`）仍由三个 docker job 主导，
+**本 job 没有让 run 变长**（它比最快的那批非 docker job 只慢几秒）。
+`timeout-minutes: 10` 因此是实测墙钟 11 秒的约 **55 倍**上限——**它挡的是「卡死」，不是「变慢」**。
 
 ### Phase 3 - 变异实证：证明它抓得到现有 10 个 job 抓不到的东西
 
