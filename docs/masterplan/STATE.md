@@ -100,6 +100,17 @@
   · **验证范围（scoped，照实写，不得读成 full green）**：本仓**无全量套件**（无 build、无 typecheck）。本行覆盖的是上列四条本机命令 + 本 plan 期间那 10 次 CI 运行。守卫的 **`push` BASE/HEAD 路径未实证**（`on: push` 限 `branches: [main]`，两个 job 此刻还不在 `main` 上），**全零 sha 分支永不可测**，守卫体内 `git diff … || true` 的假阴入口**仍在且是本批新引入的**。
   · **授权链**：与本队列 2026-08-21 那几行同一处矛盾，处置相同：按 `AGENTS.md` 红线 5「只允许追加证据行」执行，**只追加、不改写任何已有行**。
 
+- 2026-08-22T12:22Z · P0.9/工作项 9（落地面） · `git merge --ff-only ci/1206-2-l2-live-land` → **exit 0**（`Updating bb83b20..3503f2c` / `Fast-forward` / `1 file changed, 118 insertions(+)`）；`git push origin main` → **exit 0** · sha **`3503f2c89d78f44f94e0e0ff9f6061ca72e90b89`** · 下一项：Phase 3 收尾推送与独立关闭审计 · plan `2026-08-22-1206-2-gates-l2-live-lands-on-main`
+  · **两个 job 已在 `main` 上**：`.github/workflows/gates.yml` 由 190 → **308** 行，job 键由 7 → **9**（新增 `gates-l2-live` / `verdict-tool-untouched` 在**末尾**）。前缀性判据 `diff <(git show "$RECUT":….yml) <(head -n 190 ….yml)` → **无输出**，即既有 190 行**逐字节未动、零删除**。落地走的是**新分支 `ci/1206-2-l2-live-land` + 新 PR #3 + `--ff-only`**，前驱分支 `ci/1206-1-verdict-guard-proof` 与 PR #2 **一个字节未碰**（`git rev-parse origin/ci/1206-1-verdict-guard-proof` 仍 `b7348bf`）。
+  · **NB2 的权威运行拿到了**：run **`32572618933`**（event **`push`**，head `3503f2c`）→ **`success`**，**九个 job 全部 `success`** —— `门禁未被改动` `97030229573` · `循环联动冒烟` `97030229628` · `L1 快门禁` `97030229662` · **`L2 全量 live 判定（19 条）` `97030229667`** · `roadmap 引擎可解析` `97030229671` · `主计划引用不断链` `97030229672` · `L2 慢门禁（零依赖启动）` `97030229696` · **`判定器未被改动` `97030229697`** · `预期红名单只能变短` `97030229729`。`gates-l2-live` 日志逐字 `门禁 19 项：红 0，绿 19，跳过 0` / `✅ live 判定：全部门禁绿，零 red、零 skip`。**⇒ 工作项 9 那格写死的关闭判据第一次在 `main` 上成立。**
+  · **落地的 sha 就是跑绿的 sha**：PR #3 上的全绿 run `32572416547`（head `3503f2c`，九个 job 全绿）与 `main` 上的权威运行同一个 head，`--ff-only` 不产生新 sha。第 0 步推平 `origin/main` 的那次 push 运行 `32572388207`（head `bb83b20`）→ `success`，**七个 job**（彼时仍是 7 个，这本身是一条证据）。**CI 运行 4 / 7，未超本 plan 声明的预算；本 plan 期间零红。**
+  · **守卫 `push` 路径首次实测，结论照实收窄**：权威运行里 `verdict-tool-untouched` 取 `BASE="bb83b20…"（github.event.before）` / `HEAD="3503f2c…"（github.sha）` → `✅ 未触及判定器`，**与 Phase 1 在推之前算定的情形 ① 一致**。⚠️ **这只证明 `push` 路径能跑通并走到「未触及」分支，不证明守卫在 `push` 上已有牙齿** —— 正向变异要在 `main` 上故意改判定器，代价过高，登记为残余。
+  · **红线自查（锚开工 sha `79184e5`）**：`git diff --stat 79184e5..HEAD -- tests/gates agenerp docs/masterplan/DECISIONS.md missions tools/gates` → **无输出**；`git diff --numstat 79184e5..HEAD -- tools/gates/expected-red.txt` → **无输出**（**账本一行未动**）；`.github/workflows/gates.yml` 唯一 hunk 为 **118 insertions / 0 deletions**；`grep -nE 'continue-on-error|if: *false|\bdisabled\b'` → **零命中**。
+  · **⚠️ `|| true` 假阴入口照实记，不写成「零吞噬」**：`grep -n '|| true' .github/workflows/gates.yml` 实测**两处**（`:36` 既有 `gates-untouched`、`:293` 新守卫体内，同款写法）。`git diff` 出错 → `CHANGED` 空 → `✅ 未触及判定器` → `exit 0`，是**真实的假阴入口**。本次落地把它一并带进了 `main`，已登记为 watch-only 残余。
+  · **验证范围（scoped，照实写，不得读成 full green）**：本仓**无全量套件**（无 build、无 typecheck）。本行覆盖的是「CI 上九个 job 的结论 + 本机五条命令」，**不得报成「全量验证通过」**。
+  · **授权链**：本 plan **真的改了 `main` 的 `.github/workflows/**`**（前驱是零改动）。读法沿用 plan `2026-08-21-2220-2` 已在 `main` 落地过的先例：红线 2 只禁**变松**，本次是**纯追加 = 加严**。`docs/context/ai-autonomy-policy.md` 把 `.github/workflows/**` 标 `blocked` 与红线 2 措辞不一致这条**仍待人裁定**，**残余风险照实记：人若事后裁定严格 `blocked`，本次落地需要补一次追认。**
+  · **红线 5**：本行只追加，不改写 `STATE.md` 已有任何一行。
+
 ---
 
 ## §3 needs-human 队列
@@ -135,4 +146,12 @@
   · **为什么 loop 不自己修**：修它要改 `.github/workflows/**` 里那 118 行的脚本体，而「落地的就是 run `32533449466` 已实测那一份」是本批两个 plan 共同的承重判据（`2026-08-22-1206-1` 的 Goals 2 / Phase 1 保命闸 / 姊妹 plan 的 `--ff-only` 论证），动一个字就打掉 Phase 1 的形态判据；且要重取一次全套 CI 证据。
   · **给人的可选处置（loop 不替人选）**：(a) 起一个专门的 successor plan 改守卫脚本体并重取全套 CI 证据；(b) 接受「偶发需复跑」，把处置办法写进给人的文档；(c) 在本批第二个 plan 落地前先裁定，避免带着一个会随机误报的守卫进 `main`。
   · **不阻塞本 plan 关闭的理由，照实说**：本 plan 的交付面是「给守卫补实证」，实证**已经拿到**，只是结论比预期弱（该出口可达但不可靠）。这一点已逐字写进 plan 的 Phase 3 记录、`docs/architecture/system-baseline.md` §14.4 与 `## Closure Gates`，**没有被写成「已实证」**。
+  · **授权链**：与本队列 2026-08-21 那几行同一处矛盾，处置相同：按 `AGENTS.md` 红线 5「只允许追加证据行」执行，**只追加、不改写任何已有行**。
+
+- [resolved] 2026-08-22 · **处置事实行，不另开条目也不改写上面任何一行**——本行记 plan `2026-08-22-0027-2-ci-l2-full-live-gate-coverage` **两项欠账的了结**，以及**它的 `Plan Status` 仍待人裁定** · P0.9/工作项 9 · `git merge --ff-only ci/1206-2-l2-live-land && git push origin main` → **exit 0** · sha `3503f2c89d78f44f94e0e0ff9f6061ca72e90b89` · 处置：见下列各条
+  · **欠账一（Phase 2「守卫 job 的变异实证」）已由 plan `2026-08-22-1206-1-verdict-guard-mutation-proof` 还清**（四条实验：正向必红 `32570222139` · revert 必绿 `32570426423` · 只动账本必不触发 `32570691388` · 触及且带 trailer 必放行 `32570942284` attempt 2）。⚠️ 第四条那个出口**在同一 sha 上不可复现**，本队列上方已有专门的 `[open]` 行，**本行不抹掉那条限定**。
+  · **欠账二（Phase 3「把前驱两条 Deferred 记为了结」）已由 plan `2026-08-22-1206-2-gates-l2-live-lands-on-main` 还清**：在 plan `2026-08-21-2220-2-homepage-ai-not-configured` 的 `## Deferred But Adjudicated` 下两条各**追加**一行（`git diff --numstat` → `2	0`，**删除列为 0**，一个字未改写他人的关闭证据），逐字点名本批两个 plan 的完整 id 与 `main` 上的权威运行 `32572618933`。
+  · **`0027-2` 的 `Plan Status` 仍是 `deferred`，19 个未勾框一个未动，由人裁定**。实测四条计数在本轮改动**前后完全相同**：锚定未勾 `19` · 未勾总计数 `26` · 锚定已勾 `36` · `Plan Status: deferred` 计数 `1`。本 plan 只在它的 `Closure Audit Log` 追加了一行（`git diff --numstat` → `11	0`，纯追加）。**代打勾即伪造它的关闭证据——它前四次审计逐次拒绝过这件事。**
+  · **停机线的现状照实说**：`0027-2` 那次「CI 连续 2 轮红即停机」的触发条件早已由 plan `2026-08-22-0228-2` 解除（本队列上方已有 `[resolved]` 行）；本轮进一步把两个 job 落进 `main` 并拿到九个 job 全绿的权威运行。**但这不等于 `0027-2` 可以关闭**——它自己的交付面由它自己的框计量，successor 在 successor 里满足其中一项，不等于它可以自称做过。
+  · **driver 仍会对 `deferred` 的 plan 反复派发 `EXECUTE`**：本队列上方那条 `[open]` 行给人的 (a)/(b)/(c) 三个可选处置**仍未被选**，`tools/mission-driver/src/plan-check.mjs` 的选取逻辑一个字未改。**loop 不替人选。**
   · **授权链**：与本队列 2026-08-21 那几行同一处矛盾，处置相同：按 `AGENTS.md` 红线 5「只允许追加证据行」执行，**只追加、不改写任何已有行**。

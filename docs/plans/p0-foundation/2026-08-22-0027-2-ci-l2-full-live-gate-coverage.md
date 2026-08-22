@@ -100,6 +100,17 @@
 >     **本 plan 欠的第二项（Phase 3「把前驱两条 Deferred 记为了结」）仍欠着**，归本批第二个 plan
 >     `2026-08-22-1206-2`。**本条不代本 plan 打勾**：19 个 `[ ]` 属于本 plan 自己的交付面，
 >     由 successor 在 successor 里满足其中一项，不等于本 plan 可以自称做过——那正是前三次审计拒绝过的事。
+>   - 2026-08-22 · **plan `2026-08-22-1206-2-gates-l2-live-lands-on-main` 还清本 plan Phase 3 的那一项**：
+>     「把前驱两条 Deferred 记为了结」**已落地**——在 plan `2026-08-21-2220-2-homepage-ai-not-configured` 的
+>     `## Deferred But Adjudicated` 里，「L2 门禁在 CI 上不受 `expected-red.txt` 棘轮保护」与
+>     「判定器没有「live 名单」这个概念」两条各**追加**了一行了结记录（`git diff --numstat` → `2	0`，
+>     **删除列为 0，一个字未改写已有行**），逐字点名本批两个 plan 的完整 id 与 `main` 上的权威运行
+>     run `32572618933`（event `push`，head `3503f2c89d78f44f94e0e0ff9f6061ca72e90b89`，**九个 job 全部 `success`**，
+>     `gates-l2-live` job `97030229667` 日志逐字 `门禁 19 项：红 0，绿 19，跳过 0`）。
+>     **本 plan Phase 2 那项欠账（守卫的变异实证）由 `2026-08-22-1206-1` 自己追加过一行，本条只引用、不复述。**
+>     ⚠️ **本条不动本 plan 的 `Plan Status`（仍 `deferred`）、不勾任何一个未勾框**：
+>     19 个未勾项里还有整个 `## Closure Gates` 与本 plan 自己的 Exit Criteria，代打勾即伪造关闭证据——
+>     那是前四次审计逐次拒绝过的同一件事。**`Plan Status` 与那 19 框由人裁定。**
 
 ## 术语约定：本 plan 说的「判定方式节」在哪
 

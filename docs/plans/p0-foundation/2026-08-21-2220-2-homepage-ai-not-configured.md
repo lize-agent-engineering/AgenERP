@@ -661,6 +661,7 @@ Exit Criteria:
   pytest 退出码直接判，有人把它们改绿而不改实现，棘轮不会响。**代偿控制**：`gates-untouched` job
   仍然拦着对 `tests/gates/**` 的无批准改动，而那几条断言就在 `tests/gates/**` 内。
 - Successor Required: `no`（判定器改造属判据设施，超出 P0；真要做时是候选 (ii)）
+- **⚠️ 2026-08-22 追加，记为了结（不改写上面任何一行——那是本 plan 已关闭的证据）**：本条已被 plan `2026-08-22-1206-1-verdict-guard-mutation-proof` 与 `2026-08-22-1206-2-gates-l2-live-lands-on-main` 两个 plan 共同了结。`main` 的 `gates.yml` 末尾已落地 `gates-l2-live` job（落地 sha `3503f2c89d78f44f94e0e0ff9f6061ca72e90b89`），它走 `tools/gates/check_expected_red.py` 的 **live 判定模式**，契约是「全部门禁绿、零 red、零 skip」，**比预期红名单棘轮更紧**——L2 那几条断言在 CI 上不再只由 pytest 退出码直接判，「有人把它们改绿而不改实现」会被 live 契约与 `gates-untouched` 双重挡住。**`main` push 权威运行 `32572618933`（event `push`，head `3503f2c`）九个 job 全部 `success`**，`gates-l2-live` job `97030229667` 日志逐字 `门禁 19 项：红 0，绿 19，跳过 0`。口径见 `docs/architecture/system-baseline.md` §14.4。⚠️ **残余照实记**：`gates-l2` job 未退休，它那条绕开判定器的路径仍然存在（已登记为人动作 Deferred）。
 
 ### 判定器没有「live 名单」这个概念
 
@@ -668,6 +669,7 @@ Exit Criteria:
 - Why Not Blocking Closure: 这是判据设施改造，影响面比工作项 8 大；P0 先要「CI 真跑到过 L2」这个事实。
 - Successor Required: `yes` —— 重开事件：**当 CI 的 L2 覆盖面扩到 `test_zero_dep_boot.py` 之外时**
   （例如把 `test_customization_roundtrip_delete.py` 也搬上 CI），届时逐条手写退出码断言不再可行。
+- **⚠️ 2026-08-22 追加，记为了结（不改写上面任何一行）**：本条写死的重开事件**已经发生并已被处置**。CI 的 L2 覆盖面已扩到整目录 **19 条**（含 `test_customization_roundtrip_delete.py`），由 plan `2026-08-22-1206-2-gates-l2-live-lands-on-main` 落进 `main`（落地 sha `3503f2c89d78f44f94e0e0ff9f6061ca72e90b89`，权威运行 `32572618933` 九个 job 全绿）。**处置方式恰好是本条预告的那一条**：不再逐条手写退出码断言，改由判定器的 live 判定模式统一判（plan `2026-08-22-0027-1` 交付判定设施半、`2026-08-22-0027-2` 交付 CI 消费半、`2026-08-22-1206-1-verdict-guard-mutation-proof` 交付守卫的四条变异实证、本批第二个 plan 交付落地面）。**判定器仍然没有「live 名单」这个概念，这是明示取舍不是遗漏**：live 模式**不读** `expected-red.txt`，契约写死为全绿零 skip，偏离与理由记在 `docs/architecture/system-baseline.md` §14.4。
 
 ### 首页文案不随 AI 配置的后续变更而更新
 

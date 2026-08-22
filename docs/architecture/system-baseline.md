@@ -445,7 +445,8 @@ roadmap 工作项 3（plan `docs/plans/p0-foundation/2026-08-21-1022-1-zero-dep-
 （把 diff 范围扩到 `tools/gates/check_expected_red.py` 的 `verdict-tool-untouched` job），
 它由 plan `2026-08-22-0027-2-ci-l2-full-live-gate-coverage.md` 承接。
 **空窗期的两个端点照实记**：起点是本节被写下的那一刻（守卫还没上线），
-终点是 `verdict-tool-untouched` 合并进 `main` 的那一刻——**该终点尚未到达**（PR #1 未合并，原因见下一小节开头的上线状态段），**空窗期此刻仍开着**。
+终点是 `verdict-tool-untouched` 合并进 `main` 的那一刻——**该终点已于 2026-08-22 到达**：plan `2026-08-22-1206-2` 把两个 job 经 PR #3 `--ff-only` 落进 `main`，**落地 sha `3503f2c`**，`main` push 权威运行 `32572618933` 九个 job 全绿（守卫 job `97030229697`）。**空窗期到此闭合。**
+⚠️ **起草时那句「该终点尚未到达（PR #1 未合并）」的原文保留在本行历史里，是当时的实测状态，不是错误陈述**；改准的是它的**现时效力**。⚠️ **闭合不等于守卫在 `push` 上已有牙齿**：那次运行走的是 `✅ 未触及判定器` 出口，只证明 `push` 路径能跑通；`push` 上的正向变异实验未做（代价是让 `main` 红一次），已登记为残余。
 空窗期内唯一带牙齿的控制是**自愿**在改判定器的提交上带一行 `Gates-Change-Approved-By:` trailer——
 它当时不是本仓要求的（判定器不在 `gates-untouched` 的路径里，没有任何 job 会检查它），
 但它让那次改动在 `git log` 里**可被检索**。
@@ -462,6 +463,27 @@ roadmap 工作项 3（plan `docs/plans/p0-foundation/2026-08-21-1022-1-zero-dep-
 > 本机 6 跑红 1 次、runner **2 跑红 2 次**；起草时「runner 全新站点方向更有利」的推理**被实测证伪**，
 > **不猜根因**（裁判规则 3）。修它归一个专门的 successor plan。
 > 下面两小节写的是**设计与判据**，读它们时别把「已设计」读成「已在 `main` 上生效」。
+>
+> ⚠️ **2026-08-22 四次补记，就地改准（确认的 owner-doc 漂移，Minimum Rule 14 不降级）**——
+> **上面这整段「上线状态」已经全部过时，读下面这几行为准**：
+> · **两个 job 已在 `main` 上**：plan `2026-08-22-1206-2` 经新 PR #3 `--ff-only` 落地，
+>   **落地 sha `3503f2c89d78f44f94e0e0ff9f6061ca72e90b89`**（与 PR #3 上跑绿的 head 逐字同一个 sha）。
+>   `main` 上 `gates.yml` 现有 **9 个 job 键**，新增两个在末尾，前 190 行逐字节未动。
+> · **`main` push 权威运行 `32572618933`（event `push`，head `3503f2c`）九个 job 全部 `success`**，
+>   其中 `gates-l2-live`（job `97030229667`）日志逐字 `门禁 19 项：红 0，绿 19，跳过 0` /
+>   `✅ live 判定：全部门禁绿，零 red、零 skip`。**工作项 9 的关闭判据第一次在 `main` 上成立。**
+> · **上面那句「原因：`gates-l2-live` 在 CI 上第一次跑就红，且原样复跑复现」不再是当前状态**：
+>   它描述的是 run `32509351108`，**那条可复现的红是永久证据、不得抹掉**；但它已被 run `32533449466`
+>   与本次权威运行推翻在「当前是否红」这一点上。
+> · **上面那句「红在实现，不是红在判据：`apply_pack` 的物理列清除面在 runner 的全新站点上不成立」是错的**，
+>   且**早在本次落地之前就已被推翻**（plan `2026-08-22-0228-2`：清除面从来没坏过，
+>   真红因在 `bench execute` 的 `if ret:` 让 `trim_table` 回 `[]` 时 stdout 零字节，
+>   旧 `run_json` 把它判成「载荷不是 JSON」）。这一条与本次落地无关，是一条独立的确认漂移。
+> · **`AGENTS.md` 裁判规则 4 那次停机已解除**：`0027-2` 的 `Plan Status` **仍是 `deferred`**，
+>   **由人裁定**，loop 不代翻（本 plan 只在它的 `Closure Audit Log` 追加一行）。
+> · ⚠️ **守卫 `verdict-tool-untouched` 的 `push` 路径**：权威运行里它走的是
+>   `BASE="bb83b20…"（github.event.before）; HEAD="3503f2c…"（github.sha）` → `✅ 未触及判定器`。
+>   **这只证明 `push` 路径能跑通并走到「未触及」分支，不证明它在 `push` 上有牙齿。**
 
 `.github/workflows/gates.yml` 末尾的 **`gates-l2-live`** job 是 live 判定模式在服务端的唯一消费者：
 它在 runner 上起栈，然后用 **`python3 tools/gates/check_expected_red.py`** 对**全部 19 条门禁**做一次判定，
@@ -518,7 +540,7 @@ env 为 `AGENERP_LIVE=1` · `AGENERP_ADMIN_PASSWORD=admin` · `AGENERP_SITE=fron
 `gates-l2` job 的那几条门禁在 CI 上不受预期红名单棘轮保护：有人把它们改绿而不改实现，棘轮不会响。
 **代偿控制**：`gates-untouched` job 仍然拦着对 `tests/gates/**` 的无批准改动，
 而那几条断言就在 `tests/gates/**` 内。
-**这条风险的收口方案是上面的 `gates-l2-live`，但它尚未在 `main` 上生效**（PR #1 未合并）（它走判定器，live 契约比棘轮更紧，且覆盖面是 `gates-l2` 的超集）；
+**这条风险的收口方案是上面的 `gates-l2-live`，它已于 2026-08-22 在 `main` 上生效**（plan `2026-08-22-1206-2`，落地 sha `3503f2c`，`main` push 权威运行 `32572618933` 的 job `97030229667` `success`；⚠️ 起草时那句「尚未在 `main` 上生效（PR #1 未合并）」是当时的实测状态，此处只改准其现时效力）（它走判定器，live 契约比棘轮更紧，且覆盖面是 `gates-l2` 的超集）；
 本小节原样保留，是因为 `gates-l2` 那条绕开判定器的路径**仍然存在**——
 它只是不再是本仓对 L2 的唯一服务端判定。
 

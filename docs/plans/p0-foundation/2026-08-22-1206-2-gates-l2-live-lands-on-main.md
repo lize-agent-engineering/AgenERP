@@ -791,6 +791,104 @@ Exit Criteria:
 - [ ] **终点判据成立**：`git merge-base --is-ancestor origin/main main` 成立，
       `git rev-list --count origin/main..main` ≤ 1，且那至多一个提交只含 `docs/logs/**` 与 `docs/plans/p0-foundation/**`
 
+#### Phase 3 执行记录（2026-08-22 实跑回填）
+
+**一、那条 grep 命中的每一处，逐条裁定（10 行 / 4 个文件，与起草时实测一致）**
+
+`grep -rn 'main.*上.*没有这个 job\|本机独证\|PR #1 仍未合并\|未合并\|红在实现' docs/context/ docs/backlog/ docs/architecture/`
+→ **10 行 / 4 个文件**：`project-context.md:58,59` · `system-baseline.md:448,457,461,521` ·
+`p0-foundation-roadmap.md:62,64,69` · `module-boundaries.md:305`。
+
+| # | 命中位置 | 裁定 | 处置 |
+|---|---|---|---|
+| 1 | `docs/context/project-context.md:58` | **确认漂移**（「PR 未合并，`main` 上没有这个 job」「在 `main` 上仍是本机独证」） | **就地改准**：追加「四次补记」，写明落地 sha `3503f2c`、权威运行 `32572618933` 九个 job 全绿、`gates-l2-live` job `97030229667` 日志逐字；并写明 run `32509351108` 那次可复现的红是**永久证据、未被抹掉**，只是不再是当前状态 |
+| 2 | `docs/context/project-context.md:59` | **确认漂移**（「PR #1 仍未合并，`main` 上仍没有这个 job……仍是本机独证」） | **就地改准**：整句改准为「此刻在 `main` 上由 CI 服务端复跑，不再是本机独证」，并保留两条照实读的限定（不在 `commands.test` 里、`GATE_VERIFY` 复跑不到；PR #1/#2 已 `CLOSED` 但历史 run 仍可查） |
+| 3 | `docs/architecture/system-baseline.md:448` | **确认漂移**（「空窗期终点尚未到达（PR #1 未合并）」「空窗期此刻仍开着」） | **就地改准**：改成「该终点已于 2026-08-22 到达」+ 落地 sha + 权威运行 + 守卫 job id，并写明**闭合不等于守卫在 `push` 上已有牙齿** |
+| 4 | `docs/architecture/system-baseline.md:457` | **确认漂移，且落地之前就已确认**（「原因：`gates-l2-live` 在 CI 上第一次跑就红，且原样复跑复现」——被 run `32533449466` 推翻） | **就地改准**：在「上线状态」段末追加「四次补记」整块，逐条改准；⚠️ **那条可复现的红（`32509351108`）逐字保留，不得抹掉** |
+| 5 | `docs/architecture/system-baseline.md:461` | **确认漂移，与本次落地无关**（「红在实现，不是红在判据：`apply_pack` 的物理列清除面在 runner 的全新站点上不成立」——被 plan `2026-08-22-0228-2` 推翻：清除面从来没坏过，真红因在 `bench execute` 的 `if ret:`） | **就地改准**：同一块「四次补记」里单列一条，写明它是**独立的**确认漂移，不是本次落地的副产物 |
+| 6 | `docs/architecture/system-baseline.md:521` | **确认漂移**（「收口方案……但它尚未在 `main` 上生效（PR #1 未合并）」） | **就地改准**：改成「已于 2026-08-22 在 `main` 上生效」+ 落地 sha + job id |
+| 7 | `docs/architecture/module-boundaries.md:305` | **非漂移** | **不改，逐字记明理由**：该行是「**无活站点不等于错误**：无站点配置时走离线来源……让它抛异常，门禁就会永远红在环境而不是红在实现上」——它是一条**关于来源解析设计的正确架构原则**，命中只因为共用了「红在实现」这个词组，**与两个 job 在不在 `main` 上毫无关系**。改它会**改坏一条正确的原则**（第 3 轮评审 blocking ① 预判过这一点）。**记明命中位置与不改的理由，未静默略过、更未照改。** |
+| 8 | `docs/backlog/p0-foundation-roadmap.md:62`（「5 现状」） | **确认漂移**（「PR #1 未合并，`main` 上仍没有这两个 job」） | **就地改准**：行内追加「四次补记」，并写明**本行状态不因此变动**（`done` 仍卡在划名单那条人裁定题上） |
+| 9 | `docs/backlog/p0-foundation-roadmap.md:64`（「6 现状」） | **确认漂移**（同上）；另含一处**保留的历史陈述**「这是一个 CI 抓到、本机独证掩盖着的真问题」 | **就地改准**：同 #8；对那处历史陈述**指明其现时效力已由本行随后那条「三次补记，就地改准」接管，此处不重复改准** |
+| 10 | `docs/backlog/p0-foundation-roadmap.md:69`（「9 现状」） | **确认漂移** | **由本 Phase 的专门 `Fix` 项处置**（见下面第四节） |
+
+**没有一处被降级成 follow-up（Minimum Rule 14）；非漂移的那一处也没有被静默略过。**
+
+**二、`docs/masterplan/` 只读边界（另跑一次，同一 pattern）**
+
+`grep -rn '<同一 pattern>' docs/masterplan/` → **7 条**（与起草时实测一致）：
+`STATE.md:50,54,112,113,115,127` 与 `archive/STATE-2026-08-22.md:177`。
+
+- **一处都没有就地改**（红线 5）。处置走既有先例：**在 `STATE.md` §2 与 §3 各追加一条事实行**，
+  改准的内容写在追加行里。
+- `docs/masterplan/archive/STATE-2026-08-22.md:177` 是**冻结的历史记录**，
+  **连追加都不做**——它是已归档的证据，改它等于伪造历史。
+- 机械判据：`git diff --numstat <开工 sha>..HEAD -- docs/masterplan/STATE.md` → **删除列为 `0`**；
+  `git diff … | grep '^-' | grep -v '^---'` → **无输出**（**只追加**）。
+
+**三、`0027-2` 两项欠账的了结**
+
+- **在 `2026-08-21-2220-2` 的 `## Deferred But Adjudicated` 下追加两行**（分别挂在
+  「L2 门禁在 CI 上不受 `expected-red.txt` 棘轮保护」与「判定器没有「live 名单」这个概念」两条下方），
+  **逐字点名两个 plan 的完整 id**（`2026-08-22-1206-1-verdict-guard-mutation-proof` 与
+  `2026-08-22-1206-2-gates-l2-live-lands-on-main`，**不写「本批两个 plan」**）与 `main` 上的权威运行 `32572618933`。
+  机械判据：`git diff --numstat` → **`2	0`**，**删除列为 `0`**（一个字未改写他人的关闭证据）✅
+- **`0027-2` 的 `Closure Audit Log` 追加一行**，**只写本 plan 还的那一项**（Phase 3 的「把前驱两条 Deferred 记为了结」）；
+  Phase 2 那项（守卫实证）由第一个 plan 自己追加过一行，**本 plan 只引用、不复述**。
+  同时写明它自身的 `Plan Status` 与那 19 个未勾框**由人裁定**。
+  机械判据：`git diff --numstat` → **`11	0`**（纯追加）。
+- **四条计数判据，改动前后两次实测**（**以执行当日为准，未写死起草日的数**）：
+
+| 判据 | 改动前 | 改动后 | 期望 | 结论 |
+|---|---|---|---|---|
+| `grep -c '^\s*-\s\[ \]' …0027-2….md`（锚定未勾） | `19` | `19` | `19` | ✅ |
+| `grep -c '\[ \]' …0027-2….md`（未勾总计数） | `26` | `26` | 前后相同 | ✅（起草日是 `24`，本 plan 未写死它） |
+| `grep -c '^\s*-\s\[x\]' …0027-2….md`（锚定已勾） | `36` | `36` | 前后相同 | ✅ |
+| `grep -c '^> Plan Status: deferred' …0027-2….md` | `1` | `1` | `1` | ✅ |
+
+⚠️ 追加时曾一度让「未勾总计数」由 `26` 变 `27`——原因是追加文本里写了一对字面方括号；
+**当场按该判据收回改成「未勾框」三字**，这正是那条判据存在的理由（只钉锚定式的 `19` 看不见它）。
+
+**四、roadmap「9 现状」行改准**
+
+- 行内追加「四次补记」，写明：① 两个新 job 已在 `main` 上，落地 sha `3503f2c89d78f44f94e0e0ff9f6061ca72e90b89`，
+  `main` 上 `gates.yml` 有 **9 个 job 键**、前 190 行逐字节未动；② **权威运行 `32572618933` 九个 job 的 id 与结论逐字**，
+  `gates-l2-live` 日志逐字；③ 守卫**四条**变异实验的 run id 与结论，**含第四条「同一 sha 上不可复现」的限定**，
+  以及 `push` 路径「只证明能跑通、不证明有牙齿」的收窄说法；
+  ④ **事实陈述**：那格写死的关闭判据**此刻成立**；⑤ 与**工作项 8** 的包含关系：9 的判据完全包住 8 的判据，
+  **但 9 绿不代表 8 可置 `done`**；⑥ **不自行把工作项 9 置 `done`**，并写明它除「划名单」外还有
+  **第二条独立障碍**（没有属于自己的门禁测试）。
+- ⚠️ **`## Work Item Status` 块一个字未动**：工作项 9 仍是 `planned`。
+  该块逐字写着「状态只在这里改」，而 roadmap 的 `Status values` 表把 `done` 定义为
+  「完成，且通过 closure 审计」——**置状态不是 plan 的事**（本 plan 的 Non-Goals 第一条）。
+  该 roadmap **不使用 `❌ / ✅` 标记**，因此没有可翻转的标记；本 plan 改的是「9 现状」这一格的事实陈述。
+
+**五、收尾复跑（本机，五条全部 exit 0）**
+
+| # | 命令 | 退出码 | 输出 |
+|---|---|---|---|
+| 1 | `python3 tools/gates/check_expected_red.py` | **0** | `判定模式：default —— 按 tools/gates/expected-red.txt 判定` / `门禁 19 项：预期红 7，绿 12，跳过 0` / `✅ 与预期红名单完全一致` |
+| 2 | `python3 -m pytest tests/unit -q` | **0** | `221 passed` |
+| 3 | `python3 -m pytest tests/contracts -q` | **0** | `151 passed` |
+| 4 | `ruff check agenerp tests/unit tests/contracts` | **0** | `All checks passed!` |
+| 5 | `python3 -c "import yaml; yaml.safe_load(open('.github/workflows/gates.yml'))"` | **0** | 无输出 |
+
+⚠️ **验证范围照实说**：本仓无全量套件（无 build、无 typecheck）。本 plan 的证据面是
+**「CI 上九个 job 的结论 + 本机这五条命令」**，**不得报成「全量验证通过」**。
+
+**六、红线自查（锚开工 sha `79184e5`，不用裸 `git diff`）**
+
+| # | 命令 | 输出 | 期望 | 结论 |
+|---|---|---|---|---|
+| 1 | `git diff --stat 79184e5..HEAD -- tests/gates agenerp docs/masterplan/DECISIONS.md missions tools/gates` | **无输出** | 空 | ✅ 红线 1/3 与 `agenerp/**` 零触碰 |
+| 2 | `git status --porcelain -- tests/gates agenerp docs/masterplan/DECISIONS.md missions tools/gates` | **无输出** | 空 | ✅ 工作区亦无未提交触碰 |
+| 3 | `git diff --numstat 79184e5..HEAD -- tools/gates/expected-red.txt` | **无输出** | 空 | ✅ **账本一行未动** |
+| 4 | `git diff 79184e5..HEAD -- docs/masterplan/STATE.md \| grep '^-' \| grep -v '^---'` | **无输出** | 空 | ✅ **只追加**（`--numstat` 为 `19	0`） |
+| 5 | `git diff --numstat 79184e5..HEAD -- docs/plans/p0-foundation/2026-08-21-2220-2-homepage-ai-not-configured.md` | `2	0` | **删除列为 `0`** | ✅ 未改写他人关闭证据 |
+
+**另记两条常设禁令的实测**：`git diff --numstat 79184e5..HEAD -- .github/workflows/gates.yml` → **`118	0`**
+（纯追加、零删除）；**证据仓 `${XM_PATH}` 全程未写入**（本 plan 无任何写它的命令）。
+
 ## Draft Review Record
 
 - **Independent draft review iteration 1: `needs revision`**（独立子代理，fresh session，2026-08-22）。
