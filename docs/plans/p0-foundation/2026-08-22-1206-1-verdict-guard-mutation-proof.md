@@ -643,14 +643,14 @@ Phase 3 的三次 `git reset --hard` 全部以它为目标。
 
 ### Phase 3 — 守卫的四次变异实证（本 plan 的主交付）
 
-Status: planned
+Status: completed
 Targets: 新分支 `ci/1206-1-verdict-guard-proof` 上的**临时实验提交**（最终全部清理）· 本 plan 文件
 Skill: `none`
 
 - Item Types: `Proof`
 - Prereqs: Phase 2 完成（先有一次干净的基线运行，才分辨得出实验引起的变化）
 
-- [ ] `Proof` **实验隔离纪律（先立规矩，四条实验都受它约束）**。守卫比的是**累积** `BASE..HEAD`
+- [x] `Proof` **实验隔离纪律（先立规矩，四条实验都受它约束）**。守卫比的是**累积** `BASE..HEAD`
       （`git diff --name-only "$BASE" "$HEAD" -- 'tools/gates/check_expected_red.py' 'tools/gates/gate-verify.mjs'`，
       `BASE` 取 `pull_request.base.sha`），trailer 也是**整区间**扫。因此**实验不许叠罗汉**：
       · **动手前先跑 `git status --porcelain` → 期望输出为空**（见「全程硬规矩」：`reset --hard` 会静默吞掉
@@ -668,7 +668,7 @@ Skill: `none`
       **不这么做的后果是实测可复现的**：实验 ③ 若堆在 ①+② 之上，它绿只是因为 ② 把净 diff 抹平了，
       证明不了「账本不在守卫路径清单内」；实验 ④ 一旦留在区间里，其后每条实验都会被 trailer 一路放行。
       - Skill: `none`
-- [ ] `Proof` **实验 ①（正向，必须红）**：往 `tools/gates/check_expected_red.py`
+- [x] `Proof` **实验 ①（正向，必须红）**：往 `tools/gates/check_expected_red.py`
       **文件末尾加一个空行**，提交信息**不带** `Gates-Change-Approved-By:` trailer，推到分支。
       判据：`verdict-tool-untouched` 结论为 **`failure`**，日志逐字出现
       `本次改动触及判定器：` 与 `❌ 改动了门禁判定器却没有人工批准。`。
@@ -679,7 +679,7 @@ Skill: `none`
       尤其 `gates-l1` 必须仍 `success`——它跑的就是这个脚本，跟着红说明这一改有语义、实验作废。
       逐字记录：run id、job id、conclusion、红 job 集合。
       - Skill: `none`
-- [ ] `Proof` **实验 ②（复原，必须绿）**：`git revert` 掉实验 ① 那个提交（同样不带 trailer），推到分支。
+- [x] `Proof` **实验 ②（复原，必须绿）**：`git revert` 掉实验 ① 那个提交（同样不带 trailer），推到分支。
       判据：`verdict-tool-untouched` 回到 **`success`**，日志逐字 `✅ 未触及判定器`。
       ⚠️ **这一条有一个必须当场验的坑**：守卫比的是 `BASE..HEAD` 的**累积 diff**（`git diff --name-only "$BASE" "$HEAD"`），
       PR 的 `BASE` 是**创建 PR 那一刻钉死的 `base.sha`**（= `$CUT`，见 C5——**不是** base 分支的当前 tip，
@@ -692,7 +692,7 @@ Skill: `none`
       **不得**把 ③ 堆在一个净 diff 非空的区间上（那样 ③ 无论红绿都解释不了任何事，作废）。
       逐字记录：run id、job id、conclusion。
       - Skill: `none`
-- [ ] `Proof` **实验 ③（边界，必须不触发）**：推一个**只动 `tools/gates/expected-red.txt`** 的提交，
+- [x] `Proof` **实验 ③（边界，必须不触发）**：推一个**只动 `tools/gates/expected-red.txt`** 的提交，
       改动内容**只能是加一行 `#` 开头的注释**。判据两条：
       · `verdict-tool-untouched` **`success`** 且日志逐字 `✅ 未触及判定器`（账本不在守卫的路径清单内）；
       · `expected-red-ratchet` **`success`**（`count()` 是 `grep -vE '^\s*(#|$)' | wc -l`，注释不计数、行数持平）。
@@ -703,7 +703,7 @@ Skill: `none`
       ⚠️ **不得加一条真的 nodeid**：那会让名单变长、当场触发棘轮，把实验污染成两个 job 同时红，什么也证明不了。
       逐字记录：run id、job id ×2、conclusion ×2。
       - Skill: `none`
-- [ ] `Proof` **实验 ④（放行路径，必须绿且必须是「放行」而不是「未触及」）**。
+- [x] `Proof` **实验 ④（放行路径，必须绿且必须是「放行」而不是「未触及」）**。
       **加它的理由（独立评审 B6）**：守卫有四条出口，其中「触及 + 带 trailer → 放行」这一条
       **在 ①②③ 里一次都走不到**，而它恰恰决定「人将来还能不能合法地改判定器」。
       若 `grep -q '^Gates-Change-Approved-By:'` 的匹配式在实践中不成立（trailer 位置、`%B` 的换行、
@@ -722,7 +722,7 @@ Skill: `none`
       （出现它说明走的是另一条出口，这条实验作废）。同时核对 `gates-l1` 仍 `success`。
       逐字记录：run id、job id、conclusion、命中的日志行。
       - Skill: `none`
-- [ ] `Proof` **清理实验提交，并给「清理干净」配机械判据**（不是一句叮嘱）：
+- [x] `Proof` **清理实验提交，并给「清理干净」配机械判据**（不是一句叮嘱）：
       · `git reset --hard <Phase 2 结束时的 sha>` 后 `git push --force-with-lease`；
       · `git rev-parse ci/1206-1-verdict-guard-proof` → 期望**逐字等于** Phase 2 结束时那个 sha；
       · `git diff --numstat "$CUT" ci/1206-1-verdict-guard-proof`
@@ -736,7 +736,7 @@ Skill: `none`
         （`baseRefOid` 钉死在 `$CUT` 不漂移，这是硬判据，无豁免）；
       · `gh pr view <新 PR 号> --json baseRefOid` → 期望**仍逐字等于 `$CUT`**（复核 C5 那颗钉子没松）。
       - Skill: `none`
-- [ ] `Proof` **确认「清理后的 head 上有一次全绿」**。
+- [x] `Proof` **确认「清理后的 head 上有一次全绿」**。
       **先看清一件事，别白等**：`git reset --hard <Phase 2 sha>` + force-push 之后，PR head sha
       与 Phase 2 那次运行的 head sha **完全相同**，因此 **Phase 2 那次运行本身就是「清理后 head 上的绿」**，
       force-push 到一个已跑过的 sha **可能不产生新的 run id**。
@@ -745,7 +745,7 @@ Skill: `none`
       且该 sha 上存在一次全绿运行（**引用 Phase 2 的 run id 即可，不必制造新的**）。
       只有在 head sha 与 Phase 2 不一致时才需要重新跑一次并记新 run id。
       - Skill: `none`
-- [ ] `Proof` **覆盖面限定，逐字写死（不得被读成「守卫已全面实证」）**：四条实验全在 PR 分支上做，
+- [x] `Proof` **覆盖面限定，逐字写死（不得被读成「守卫已全面实证」）**：四条实验全在 PR 分支上做，
       因此**只证明了 `pull_request` 那条 `BASE`/`HEAD` 推导路径**（`base.sha` / `head.sha`）。
       `gates.yml` 的 `on: push` 限定 `branches: [main]`，所以 `push` 那条路径
       （`github.event.before` / `github.sha`，以及全零 sha 那个「首次推送」提前 `exit 0` 分支）
@@ -755,17 +755,188 @@ Skill: `none`
 
 Exit Criteria:
 
-- [ ] **四次**实验各有 run id、job id、conclusion 逐字在 plan 里，结果分别为
+- [x] **四次**实验各有 run id、job id、conclusion 逐字在 plan 里，结果分别为
       `failure` / `success` / `success` / `success`（③ 附 `expected-red-ratchet` 的 `success`；
       ④ 附日志逐字 `✅ 找到人工批准 trailer，放行` 且**不含** `✅ 未触及判定器`）
-- [ ] 实验 ① 按「预期红」三条判据全中（**七个点名 job 全绿 + 守卫 `failure`** + 两条日志原文 + head sha 对得上）
-- [ ] 每条实验开跑前的两条隔离预检（提交数 / trailer 计数）均为期望值
-- [ ] 实验提交已清理，清理项那五条机械判据全部为期望值
-- [ ] 清理后的 head 上存在一次全绿运行（引用 Phase 2 的 run id 即可，head sha 已核对一致）
-- [ ] **截至本阶段结束**，CI 运行次数未超过声明的 **12 次**预算（**这是一个滚动计数，不是终值**——
+- [x] 实验 ① 按「预期红」三条判据全中（**七个点名 job 全绿 + 守卫 `failure`** + 两条日志原文 + head sha 对得上）
+- [x] 每条实验开跑前的两条隔离预检（提交数 / trailer 计数）均为期望值
+- [x] 实验提交已清理，清理项那五条机械判据全部为期望值
+- [x] 清理后的 head 上存在一次全绿运行（引用 Phase 2 的 run id 即可，head sha 已核对一致）
+- [x] **截至本阶段结束**，CI 运行次数未超过声明的 **12 次**预算（**这是一个滚动计数，不是终值**——
       Phase 4 那次 `main` 收尾推送也计入同一份预算，终值判据在 Phase 4 的 Exit Criteria）
-- [ ] 覆盖面限定已逐字写进**本 plan**（写进 `system-baseline.md` §14.4 归 Phase 4，不在本阶段 Targets 里）
-- [ ] `docs/logs/2026/08-22.md` 已追加本阶段记录
+- [x] 覆盖面限定已逐字写进**本 plan**（写进 `system-baseline.md` §14.4 归 Phase 4，不在本阶段 Targets 里）
+- [x] `docs/logs/2026/08-22.md` 已追加本阶段记录
+
+#### Phase 3 执行记录（2026-08-22 实跑回填）
+
+**⚠️ 先说结论里最重要的一条，不埋在下面**：四条实验里 **①②③ 干净成立**，
+**④ 的结果是「同一个 sha 上一红一绿」，按 `AGENTS.md` 裁判规则 3 记「不可复现」**。
+放行出口**确实可达**（重跑那一次的日志逐字打出 `✅ 找到人工批准 trailer，放行`），
+但**不得写成「放行路径已实证且稳定」**。详见 ④ 与其后的「⑦ 本阶段抓到的新缺陷」。
+
+**读日志的硬规矩（先写在最前，四条实验共用）**
+
+`gh run view --job <id> --log` 会把 `run:` 脚本正文一起回显，那些行带 `\x1b[36;1m` 前缀，
+且**同时含三条互斥出口的字面**（`✅ 未触及判定器` / `✅ 找到人工批准 trailer，放行` /
+`❌ 改动了门禁判定器却没有人工批准。`）。**只有不带该前缀的行才是真实输出。**
+⚠️ **就地改准 Phase 2 记录里给的那条命令**：`sed 's/\x1b\[[0-9;]*m//g'` 在 **macOS 的 BSD sed 上不生效**
+（BSD sed 不认 `\x1b`），本阶段实际用的是 **`perl -pe 's/\e\[[0-9;]*m//g'`**，已实测可用。
+
+**① 实验隔离纪律的实际执行（每条实验开跑前的两条机械预检，逐条实测值）**
+
+| 实验 | `git status --porcelain` | `git log --oneline "$CUT"..HEAD \| wc -l` | 期望 | trailer 计数 | 期望 |
+|---|---|---|---|---|---|
+| ① | 空 | `2` | `2` ✅ | `0` | `0` ✅ |
+| ② | 空 | `3` | `3` ✅ | `0` | `0` ✅ |
+| ③（reset 后） | 空 | `2` | `2` ✅ | `0` | `0` ✅ |
+| ④（reset 后） | 空 | `2` | `2` ✅ | `1` | `1` ✅ |
+
+③ 与 ④ 开跑前各做了一次 `git reset --hard b7348bf` + `git push --force-with-lease`，实测输出
+`+ a8e8305...b7348bf (forced update)` 与 `+ cf73d90...b7348bf (forced update)`。
+
+**⚠️ 一条本仓此前明确写着「没实测过」的事实，本阶段实测出来了**：plan 的「CI 运行预算」逐字写着
+「**不做「reset 到已跑过的 sha 不另计」这种假设**——force-push 会不会触发 `synchronize` 事件本仓没实测过」。
+**实测结论：会触发，而且每一次都触发。** 三次 force-push 回 `b7348bf` 各自开出一次完整运行
+（`32570657720` / `32570916073` / `32571266013`），**即使目标 sha 上已经跑过绿**。
+按最坏情形算预算这个决定因此是对的。
+
+**② 实验 ①（正向，必须红）—— 干净成立**
+
+- 载荷：`tools/gates/check_expected_red.py` **文件末尾加一个空行**，提交
+  **`47e0069b1d3c03fbb75ca9917015a966c861d2f8`**，message **不带** trailer。
+  本机预检 `python3 tools/gates/check_expected_red.py` → **exit 0**（确认这一改语义无关）。
+- run **`32570222139`**，head **`47e0069`**，run 结论 **`failure`**。
+
+| job | job id | conclusion |
+|---|---|---|
+| **判定器未被改动（`verdict-tool-untouched`）** | **`97024540387`** | **`failure`** ✅ |
+| L1 快门禁（`gates-l1`） | `97024540288` | `success` |
+| 门禁未被改动（`gates-untouched`） | `97024540431` | `success` |
+| 预期红名单只能变短（`expected-red-ratchet`） | `97024540374` | `success` |
+| 主计划引用不断链（`masterplan-links`） | `97024540332` | `success` |
+| roadmap 引擎可解析（`roadmap-parseable`） | `97024540366` | `success` |
+| 循环联动冒烟（`loop-wiring`） | `97024540370` | `success` |
+| L2 慢门禁（`gates-l2`） | `97024540361` | `success` |
+| （不参与判定）L2 全量 live 判定（`gates-l2-live`） | `97024540342` | `success` |
+
+- **红 job 集合 = `{verdict-tool-untouched}`**，恰好一个。
+- 日志真实输出三行逐字：`本次改动触及判定器：` / `tools/gates/check_expected_red.py` /
+  `❌ 改动了门禁判定器却没有人工批准。`
+- **「预期红」三条判据全中**：(a) 七个点名 job 全 `success` 且守卫 `failure` ✅ ·
+  (b) 两条日志原文都在 ✅ · (c) head sha 逐字等于实验 ① 提交 `47e0069…` ✅ →
+  **按停机纪律归「预期红」，不计入真红计数。**
+- **这是守卫第一次被证明有牙齿**：此前它所有的绿都可能只是「从不触发」。
+
+**③ 实验 ②（复原，必须绿）—— 干净成立**
+
+- 载荷：`git revert --no-edit` 掉 `47e0069`，提交 **`4516e7f16885a3ccbee69541d2e50687d3e9c52a`**，仍不带 trailer。
+  推送前本机核对 `git diff --name-only "$CUT" HEAD -- 'tools/gates/check_expected_red.py' 'tools/gates/gate-verify.mjs'` → **输出为空**。
+- run **`32570426423`**，head **`4516e7f`**，run 结论 **`success`**，**九个 job 全 `success`**。
+- **判定器未被改动** job **`97025008659`** → **`success`**，日志真实输出逐字 **`✅ 未触及判定器`**。
+- **结论**：守卫比的确实是 `BASE..HEAD` 的**累积** diff，不是逐提交——区间里明明有一个改判定器的提交
+  （`47e0069`）仍然放绿。plan 里那条「若它仍红，说明守卫比的是逐提交」的备选分支**未触发**。
+
+**④ 实验 ③（边界，必须不触发）—— 干净成立**
+
+- 载荷：只动 `tools/gates/expected-red.txt`，**只加一行 `#` 注释**，提交
+  **`a8e83058422f4a59a05325d16e853ee3e929f873`**，不带 trailer。
+  本机核对：`grep -vE '^\s*(#|$)' tools/gates/expected-red.txt | wc -l` 改动前后**都是 `7`**（注释不计数）。
+- run **`32570691388`**，head **`a8e8305`**，run 结论 **`success`**，**九个 job 全 `success`**。
+- **判定器未被改动** job **`97025611324`** → **`success`**，日志逐字 **`✅ 未触及判定器`**。
+- **预期红名单只能变短**（`expected-red-ratchet`）job **`97025611265`** → **`success`**，
+  日志真实输出逐字 **`✅ 名单没有变长`**。
+- **本仓反复声明的那条硬边界（账本不在守卫路径清单内、注释不计数）第一次拿到实证**，此前它只是一句话。
+
+**⑤ 实验 ④（放行路径）—— ⚠️ 同一 sha 上一红一绿，记「不可复现」**
+
+- 载荷：`tools/gates/check_expected_red.py` **文件末尾加一个空行**（与实验 ① 同一改动），
+  提交 **`cf73d90c0dd842fddb260b3aede2aecbcc5b05ef`**，message 末行**带**
+  `Gates-Change-Approved-By: EXPERIMENT-ONLY-NOT-AN-APPROVAL`（姓名字段逐字用这个占位串，
+  不填任何真人姓名——它不批准任何真实改动）。
+  推送前本机核对：区间 trailer 计数 `1` ✅；`git diff --name-only "$CUT" HEAD -- 'tools/gates/check_expected_red.py' …`
+  → **命中 `tools/gates/check_expected_red.py`** ✅（确认这一条确实会走到「触及」那条路，而不是「未触及」）。
+- run **`32570942284`**，head **`cf73d90`**。**两次 attempt，结果相反**：
+
+| attempt | 触发方式 | 守卫 job id | conclusion | 日志真实输出 |
+|---|---|---|---|---|
+| **1** | `git push` | `97026197943` | **`failure`** | `本次改动触及判定器：` / `tools/gates/check_expected_red.py` / **`❌ 改动了门禁判定器却没有人工批准。`** |
+| **2** | `gh run rerun 32570942284 --failed`（**原样复跑，裁判规则 3**） | `97026657710` | **`success`** | `本次改动触及判定器：` / `tools/gates/check_expected_red.py` / **`✅ 找到人工批准 trailer，放行`** |
+
+- 两次 attempt 里 `gates-l1` 均 `success`（attempt 1 `97026197969` · attempt 2 `97026672916`），
+  两次 attempt 的**日志都不含**真实输出行 `✅ 未触及判定器`（确认走的是「触及」那条路，不是另一条出口）。
+- **两次 attempt 的输入逐字节相同，已机械核对，不是猜的**：
+  · `fetch` 命令行逐字相同：
+    `git -c protocol.version=2 fetch --prune --no-recurse-submodules origin +refs/heads/*:refs/remotes/origin/* +refs/tags/*:refs/tags/* +1b3e5ea2ebdcc5e75bb6d7b7f7bad87bc8c6a02d:refs/remotes/pull/2/merge`
+  · checkout 的 ref 相同（`refs/remotes/pull/2/merge`，merge 提交 `1b3e5ea2…`）；
+  · 脚本里插值出来的 `BASE`/`HEAD` 相同：`BASE="f689d0e7cde…"; HEAD="cf73d90c0dd…"`；
+  · attempt 1 的日志里**没有任何 `fatal:` / `error:` 行**，`##[error]Process completed with exit code 1.` 是脚本自己的 `exit 1`。
+- **处置逐字按 `AGENTS.md` 裁判规则 3**：已原样复跑一次，**一红一绿 → 记「不可复现」，不猜根因**。
+  本记录**不给**根因，也不写任何「大概是因为……」——那正是本仓反复批评的毛病。
+- **停机纪律归类**：attempt 1 的红**不满足「预期红」第 (c) 条**（head sha 是实验 ④ 的 `cf73d90`，不是实验 ① 的 `47e0069`），
+  按写死的互补穷尽定义**归「真红」，计入停机计数：真红 #1**。attempt 2 绿，**连续真红计数在 1 处断掉**，
+  未达「连续 2 轮真红即停机」的条件，因此本 plan 继续执行——**这是按规则算出来的，不是酌情放过**。
+- **对 Goal 1 的实际交付边界（这一句是本条最要紧的）**：
+  「触及 + 带 trailer → 放行」这条出口**被证明可达**（attempt 2 有逐字日志），
+  但**没有被证明可靠**——同一份输入上它失败过一次。plan 立这条实验的理由原文是
+  「若匹配式在实践中不成立，**每一次合法的判定器改动都会被一个从未被证明能打开的守卫挡住**」；
+  实测结果是**它有时打得开、有时打不开**，这比原来担心的情形更糟，而不是更好。
+  已登记进 `## Deferred But Adjudicated` 与 `STATE.md` §3 needs-human 队列。
+
+**⑥ 清理实验提交（七条机械判据，逐条实测值）**
+
+`git reset --hard b7348bf` + `git push --force-with-lease` → `+ cf73d90...b7348bf (forced update)`。
+
+| # | 判据 | 实测输出 | 期望 |
+|---|---|---|---|
+| 1 | `git rev-parse ci/1206-1-verdict-guard-proof` | `b7348bf3a1eb1eccbe1c032af8bd73ed808ed4af` | 逐字等于 Phase 2 sha ✅ |
+| 2 | `git diff --numstat "$CUT" ci/1206-1-verdict-guard-proof` | 恰好一行 `118	0	.github/workflows/gates.yml` | ✅ |
+| 3 | 同上 `-- tools/gates/check_expected_red.py tools/gates/expected-red.txt` | **输出为空** | ✅ |
+| 4 | `git log --format=%B "$CUT"..<分支> \| grep -c '^Gates-Change-Approved-By:'` | `0` | ✅ 实验 ④ 的 trailer 已随 reset 消失 |
+| 5 | `gh pr view 2 --json changedFiles,additions,deletions` | `1` / `118` / `0` | ✅ 硬判据 |
+| 6 | `gh pr view 2 --json baseRefOid` | `f689d0e7cde3f2733b044b004f7a314f14958973` | ✅ 仍逐字等于 `$CUT`，C5 那颗钉子没松 |
+| 7 | `gh pr view 2 --json headRefOid` | `b7348bf3a1eb1eccbe1c032af8bd73ed808ed4af` | ✅ 等于 Phase 2 那次 run 的 head sha |
+
+⚠️ **措辞准确性（plan 自己要求的）**：`reset` + force-push **不等于「抹掉」**——
+`47e0069` / `4516e7f` / `a8e8305` / `cf73d90` 四个提交按 sha 在 GitHub 上仍可长期访问。
+成立的说法只有「**不进 `main`、不留在 PR 最终形态里**」这两句。
+
+**清理后的 head 上有一次全绿**：`headRefOid` = `b7348bf`，与 Phase 2 那次运行 **`32569935835`**
+（九个 job 全 `success`）的 head sha 逐字相同，**引用它即可，未制造新的**。
+额外地，两次 reset force-push 各自开出的运行 **`32570657720`** 与 **`32570916073`** 也都在 `b7348bf` 上全绿，
+是同一结论的两次冗余复现。
+
+**⑦ 本阶段抓到的新缺陷（本 plan 交付面之外，登记不修）**
+
+守卫的「触及 + 带 trailer → 放行」出口在**同一 sha、同一输入**上不可复现（见 ⑤）。
+修它要动 `.github/workflows/**`，超出本 plan 的 Non-Goals（本 plan 对 `main` 的 workflow 零改动，
+分支上那 118 行也必须与已实测那份**逐字一致**，动一个字都会打掉 Phase 1 的形态判据）。
+**因此本 plan 只登记不修**，条目写进 `## Deferred But Adjudicated` 与 `STATE.md` §3 needs-human。
+
+**⑧ 覆盖面限定（逐字写死，不得被读成「守卫已全面实证」）**
+
+四条实验**全在 PR 分支上做**，因此**只证明了 `pull_request` 那条 `BASE`/`HEAD` 推导路径**
+（`base.sha` / `head.sha`）。`gates.yml` 的 `on: push` 限定 `branches: [main]`，所以 `push` 那条路径
+（`github.event.before` / `github.sha`）**在合并前无法实测**——它归本批第二个 plan 的 `main` push 运行；
+而全零 sha 那个「首次推送」提前 `exit 0` 分支**在 `main` 上永远不会命中**，属于本 plan 与后继 plan
+都覆盖不到的残余面，已登记进 `## Deferred But Adjudicated`。
+**四条出口里，`pull_request` 路径上「未触及」与「触及无 trailer 必红」两条稳定实证，
+「触及带 trailer 放行」一条只证到「可达但不可靠」。**
+
+**⑨ CI 滚动计数（截至本阶段结束）**
+
+| # | run id | head | 用途 | 结论 |
+|---|---|---|---|---|
+| 1 | `32569935835` | `b7348bf` | 建 PR 触发 = Phase 2 基线 | `success` |
+| 2 | `32570222139` | `47e0069` | 实验 ① | `failure`（**预期红**） |
+| 3 | `32570426423` | `4516e7f` | 实验 ② | `success` |
+| 4 | `32570657720` | `b7348bf` | ③ 前 reset force-push | `success` |
+| 5 | `32570691388` | `a8e8305` | 实验 ③ | `success` |
+| 6 | `32570916073` | `b7348bf` | ④ 前 reset force-push | `success` |
+| 7 | `32570942284` attempt 1 | `cf73d90` | 实验 ④ | `failure`（**真红 #1**） |
+| 8 | `32570942284` attempt 2 | `cf73d90` | 实验 ④ 原样复跑 | `success` |
+| 9 | `32571266013` | `b7348bf` | 最终清理 force-push | （见 Phase 4 回填） |
+
+**滚动计数 9 / 12**（rerun 的 attempt 按一次算，不占便宜）。Phase 4 收尾推 `main` 还要一次 → 预计终值 **10 / 12**，**未超预算**。
 
 ### Phase 4 — 留痕与收尾自查
 
@@ -1030,6 +1201,31 @@ Exit Criteria:
 - Successor Required: `no` —— 但它是「守卫假阴」的理论入口，已在 §14.4 记名。
   重开事件：**若将来有人把 `on: push` 的 `branches` 放宽到 `main` 以外**，这条分支立刻变成可命中且不可见，
   届时必须补一条实证。
+
+### ⚠️ 守卫的「触及 + 带 trailer → 放行」出口在同一 sha 上不可复现（**本 plan Phase 3 实测新发现**）
+
+- Classification: `needs-human`（**不是 watch-only**——它会随机挡住合法的判定器改动）
+- 事实（全部机械可核，不含根因推测）：实验 ④ 的提交 `cf73d90c0dd842fddb260b3aede2aecbcc5b05ef`
+  在 run `32570942284` 上跑了两次 attempt，**输入逐字节相同**（同一 merge ref `1b3e5ea2…`、同一
+  `fetch` 命令行、脚本插值出的 `BASE`/`HEAD` 同为 `f689d0e7cde…` / `cf73d90c0dd…`），
+  **结果相反**：attempt 1 守卫 job `97026197943` → `failure`，真实输出
+  `❌ 改动了门禁判定器却没有人工批准。`；attempt 2（`gh run rerun --failed` 原样复跑）
+  守卫 job `97026657710` → `success`，真实输出 `✅ 找到人工批准 trailer，放行`。
+  attempt 1 日志里**没有任何 `fatal:` / `error:` 行**。
+- **按 `AGENTS.md` 裁判规则 3 记「不可复现」，本条不给根因**，也不写「大概是因为……」。
+  相关代码行逐字为 `if git log --format=%B "$BASE..$HEAD" | grep -q '^Gates-Change-Approved-By:'; then`，
+  所在 job 的 step 以 `set -euo pipefail` 开头——**这两条是照抄的事实，不是因果断言**。
+- Why Not Blocking Closure: 本 plan 的交付面是「给守卫补实证」，而实证**已经拿到了**——
+  只是拿到的结论比预期弱：该出口**可达但不可靠**，这一点已逐字写进 Phase 3 记录、§14.4 与 `## Closure Gates`，
+  **没有被写成「已实证」**。修它必须改 `.github/workflows/**` 里那 118 行的脚本体，
+  而「落地的就是 run `32533449466` 已实测那一份」是本批两个 plan 共同的承重判据
+  （Goals 2 / Phase 1 保命闸 / 姊妹 plan 的 ff-only 论证），动一个字就打掉 Phase 1 的形态判据。
+  **本 plan 因此登记不修。**
+- **后果必须写清，不得轻描淡写**：守卫落进 `main` 之后，**人做一次合法的判定器改动可能被随机挡下**，
+  表现为「带了批准 trailer 却仍然红」。**处置办法（给人的）**：`gh run rerun --failed` 原样复跑；
+  若要根治，需要一个专门的 successor plan 重新取一次全套 CI 证据。
+- Successor Required: `yes`（**归人裁定**：是修守卫脚本、还是接受「偶发需复跑」）。
+  已同步写进 `docs/masterplan/STATE.md` §3 的 needs-human 队列。
 
 ### 守卫脚本吞掉 `git diff` 的错误（`|| true`），存在假阴入口
 
