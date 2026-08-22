@@ -563,7 +563,7 @@ Exit Criteria:
 - [x] no in-scope item downgraded to deferred/follow-up
 - [x] independent draft review completed and recorded
 - [x] text consistency verified: status, phases, gates, and log all agree
-- [ ] closure audit was independent
+- [x] closure audit was independent（2026-08-23 由独立关闭审计子代理在 `730ed6d` 上实读复核，**执行者未自证**；命令原文与退出码见 `## Closure` 的审计记录）
 - [x] closure evidence exists in files
 
 ## Deferred But Adjudicated
@@ -680,5 +680,65 @@ $ git diff --numstat docs/backlog/p0-foundation-roadmap.md docs/masterplan/STATE
 
 Closure Audit Evidence:
 
-- Auditor / Agent: 待独立审计（**执行者不自证**）。`closure audit was independent` 是唯一未勾的 Closure Gate。
-- Evidence: 待回填
+- Auditor / Agent: **独立关闭审计子代理**（mission-driver `2026-08-22-185331-mission-driver` 的独立审计步骤，
+  与四个 Phase 的执行者不是同一次会话）。**执行者未自证**。
+- 审计基线：`730ed6d`（`main`，工作树 `git status --porcelain` 无输出）。
+- 审计方法：**不采信 plan 内的任何自陈**，逐条把判据打回活仓库与 GitHub 实测；
+  承重的机械判据全部原样复跑，run / job 结论一律由 `gh` 现拉，不读 plan 抄下来的那份。
+
+**审计实跑（命令原文 + 退出码，逐条）**：
+
+```
+$ git rev-parse HEAD                                → 730ed6d4d417fc592c64fc72dc6260dd9e13b3ea
+$ git status --porcelain                            → 无输出（工作树干净）
+$ wc -l .github/workflows/gates.yml                 → 387
+$ grep -nE '^  [a-z0-9-]+:$' .github/workflows/gates.yml
+  → 10 个 job 键，第十个是 `gates-l2-seed`（`:332`；`:309`–`:331` 是它的注释块）
+$ diff <(git show 2505970:.github/workflows/gates.yml) <(head -n 308 .github/workflows/gates.yml)
+  → 无输出，exit 0                （前缀性：main 上原 308 行逐字节未动）
+$ sed -n '309,387p' .github/workflows/gates.yml | grep -nE 'continue-on-error|if: false|\|\| true|set \+e'
+  → 无命中，exit 1                （新增段内禁用词与失败吞噬皆 0；`timeout-minutes: 30` 实读在 `:335`）
+$ git diff --numstat 2505970 -- tests/gates tools/gates docs/masterplan/DECISIONS.md missions
+  → 无输出，exit 0                （红线 1 / 3 / 6：四个禁区一字节未动）
+$ diff <(git show 2505970:docs/architecture/system-baseline.md | sed -n '131,177p') <(sed -n '131,177p' docs/architecture/system-baseline.md)
+  → 无输出，exit 0                （§14 本体一行未改）
+$ git diff --numstat 2505970 -- docs/masterplan/STATE.md docs/backlog/p0-foundation-roadmap.md
+  → `8	0` / `2	0`               （删除列均为 0，纯追加；红线 5 成立）
+$ gh run view 32585965892 --json jobs
+  → 十个 job 全部 `success`，`L2 种子链（装载 + 站点侧对账）` = job `97062261110` `success`
+$ gh run list --limit 12 --json databaseId,headSha,event,conclusion
+  → `32585965892` push/head `29726696…`/`success` · `32585758762` PR/同一 head/`success` ·
+    变异四条 `32584645969 failure` / `32584922052 success` / `32585177431 failure` / `32585384960 success`
+    —— **与 plan 表格逐字一致，无一条对不上**
+```
+
+**四条不采信自陈、独立打回源码的核对（plan 的承重判据全落在这四条上）**：
+
+1. **`--site` 只能由 argv 给** —— `grep -n 'AGENERP_SITE\b' agenerp/seedsite.py` **零命中**，
+   plan 与 §14.5 的说法属实；job 四条命令实读**每条都带 `--site frontend`**。
+2. **幂等断言锚在合计行** —— `DocLoadReport.lines()` 实读为「每 DocType 一行 + 一行 `合计：新建 …`」，
+   job 内判据实读逐字 `grep -qE '^合计：新建 0 '`（不是裸 `grep 新建 0`）。plan 指认的假绿路径确已被堵死。
+3. **变异① 的「对现有 19 条门禁完全隐形」** —— `tests/gates/test_seed_dataset_absurdity.py` 实读
+   `:12` 逐字「本文件里的数字是判据自带的，绝不从 `agenerp.seed.checks` import」，`from agenerp.seed` 只 import
+   `generate`。该门禁结构上不可能被 `EXPECTED_BACKLOG_QTY` 的变异带红，**九绿一红的矩阵是结构性成立的，不是巧合**。
+4. **工作项 7 / 9 状态值未被改动** —— roadmap 的 diff 实读只有两行 `+`，且两行自己都逐字写着「保持 `planned`」；
+   原 `| 7 |` / `| 9 |` 与既有「现状」行一字未改。
+
+**审计对 plan 自陈诚实度的判定**：`## Closure` 第 5、6、7、8 四条（两处执行期偏离 / `_overdue_checks` 被证伪 /
+scoped 非 full green / CI 覆盖 ≠ 门禁形态 ≠ `GATE_VERIFY` 可复跑）**都是对自己不利的事实**，
+审计未发现任何一条被藏进 `Deferred` 或被措辞稀释；`project-context.md:57` 那句「`GATE_VERIFY` 复跑不到它」
+实读**仍在原处、未被改动**，新加的只是代偿控制清单里的一项。**Minimum Rule 14 未被违反**：
+`Deferred But Adjudicated` 的五条全部是人动作项或写死的失败处置，**无一条是本 plan 范围内的活缺陷或合约漂移**。
+
+**审计发现的唯一偏差（不阻断关闭，照实记）**：plan Phase 3 记「`gates-l2-seed` 的段落是 `:309`–`:387`」，
+而 `:309`–`:331` 实为其注释块、job 键落在 `:332`。**这是取值口径差（含注释 vs 只算 job 键），不是假陈述**，
+两种读法下「新增 79 行、前 308 行未动」都成立。
+
+**审计结论：接受关闭。** 四个 Phase 的退出判据逐条在活仓库中有对应物，无空壳实现
+（新 job 在 `main` 的每次 `push` 与每个 PR 上真实执行，已由两次 `push` 运行实证）；
+五点一致性（Plan Status / 四个 Phase Status / 各 Phase Exit Criteria / Closure Gates / Closure 证据）全部吻合。
+
+- Evidence: 上述命令原文与退出码即证据；GitHub 侧证据为 run `32585965892`（job `97062261110`）
+  与变异四条 run，均于审计时现拉复核。**审计时点的一条补充事实**：`730ed6d`（本 plan 的补记提交）
+  自己触发的 push 运行 `32586825010` 在审计时仍 `in_progress`，**它不属于本 plan 的证据集**
+  （权威运行按定义是落地那一次 `32585965892`），照实记以免被误读成「审计时全绿」。
