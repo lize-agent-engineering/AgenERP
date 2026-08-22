@@ -3,7 +3,7 @@
 > Plan Status: completed
 > Mission: p0-foundation
 > Work Item: 工作项 7（种子数据）—— 已确认的**活缺陷**修复，非新功能
-> Last Reviewed: 2026-08-22
+> Last Reviewed: 2026-08-23
 > Source: `docs/bugs/01-acc-operating-constant-can-never-match-a-live-account-name.md`（`Status: open（登记不修）`）
 >   + plan `2026-08-22-2107-1` `## Deferred But Adjudicated` 最后一条（`Classification: confirmed defect`，`Successor Required: yes`）
 > Related: `2026-08-22-2107-1-seed-site-write-surface-and-masters.md` · `2026-08-22-2107-2-seed-documents-site-computed-backlog.md`
@@ -492,7 +492,7 @@ $ git diff --numstat -- docs/backlog/p0-foundation-roadmap.md docs/masterplan/ST
 - [x] no in-scope item downgraded to deferred/follow-up
 - [x] independent draft review completed and recorded
 - [x] text consistency verified: status, phases, gates, and log all agree
-- [ ] closure audit was independent —— **待独立审计，执行者不自证**
+- [x] closure audit was independent —— 独立关闭审计已执行（`MISSION_DRIVER:2026-08-22-185331-mission-driver`，独立审计会话，非执行者），逐条复跑见下方 `## Closure`
 - [x] closure evidence exists in files
 
 ## Deferred But Adjudicated
@@ -554,6 +554,49 @@ Status Note: 四个 Phase 全部执行完毕，本机全绿。逐条自陈，**�
 
 Closure Audit Evidence:
 
-- Auditor / Agent: 待独立审计（执行者不自证）
-- Evidence: 待回填 —— 可复跑的清单见 Phase 1–4 的四个「实跑记录」小节与
+- Auditor / Agent: **独立关闭审计**（`MISSION_DRIVER:2026-08-22-185331-mission-driver` 的独立审计步骤，
+  与四个 Phase 的执行者不是同一会话；执行者未自证）。
+- 审计日期：2026-08-23，审计基线 `215e28d`（工作树 `git status --short` 无输出）。
+- **审计不是读 plan，是原样复跑**。命令原文与退出码逐字：
+
+```
+$ python3 -m pytest tests/unit -q                        → exit 0（288 passed in 0.62s）
+$ python3 -m pytest tests/contracts -q                   → exit 0（151 passed in 0.06s）
+$ ruff check agenerp tests/unit tests/contracts          → exit 0（All checks passed!）
+$ python3 tools/gates/check_expected_red.py              → exit 0（门禁 19 项：预期红 7，绿 12，跳过 0）
+$ python3 -m agenerp.seed --seed 42 --verify             → exit 0（✅ 种子 42：两次生成 diff 为空，场景断言全过）
+$ git diff --numstat 20f5679..HEAD -- tests/gates .github/workflows docs/masterplan/DECISIONS.md → 无输出
+```
+
+- **变异验证由审计方独立重做了一次**（不采信 plan 的记录）：
+  `WH_RAW = "XM 原料仓 - XM"` → `"XM 原料仓- XM"` 后 `python3 -m pytest tests/unit -q`
+  → **exit 1，11 failed, 277 passed**，逐字点名
+  `WH_RAW = 'XM 原料仓- XM' 不以 ' - XM' 结尾`；复原后 `git diff --numstat agenerp/` **无输出**，
+  再跑 `288 passed`。**与 Phase 3 第 6 项记录的红数、点名、爆炸半径三项逐字一致。**
+- **Exit Criteria 对活仓逐条核对**（不采信 `[x]`）：
+  ① `agenerp/seed/model.py:26`–`:29` / `:55`–`:65` 共 15 个常量全部以 ` - XM` 结尾，
+  `ACC_OPERATING` 为 `生产费用（计入估值） - XM`；
+  ② `tests/unit/test_seed_model_constants.py` 存在（75 行，遍历 `vars(M)` 取清单、
+  含「遍历不许空转」那条、未 import 使用 `strip_abbr` / `site_name_of` 求值）；
+  ③ `agenerp/seedsite.py:88`–`:101` `strip_abbr` 确为 `raise ValueError`（**不是容忍**），
+  异常信息含入参与所需形状；`site_name_of` 经它取值，**运行时真的走到**（变异后 `plan_steps()`
+  在调用点抛，11 条成片红即其运行时证据，非死代码）；
+  ④ `tests/unit/test_seedsite_loader.py` 的两条覆盖为**改写非删除**（`:211` 报告、`:228` 不空转，
+  输入均为测试内构造的 `_step_the_site_will_answer_with_a_different_name()`），
+  另有净新增 `:245` 产品数据零 mismatch 与 `:258` `pytest.raises(ValueError)`；
+  ⑤ `LoadReport.mismatches` 机制仍在（`agenerp/seedsite.py` 的 `record` / `lines` / 比对分支未删）；
+  ⑥ `docs/architecture/module-boundaries.md` §12.9 原段一行未删、其后改准块把三句**分开**判
+  （①为假 / ②仍为真 / ③历史陈述只加前向指引），新增 §12.11 含三候选表、26 处调用点枚举与残余风险；
+  ⑦ `docs/bugs/01-...md` `> Status:` 为 `fixed（2026-08-23）` 且点名本 plan id 与 sha `dcefafa`；
+  ⑧ `283 → 288` 两处已改准（`module-boundaries.md:1142` · `project-context.md:57`），表结构未动；
+  ⑨ roadmap 新增 `| 7 现状 |` 一行、工作项 7 状态值仍 `planned`，
+  `git diff --numstat 20f5679..HEAD` 对 roadmap 为 `1 0`、对 `STATE.md` 为 `14 0`（**删除列均为 0**）;
+  ⑩ `docs/logs/2026/08-22.md`（`30 0`）与 `docs/logs/2026/08-23.md`（`47 0`）均已更新。
+- **红线自查（审计方独立跑）**：本 plan 落地的全部改动文件共 13 个，
+  `tests/gates/**` · `.github/workflows/**` · `docs/masterplan/DECISIONS.md` **一个字节未改**；
+  `docs/masterplan/STATE.md` 为纯追加。
+- **审计结论：接受关闭。** 唯一需要读者一并带走的限定是 Closure Gate 第 4 条已逐字写下的那句
+  —— **验证范围限于本机，不含 CI，这不是 full green**；CI 覆盖面归本批第二个 plan
+  `2026-08-22-2325-2`。
+- 可复跑的完整清单另见 Phase 1–4 的四个「实跑记录」小节与
   `docs/logs/2026/08-22.md` / `docs/logs/2026/08-23.md`；落地 sha `dcefafa`。
