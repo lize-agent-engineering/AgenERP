@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+from datetime import date
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -807,13 +808,75 @@ def _books_checks(client: SiteClient) -> list[CheckResult]:
     ]
 
 
-def _overdue_checks(client: SiteClient) -> list[CheckResult]:
+OVERDUE_DOCTYPES = ("Sales Invoice", "Purchase Invoice")
+
+# 诊断里那个「今天」的口径。2026-08-23 实测（plan `2026-08-23-0120-2` Proof B④）：
+# `frappe.utils.nowdate` 没有 whitelist，HTTP 面读不到站点侧的「今天」；`SiteClient` 也没有
+# 带 filter 的列表方法。所以这里用的是**宿主时钟**，必须逐字标注，不许冒充站点口径。
+TODAY_CALIBER = "宿主侧"
+
+
+def _overdue_identity_keys() -> dict[str, dict[str, Any]]:
+    """两张预期发票在站点上的识别键 —— **直接取装载器自己的幂等键**，不另写一份字面量。
+
+    不拿 `agenerp/seed/names.py` 的单据号做键：`DocStep` 的 docstring 已经写明那几个号是
+    「按顺序建」的巧合、不是站点承诺。也不拿站点的 `status == "Overdue"` 过滤结果做候选集 ——
+    那样站点回零张 `Overdue` 时候选集为空，诊断恰好在它唯一存在理由的那个场景下空转。
+    """
+    return {step.doctype: dict(step.key)
+            for step in document_steps() if step.doctype in OVERDUE_DOCTYPES}
+
+
+def _matches_key(row: dict, key: dict[str, Any]) -> bool:
+    return all(str(row[field]) == str(value) for field, value in key.items())
+
+
+def _overdue_row_facts(row: dict, today: str) -> str:
+    due = str(row["due_date"])
+    submitted = int(row["docstatus"]) == 1
+    return (f"{row['name']}：status={row['status']}"
+            f" / due_date={due}（{'已到期' if due < today else '未到期'}，"
+            f"今天 {today}（{TODAY_CALIBER}））"
+            f" / docstatus={row['docstatus']}（{'已提交' if submitted else '未提交'}）"
+            f" / outstanding_amount={float(row['outstanding_amount']):.2f}")
+
+
+def _overdue_diagnosis(rows: list[dict], key: dict[str, Any], today: str) -> str:
+    """本仓预期的那张发票在站点上的实况 —— 只进 `label`，不参与 `ok` 的计算。
+
+    读不到字段就让它抛：诊断自己坏掉必须红出来，不能 `try/except: pass` 成一句「无」。
+    """
+    expected_rows = [r for r in rows if _matches_key(r, key)]
+    facts = [_overdue_row_facts(r, today) for r in expected_rows]
+    if not facts:
+        facts = [f"按装载器幂等键 {key} 在站点上认不出这张发票"]
+    unexpected = [r["name"] for r in rows
+                  if int(r["docstatus"]) == 1 and not _matches_key(r, key)]
+    if unexpected:
+        facts.append(f"另有 {len(unexpected)} 张不在预期内的已提交单据：{', '.join(unexpected)}")
+    return "；".join(facts)
+
+
+def _overdue_checks(client: SiteClient, today: str | None = None) -> list[CheckResult]:
     """拟断言 ③：两笔逾期由站点上的 `status == "Overdue"` 查到。
 
     ⚠️ **成立条件照实说**：`status` 是站点拿**真实时钟**跟 `due_date` 比出来的，
     不是拿数据集的 `as_of` 比的。种子日期固定在过去，故恒成立 —— 但这条断言依赖
     「今天 > due_date」，不写出来会被误读成结构性成立。
+    **2026-08-23 已实测取证**（plan `2026-08-23-0120-2` Proof A/B/C，分流 (i)）：写 `status` 的是
+    **提交时的同步调用链** `validate()` → `set_status()` → `is_overdue()`
+    （容器内 ERPNext v15.119.3 `erpnext/accounts/doctype/sales_invoice/sales_invoice.py:350`
+    / `:2037-2038` / `:2077-2100`，`purchase_invoice.py:292` / `:2012-2013` 且 `:22` 直接 import 同一个
+    `is_overdue`），比的是 `today = getdate()`（真实时钟）；`scheduler` 的日任务
+    `erpnext.controllers.accounts_controller.update_invoice_status`（`erpnext/hooks.py:447`）**不参与** ——
+    它的 `conditions` 只更新 `status LIKE "Unpaid%" / "Partly Paid%"` 的行。
+    ⚠️ 精确形态：本仓两张发票都有 `payment_schedule`，`is_overdue` 走的是子表分支，
+    比的是 `payment_schedule.due_date`（实测与发票头上的 `due_date` 同值）。
+
+    `today` 可注入，默认取宿主时钟；它**只进诊断文字**，不进 `ok`。
     """
+    today = today or date.today().isoformat()
+    keys = _overdue_identity_keys()
     results = []
     for doctype, expected, source in (
         ("Sales Invoice", CH.EXPECTED_RECEIVABLE_OVERDUE,
@@ -822,19 +885,21 @@ def _overdue_checks(client: SiteClient) -> list[CheckResult]:
          "agenerp.seed.checks.EXPECTED_PAYABLE_OVERDUE"),
     ):
         rows = client.list_resource(
-            doctype, ("name", "status", "outstanding_amount", "due_date", "docstatus"))
+            doctype, ("name", "status", "outstanding_amount", "due_date", "docstatus",
+                      *keys[doctype]))
         overdue = [r for r in rows if r["status"] == "Overdue" and int(r["docstatus"]) == 1]
         total = sum(float(r["outstanding_amount"]) for r in overdue)
         results.append(_numeric_check(
             f"{doctype} 中 status == 'Overdue' 的 outstanding_amount 合计"
-            f"（命中 {len(overdue)} 张：{', '.join(r['name'] for r in overdue) or '无'}）",
+            f"（命中 {len(overdue)} 张：{', '.join(r['name'] for r in overdue) or '无'}"
+            f"；本仓预期 —— {_overdue_diagnosis(rows, keys[doctype], today)}）",
             total, expected, source))
     return results
 
 
-def verify_site(client: SiteClient) -> list[CheckResult]:
+def verify_site(client: SiteClient, today: str | None = None) -> list[CheckResult]:
     """站点侧对账：读回**站点自己算出来**的数，跟 `checks.EXPECTED_*` 比。"""
-    return _backlog_checks(client) + _books_checks(client) + _overdue_checks(client)
+    return _backlog_checks(client) + _books_checks(client) + _overdue_checks(client, today)
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(

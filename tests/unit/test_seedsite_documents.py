@@ -385,12 +385,18 @@ class FakeVerifySite:
             "Stock Ledger Entry": [{"item_code": M.FINISHED_ITEM, "warehouse": M.WH_FINISHED,
                                     "qty_after_transaction": CH.EXPECTED_BACKLOG_QTY,
                                     "is_cancelled": 0}],
+            # ⚠️ 三个键（`company` / `customer|supplier` / `posting_date`）不是装饰：
+            # `_overdue_checks` 按**装载器自己的幂等键**把预期发票认出来，缺键会直接 `KeyError`。
             "Sales Invoice": [{"name": "ACC-SINV-2026-00001", "status": "Overdue",
                                "outstanding_amount": CH.EXPECTED_RECEIVABLE_OVERDUE,
-                               "due_date": "2026-03-10", "docstatus": 1}],
+                               "due_date": "2026-03-10", "docstatus": 1,
+                               "company": M.COMPANY, "customer": M.CUSTOMER,
+                               "posting_date": M.day(6)}],
             "Purchase Invoice": [{"name": "ACC-PINV-2026-00001", "status": "Overdue",
                                   "outstanding_amount": CH.EXPECTED_PAYABLE_OVERDUE,
-                                  "due_date": "2026-03-09", "docstatus": 1}],
+                                  "due_date": "2026-03-09", "docstatus": 1,
+                                  "company": M.COMPANY, "supplier": M.SUPPLIER,
+                                  "posting_date": M.day(5)}],
         }
         self.data.update(overrides)
 
@@ -464,9 +470,107 @@ def test_verify_site_ignores_cancelled_ledger_rows():
 def test_verify_site_goes_red_when_an_invoice_is_not_overdue():
     results = _verify(**{"Sales Invoice": [
         {"name": "ACC-SINV-2026-00001", "status": "Paid",
-         "outstanding_amount": 0.0, "due_date": "2026-03-10", "docstatus": 1}]})
+         "outstanding_amount": 0.0, "due_date": "2026-03-10", "docstatus": 1,
+         "company": M.COMPANY, "customer": M.CUSTOMER, "posting_date": M.day(6)}]})
 
     assert any("Sales Invoice" in r.label and not r.ok for r in results)
+
+
+# ---------------------------------------------------------------------------
+# `_overdue_checks` 的诊断（plan `2026-08-23-0120-2` Phase 2，五态）
+#
+# 诊断只进 `label`，**不参与 `ok` 的计算** —— 因此每一态都同时断言 `ok` 与消息内容：
+# 只断言消息会放过「诊断说得头头是道、判定却错了」，只断言 `ok` 会放过「红了但读不懂」。
+# 「今天」由 `_verify_at` 显式注入，否则状态 ③ 会变成随墙钟漂移的测试。
+# ---------------------------------------------------------------------------
+
+SI_KEY = {"company": M.COMPANY, "customer": M.CUSTOMER, "posting_date": M.day(6)}
+PI_KEY = {"company": M.COMPANY, "supplier": M.SUPPLIER, "posting_date": M.day(5)}
+
+
+def _verify_at(today, **overrides):
+    return seedsite.verify_site(_client(FakeVerifySite(**overrides)), today=today)
+
+
+def _overdue_lines(results):
+    return [r for r in results if "outstanding_amount 合计" in r.label]
+
+
+def test_overdue_diagnosis_names_both_expected_invoices_when_everything_is_right():
+    """状态 ①：全对时也必须逐张打出「按幂等键认出来了」。
+
+    ⚠️ 这条正向断言是唯一堵得住「键永远匹配不上」的口：`FakeVerifySite.__call__` 完全忽略
+    query 参数，对任何 filters 都回整份数据，所以一个从不匹配的实现会在其余各态下全部通过，
+    同时在每一次绿的运行里打印垃圾。
+    """
+    sales, purchase = _overdue_lines(_verify_at("2026-08-23"))
+
+    assert sales.ok and purchase.ok
+    assert "ACC-SINV-2026-00001：status=Overdue" in sales.label
+    assert "ACC-PINV-2026-00001：status=Overdue" in purchase.label
+    assert "认不出" not in sales.label and "认不出" not in purchase.label
+
+
+def test_overdue_diagnosis_still_lists_the_expected_invoices_when_the_site_found_none():
+    """状态 ②（反空转）：站点一张 `Overdue` 都没算出来时，诊断**恰恰**必须说得出话。
+
+    候选集若取自站点的 `Overdue` 过滤结果，这里就会空转 —— 诊断在它唯一存在理由的场景下失灵。
+    """
+    none_overdue = _overdue_lines(_verify_at("2026-08-23", **{
+        "Sales Invoice": [{"name": "ACC-SINV-2026-00001", "status": "Unpaid",
+                           "outstanding_amount": CH.EXPECTED_RECEIVABLE_OVERDUE,
+                           "due_date": "2026-03-10", "docstatus": 1, **SI_KEY}],
+        "Purchase Invoice": [{"name": "ACC-PINV-2026-00001", "status": "Unpaid",
+                              "outstanding_amount": CH.EXPECTED_PAYABLE_OVERDUE,
+                              "due_date": "2026-03-09", "docstatus": 1, **PI_KEY}]}))
+
+    for line, name, due in ((none_overdue[0], "ACC-SINV-2026-00001", "2026-03-10"),
+                            (none_overdue[1], "ACC-PINV-2026-00001", "2026-03-09")):
+        assert line.ok is False
+        assert "命中 0 张：无" in line.label
+        assert f"{name}：status=Unpaid" in line.label
+        assert f"due_date={due}" in line.label
+        assert "docstatus=1（已提交）" in line.label
+
+    missing = _overdue_lines(_verify_at("2026-08-23", **{"Sales Invoice": []}))[0]
+
+    assert missing.ok is False
+    assert "认不出这张发票" in missing.label
+
+
+def test_overdue_diagnosis_points_at_due_date_and_labels_whose_today_it_used():
+    """状态 ③：`due_date` 还没到期时，必须点名 `due_date` **并**标注「今天」的口径。"""
+    early = _overdue_lines(_verify_at("2026-03-01", **{
+        "Sales Invoice": [{"name": "ACC-SINV-2026-00001", "status": "Unpaid",
+                           "outstanding_amount": CH.EXPECTED_RECEIVABLE_OVERDUE,
+                           "due_date": "2026-03-10", "docstatus": 1, **SI_KEY}]}))[0]
+
+    assert early.ok is False
+    assert "due_date=2026-03-10（未到期，今天 2026-03-01（宿主侧））" in early.label
+
+
+def test_overdue_diagnosis_points_at_an_unsubmitted_invoice():
+    """状态 ④：单据压根没提交时，必须点名「未提交」，而不是只报一个对不上的金额。"""
+    draft = _overdue_lines(_verify_at("2026-08-23", **{
+        "Purchase Invoice": [{"name": "ACC-PINV-2026-00001", "status": "Draft",
+                              "outstanding_amount": CH.EXPECTED_PAYABLE_OVERDUE,
+                              "due_date": "2026-03-09", "docstatus": 0, **PI_KEY}]}))[1]
+
+    assert draft.ok is False
+    assert "docstatus=0（未提交）" in draft.label
+
+
+def test_overdue_diagnosis_does_not_eat_the_load_bearing_amount_assertion():
+    """状态 ⑤：两张都 `Overdue` 但金额不对时，仍必须红在金额上并把两个数都打出来。"""
+    wrong = _overdue_lines(_verify_at("2026-08-23", **{
+        "Sales Invoice": [{"name": "ACC-SINV-2026-00001", "status": "Overdue",
+                           "outstanding_amount": 17000.0, "due_date": "2026-03-10",
+                           "docstatus": 1, **SI_KEY}]}))[0]
+
+    assert wrong.ok is False
+    assert wrong.actual == "17000.00"
+    assert f"= 17000.00 / expected = {CH.EXPECTED_RECEIVABLE_OVERDUE:.2f}" in wrong.line()
+    assert "ACC-SINV-2026-00001：status=Overdue" in wrong.label
 
 
 def test_cli_requires_exactly_one_action_and_a_site():

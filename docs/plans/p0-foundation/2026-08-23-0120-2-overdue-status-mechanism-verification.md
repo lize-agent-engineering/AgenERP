@@ -297,7 +297,7 @@ Exit Criteria:
 
 ### Phase 2 - 让红自解释（不改结果集，只改失败消息）
 
-Status: planned
+Status: completed
 Targets: `agenerp/seedsite.py`（只改 `_overdue_checks` 及其新增的私有辅助）·
 `tests/unit/test_seedsite_documents.py`（扩写既有文件，见 D3）
 Skill: `none`
@@ -305,7 +305,7 @@ Skill: `none`
 - Item Types: `Decision | Fix | Proof`
 - Prereqs: Phase 1 全部 Exit Criteria
 
-- [ ] **Decision D1：诊断落在既有两条 `CheckResult` 的消息里，`--verify-site` 仍是 9 项。**
+- [x] **Decision D1：诊断落在既有两条 `CheckResult` 的消息里，`--verify-site` 仍是 9 项。**
       候选四条：
       (a) 只改 docstring 不改代码 —— **否掉**：Baseline 3 的取证空洞原样留着，红了仍然不自解释；
       (b) 把承重断言从「站点算的 `status`」改成「本仓拿 `due_date` 自己比」—— **否掉，净变坏**：
@@ -320,7 +320,7 @@ Skill: `none`
       只改变红的时候能读到什么。⚠️ **因此不得把本 plan 说成「加严了判据」**；
       它加严的是**可诊断性**，不是判据。残余风险：`label` 变长，`--verify-site` 输出变宽。
       - Skill: `none`
-- [ ] **Decision D2：诊断的候选集取自「装载器的幂等键」，不取自站点的 `Overdue` 过滤结果，
+- [x] **Decision D2：诊断的候选集取自「装载器的幂等键」，不取自站点的 `Overdue` 过滤结果，
       也不取自 `names.py` 的单据号字面量。**
       两条否定各有出处，缺一不可：
       - ⚠️ **不取 `status == "Overdue"` 过滤结果**：那样站点回零张 `Overdue` 时候选集为空，
@@ -337,20 +337,20 @@ Skill: `none`
       ⚠️ **「今天」必须是可注入的参数**，否则单测状态 ③ 会变成随时钟漂移的测试；
       注入点与默认值写进实现，单测显式传值。
       - Skill: `none`
-- [ ] **Decision D3：扩写既有测试文件，不新建第二个假站点。**
+- [x] **Decision D3：扩写既有测试文件，不新建第二个假站点。**
       候选：(i) 新建 `tests/unit/test_seedsite_overdue.py` + 第二个 `FakeVerifySite`（初稿写法）；
       (ii) **选它** —— 在 `tests/unit/test_seedsite_documents.py` 既有 `FakeVerifySite`（`:363-401`）上扩写。
       理由：Baseline 8 —— 那个夹具**已经覆盖两个发票 DocType**（`:388-393`），(i) 会造出两份需要同步维护的同构夹具，
       且 `:412` 的 `assert len(results) == 9` **已经是** Phase 2 Exit Criteria 想要的那条「项数不得变」机械判据，
       重造一遍只会让它有两个来源。残余风险：该文件变长；缓解是新增用例集中成一段并加节注释。
       - Skill: `none`
-- [ ] **Fix：实现 D1 + D2。** 硬约束五条：**不改任何 `EXPECTED_*` 常量**；**不改 `CheckResult.ok` 的算法**
+- [x] **Fix：实现 D1 + D2。** 硬约束五条：**不改任何 `EXPECTED_*` 常量**；**不改 `CheckResult.ok` 的算法**
       （`ok` 仍只由 `_close(total, expected)` 决定）；**不新增结果行**；**不新增写方法**（只用 `SiteClient` 既有只读面）；
       **诊断自身抛错不得吞掉**（读不到字段就让它红，不 `try/except: pass`）；
       **`total` 的输入集也钉死**——筛选条件逐字仍是 `status == "Overdue" and int(docstatus) == 1`（`:826`），
       诊断不得顺手放宽它。状态 ③④ 的期望除消息内容外**还必须断言 `ok is False`**。
       - Skill: `none`
-- [ ] **Proof：在 `tests/unit/test_seedsite_documents.py` 既有 `FakeVerifySite` 上扩写**，覆盖五态
+- [x] **Proof：在 `tests/unit/test_seedsite_documents.py` 既有 `FakeVerifySite` 上扩写**，覆盖五态
       ⚠️ **冻结面只到断言行，不到夹具数据**（评审第 3 轮改准）：`:412` 的 `assert len(results) == 9`
       与 `:469` 的那条断言**保持不变、不得改写**（它们是「项数不变 / 承重断言仍在」的现成判据）；
       **但 `:388-393` 的两条发票行与 `:465-467` 的 override 必须补上
@@ -369,7 +369,7 @@ Skill: `none`
       ④ `docstatus != 1` → 消息点名未提交；
       ⑤ 金额对不上但两张都 `Overdue` → `ok=False` 且**仍报金额**（证明诊断没把承重断言吃掉）。
       - Skill: `none`
-- [ ] **Proof：变异验证三条（有牙齿，不是空转）**：
+- [x] **Proof：变异验证三条（有牙齿，不是空转）**：
       ① 把诊断的候选集改成「由站点 `Overdue` 过滤得出」（即故意犯 D2 点名的那个错）→
          `python3 -m pytest tests/unit -q` **exit 1** 且**逐字点名第 ② 条**；
       ② 把诊断整段改成恒返回空串 → **exit 1** 且逐字点名 ②③④；
@@ -378,15 +378,86 @@ Skill: `none`
       三条各自复原后 exit 0。六次的命令原文与退出码全部记在本 plan 内。
       - Skill: `none`
 
+#### Phase 2 实做记录（2026-08-23）
+
+**落地形态（`agenerp/seedsite.py`，`git diff --numstat` = `70	5`）**：
+
+- 新增模块级常量 `OVERDUE_DOCTYPES` 与 `TODAY_CALIBER = "宿主侧"`（口径按 Proof B④ 的结论写死在代码里）；
+- 新增 `_overdue_identity_keys()` —— **直接取 `document_steps()` 里那两步自己的 `key`**，
+  不复制第二份键字面量（与 `seedsite.py:715` 那条「写第二份字面量等于给判据加副本」的既有约束同向）；
+- 新增 `_matches_key()` / `_overdue_row_facts()` / `_overdue_diagnosis()`；
+- `_overdue_checks(client, today=None)` 与 `verify_site(client, today=None)` 各多一个**可注入**的 `today`，
+  默认 `date.today().isoformat()`（宿主时钟）；
+- **筛选条件逐字未改**：`overdue = [r for r in rows if r["status"] == "Overdue" and int(r["docstatus"]) == 1]`；
+  `total` 的算法未改；`_close` / `_numeric_check` / `CheckResult.ok` 一行未动；**结果集仍是 9 项**。
+- `list_resource` 的字段元组由 `("name","status","outstanding_amount","due_date","docstatus")`
+  扩成 `(… , *keys[doctype])`，**只加读，不加写**；`find_one` **未被使用**（评审第 3 轮 ⑥ 的钉死项）。
+
+**夹具补键（`tests/unit/test_seedsite_documents.py`）**：给 `FakeVerifySite` 的两条发票行与
+`test_verify_site_goes_red_when_an_invoice_is_not_overdue` 的 override 各补上
+`company` / `customer|supplier` / `posting_date`。⚠️ **补键前先实测到了评审第 3 轮预言的那个失败**：
+`python3 -m pytest tests/unit -q` → **exit 1，7 failed**，逐字 `KeyError: 'company'`（`agenerp/seedsite.py:831`）。
+补键后回 exit 0。**两条冻结断言未被改写**（`git diff` 对 `assert len(results) == 9`
+与 `assert any("Sales Invoice" in r.label and not r.ok for r in results)` **零命中**）。
+
+**改动后两条 overdue 行的实际输出（本机纯逻辑夹具跑出来的，绿的那次）**：
+
+```
+✅ Sales Invoice 中 status == 'Overdue' 的 outstanding_amount 合计（命中 1 张：ACC-SINV-2026-00001；本仓预期 —— ACC-SINV-2026-00001：status=Overdue / due_date=2026-03-10（已到期，今天 2026-08-23（宿主侧）） / docstatus=1（已提交） / outstanding_amount=18612.00） = 18612.00 / expected = 18612.00（出处：agenerp.seed.checks.EXPECTED_RECEIVABLE_OVERDUE）
+✅ Purchase Invoice 中 status == 'Overdue' 的 outstanding_amount 合计（命中 1 张：ACC-PINV-2026-00001；本仓预期 —— ACC-PINV-2026-00001：status=Overdue / due_date=2026-03-09（已到期，今天 2026-08-23（宿主侧）） / docstatus=1（已提交） / outstanding_amount=2200.00） = 2200.00 / expected = 2200.00（出处：agenerp.seed.checks.EXPECTED_PAYABLE_OVERDUE）
+```
+
+承重的 `= 18612.00 / expected = 18612.00` / `= 2200.00 / expected = 2200.00` **仍在行尾，没有被诊断挤掉**。
+
+**五态单测（新增 5 条，`tests/unit` 288 → 293）**，都同时断言 `ok` 与消息内容：
+
+| 态 | 测试名 | 断言要点 |
+|---|---|---|
+| ① | `test_overdue_diagnosis_names_both_expected_invoices_when_everything_is_right` | `ok` 均为真，且两张各自逐字出现 `ACC-*：status=Overdue`，`"认不出"` 不出现 |
+| ② | `test_overdue_diagnosis_still_lists_the_expected_invoices_when_the_site_found_none` | 站点回零张 `Overdue` 时 `ok is False`、`命中 0 张：无`，**仍逐条打出** `status=Unpaid` / `due_date=…` / `docstatus=1（已提交）`；另覆盖「站点上根本没有这张发票」→ `认不出这张发票` |
+| ③ | `test_overdue_diagnosis_points_at_due_date_and_labels_whose_today_it_used` | `ok is False`，逐字 `due_date=2026-03-10（未到期，今天 2026-03-01（宿主侧））` |
+| ④ | `test_overdue_diagnosis_points_at_an_unsubmitted_invoice` | `ok is False`，逐字 `docstatus=0（未提交）` |
+| ⑤ | `test_overdue_diagnosis_does_not_eat_the_load_bearing_amount_assertion` | `ok is False`、`actual == "17000.00"`，且 `= 17000.00 / expected = 18612.00` 仍在 `line()` 里 |
+
+**三条变异验证，六次退出码逐条记（1 → 0 → 1 → 0 → 1 → 0，命令原文均为 `python3 -m pytest tests/unit -q`）**：
+
+| 变异 | 改法 | 退出码 | 逐字点名的用例 |
+|---|---|---|---|
+| ① | 诊断候选集由 `rows` 改成 `overdue`（即由站点 `Overdue` 过滤得出，D2 点名的那个错） | **1**（3 failed, 290 passed） | `::test_overdue_diagnosis_still_lists_the_expected_invoices_when_the_site_found_none`（**状态 ②，预测命中**）· `::…points_at_due_date_and_labels_whose_today_it_used` · `::…points_at_an_unsubmitted_invoice` |
+| ①′ | 复原 | **0**（293 passed） | — |
+| ② | `_overdue_diagnosis` 首行 `return ""`（整段恒返回空串） | **1**（5 failed, 288 passed） | `::…names_both_expected_invoices_when_everything_is_right` · `::…still_lists_the_expected_invoices_when_the_site_found_none`（**②**）· `::…points_at_due_date_and_labels_whose_today_it_used`（**③**）· `::…points_at_an_unsubmitted_invoice`（**④**）· `::…does_not_eat_the_load_bearing_amount_assertion` |
+| ②′ | 复原 | **0**（293 passed） | — |
+| ③ | 幂等键的 `posting_date` 分量改成 `"1999-01-01"`（不存在的日期） | **1**（5 failed, 288 passed） | `::…names_both_expected_invoices_when_everything_is_right`（**状态 ①，预测命中 —— 这条证明键真的在匹配**）+ 其余四条 |
+| ③′ | 复原 | **0**（293 passed） | — |
+
+⚠️ **两处实测比预测更宽，照实记、不粉饰**：变异 ② 预测点名 ②③④，实测**还**点名了 ① 与 ⑤；
+变异 ③ 预测点名 ①，实测**还**点名了其余四条。方向一致（都是「更红」而不是「漏红」），
+但**预测不精确这件事本身要记下来**，不能写成「与预测逐字一致」。
+
+**本 Phase 的其余验证（命令原文 + 退出码）**：
+
+```
+$ python3 tools/gates/check_expected_red.py                       -> 0
+  判定模式：default —— 按 tools/gates/expected-red.txt 判定
+  门禁 19 项：预期红 7，绿 12，跳过 0
+  ✅ 与预期红名单完全一致
+$ python3 -m pytest tests/unit -q                                 -> 0   （293 passed）
+$ python3 -m pytest tests/contracts -q                            -> 0   （151 passed）
+$ ruff check agenerp tests/unit tests/contracts                   -> 0   （All checks passed!）
+$ git diff --stat agenerp/seed/                                   -> 无输出
+$ git status --porcelain tests/gates .github tools/gates missions docker-compose.yml docs/masterplan
+                                                                  -> 无输出
+```
+
 Exit Criteria:
 
-- [ ] `_overdue_checks` 仍**只返回 2 条** `CheckResult` —— 机械判据是既有 `test_seedsite_documents.py:412`
+- [x] `_overdue_checks` 仍**只返回 2 条** `CheckResult` —— 机械判据是既有 `test_seedsite_documents.py:412`
       的 `assert len(results) == 9` **仍然绿且未被改写**（`git diff` 该行无输出）
-- [ ] 五态单测齐全，其中 ②（反空转）与 ⑤（承重断言未被吃掉）不得缺
-- [ ] **三条**变异验证的六次退出码（1 → 0 → 1 → 0 → 1 → 0）记在本 plan 内
-- [ ] `agenerp/seed/**` **一个字节未改**（`git diff --stat agenerp/seed/` 无输出）
-- [ ] `tests/gates/**` / `tools/gates/**` / `.github/workflows/**` / `missions/**` / `docker-compose.yml` 零改动
-- [ ] `docs/logs/` 更新
+- [x] 五态单测齐全，其中 ②（反空转）与 ⑤（承重断言未被吃掉）不得缺
+- [x] **三条**变异验证的六次退出码（1 → 0 → 1 → 0 → 1 → 0）记在本 plan 内
+- [x] `agenerp/seed/**` **一个字节未改**（`git diff --stat agenerp/seed/` 无输出）
+- [x] `tests/gates/**` / `tools/gates/**` / `.github/workflows/**` / `missions/**` / `docker-compose.yml` 零改动
+- [x] `docs/logs/` 更新
 
 ### Phase 3 - 活站点实证 + 按 Phase 1 的分流改准文档
 
