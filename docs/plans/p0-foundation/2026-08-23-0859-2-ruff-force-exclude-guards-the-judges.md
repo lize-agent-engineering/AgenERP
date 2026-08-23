@@ -472,7 +472,7 @@ Status Note: **两个 Phase 全部交付并 ticked，`Plan Status` 仍是 `activ
 
 交付面与证据（供审计复跑，逐条已在本机实跑）：
 
-- Phase 1 提交 sha `ca75ddc`；Phase 2 提交 sha `<PHASE2_SHA>`。
+- Phase 1 提交 sha `ca75ddc`；Phase 2 提交 sha `aad08c4`。
 - `python3 -m ruff check tests/gates` / `tests/gates/conftest.py` / `"$PWD/tests/gates"` / `./tests/gates`
   → **全部 exit 0**，各打 `warning: No Python files found under the given path(s)` + `All checks passed!`；
   落地前前三种**全部 exit 1**。
