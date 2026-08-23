@@ -20,11 +20,15 @@ from agenerp.site import (
     ADMIN_PASSWORD_ENV,
     API_KEY_ENV,
     API_SECRET_ENV,
+    CUSTOM_FIELD_DOCTYPE,
+    SITE_ENV,
     SiteClient,
     SiteError,
     SiteResponse,
     UrllibTransport,
     client_from_env,
+    custom_field_name,
+    encode_path,
 )
 
 # 每加宽一次写面就留一次痕 —— 这个列表是那道痕。**只登记，不取消判据**。
@@ -469,3 +473,83 @@ def test_submit_doc_never_swallows_a_non_2xx(status):
 
     with pytest.raises(SiteError):
         client.submit_doc("Stock Entry", "MAT-STE-2026-00001")
+
+
+# ---------------------------------------------------------------------------
+# 写方法的行为判据（plan `2026-08-23-1056-1` Phase 1）
+#
+# 缺口的准确表述：`delete_custom_field` 被 L2 门禁
+# `tests/gates/test_customization_roundtrip_delete.py::test_removing_from_pack_actually_deletes_on_site`
+# 真正走过，但那道门禁要 docker + 活站点，**默认判定面（`pytest tests/unit`）复跑不到它**。
+# 实测确认过：把该方法整个函数体换成 `return None`，`tests/unit` + `tests/contracts`
+# 471 条全绿 —— 破坏性写变成 no-op 而当轮自证为绿。下面这几条补的正是那一层。
+# ---------------------------------------------------------------------------
+
+
+def test_delete_custom_field_issues_exactly_one_delete_request():
+    """删除必须**真的发出去**。函数体被掏空成 no-op 时，只有「请求条数」看得见。
+
+    断言落在**编码后**的 URL 上：`agenerp/site.py:350` 是 `base_url + encode_path(path)`，
+    `Custom Field` 的空格在那一步变成 `%20`，写未编码字面量会与真发出的请求对不上。
+    """
+    transport = FakeTransport([SiteResponse(202, json.dumps({"data": "ok"}))])
+
+    _client(transport, api_key="k", api_secret="s").delete_custom_field("Item", "agenerp_x")
+
+    assert len(transport.requests) == 1, [(r.method, r.url) for r in transport.requests]
+    assert transport.last.method == "DELETE"
+    assert transport.last.url.endswith("/api/resource/Custom%20Field/Item-agenerp_x"), \
+        transport.last.url
+
+
+def test_delete_custom_field_raises_when_the_field_is_not_there():
+    """「要删的东西不在」判为失败，不静默吞掉 —— 实测站点回 404 `DoesNotExistError`。
+
+    吞掉它会让「包里删了字段但站点上从来没建过」与「删成功了」长得一模一样。
+    """
+    transport = FakeTransport([SiteResponse(404, '{"exc_type":"DoesNotExistError"}')])
+
+    with pytest.raises(SiteError) as excinfo:
+        _client(transport, api_key="k", api_secret="s").delete_custom_field("Item", "agenerp_x")
+
+    assert "404" in str(excinfo.value)
+
+
+def test_custom_field_name_is_doctype_then_fieldname():
+    """名字形如 `Item-agenerp_x`（2026-08-21 活站点实测的 `data.name`）。顺序对调 = 删到不存在的 name。"""
+    assert custom_field_name("Item", "agenerp_x") == "Item-agenerp_x"
+
+
+def test_delete_custom_field_targets_the_name_custom_field_name_computes():
+    """删除路径打的 name 必须与 `custom_field_name` **同源**，不是碰巧长得一样。
+
+    期望值用函数本身求值、不手抄字符串：手抄的话，两处一起改错时这条判据会跟着一起错。
+    形状本身由 `test_custom_field_name_is_doctype_then_fieldname` 单独钉死。
+    """
+    transport = FakeTransport([SiteResponse(202, json.dumps({"data": "ok"}))])
+
+    _client(transport, api_key="k", api_secret="s").delete_custom_field("Item", "agenerp_x")
+
+    expected = encode_path(
+        f"/api/resource/{CUSTOM_FIELD_DOCTYPE}/{custom_field_name('Item', 'agenerp_x')}"
+    )
+    assert transport.last.url.endswith(expected), (transport.last.url, expected)
+
+
+@pytest.mark.parametrize("body", ['{"data": "ok"}', "{}", "[]"])
+def test_submit_doc_rejects_a_response_without_a_data_object(body):
+    """`data` 不是对象时抛。回 `{}` 当成提交成功，等于凭空造一份没提交的单据。"""
+    transport = FakeTransport([SiteResponse(200, body)])
+    client = SiteClient("frontend", base_url="http://s", api_key="k", api_secret="s",
+                        transport=transport)
+
+    with pytest.raises(SiteError, match="缺少 data 对象"):
+        client.submit_doc("Stock Entry", "MAT-STE-2026-00001")
+
+
+def test_empty_site_name_raises_and_names_the_env_var():
+    """空站点名必须当场炸，且指名 `AGENERP_SITE` —— 放过去会把空 Host 头带进每次请求。"""
+    with pytest.raises(SiteError) as excinfo:
+        SiteClient("", base_url="http://s", api_key="k", api_secret="s")
+
+    assert SITE_ENV in str(excinfo.value), str(excinfo.value)
