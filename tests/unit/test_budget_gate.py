@@ -27,14 +27,20 @@ _spec = importlib.util.spec_from_file_location("check_budget", _TOOL)
 budget = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(budget)
 
+# 下面的 autouse fixture 会把 config_path 指到 tmp_path；
+# 「cwd 无关性」那条断言要测的是真函数，所以在这里先留一份原件。
+_REAL_CONFIG_PATH = budget.config_path
+
 
 def point_config_at(monkeypatch, path: Path) -> None:
     """把「阈值配置文件」这个真相源指到 path。
 
-    单点改写：本仓此刻是 cwd 相对的模块常量 `CONFIG`。各条断言正文只经过这个助手，
-    所以真相源的解析方式换了，跟着改的只有这一处。
+    单点改写：D2 之前是 cwd 相对的模块常量 `CONFIG`，之后是调用时求值的 `config_path()`。
+    各条断言正文只经过这个助手，所以真相源的解析方式换了，跟着改的只有这一处。
+    ⚠️ 例外是下面那条 **cwd 无关性**断言：它测的就是 `config_path()` 本身，
+    因此**不许**经过这个助手 —— 那会把要测的逻辑绕过去。
     """
-    monkeypatch.setattr(budget, "CONFIG", path)
+    monkeypatch.setattr(budget, "config_path", lambda: path)
 
 
 def point_ledger_at(monkeypatch, path: Path) -> None:
@@ -95,21 +101,53 @@ def test_builtin_default_when_config_file_absent(monkeypatch, tmp_path):
     assert budget.configured_budget() == budget.DEFAULT_BUDGET
 
 
-def test_unreadable_config_falls_back_to_builtin_default(monkeypatch, tmp_path):
-    """现状：配置文件在、但解析不出 → 静默落到内置默认，没有任何提示。"""
+def test_unreadable_config_halts_the_gate(monkeypatch, capsys, tmp_path):
+    """配置文件在、但解析不出 → 退 3（判定器自身失败），**不是**静默落到内置默认。
+
+    ⚠️ 这条断言被 D2 有意作废并重写。Phase 1 的旧期望逐字是
+    `assert budget.configured_budget() == budget.DEFAULT_BUDGET`
+    （注释逐字：「现状：配置文件在、但解析不出 → 静默落到内置默认，没有任何提示。」）——
+    那是**静默往更松的一侧倒**，坏配置必须停机，不是放行。
+    """
     cfg = tmp_path / "budget.json"
     cfg.write_text("{ 这不是 json")
     point_config_at(monkeypatch, cfg)
-    assert budget.configured_budget() == budget.DEFAULT_BUDGET
+    with pytest.raises(budget.GateBroken):
+        budget.configured_budget()
+    code, _, err = run_main(monkeypatch, capsys)
+    assert code == 3
+    assert "读不出" in err
 
 
-def test_non_numeric_env_var_silently_falls_through(monkeypatch, tmp_path):
-    """现状：`isdigit()` 为假的环境变量被静默忽略，落到文件的值——比操作者意图更松。"""
+def test_non_numeric_env_var_halts_the_gate(monkeypatch, capsys, tmp_path):
+    """环境变量非空且非纯数字 → 退 3 并打印被拒绝的原值，**不再**静默落到文件的值。
+
+    ⚠️ 这条断言被 D3 有意作废并重写。Phase 1 的旧期望逐字是
+    `assert budget.configured_budget() == 654_321`
+    （注释逐字：「现状：`isdigit()` 为假的环境变量被静默忽略，落到文件的值——比操作者意图更松。」）。
+    ⚠️ 代价照实记：这是一条**新增的停机入口** —— 操作者本想放宽一天的预算、结果把循环停了；
+    代偿是 stderr 会打出被拒绝的原值。
+    """
     cfg = tmp_path / "budget.json"
     cfg.write_text(json.dumps({"daily_token_budget": 654_321}))
     point_config_at(monkeypatch, cfg)
     monkeypatch.setenv("AGENERP_DAILY_TOKEN_BUDGET", "200,000,000")
-    assert budget.configured_budget() == 654_321
+    with pytest.raises(budget.GateBroken):
+        budget.configured_budget()
+    code, _, err = run_main(monkeypatch, capsys)
+    assert code == 3
+    assert "200,000,000" in err
+
+
+def test_config_path_is_independent_of_cwd(monkeypatch, tmp_path):
+    """阈值只有一个读数：在任何 cwd 下都指向脚本自己旁边的 budget.json。
+
+    ⚠️ 本条**不经过** `point_config_at()` —— monkeypatch 掉 `config_path` 本身
+    就把要测的逻辑绕过去了，那是判据空转。
+    """
+    monkeypatch.chdir(tmp_path)
+    assert _REAL_CONFIG_PATH() == _TOOL.resolve().parent / "budget.json"
+    assert _REAL_CONFIG_PATH().is_absolute()
 
 
 # ---- usage_since()：窗口、畸形行、五个累加口径 ------------------------------
@@ -183,7 +221,6 @@ def test_main_returns_1_and_says_over_budget(monkeypatch, capsys, tmp_path):
 
 # ---- 两条现在就红的判据（Phase 2 修；D0 取 xfail(strict=True)）--------------
 
-@pytest.mark.xfail(strict=True, reason="Baseline 3 确认的活缺陷：不带时区的 at 让闸崩成 exit 1，Phase 2 修")
 def test_naive_timestamp_must_not_be_reported_as_over_budget(monkeypatch, capsys, tmp_path):
     """台账里一行 `at` 不带时区时，闸崩在 `usage_since` 的 `t < start`，未捕获，进程 exit 1。
 
@@ -198,7 +235,6 @@ def test_naive_timestamp_must_not_be_reported_as_over_budget(monkeypatch, capsys
     assert code == 0
 
 
-@pytest.mark.xfail(strict=True, reason="判定器自身失败仍会冒充「超预算」，Phase 2 加顶层兜底")
 def test_gate_internal_failure_must_not_be_reported_as_over_budget(monkeypatch, capsys, tmp_path):
     """通用契约，不依赖上一条那个具体输入：注入一个「归一时间戳」覆盖不到的异常。
 
@@ -210,4 +246,5 @@ def test_gate_internal_failure_must_not_be_reported_as_over_budget(monkeypatch, 
     point_ledger_at(monkeypatch, d)
     code, _, err = run_main(monkeypatch, capsys)
     assert code != 1
+    assert code == budget.EXIT_GATE_BROKEN
     assert "IsADirectoryError" in err

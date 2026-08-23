@@ -289,7 +289,7 @@ Exit Criteria:
 
 ### Phase 2 — Fix：崩溃既不许冒充超预算，也不许换成放行
 
-Status: planned
+Status: completed
 Targets: `tools/gates/check_budget.py` · `tools/loop-supervisor.sh` ·
 **`tests/unit/test_budget_gate.py`** · `docs/context/project-context.md` · `docs/architecture/system-baseline.md`
 Skill: `none`
@@ -302,7 +302,7 @@ Prereqs: Phase 1（两条 `xfail` 必须先存在，否则本 phase 的绿证明
   那两条 Phase 1 的绿断言会在本 phase 变红。**这是预期内的判据更新，不是回归**，
   但它必须以显式执行项落地，否则 Phase 3 的变异 ② / ④ 会点名**根本不存在的断言**。
 
-- [ ] `Decision` **D1：判定器自身失败时该退什么码、监督器该怎么接。**
+- [x] `Decision` **D1：判定器自身失败时该退什么码、监督器该怎么接。**
       候选与取舍必须写进 `docs/architecture/system-baseline.md` §14.9。
       - **(a) 在 `usage_since` 的行循环里把 `TypeError` 一并 `except` 掉（跳过该行）** ——
         **静默少算用量**，让一条设计取向逐字为「宁可停着等人」（`loop-supervisor.sh` 模块头）的闸
@@ -329,7 +329,7 @@ Prereqs: Phase 1（两条 `xfail` 必须先存在，否则本 phase 的绿证明
         初稿把 `ab-run.sh` 写成调用方是错的，**残余因此比初稿写的小**：
         实际暴露面只有「人手工跑」与「将来新增的调用方」。处置：`--help` 与 docstring 里写明三码语义。
       - Skill: `none`
-- [ ] `Decision` **D1b：不带时区的 `at` 怎么处理。**（独立评审第 1 轮指出初稿的理由是空的，此处重写）
+- [x] `Decision` **D1b：不带时区的 `at` 怎么处理。**（独立评审第 1 轮指出初稿的理由是空的，此处重写）
       - ⚠️ **初稿写「写入方一直用 `datetime.now(datetime.UTC)`，所以「它本来就是 UTC」是有据的」——
         这条理由对它要处理的那些行是空的**：`pass_usage.py` **从不产出**不带时区的行（Baseline 5），
         所以它的行为对「手写行是什么时区」一个字都没说。
@@ -343,15 +343,15 @@ Prereqs: Phase 1（两条 `xfail` 必须先存在，否则本 phase 的绿证明
         更可能落到 24h 窗口外而被**少算** —— 方向不安全。代偿只有 (i) 那条 stderr 告警，
         且它只在有人看日志时起作用。**照实登记，不粉饰。**
       - Skill: `none`
-- [ ] `Fix` 按 D1b(i) 处理不带时区的 `at`；按 D1(e) 给 `main()` 加顶层兜底并**返回 3**，
+- [x] `Fix` 按 D1b(i) 处理不带时区的 `at`；按 D1(e) 给 `main()` 加顶层兜底并**返回 3**，
       把异常原文打到 stderr。⚠️ **不得吞掉异常原文** —— 那会把「说谎」换成「沉默」。
-- [ ] `Fix` `tools/loop-supervisor.sh` 闸 2：新增
+- [x] `Fix` `tools/loop-supervisor.sh` 闸 2：新增
       `3) halt_with "budget-gate-broken" "预算闸自身失败，停机等人"; exit 0 ;;`，
       并改准 `2)` 分支那行日志（现状逐字 `预算：台账暂无记录（首趟），放行` 把 2 的原因写死成「首趟」）。
       ⚠️ **`case` 的 `1)` / `2)` 两个分支的走向与 `exit` 语义一个字不改**；
       改完实跑 `bash -n tools/loop-supervisor.sh` 与 `git diff --numstat -- tools/loop-supervisor.sh`，
       **期望首两列为 `2` `1`**（新增 `3)` 一行 + 改写日志一行）。
-- [ ] `Decision` **D2：阈值配置的路径解析，以及它怎么被测到。**
+- [x] `Decision` **D2：阈值配置的路径解析，以及它怎么被测到。**
       - **(i) 抽一个调用时求值的助手** `config_path() -> pathlib.Path`，
         返回 `pathlib.Path(__file__).resolve().parent / "budget.json"`，由 `configured_budget()` 调它。**取此。**
         ⚠️ **「调用时求值」是硬要求，不是风格偏好**（独立评审第 1 轮）：
@@ -367,8 +367,8 @@ Prereqs: Phase 1（两条 `xfail` 必须先存在，否则本 phase 的绿证明
       - **残余风险**：脚本被单独拷走而 `budget.json` 没跟着 → 落到内置默认 2 亿，
         比现值 10 亿**更紧**，方向安全；照实登记。
       - Skill: `none`
-- [ ] `Fix` 按 D2 落地 `config_path()` 与「坏配置退 3」。
-- [ ] `Decision | Fix` **D3：环境变量被写坏时的静默兜底**（Baseline 7）。
+- [x] `Fix` 按 D2 落地 `config_path()` 与「坏配置退 3」。
+- [x] `Decision | Fix` **D3：环境变量被写坏时的静默兜底**（Baseline 7）。
       取「**非空且非纯数字 → 退 `3` 并打印原文**」；空/未设仍按优先级往下走。
       理由：现状是**静默向更松的一侧**倒（忽略操作者写的 2 亿、改用文件的 10 亿）。
       **否决**「静默采信 `int()` 能解析的写法」—— 会让 `1e9` 这类写法悄悄生效，把一个决策变成一次手滑。
@@ -381,49 +381,49 @@ Prereqs: Phase 1（两条 `xfail` 必须先存在，否则本 phase 的绿证明
         取此仍属可接受的方向（往「停」倒），但**不得写成「无代价」**；
         代偿是 stderr 会打出被拒绝的原值。
       - Skill: `none`
-- [ ] `Add` **删掉 Phase 1 那两条 `xfail` 标记**（只删标记，不动断言正文）。
-- [ ] `Add` **重写 D2 / D3 刻意作废的那两条断言**：`configured_budget()` 的
+- [x] `Add` **删掉 Phase 1 那两条 `xfail` 标记**（只删标记，不动断言正文）。
+- [x] `Add` **重写 D2 / D3 刻意作废的那两条断言**：`configured_budget()` 的
       「配置文件读不出 → 静默用内置默认」与「非纯数字环境变量 → 静默落到文件」两条现状断言，
       改成断言退出码 `3`。⚠️ **必须在提交信息或断言注释里引上旧期望的原文**，
       让「判据被改过」这件事在 diff 上看得见，而不是悄悄换掉。
-- [ ] `Add` **cwd 无关性断言**（B4 的落点，Phase 3 变异 ② 点名的就是它）：
+- [x] `Add` **cwd 无关性断言**（B4 的落点，Phase 3 变异 ② 点名的就是它）：
       `monkeypatch.chdir(tmp_path)` 之后断言 `check_budget.config_path()` 仍指向脚本同目录的
       `budget.json`。⚠️ **不得 `monkeypatch` 掉 `config_path` 本身**，那会把要测的逻辑绕过去。
-- [ ] `Add` **退出码 `3` 的三条断言**（Phase 3 变异 ④ 点名的在其中）：
+- [x] `Add` **退出码 `3` 的三条断言**（Phase 3 变异 ④ 点名的在其中）：
       判定器内部异常 → `3` · 配置文件存在但解析不出 → `3` · 环境变量非空且非纯数字 → `3`。
-- [ ] `Fix` **就地改准 `check_budget.py` 的 docstring**：`:8` 的用法行写着
+- [x] `Fix` **就地改准 `check_budget.py` 的 docstring**：`:8` 的用法行写着
       `[--exclude-session ID]`，而 `argparse` **从未定义过这个参数**（实测只有 `--budget-tokens` 与 `--json`）——
       确认的文档漂移。本 plan 反正要重写这段 docstring（加三码语义表），**顺路改准，不是另开一件事**。
-- [ ] `Fix` 把三个退出码的语义写进 `--help`（`argparse` 的 `description` / `epilog`）与 docstring，
+- [x] `Fix` 把三个退出码的语义写进 `--help`（`argparse` 的 `description` / `epilog`）与 docstring，
       让不经监督器的调用方看得到（D1 残余风险段写死的那条处置）。
-- [ ] `Fix` **`docs/context/project-context.md` 的 `:53` 与 `:57` 两处 `293` 就地改准**为 Phase 1 定下的新计数
+- [x] `Fix` **`docs/context/project-context.md` 的 `:53` 与 `:57` 两处 `293` 就地改准**为 Phase 1 定下的新计数
       （Baseline 14 的确认漂移，Minimum Rule 14 不降级）。
       ⚠️ 照该文件既有惯例标注改准来源与本 plan id；**不新增任何一行验证命令**，只改数字与出处。
-- [ ] `Fix` 新增 `docs/architecture/system-baseline.md` **§14.9**，落纸 D0 / D1 / D1b / D2 / D3
+- [x] `Fix` 新增 `docs/architecture/system-baseline.md` **§14.9**，落纸 D0 / D1 / D1b / D2 / D3
       五处取舍、各自代价与残余风险，以及三个退出码的语义表。
       ⚠️ 开工时实读确认 §14.9 未被占用（现有最大编号为 §14.8）。
 
 Exit Criteria:
 
-- [ ] Phase 1 的两条 `xfail` 标记**被删掉**，且删掉后两条**转绿**；绿因是行为改对，不是断言被放宽。
+- [x] Phase 1 的两条 `xfail` 标记**被删掉**，且删掉后两条**转绿**；绿因是行为改对，不是断言被放宽。
       ⚠️ **判据是机械的，且作用域是那两个测试函数、不是整个文件**（独立评审第 2 / 3 轮连续改准：
       初稿写「断言正文前后 `git diff` 为空」字面为假；二稿改成「整个文件的删除行只许是那两行装饰器」，
       **仍然不可满足** —— 同一文件里还有两条断言要被 D2 / D3 有意改写）：
       判据是 **`git diff -U0` 中属于这两个 `xfail` 函数的 hunk，其删除行只有那两行
       `@pytest.mark.xfail(...)`**，函数体一行未删。
-- [ ] `python3 -m pytest tests/unit -q` → exit 0，`xfailed` 计数 **归 0**
-- [ ] `python3 -m pytest tests/contracts -q` → exit 0
-- [ ] `python3 tools/gates/check_expected_red.py` → exit 0，输出与 Baseline 12 引的**三行**逐字节相同（`diff` 无输出）
-- [ ] `bash -n tools/loop-supervisor.sh` → exit 0；`git diff --numstat -- tools/loop-supervisor.sh` 首两列为 `2` `1`
-- [ ] 三个退出码各有一条断言：`1` 仅超预算、`3` 仅判定器自身失败、`2` 仅台账无记录
-- [ ] `python3 tools/gates/check_budget.py --help` 的输出里**同时**出现 `1` / `2` / `3` 三个码的语义
+- [x] `python3 -m pytest tests/unit -q` → exit 0，`xfailed` 计数 **归 0**
+- [x] `python3 -m pytest tests/contracts -q` → exit 0
+- [x] `python3 tools/gates/check_expected_red.py` → exit 0，输出与 Baseline 12 引的**三行**逐字节相同（`diff` 无输出）
+- [x] `bash -n tools/loop-supervisor.sh` → exit 0；`git diff --numstat -- tools/loop-supervisor.sh` 首两列为 `2` `1`
+- [x] 三个退出码各有一条断言：`1` 仅超预算、`3` 仅判定器自身失败、`2` 仅台账无记录
+- [x] `python3 tools/gates/check_budget.py --help` 的输出里**同时**出现 `1` / `2` / `3` 三个码的语义
       （grep 可核；D1 与 Deferred 都承诺了这一条，此前没有任何判据看着它）
-- [ ] `grep -n "exclude-session" tools/gates/check_budget.py` **零命中**（NB3 那处文档漂移已改准）
-- [ ] **被 D2 / D3 有意作废的那两条断言另有一条独立判据**（与上一条互不混用）：
+- [x] `grep -n "exclude-session" tools/gates/check_budget.py` **零命中**（NB3 那处文档漂移已改准）
+- [x] **被 D2 / D3 有意作废的那两条断言另有一条独立判据**（与上一条互不混用）：
       两条都已重写为断言退出码 `3`，且**旧期望的原文出现在断言注释或提交信息里**（grep 可核）
-- [ ] `ruff check agenerp tests/unit tests/contracts` → exit 0
-- [ ] `docs/architecture/system-baseline.md` §14.9 落地；`docs/context/project-context.md` 两处计数改准
-- [ ] `docs/logs/` 更新
+- [x] `ruff check agenerp tests/unit tests/contracts` → exit 0
+- [x] `docs/architecture/system-baseline.md` §14.9 落地；`docs/context/project-context.md` 两处计数改准
+- [x] `docs/logs/` 更新
 
 ### Phase 3 — 变异验证：证明这些断言有牙齿
 

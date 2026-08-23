@@ -70,7 +70,8 @@ while true; do
   python3 tools/gates/check_budget.py
   case $? in
     1) halt_with "budget-exceeded" "24 小时内循环用量超出预算，停机等人复核"; exit 0 ;;
-    2) log "预算：台账暂无记录（首趟），放行" ;;
+    2) log "预算：台账 24 小时内无循环趟次记录（首趟或刚轮转），放行" ;;
+    3) halt_with "budget-gate-broken" "预算闸自身失败，停机等人"; exit 0 ;;
   esac
 
   # ---- 闸 3：LoopX 配额 ----
