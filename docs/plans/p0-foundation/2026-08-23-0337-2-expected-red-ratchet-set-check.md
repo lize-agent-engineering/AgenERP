@@ -1505,6 +1505,13 @@ git ls-remote --heads origin ci/0337-2-experiments   # → 49dce8fbe1a92a7329f0c
 `python3 -m pytest tests/contracts -q` → **exit 0**（`151 passed`）；
 `git diff -- tools/gates/expected-red.txt`（在 `main` 上）→ **无输出**。
 
+**文档面两次 `push` 的 `main` 运行（含回填提交自身，与上表那句「提交自身的 CI 结论见本节末」对应）**：
+`21db58f`（文档面落地）→ run **`32607866670`** → **`success`**；
+`3b32a0c`（回填提交）→ run **`32607887044`** → **`success`**。
+⚠️ **这两次都不是本 plan 的「权威运行」** —— 权威运行是 `gates.yml` 落地那一次（`32607062968`，
+head `fe89fa5423525536c35fecab2462957c579a222f`），两者不得混为一谈。
+⚠️ **本段同样是回填**（第二次回填提交写下），照实记。
+
 Exit Criteria:
 
 - [x] PR 号 / 落地 sha（全长）/ 权威运行 run id / 全部 job 的结论记在本 plan 内
