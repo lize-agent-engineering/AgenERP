@@ -439,3 +439,47 @@ jobs:
       # 理由是免得 lint 逼着去改裁判）。
       - name: ruff check（agenerp / tests/unit / tests/contracts）
         run: ruff check agenerp tests/unit tests/contracts
+
+  # 集合判据（plan 2026-08-23-0337-2，见 docs/architecture/system-baseline.md §14.8）。
+  # 与上面的 expected-red-ratchet 并存、判据不同：那个数行数，这个比条目集合。
+  # 两者是合取关系 —— 任一红即拦下，不存在「谁赢」的裁量。
+  expected-red-superset:
+    name: 预期红名单不得新增条目
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 新名单必须是旧名单的子集
+        run: |
+          set -euo pipefail
+          FILE=tools/gates/expected-red.txt
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE="${{ github.event.pull_request.base.sha }}"; HEAD="${{ github.event.pull_request.head.sha }}"
+          else
+            BASE="${{ github.event.before }}"; HEAD="${{ github.sha }}"
+            if [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
+              echo "首次推送，基线即当前"; exit 0
+            fi
+          fi
+          [ -f "$FILE" ] || { echo "❌ 名单文件不存在：$FILE"; exit 1; }
+          norm(){ awk '{l=$0; sub(/^[[:space:]]+/,"",l); sub(/[[:space:]]+$/,"",l);
+                        if (l!="" && $0 !~ /^#/) print l}' | sort -u; }
+          if ! git cat-file -e "$BASE:$FILE" 2>/dev/null; then
+            echo "基线里还没有这个文件，跳过"; exit 0
+          fi
+          OLD=$(git show "$BASE:$FILE" | norm)
+          NEW=$(norm < "$FILE")
+          T="${RUNNER_TEMP:-/tmp}"
+          printf '%s' "$OLD" > "$T/old.set"; printf '%s' "$NEW" > "$T/new.set"
+          ADDED=$(comm -13 "$T/old.set" "$T/new.set")
+          [ -z "$ADDED" ] && { echo "✅ 名单未新增条目"; exit 0; }
+          echo "本次改动往预期红名单里新增了以下条目："
+          echo "$ADDED" | while IFS= read -r e; do echo "   + $e"; done
+          if git log --format=%B "$BASE..$HEAD" | grep -q '^Gates-Change-Approved-By:'; then
+            echo "✅ 有人工批准 trailer，放行"; exit 0
+          fi
+          echo "❌ 预期红名单新增了条目——这等于把一个真失败登记成「预期」。"
+          echo "   棘轮只允许删，不允许增（等长交换也是增）。确需放宽由人批准：Gates-Change-Approved-By: <姓名>"
+          exit 1
