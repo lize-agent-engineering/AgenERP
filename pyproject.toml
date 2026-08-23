@@ -24,6 +24,11 @@ markers = [
 [tool.ruff]
 line-length = 100
 target-version = "py312"
-# tests/gates/** 在红线内，loop 不得修改；把它排除在 lint 作用域外，
+# tests/gates/** 在红线内，loop 不得修改；exclude 与 force-exclude 一起把它挡在 ruff 之外，
 # 免得 lint 逼着去改裁判。门禁判定器是 tools/gates/check_expected_red.py，与 ruff 无关。
+# force-exclude 不冗余，别顺手删：单靠 exclude 只在目录遍历时生效，显式传路径（ruff check tests/gates）
+# 照样扫裁判并报错；加上它之后目录 / 单文件 / 绝对路径三种形态全部 exit 0。
+# 代价照实记：路径被排除时 ruff 静默退 0，只打一行 warning: No Python files found under the given path(s)，
+# 「检查过且全过」与「根本没看」在退出码上一样，那行 warning 是唯一肉眼线索，不得被 2>/dev/null 吞掉。
 exclude = ["tests/gates"]
+force-exclude = true

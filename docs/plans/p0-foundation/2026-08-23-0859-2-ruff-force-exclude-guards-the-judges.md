@@ -192,14 +192,14 @@ silently removing items from scope is a violation」），逐条记明：
 
 ### Phase 1 — Fix：`force-exclude` 落地，并就地改准那句不成立的注释
 
-Status: planned
+Status: completed
 Targets: `pyproject.toml` · `docs/context/project-context.md` · `docs/architecture/system-baseline.md`
 Skill: `none`
 
 - Item Types: `Fix | Decision | Proof`
 - Prereqs: 前驱 plan `2026-08-23-0859-1` 关闭（代码改动面不重叠，但 Baseline 8 / 9 的计数要等它定稿）
 
-- [ ] `Decision` **D1：怎么让 `tests/gates` 在所有调用形态下都被挡住。**
+- [x] `Decision` **D1：怎么让 `tests/gates` 在所有调用形态下都被挡住。**
       候选与取舍写进 `system-baseline.md` §14.10。
       - **(i) 靠纪律**：约定「谁都别把 `tests/gates` 传给 ruff」。
         **否决**：靠人记性，而本仓已有一条同类失效被记过（判定器给出两个读数，`STATE.md:86`）。
@@ -219,50 +219,50 @@ Skill: `none`
         本 plan 的处置只有两条，都要写进 §14.10：① 改准后的注释必须说明「路径被排除时 ruff 会静默退 0」；
         ② 该 `warning:` 行本身就是唯一的肉眼线索，**不得**再被任何调用方用 `2>/dev/null` 吞掉。
       - Skill: `none`
-- [ ] `Fix` 在 `pyproject.toml` 的 `[tool.ruff]` 加 `force-exclude = true`。
-- [ ] `Fix` 就地改准 **Baseline 4 表里的 ①**（`pyproject.toml:27-28`）：
+- [x] `Fix` 在 `pyproject.toml` 的 `[tool.ruff]` 加 `force-exclude = true`。
+- [x] `Fix` 就地改准 **Baseline 4 表里的 ①**（`pyproject.toml:27-28`）：
       现状「把它排除在 lint 作用域外」在显式路径下不成立（Baseline 2）。
       改准后的措辞必须说明**为什么需要 `force-exclude`**（否则下一个人会以为它是冗余的、顺手删掉）。
       ⚠️ **第二句「门禁判定器是 `tools/gates/check_expected_red.py`，与 ruff 无关」一个字不动** ——
       它仍然为真（Baseline 1）。
-- [ ] `Fix` 就地改准 **Baseline 4 表里的 ②**（`docs/context/project-context.md:69-70`）——
+- [x] `Fix` 就地改准 **Baseline 4 表里的 ②**（`docs/context/project-context.md:69-70`）——
       同一处漂移的第二个活实例，该文件是本 plan 的 owner doc、可自由编辑，
       按 Minimum Rule 14 **不得降级为 follow-up**。⚠️ 只改这两行的措辞，**不动该文件其余任何一行**。
-- [ ] `Proof` **隔离 A/B**：本 plan 除 `force-exclude` 与注释外没有别的代码改动，
+- [x] `Proof` **隔离 A/B**：本 plan 除 `force-exclude` 与注释外没有别的代码改动，
       所以只需在加/去该行的前后各跑一遍并逐字对照（记录时写明这一点，别把「碰巧干净」当成「做了隔离」）：
       `python3 -m ruff check .`（期望命中数**不变**）·
       `python3 -m ruff check agenerp tests/unit tests/contracts`（期望 **exit 0**，输出 `diff` 无输出）·
       `python3 -m ruff check tools`（期望命中数**不变**）。
       ⚠️ **必须隔离**：本 plan 没有别的代码改动，所以这条 A/B 是干净的；记录时写明这一点。
-- [ ] `Proof` 三种调用形态各实测一次，逐条记退出码与输出原文：
+- [x] `Proof` 三种调用形态各实测一次，逐条记退出码与输出原文：
       `python3 -m ruff check tests/gates` · `python3 -m ruff check tests/gates/conftest.py` ·
       `python3 -m ruff check "$PWD/tests/gates"` —— **三者全部期望 exit 0**。
-- [ ] `Proof` **变异验证（本机，零 CI）**：把 `force-exclude = true` 去掉 →
+- [x] `Proof` **变异验证（本机，零 CI）**：把 `force-exclude = true` 去掉 →
       期望 `python3 -m ruff check tests/gates` **exit 1** 且逐字点名 Baseline 2 那 2 条；
       复原后回 exit 0。⚠️ **点名集合必须逐字写下**，只写「红了」不算证据。
-- [ ] `Proof` 全量复跑：`python3 tools/gates/check_expected_red.py`（期望 exit 0 且与 Baseline 8 的**三行**
+- [x] `Proof` 全量复跑：`python3 tools/gates/check_expected_red.py`（期望 exit 0 且与 Baseline 8 的**三行**
       逐字节相同）· `python3 -m pytest tests/unit -q` · `python3 -m pytest tests/contracts -q` ·
       `python3 tools/gates/check_expected_red.py && python3 -m pytest tests/unit -q`（GATE_VERIFY 原文命令）。
-- [ ] `Proof` 红线机械自查：`git diff --stat -- tests/gates .github/workflows tools missions docs/masterplan`
+- [x] `Proof` 红线机械自查：`git diff --stat -- tests/gates .github/workflows tools missions docs/masterplan`
       **必须无输出**。⚠️ **本条的作用域是 Phase 1 那一个提交**（独立评审第 2 轮：
       Phase 2 要往 `docs/masterplan/STATE.md` 追加一行，全局套用这条判据会与它自相矛盾）；
       Phase 2 对 `docs/masterplan/` 的判据是**只许新增行**，写在该 phase 自己的 Exit Criteria 里。
 
 Exit Criteria:
 
-- [ ] 三种调用形态（目录 / 单文件 / 绝对路径）传 `tests/gates` 给 ruff **全部 exit 0**，三条输出原文入档
-- [ ] 隔离 A/B 的三条对照全部为「无变化」，`diff` 输出入档
-- [ ] 变异一次：去掉 `force-exclude` → exit 1 且点名那 2 条；复原 → exit 0。**六个字（红/绿）不许省成一句「有牙齿」**
-- [ ] `python3 tools/gates/check_expected_red.py` 输出与 Baseline 8 的三行 `diff` 无输出
-- [ ] **在 Phase 1 的提交上**，`git diff --stat -- tests/gates .github/workflows tools missions docs/masterplan` 无输出
-- [ ] **两处注释改准都可核**（Rule 14 的非降级交付面，独立评审第 3 轮要求单列一条）：
+- [x] 三种调用形态（目录 / 单文件 / 绝对路径）传 `tests/gates` 给 ruff **全部 exit 0**，三条输出原文入档
+- [x] 隔离 A/B 的三条对照全部为「无变化」，`diff` 输出入档
+- [x] 变异一次：去掉 `force-exclude` → exit 1 且点名那 2 条；复原 → exit 0。**六个字（红/绿）不许省成一句「有牙齿」**
+- [x] `python3 tools/gates/check_expected_red.py` 输出与 Baseline 8 的三行 `diff` 无输出
+- [x] **在 Phase 1 的提交上**，`git diff --stat -- tests/gates .github/workflows tools missions docs/masterplan` 无输出
+- [x] **两处注释改准都可核**（Rule 14 的非降级交付面，独立评审第 3 轮要求单列一条）：
       `pyproject.toml:27-28` 与 `docs/context/project-context.md:69-70` 改准后**均不再声称
       「排除在 lint 作用域外」**；`pyproject.toml` 侧还须写明 `force-exclude` 的必要性
       **与「路径被排除时 ruff 静默退 0」**（D1 残余风险二写死的处置①）
-- [ ] `git diff -- docs/context/project-context.md` **只显示那两行的变更**，该文件其余一行未动
-- [ ] `docs/architecture/system-baseline.md` 的新 §14 小节落地（编号已实读确认未被占用），
+- [x] `git diff -- docs/context/project-context.md` **只显示那两行的变更**，该文件其余一行未动
+- [x] `docs/architecture/system-baseline.md` 的新 §14 小节落地（编号已实读确认未被占用），
       D1 的取舍与**两条残余风险**（挡不住 ruff 以外的东西 · 显式请求被静默判绿）都在内
-- [ ] `docs/logs/` 更新
+- [x] `docs/logs/` 更新
 
 ### Phase 2 — 把放弃掉的 scope 登记出去（不是让它消失）
 

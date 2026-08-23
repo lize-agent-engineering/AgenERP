@@ -66,8 +66,8 @@ This file is the AI entry point. The following `docs/context/` companions are re
 不要把上面几条可跑命令的绿说成「全量验证通过」——那是 scoped verification。
 
 门禁的判定权归 `tools/gates/check_expected_red.py`：名单内红 = 正常，名单内绿 = 名单过期，
-名单外红 = 真的坏了，出现 skip = 有人放松裁判。ruff 与它无关，且 `tests/gates/**` 已按红线 1
-排除在 lint 作用域外（`pyproject.toml` 的 `[tool.ruff].exclude`）。
+名单外红 = 真的坏了，出现 skip = 有人放松裁判。ruff 与它无关；`tests/gates/**` 在红线 1 内，由
+`pyproject.toml` 的 `[tool.ruff]` 用 `exclude` **加** `force-exclude = true` 一起挡在 ruff 之外 —— 单靠 `exclude` 只在目录遍历时生效，显式传路径（`ruff check tests/gates`）照样扫裁判并报出那 2 条既有告警；`force-exclude` 之后目录 / 单文件 / 绝对路径三种形态全部 exit 0。⚠️ **这是「挡住」不是「修好」**，那 2 条告警仍在裁判目录里，只有人能清；且**排除生效时 ruff 静默退 0**（输出只有一行 `warning: No Python files found under the given path(s)` 加 `All checks passed!`），别把它读成「检查过且全过」。出处 plan `2026-08-23-0859-2`。
 
 ## Optional Layers Currently In Use
 

@@ -1563,3 +1563,66 @@ grep -rn "expected-red-ratchet\|只能变短" AGENTS.md docs/context/ docs/archi
 「`git diff -U0` 中属于那两个 `xfail` 函数的 hunk」这句话若对着 `6001ea0..HEAD` 读是**空的** ——
 测试文件在该区间内是**新增**的，按构造零删除行。它真正咬得住的区间是 **`0eff5eb..1d0ce60`**
 （Phase 1 提交 → Phase 2 提交），审计在那个区间上实跑并确认成立。
+
+## 14.10 `tests/gates/**` 对 ruff 的排除在所有调用形态下成立（`force-exclude = true`，plan `2026-08-23-0859-2` 交付）
+
+> 本节与 §14.1 / §14.5 / §14.6 / §14.7 / §14.8 / §14.9 同规矩：**只记落点，不改写 §14 本体（`:131`–`:177`）任何一行**，
+> 也不改写 §14.1–§14.9 任何一行。开工时实读确认 §14.10 未被占用（此前最大编号为 §14.9）。
+
+### 为什么摆这一节
+
+`pyproject.toml` 的 `[tool.ruff]` 原注释逐字说「把它排除在 lint 作用域外，免得 lint 逼着去改裁判」，
+而这句话**在字面上不成立**：`exclude` 只在**目录遍历**时生效。2026-08-23 在 `03ffaec` 上实测：
+
+| 调用形态 | 落地前 | 落地后 |
+|---|---|---|
+| `python3 -m ruff check .` | `tests/gates` 命中 **0**（遍历时 `exclude` 生效） | 同（9 条，全在 `tools/`） |
+| `python3 -m ruff check tests/gates` | **exit 1，2 条** | **exit 0** |
+| `python3 -m ruff check tests/gates/conftest.py` | **exit 1，1 条** | **exit 0** |
+| `python3 -m ruff check "$PWD/tests/gates"` | **exit 1，2 条** | **exit 0** |
+
+落地前那 2 条逐字是
+`tests/gates/conftest.py:29:8: F401 [*] \`time\` imported but unused` 与
+`tests/gates/test_customization_roundtrip_delete.py:39:39: E741 Ambiguous variable name: \`l\``。
+**它们此刻仍在**（红线 1 内，loop 一个字节都不许改）。既有 `lint` job（`.github/workflows/gates.yml:426`）
+的判据 step 是显式列目录的 `ruff check agenerp tests/unit tests/contracts`；
+下一个把 `.` 或 `tests/gates` 写进那一行的人，会当场拿到两条**只有改裁判才能变绿**的告警。
+
+### D1 —— 怎么让 `tests/gates` 在所有调用形态下都被挡住
+
+- **(i) 靠纪律**（约定「谁都别把 `tests/gates` 传给 ruff」）：**否决**。靠人记性，
+  而本仓已有一条同类失效被记过（判定器给出两个读数，`STATE.md:86`）。
+- **(ii) `[tool.ruff]` 加 `force-exclude = true`：取此。** 上表实测四种形态全部 exit 0；
+  对既有作用域**零副作用**（隔离 A/B，见下）。方向是**变严**（挡住的比现在多），不是变松。
+- (iii) 把 `tests/gates` 从 `exclude` 改成 per-file-ignores：那是「扫了但不报」，
+  仍会让 ruff 读裁判文件并可能因语法演进而失败。**否决。**
+
+### 两条残余风险（登记而不消除，不粉饰）
+
+1. **`force-exclude` 挡的是 ruff，不是「不可能」。** 任何**别的**静态检查器、编辑器插件、
+   或有人手工 `--config` 覆盖它，都不受此约束。它把「靠纪律」换成了「靠一行配置」而已。
+2. **它把一次显式请求变成了一次静默的绿。** 落地后 `ruff check tests/gates` 退 **0**，
+   输出只有 `warning: No Python files found under the given path(s)` 加 `All checks passed!` ——
+   **「我检查了，全过」和「我根本没看」在退出码上长得一模一样**，这正是本仓反复点名的那类假绿。
+   处置只有两条，都已落地：① `pyproject.toml` 改准后的注释**明写**「路径被排除时 ruff 静默退 0」，
+   `docs/context/project-context.md:69-70` 同步写明；② 那行 `warning:` 是唯一的肉眼线索，
+   **不得**再被任何调用方用 `2>/dev/null` 吞掉。
+
+### 验证范围 —— 本机，零 CI，且 CI 上没有证伪面
+
+- **隔离 A/B 是干净的**：本 plan 除 `force-exclude` 一行与两处注释外**没有别的代码改动**，
+  所以加/去该行前后各跑一遍即可对照。三条全部 `diff` 无输出：
+  `ruff check .`（**9 → 9**，逐字节相同）· `ruff check agenerp tests/unit tests/contracts`（**exit 0 → exit 0**）·
+  `ruff check tools`（**9 → 9**）。
+- **本机变异一次**：去掉 `force-exclude = true` → `ruff check tests/gates` **exit 1**，
+  逐字点名上面那 2 条；复原 → **exit 0**。**红 / 绿两端都实跑过**。
+- ⚠️ **`force-exclude` 在 CI 上没有证伪面，照实记，不假装有**：交付形态里**没有任何 job**
+  会把 `tests/gates` 传给 ruff，所以「它是否还在生效」在 CI 上**不可证伪**——它是一个**潜伏的守卫**。
+  上面那次本机变异**只在关闭当次做过一次，此后不再复核**。
+  造 CI 级证伪面要新增一个故意扫裁判目录的 job，那是本 plan 初稿被独立评审否决的那条路。
+- ⚠️ **同一处漂移的第三个活实例仍在 `.github/workflows/gates.yml:437-439`**，本 plan 不改
+  （红线 2 的 `blocked` 面，且本 plan 的整个形态建立在零 CI 消耗上）。
+  **`force-exclude` 落地后它从「不准确」变成「准确但不完整」**（排除确实生效了，只是它不知道靠的是
+  `force-exclude`）——**方向是弱化不是加剧**，这是它可以挂着的理由，**不是**「它本来就没问题」。
+- ⚠️ **这是「挡住」不是「修好」**：`tests/gates/**` 那 2 条告警一条没修，只是 lint 扫不到了。
+  修它是**人的动作**（一次带 `Gates-Change-Approved-By:` 的清理）。
