@@ -1,6 +1,6 @@
 # 2026-08-23-0859-1 停机闸自己没有判据 —— 给 `check_budget.py` / `pass_usage.py` 补判据，并修「崩溃冒充超预算」
 
-> Plan Status: active
+> Plan Status: completed
 > Mission: p0-foundation
 > Work Item: 工作项 9 · L2 门禁的判定与 CI 覆盖（**判据设施**那一半 —— 本 plan 不改工作项 9 的 `done` 判据，也不改任何工作项的状态值）
 > Last Reviewed: 2026-08-23
@@ -545,19 +545,19 @@ Exit Criteria:
 
 ## Closure Gates
 
-- [ ] in-scope behavior is complete
-- [ ] relevant docs are aligned（`system-baseline.md` **§14.9** 新增 · `project-context.md` `:53` / `:57`
+- [x] in-scope behavior is complete
+- [x] relevant docs are aligned（`system-baseline.md` **§14.9** 新增 · `project-context.md` `:53` / `:57`
       两处计数就地改准 · `docs/masterplan/STATE.md` 追加一行证据）
-- [ ] verification has run：`python3 tools/gates/check_expected_red.py && python3 -m pytest tests/unit -q` ·
+- [x] verification has run：`python3 tools/gates/check_expected_red.py && python3 -m pytest tests/unit -q` ·
       `python3 -m pytest tests/contracts -q` · `python3 -m ruff check agenerp tests/unit tests/contracts` ·
       `bash -n tools/loop-supervisor.sh` · 四次变异的八个退出码
-- [ ] scoped verification is not conflated with full verification —— ⚠️ **本 plan 的验证范围限于本机**；
+- [x] scoped verification is not conflated with full verification —— ⚠️ **本 plan 的验证范围限于本机**；
       CI 侧由既有 `unit-and-contracts` job 在合并后自然复跑，**本 plan 不烧 CI 轮次、也不宣称 CI 已验证**
-- [ ] no in-scope item downgraded to deferred/follow-up
-- [ ] independent draft review completed and recorded
-- [ ] text consistency verified: status, phases, gates, and log all agree
-- [ ] closure audit was independent
-- [ ] closure evidence exists in files
+- [x] no in-scope item downgraded to deferred/follow-up
+- [x] independent draft review completed and recorded
+- [x] text consistency verified: status, phases, gates, and log all agree
+- [x] closure audit was independent
+- [x] closure evidence exists in files
 
 ## Deferred But Adjudicated
 
@@ -670,13 +670,50 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: <待关闭时填写>
+Status Note: 三个 Phase 全部执行完毕，独立关闭审计判 **`closure-approved`，零阻断项**。
+交付面：`tools/gates/check_budget.py` / `pass_usage.py` 由本仓仅有的两个 **0% 覆盖**变成各有行为判据
+（`tests/unit` **293 → 320 passed**）；一条**确认的活缺陷**已修（不带时区的 `at` 让停机闸崩成 exit 1，
+被监督器逐字翻译成「超预算」）；修法是**新增退出码 `3`**（判定器自身失败）+ 监督器 `3)` 分支落停机记录，
+**不是**把崩溃改成放行 —— `0` / `1` / `2` 三者的走向、闸序、闸数一个字未改。
+⚠️ **验证范围是本机，不是 CI**：本 plan 零 `.github/workflows/**` 改动，
+CI 侧由既有 `unit-and-contracts` job 在合并后自然复跑，**本 plan 不烧 CI 轮次、也不宣称 CI 已验证**。
+⚠️ **工作项 9 的状态值未改**（仍 `planned`）：它的 `done` 判据（用判定器对 `tests/gates` 全部 19 条
+live 判定并 `success`）与本 plan 互不重叠，roadmap 只**追加**一行现状（`numstat` → `1	0`）。
 
 Closure Audit Evidence:
 
-- Auditor / Agent: <独立子代理>
-- Evidence: <task id / 命令原文 + 退出码 + commit sha>
+- Auditor / Agent: **独立子代理**（fresh session，read-only + 实跑；agentId `aea5cb4ddc8c3fe85`），
+  2026-08-23，审计区间 `6001ea0..151c68b`
+- Verdict: **`closure-approved`**，**零阻断项**
+- Evidence（审计自己实跑，不是照抄本 plan 的表）：
+  - 红线七项 `git diff --numstat 6001ea0..HEAD -- <path>` **全部为空**
+    （`tests/gates` · `.github/workflows` · `missions` · `DECISIONS.md` · `expected-red.txt` ·
+    `check_expected_red.py` · `gate-verify.mjs`）；`STATE.md` → `10	0`，**删除列 0**；
+    证据仓 `XM_PATH` 实读 `git status --porcelain` **空**、`HEAD` = 冻结的 `1c622c8…`、
+    `find . -newermt "2026-08-23 00:00"` **无命中**
+  - `python3 -m pytest tests/unit -q` → **exit 0**，`320 passed`，**`xfailed` 归 0**
+  - `python3 -m pytest tests/contracts -q` → **exit 0**，`151 passed`
+  - `python3 tools/gates/check_expected_red.py` → **exit 0**，与 Baseline 12 三行 `diff` **无输出**
+  - `python3 tools/gates/check_expected_red.py && python3 -m pytest tests/unit -q` → **exit 0**
+  - `python3 -m ruff check agenerp tests/unit tests/contracts` → **exit 0**
+  - `bash -n tools/loop-supervisor.sh` → **exit 0**；`numstat` 首两列 **`2` `1`**
+  - `grep -n "exclude-session" tools/gates/check_budget.py` → **零命中**；`--help` 三码语义齐备
+  - **四次变异由审计自己重跑**，四次各 **exit 1 且只点名一条**、复原后各 **exit 0 / `320 passed`**，
+    **无一条「绿→绿」**；且实测确认变异 ① 之下红判据 **A 仍然绿、只有 B 火** —— 与 Phase 1 的预测一致
+  - **活缺陷已消除是实测的**：同一输入（不带时区的 `at`）在 `6001ea0` 上 **exit 1**，在 `151c68b` 上
+    **exit 0 且 stderr 有归一告警**；坏环境变量 **exit 3**；非仓根 cwd 下读到文件的 10 亿而非内置 2 亿
+  - 收尾 `git status --porcelain` → **空**；`HEAD` = `151c68bf3b1baeddb7165f0ebe5a6fe677291faa`
+- ⚠️ **审计方式的限定照实记**：本次是**子代理独立冷复跑**，**不是人复核**。
+  按 `AGENTS.md` 的 Reviewer-Availability Fallback，本 plan 的改动面全部落在 Protected Areas 之外
+  （已由审计独立复核 `ai-autonomy-policy.md:79`–`:90` 与 `gates.yml:293` 的 pathspec），故该方式成立。
 
 Follow-up:
 
-- <仅非阻塞项；确认的活缺陷不得出现在这里>
+- **（非阻断，已就地登记进 `system-baseline.md` §14.9，不是推迟的工作项）** `argparse` 的用法错误退 `2`，
+  而闸 2 把 `2` 当放行 —— `parse_args()` 坐在 `try` 之外。审计实测确认它是**既有行为**
+  （同一探针在 `6001ea0` 上也是 exit 2）且**从监督器不可达**（闸 2 不带参数调它）。
+- **（非阻断，同上）** `usage_since` 的 `except (ValueError, KeyError): continue` 仍静默丢弃畸形行，
+  即**少算用量**、向放行倾斜；既有意图、已被断言钉住，与 D1b 那条「负时区被少算」同向，已补进残余清单。
+- **（非阻断，措辞纠正，已写进 §14.9）** 本 plan D0 那条机械判据若对着 `6001ea0..HEAD` 读是**空的**
+  （测试文件在该区间内是新增的，按构造零删除行）；它真正咬得住的区间是 **`0eff5eb..1d0ce60`**，
+  审计已在那个区间上实跑确认成立。
