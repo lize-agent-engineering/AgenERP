@@ -17,10 +17,13 @@
 #    分清两件事就解开了：**测试代码是裁判，名单只是「哪些裁判现在预期是红的」的账本。**
 #    裁判仍受红线保护（一个字都不许改）；账本允许 loop 在同一提交里划掉已转绿的行，
 #    棘轮 job 保证它只能变短。账本变长仍需 Gates-Change-Approved-By: 人工批准。
-tests/gates/test_customization_roundtrip_delete.py::test_added_field_exports_into_pack
-tests/gates/test_customization_roundtrip_delete.py::test_export_produces_readable_diff_only
-tests/gates/test_customization_roundtrip_delete.py::test_no_orphan_column_left_behind
-tests/gates/test_customization_roundtrip_delete.py::test_removing_from_pack_actually_deletes_on_site
-tests/gates/test_snapshot_diff_structured.py::test_field_addition_shows_up_as_structured_change
-tests/gates/test_zero_dep_boot.py::test_homepage_states_ai_disabled_instead_of_crashing
-tests/gates/test_zero_dep_boot.py::test_stack_boots_and_all_services_healthy
+#
+# ── 2026-08-23：名单已清空到 0 条 ────────────────────────────────
+# 这是工作项 9 的终止判据之一。清空的依据不是「放松」，是**各归各位**：
+#   · L1（快门禁）由 default 模式判，11 条全绿；
+#   · L2（live 门禁）由 CI 的三个 live job 判，每次 push 到 main 都真跑，8 条全绿。
+# 此前那 7 条挂在名单上，红的理由是「本轮没打算跑 L2」——那种红不含任何信息，
+# 还占着名单，使「名单长度」失去了衡量真活的意义。
+#
+# 名单为空 = 没有任何一条门禁是「预期红」的。往里加条目仍需
+# Gates-Change-Approved-By 人工批准（棘轮 job 服务端复核）。

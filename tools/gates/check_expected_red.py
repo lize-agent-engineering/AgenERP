@@ -181,7 +181,22 @@ def main() -> int:
         print("判定模式：default —— 按 tools/gates/expected-red.txt 判定")
 
     expected_red: set[str] = set() if live else load_allowlist()
-    outcomes = classify(run_pytest(sys.argv[1:]))
+
+    # default 模式**不判 live 门禁**（2026-08-23 收口，人裁定）。
+    #
+    # 此前 default 也去跑 `-m live` 那批，它们必然红在「本轮没打算跑 L2」，
+    # 于是只能靠预期红名单把它们兜住 —— 名单因此永远清不空，而清空名单正是
+    # 工作项 9 的终止判据之一。更要紧的是：**那种红不含任何信息**，
+    # 名单被它们占着，就没法再用「名单长度」衡量还剩多少真活。
+    #
+    # 转交是安全的，不是把验证丢掉：`.github/workflows/gates.yml` 的三个 live job
+    # 无 `if` 条件、每次 push 到 main 都跑，L2 的验证责任完整落在那里。
+    # 判据没变松，只是各归各位 —— 快门禁判 L1，CI 的 live job 判 L2。
+    extra = list(sys.argv[1:])
+    if not live and not any(a == "-m" or a.startswith("-m") for a in extra):
+        extra = ["-m", "not live", *extra]
+
+    outcomes = classify(run_pytest(extra))
     code, lines = verdict(outcomes, expected_red, live)
     for line in lines:
         print(line)
