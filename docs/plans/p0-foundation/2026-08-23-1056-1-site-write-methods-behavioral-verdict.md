@@ -121,29 +121,29 @@ Exit Criteria:
 
 ### Phase 2 — 传输失败翻译与基址解析的行为判据（H / I / O）
 
-Status: planned
+Status: completed
 Targets: `tests/unit/test_site_client.py`
 Skill: `none`
 
 - Item Types: `Decision | Add | Proof`
 - Prereqs: Phase 1（同一文件，避免两段并行改同一处 import 块）
 
-- [ ] **Decision**：`UrllibTransport` 的 HTTP 错误路径怎么造假件。候选与取舍必须写进本项或紧邻注释：
+- [x] **Decision**：`UrllibTransport` 的 HTTP 错误路径怎么造假件。候选与取舍必须写进本项或紧邻注释：
       (a) 替换实例的 `_opener`（私有属性，测试与实现耦合）；
       (b) `monkeypatch` `agenerp.site.urllib.request.build_opener`（构造期注入，不碰私有名）；
       (c) 起本地 `http.server` 回 4xx（**已被该文件模块 docstring 逐字排除**：端口冲突是实测事实）。
       残余风险照实写。**(c) 不选的理由是既有裁定，不重开。**
-- [ ] `UrllibTransport` 收到 `HTTPError(404)` 时返回 `SiteResponse(404, <body>)` —— **状态码不得被改写成 2xx**，且 body 逐字透传。**变异 H 必须被点名。**
-- [ ] `default_base_url()` 在 `AGENERP_SITE_URL=http://example.test:9/` 下返回 `http://example.test:9`（**末尾 `/` 被剥掉**）。**变异 I 必须被点名。**
-- [ ] `default_base_url()` 在只设 `AGENERP_HTTP_PORT=19999` 时返回 `http://127.0.0.1:19999`；两个变量都不设时返回默认端口那条。**变异 O 必须被点名。**
-- [ ] Proof：三条变异逐一施加，**逐条走 Phase 1 Proof 那四步（施加后 `numstat` 非空 → 跑并记退出码与 `FAILED …::<用例名>` 原文 → `git checkout` → `git diff --stat` 无输出）**；三条跑完后整体回到 exit 0。
+- [x] `UrllibTransport` 收到 `HTTPError(404)` 时返回 `SiteResponse(404, <body>)` —— **状态码不得被改写成 2xx**，且 body 逐字透传。**变异 H 必须被点名。**
+- [x] `default_base_url()` 在 `AGENERP_SITE_URL=http://example.test:9/` 下返回 `http://example.test:9`（**末尾 `/` 被剥掉**）。**变异 I 必须被点名。**
+- [x] `default_base_url()` 在只设 `AGENERP_HTTP_PORT=19999` 时返回 `http://127.0.0.1:19999`；两个变量都不设时返回默认端口那条。**变异 O 必须被点名。**
+- [x] Proof：三条变异逐一施加，**逐条走 Phase 1 Proof 那四步（施加后 `numstat` 非空 → 跑并记退出码与 `FAILED …::<用例名>` 原文 → `git checkout` → `git diff --stat` 无输出）**；三条跑完后整体回到 exit 0。
 
 Exit Criteria:
 
-- [ ] H / I / O 三条变异各自至少让一条新断言红并被逐字点名
-- [ ] Decision 的候选、选择、残余风险已写进文件
-- [ ] `agenerp/site.py` 仍是一行未改
-- [ ] `docs/logs/2026/08-23.md` 已更新
+- [x] H / I / O 三条变异各自至少让一条新断言红并被逐字点名
+- [x] Decision 的候选、选择、残余风险已写进文件
+- [x] `agenerp/site.py` 仍是一行未改
+- [x] `docs/logs/2026/08-23.md` 已更新
 
 ### Phase 3 — owner-doc 对齐与登记
 

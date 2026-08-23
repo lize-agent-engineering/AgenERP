@@ -10,3 +10,4 @@ _smoke/
 .loopx/
 .codex/
 .backups-*/
+.coverage

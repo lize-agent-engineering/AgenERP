@@ -9,8 +9,11 @@
 不留下监听。
 """
 
+import email.message
+import io
 import json
 import socket
+import urllib.error
 
 import pytest
 
@@ -21,13 +24,17 @@ from agenerp.site import (
     API_KEY_ENV,
     API_SECRET_ENV,
     CUSTOM_FIELD_DOCTYPE,
+    HTTP_PORT_ENV,
     SITE_ENV,
+    SITE_URL_ENV,
     SiteClient,
     SiteError,
+    SiteRequest,
     SiteResponse,
     UrllibTransport,
     client_from_env,
     custom_field_name,
+    default_base_url,
     encode_path,
 )
 
@@ -553,3 +560,79 @@ def test_empty_site_name_raises_and_names_the_env_var():
         SiteClient("", base_url="http://s", api_key="k", api_secret="s")
 
     assert SITE_ENV in str(excinfo.value), str(excinfo.value)
+
+
+# ---------------------------------------------------------------------------
+# 传输失败翻译与基址解析的行为判据（plan `2026-08-23-1056-1` Phase 2）
+#
+# **Decision —— `UrllibTransport` 的 HTTP 错误路径怎么造假件。** 三个候选：
+#   (a) 直接替换实例的 `_opener`：最省事，但把测试钉在一个私有属性上，
+#       实现哪天换成别的持有方式，这条判据会以「AttributeError」而不是「行为变了」的形态坏掉；
+#   (b) `monkeypatch` `urllib.request.build_opener`：**选它**。注入发生在**构造期**，
+#       走的是 `UrllibTransport.__init__` 真正调用的那个入口，不碰任何私有名；
+#   (c) 起本地 `http.server` 回 4xx：**已被本文件模块 docstring 逐字排除**（本机 8080 端口冲突
+#       是实测事实，`GATE_VERIFY` 与 `gates-l1` 里再绑端口是自找的不稳定源）。**该裁定不重开。**
+#
+# 残余风险照实记：(b) 打的是 `urllib.request` 这个**全局模块属性**，patch 生效期间同进程内
+# 任何人调 `build_opener` 都会拿到假件。`monkeypatch` 在用例结束时还原，且本仓的 `pytest`
+# 是单进程顺序跑，所以此刻不会串台；将来若引入 `pytest-xdist` 之类的并行跑法，这条要重看。
+# 另一条：假 opener 只回 `HTTPError`，**证明不了**真 opener 在真 4xx 上会抛 `HTTPError`——
+# 那一半由 `test_unreachable_site_raises_site_error` 之外的 L2 活站点门禁承担，本文件不冒领。
+# ---------------------------------------------------------------------------
+
+
+class _HttpErrorOpener:
+    """一个只会抛 `HTTPError` 的假 opener —— 站点回 4xx/5xx 时 urllib 走的正是这条路。"""
+
+    def __init__(self, status: int, body: str) -> None:
+        self._status = status
+        self._body = body
+
+    def open(self, req, timeout=None):
+        raise urllib.error.HTTPError(
+            req.full_url, self._status, "Site said no", email.message.Message(),
+            io.BytesIO(self._body.encode("utf-8")),
+        )
+
+
+def test_urllib_transport_hands_an_http_error_status_through_unrewritten(monkeypatch):
+    """4xx/5xx 必须原样变成 `SiteResponse(<那个码>, <那段 body>)`。
+
+    改写成 2xx 的话，`_request` 的 `200 <= status < 300` 会把站点的每一次拒绝读成成功——
+    模块头第 1 条「不伪装成功」在**传输层**就被架空了，上面所有非 2xx 判据一起变成空转。
+    """
+    body = '{"exc_type":"DoesNotExistError"}'
+    monkeypatch.setattr(
+        site_mod.urllib.request, "build_opener", lambda *a, **k: _HttpErrorOpener(404, body)
+    )
+
+    response = UrllibTransport(timeout=1)(
+        SiteRequest(method="DELETE", url="http://site.invalid/api/resource/X")
+    )
+
+    assert response.status == 404, response
+    assert response.body == body, response
+
+
+def test_default_base_url_prefers_the_explicit_site_url_and_strips_its_trailing_slash(
+    clean_env, monkeypatch
+):
+    """`AGENERP_SITE_URL` 优先。忽略它 = live 判定静默打到 `127.0.0.1` 那个错基址上。
+
+    末尾 `/` 必须剥掉：`_request` 拼的是 `base_url + encode_path(path)`，留着会拼出 `//api/...`。
+    """
+    monkeypatch.setenv(SITE_URL_ENV, "http://example.test:9/")
+
+    assert default_base_url() == "http://example.test:9"
+
+
+def test_default_base_url_falls_back_to_the_http_port_variable(clean_env, monkeypatch):
+    """没有显式基址时按 compose 的端口映射拼，且**端口要读环境变量**，不是恒取默认值。"""
+    monkeypatch.setenv(HTTP_PORT_ENV, "19999")
+
+    assert default_base_url() == "http://127.0.0.1:19999"
+
+
+def test_default_base_url_uses_the_compose_default_port_when_neither_variable_is_set(clean_env):
+    """两个变量都不设时才落到默认端口 —— 这条是上面那条的对照组，缺了它「恒取默认」看起来也对。"""
+    assert default_base_url() == f"http://127.0.0.1:{site_mod.DEFAULT_HTTP_PORT}"
