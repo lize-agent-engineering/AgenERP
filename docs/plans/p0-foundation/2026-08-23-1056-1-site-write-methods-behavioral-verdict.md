@@ -1,6 +1,9 @@
 # 2026-08-23-1056-1 `agenerp/site.py` 在默认判定面上零行为判据 —— 写方法可被改成 no-op、传输失败翻译与基址解析可被改坏，而 `GATE_VERIFY` 全绿
 
-> Plan Status: active
+> Plan Status: deferred
+> Deferred: 2026-08-23T04:51Z 由**人**裁定冻结。本 plan 属「判据设施加严」，而工作项 9 已于同日补上终止判据（CI live job 绿 + 预期红名单清空 + 两种模式 exit 0）。产品侧的活已实测完成（live 8 条全绿），当前唯一该做的是**收口**，不是继续加固。
+> Reopen: 工作项 9 按终止判据转 `done` 之后，若人仍认为需要这层加严，**作为新工作项重开并排优先级** —— 不得在工作项 9 名下继续追加。
+
 > Mission: p0-foundation
 > Work Item: 工作项 9 · 判据设施的加严（`agenerp/site.py` 侧）
 > Last Reviewed: 2026-08-23

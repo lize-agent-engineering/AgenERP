@@ -1,6 +1,9 @@
 # 2026-08-23-1056-2 `agenerp/oob.py` 的带外传输产品路径零判据 —— 起不来的 docker 可以被读成「站点很干净」
 
-> Plan Status: active
+> Plan Status: deferred
+> Deferred: 2026-08-23T04:51Z 由**人**裁定冻结。本 plan 属「判据设施加严」，而工作项 9 已于同日补上终止判据（CI live job 绿 + 预期红名单清空 + 两种模式 exit 0）。产品侧的活已实测完成（live 8 条全绿），当前唯一该做的是**收口**，不是继续加固。
+> Reopen: 工作项 9 按终止判据转 `done` 之后，若人仍认为需要这层加严，**作为新工作项重开并排优先级** —— 不得在工作项 9 名下继续追加。
+
 > Mission: p0-foundation
 > Work Item: 工作项 9 · 判据设施的加严（`agenerp/oob.py` 侧）
 > Last Reviewed: 2026-08-23
