@@ -1,6 +1,6 @@
 # 2026-08-23-0859-2 `[tool.ruff] exclude` 挡不住显式路径 —— 让「lint 不许逼着去改裁判」这句注释真的成立
 
-> Plan Status: active
+> Plan Status: completed
 > Mission: p0-foundation
 > Work Item: 工作项 9 · L2 门禁的判定与 CI 覆盖（**判据设施**那一半 —— 本 plan 不改工作项 9 的 `done` 判据，也不改任何工作项的状态值）
 > Last Reviewed: 2026-08-23
@@ -376,21 +376,21 @@ Exit Criteria:
 
 ## Closure Gates
 
-- [ ] in-scope behavior is complete
-- [ ] relevant docs are aligned（`system-baseline.md` 新 §14 小节 · **`project-context.md:69-70` 就地改准** ·
+- [x] in-scope behavior is complete
+- [x] relevant docs are aligned（`system-baseline.md` 新 §14 小节 · **`project-context.md:69-70` 就地改准** ·
       新建 backlog 条目 · `p0-foundation-roadmap.md` 追加行 · `STATE.md` 追加行）
-- [ ] verification has run：`ruff check tests/gates`（三种调用形态）· `ruff check .` ·
+- [x] verification has run：`ruff check tests/gates`（三种调用形态）· `ruff check .` ·
       `ruff check agenerp tests/unit tests/contracts` · `ruff check tools` · 一次本机变异 ·
       `python3 tools/gates/check_expected_red.py && python3 -m pytest tests/unit -q` · `pytest tests/contracts -q`
-- [ ] scoped verification is not conflated with full verification —— ⚠️ **本 plan 的验证范围逐字是「本机」**；
+- [x] scoped verification is not conflated with full verification —— ⚠️ **本 plan 的验证范围逐字是「本机」**；
       它**零 CI 消耗**，因此**不得**宣称任何 CI 侧结论。`force-exclude` 在 CI 上**没有**证伪面
       （交付的 job 从不把 `tests/gates` 传给 ruff），这一点已写进 §14.10，**不许略过不谈**
-- [ ] no in-scope item downgraded to deferred/follow-up —— ⚠️ 本 plan 有一次**记录在案的 scope 收窄**，
+- [x] no in-scope item downgraded to deferred/follow-up —— ⚠️ 本 plan 有一次**记录在案的 scope 收窄**，
       见 `## Scope Change Record`；移出的部分**全部落进 `docs/backlog/` 并带触发条件**，不是静默丢弃
-- [ ] independent draft review completed and recorded
-- [ ] text consistency verified: status, phases, gates, and log all agree
-- [ ] closure audit was independent
-- [ ] closure evidence exists in files
+- [x] independent draft review completed and recorded
+- [x] text consistency verified: status, phases, gates, and log all agree
+- [x] closure audit was independent
+- [x] closure evidence exists in files
 
 ## Deferred But Adjudicated
 
@@ -462,13 +462,16 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: **两个 Phase 全部交付并 ticked，`Plan Status` 仍是 `active`** ——
+Status Note: **两个 Phase 全部交付并 ticked，独立关闭审计已完成并判 `closure-approved`，
+`Plan Status` 于 2026-08-23 由 `active` 置 `completed`** ——
 按 `docs/plans/00-plan-authoring-and-execution-guide.md` Minimum Rule 13 与 Plan Status Flow
 （`completed` 逐字是「independent closure audit accepted closure」，且
 「do not mark it complete as a side effect of finishing the last implementation slice」），
 **置 `completed` 之前必须先有一次独立关闭审计**。前驱 plan `-1` 走的是同一路径
 （`151c68b` 交付完毕仍 `active` → `03ffaec` 审计判 `closure-approved` 后才 `completed`）。
-下面的 `Closure Audit Evidence` 由审计方填。
+本 plan 同路径：`aad08c4` / `02a382a` 交付完毕仍 `active` → 下面的 `Closure Audit Evidence`
+由**独立关闭审计方**填写并据此置 `completed`。**九条 Closure Gates 在审计复跑通过之后才 ticked，
+不是交付切片的副作用。**
 
 交付面与证据（供审计复跑，逐条已在本机实跑）：
 
@@ -494,9 +497,88 @@ Status Note: **两个 Phase 全部交付并 ticked，`Plan Status` 仍是 `activ
 
 Closure Audit Evidence:
 
-- Auditor / Agent: <独立子代理>
-- Evidence: <命令原文 + 退出码 + commit sha>
+- **Auditor / Agent**: 独立关闭审计子代理（fresh session，2026-08-23），**未参与本 plan 的起草与执行**。
+  审计基准 `main` `02a382a3cd52f69650c66784a45656e8c749030e`，审计开始与结束时
+  `git status --porcelain` **均为空**（工作树干净，全部结论对着已提交状态得出）。
+- **裁定**：`closure-approved`，**零阻断项**。九条 Closure Gates 逐条复跑核过，均 ticked。
+- **审计侧实跑（命令原文 + 退出码，非转述交付方的记录）**：
+  - `python3 -m ruff --version` → `ruff 0.14.1`（**与 CI 钉的版本一致**，本机结论可用）。
+  - `python3 -m ruff check tests/gates` → **exit 0** ·
+    `python3 -m ruff check tests/gates/conftest.py` → **exit 0** ·
+    `python3 -m ruff check "$PWD/tests/gates"` → **exit 0** ·
+    `python3 -m ruff check ./tests/gates` → **exit 0**。
+    四种形态输出**逐字相同**：`warning: No Python files found under the given path(s)` / `All checks passed!`。
+  - `python3 -m ruff check .` → `Found 9 errors.`（**9 条全在 `tools/`**，`tests/gates` 命中 **0**）·
+    `python3 -m ruff check agenerp tests/unit tests/contracts` → **exit 0**，`All checks passed!` ·
+    `python3 -m ruff check tools` → **exit 1，9 条**，与 Baseline 9 的点名集合逐字一致
+    （`check_budget.py:142,143` `F541` · `pass_usage.py:14` `E401` ·
+    `rotate-state.py:53,54,65,96,103,105` `E741`）。**A/B 的两端计数在审计侧独立复现。**
+  - **审计侧独立重做了一次变异**（不是采信交付方的记录）：把 `pyproject.toml` 的
+    `force-exclude = true` 那一行删掉 → `python3 -m ruff check tests/gates` **exit 1，2 条**，逐字
+    `tests/gates/conftest.py:29:8: F401 [*] \`time\` imported but unused` 与
+    `tests/gates/test_customization_roundtrip_delete.py:39:39: E741 Ambiguous variable name: \`l\``；
+    **原样复原后** `git diff --stat -- pyproject.toml` **无输出**，`ruff check tests/gates` 回 **exit 0**。
+    **红 / 绿两端都在审计侧实跑过，守卫有牙齿。**
+  - `python3 tools/gates/check_expected_red.py` → **exit 0**，三行逐字
+    `判定模式：default —— 按 tools/gates/expected-red.txt 判定` /
+    `门禁 19 项：预期红 7，绿 12，跳过 0` / `✅ 与预期红名单完全一致`
+    —— 与 Baseline 8 **逐字节相同**。
+  - `python3 tools/gates/check_expected_red.py && python3 -m pytest tests/unit -q`
+    （`missions/p0-foundation.json` 的 `commands.test` 原文）→ **exit 0**，`320 passed in 0.65s`。
+  - `python3 -m pytest tests/contracts -q` → **exit 0**，`151 passed in 0.06s`。
+- **交付面实读核对（不是看 `[x]`，是看仓）**：
+  - `pyproject.toml:24-35` 实读：`exclude = ["tests/gates"]` **与** `force-exclude = true` 并存；
+    注释已写明「`force-exclude` 不冗余，别顺手删」的理由**与**「路径被排除时 ruff 静默退 0 ……
+    那行 warning 是唯一肉眼线索，不得被 `2>/dev/null` 吞掉」（D1 残余风险二的处置①，**逐字落地**）；
+    第二句「门禁判定器是 `tools/gates/check_expected_red.py`，与 ruff 无关」**一个字未动**。
+  - `grep -c "排除在 lint 作用域外" pyproject.toml docs/context/project-context.md` → **两者均为 `0`**
+    ——那句不成立的话在两处 owner doc 上**都已不再出现**（Rule 14 非降级交付面**实证成立**）。
+  - `git show --numstat ca75ddc` → `docs/context/project-context.md` 逐字 **`2	2`**（只动 `:69-70` 两行，
+    该文件其余一行未动）· `pyproject.toml` **`6	1`** · `system-baseline.md` **`63	0`**（纯追加）·
+    `docs/logs/2026/08-23.md` **`29	0`**。
+  - `docs/architecture/system-baseline.md` **§14.10 实读存在**（`:1567` 起，编号未与 §14.9 冲突），
+    D1 三个候选与取舍、**两条残余风险**（挡不住 ruff 以外的东西 · 显式请求被静默判绿）、
+    以及「`force-exclude` 在 CI 上没有证伪面，本机变异只在关闭当次做过一次」**逐条在内，未被粉饰**。
+  - `docs/backlog/tools-dir-has-no-static-check-coverage.md` 实读：四件必含事项**逐条可核**
+    （① 6 个 `.py` / 9 条告警 / `tools/mission-driver/**` 零 `.py`；② `0228-1` M2 裁定原文 + 「本 plan 不重开它」；
+    ③ 反向证据在「可选处置」**之前**：`rotate-state.py` 零调用方且独占 9 条里的 6 条、`homepage_notice.py`
+    只被 `docker-compose.yml:174` 用且此刻零告警、`explain_last_gate_failures.py` 已被单测导入；
+    ④ 代价：判定器纳入 lint = 长期人质于将来的 ruff 版本 · job 数 14 → 15），
+    **三条触发条件写死**（人推翻 M2 时 · `tools/**` 被改坏而当轮绿、无人值守时才炸时 · 人裁定引入 shellcheck / 扩面时），
+    **零 Anti-Slacking 禁用词**。
+- **红线机械自查（审计侧独立复跑，pathspec 与作用域按 N3 的收窄读）**：
+  - `git diff --stat ca75ddc~1 ca75ddc -- tests/gates .github/workflows tools missions docs/masterplan`
+    → **无输出**（Phase 1 那一个提交，判据字面成立）。
+  - `git diff --stat ca75ddc~1 HEAD -- tests/gates .github/workflows tools missions docs/masterplan/DECISIONS.md`
+    → **无输出**（**全 plan 范围**：红线 1 / 2 / 3 与 `missions/**` `tools/**` 零字节改动）。
+  - `git diff --numstat ca75ddc~1 HEAD -- docs/masterplan/STATE.md` → 逐字 **`12	0`**
+    （**删除列为 `0`** —— 红线 5 的「只追加」字面成立）。
+  - `git show --numstat aad08c4` → `p0-foundation-roadmap.md` **`1	0`** ·
+    `tools-dir-has-no-static-check-coverage.md` **`102	0`** · `docs/logs/2026/08-23.md` **`25	0`** ·
+    `docs/masterplan/STATE.md` **`12	0`** —— **四处写入删除列全为 `0`，纯追加成立**。
+  - 证据仓（红线 6）零触及：两个提交合计只动 9 个仓内文件，`XM_PATH` 不在其中。
+- **Anti-Hollow**：本 plan 的交付面是**一行生效配置**而非新代码，因此「有没有被调用」这个问题的等价形式是
+  「这行配置是否真的改变了 ruff 的行为」。审计侧的**双向变异**（去掉 → exit 1 且点名 2 条；复原 → exit 0）
+  已经正面回答：**它不是空配置，删掉它当场变红。** 零空函数体、零 `return null` 占位、零被吞异常。
+- **Deferred 诚实性核对（Rule 14）**：`## Deferred But Adjudicated` 六条逐条读过，
+  **无一条是被降级的在 scope 活缺陷**：`tests/gates/**` 那 2 条告警是**红线 1 内、只有人能动**（不是本方可修而不修）；
+  `gates.yml:437-439` 是**红线 2 的 `blocked` 面**，且 `force-exclude` 落地后它由「不准确」变为
+  「准确但不完整」（**方向是弱化**，plan 自己写明了这是它可以挂着的理由、**不是**「本来就没问题」）；
+  `tools/**` 扩面是被 `0228-1` M2 既有裁定挡住的**别人的裁定**，已带三条触发条件落进 backlog。
+  **六条全部带重开事件，措辞未粉饰。**
+- **五点一致性**：`Plan Status: completed` · Phase 1 `Status: completed`（执行项 8/8 `[x]`、Exit Criteria 9/9 `[x]`）·
+  Phase 2 `Status: completed`（执行项 4/4 `[x]`、Exit Criteria 5/5 `[x]`）· Closure Gates 9/9 `[x]` ·
+  `docs/logs/2026/08-23.md` 两条（Phase 1 `:28` / Phase 2 `:3`）· `STATE.md` 追加行 —— **互相自洽，无一处相左**。
+  `grep -B5 "\- \[ \]" <plan> | grep "Status: completed"`（Rule 12 的机械判据）→ **无输出**。
+- ⚠️ **审计接受并原样转述交付方的验证范围声明，不替它扩大**：本 plan **零 `.github/workflows/**` 改动、
+  零 CI 轮次消耗**，**审计同样没有跑任何 CI**。`force-exclude` 在 CI 上**没有证伪面**
+  （交付形态里没有任何 job 会把 `tests/gates` 传给 ruff），它是一个**潜伏的守卫**；
+  上面那次变异**只在本机、只在关闭当次做过**，**此后不再复核**。**这是 scoped verification，不得读成 full green。**
 
 Follow-up:
 
-- <仅非阻塞项；确认的活缺陷不得出现在这里>
+- **无阻塞项。** 全部残余已在 `## Deferred But Adjudicated` 六条内带重开事件登记，
+  并另有 `docs/backlog/tools-dir-has-no-static-check-coverage.md` 一条带三条触发条件的人动作项。
+  ⚠️ 其中两条是**人的动作**、审计无权代办：① 清理 `tests/gates/**` 那 2 条 ruff 告警
+  （需 `Gates-Change-Approved-By:` trailer）；② 改准 `.github/workflows/gates.yml:437-439` 的同因注释
+  （红线 2，可与将来任何一次动 `gates.yml` 的 plan 搭车）。
