@@ -1089,3 +1089,330 @@ with `python-version: "3.11"`。**两个 job 都不带任何 `if:`**（`gates.ym
   （表现为「本机绿 CI 红」或反之）；本次**不消除**这条不一致。
   且**升 ruff 必须再动一次 `.github/workflows/**`**，届时要再摆一遍 D1。
 - **授权面欠着一次人的追认**（见本节第二段）。本次落地不因为跑绿而变成「已获授权」。
+
+## 14.8 账本棘轮补上「集合判据」（`expected-red-superset` job，plan `2026-08-23-0337-2` 交付）
+
+> 本节与 §14.1 / §14.5 / §14.6 / §14.7 同规矩：**只记落点，不改写 §14 本体（`:131`–`:177`）任何一行**，
+> 也不改写 §14.1–§14.7 任何一行。
+> ⚠️ §14.7 由前驱 plan `2026-08-23-0337-1` 建立并已落地，本节按序取 §14.8，**不占用别人的编号**。
+
+### 事实：契约说「只能变短」，实现判的是「行数不得变大」
+
+四处契约陈述逐字都说**只能变短**：`AGENTS.md:10` 红线 1 的「边界」句 ·
+`tools/gates/expected-red.txt:8-10` 的表头 · `docs/context/ai-autonomy-policy.md:80`
+（Protected Areas 第 2 行，`allowed（只能变短）`）· `docs/backlog/p0-foundation-roadmap.md`「本 mission 的规则」第 3 条。
+
+而 `.github/workflows/gates.yml` 的 `expected-red-ratchet` job 判的是另一个命题，承重三行逐字：
+
+```sh
+count() { grep -vE '^\s*(#|$)' | wc -l | tr -d ' '; }
+BEFORE=$(git show "$BASE:$FILE" | count)
+if [ "$NOW" -le "$BEFORE" ]; then
+```
+
+**两侧都被 `wc -l` 折成一个整数，行的内容从来没有被比较过。**
+因此**「删一行 + 加一行」对棘轮完全隐形**：`NOW == BEFORE` → `-le` 成立 → 打 `✅ 名单没有变长` → `exit 0`，
+后面那条 `Gates-Change-Approved-By:` 检查**根本走不到**。
+
+**这条隐形路径与本仓最常见的合法动作重合**：roadmap 规则 3 逐字要求「关闭工作项的同一个提交里
+必须把对应测试从名单划掉」——「X 已转绿且正在被划掉」正是每次关闭工作项时都会发生的事，
+一个真失败可以搭着这次合法划短一起混过棘轮。
+
+**两条限定不许省**：
+
+- 这是**从代码语义推出的失败场景，不是已发生的事故**。plan 的 Phase 1 Proof A 对该文件的
+  **全部 4 个历史提交 / 3 个提交对**做了归一化条目集合比对，**新增条目一律为空** ——
+  本仓至今**没有出现过一次**「增行」或「等长交换」。**本节记的是预防性加严，不是一次事故的修复。**
+- 「两个 job 同时绿」的完整场景在当前仓库状态下**按构造不可达**（名单内 7 条全红、名单外 12 条全绿），
+  它只有**本机纯函数级证据**（`verdict()` 退 0），**没有 CI 级证据**。两者强度不同，此处不含糊。
+
+### 授权面：动 `.github/workflows/**` 这一次凭什么（**第六次**重新摆上台面）
+
+`docs/context/ai-autonomy-policy.md:81` 给 `.github/workflows/**` 定的是 `blocked`，与 `AGENTS.md:11`
+红线 2「只禁**变松**」措辞不一致；该不一致由 `0027-2` 登记，`1206-1` / `1206-2` / `2325-2` / `0120-1` / `0337-1`
+各自重述，**至今未由人裁定**。本 plan 与前驱 `0337-1` 是**同一批、同一形态、同一次授权论证**，
+因此三个候选与取舍**引用 §14.7 的 D1 整段，不在此重复**。
+
+⚠️ **但有一句必须逐字重申，不得因为「刚摆过」就省掉**：
+**`2220-2` / `1206-2` / `2325-2` / `0120-1` / `0337-1` 这五（连本次六）个先例全是 AI 自产的、
+没有一条带人的批准标记 —— 五（六）个 AI 自产的先例不等于一个授权，本次仍欠一次人的追认。**
+落地跑绿**不等于**授权已补。该追认与下面 D4 那条是**同一次追认请求**，一并提交，**不单独放行**。
+
+### D1：新增一个 job，还是就地改 `expected-red-ratchet`
+
+| 候选 | 内容 | 代价 / 后果 |
+|---|---|---|
+| (a) | 就地把 `-le` 计数比较换成集合比较 | **否掉**。理由**不是**「红线 2 禁止」（红线 2 只禁**变松**，而这是加严）；理由是**它打掉本仓唯一一条机械可核的红线 2 自查** —— `2325-2` / `1206-2` / `0120-1` / `0337-1` 四次落地用的都是「前 N 行逐字节未动」的前缀性 `diff`，就地修改之后「这次改动是不是加严」就从**机械判据**退化成**人的判断** |
+| **(b)** | **新增一个 job `expected-red-superset`，既有 job 一个字不动** | **选它**。纯追加、前缀性 `diff` 无输出、两个 job 都必须绿（**合取即加严**） |
+| (c) | 不做，登记交人 | **否掉**。这是**确认的 contract drift**，`docs/plans/00-plan-authoring-and-execution-guide.md` Minimum Rule 14 逐字禁止把它降级为非阻塞 follow-up |
+
+**否掉 (a) 的代价对称地说清**：留下**两个判据不同、覆盖面互有出入**的 job。
+⚠️ **它们不是冗余关系** —— 新 job 的 `norm` 做 `sort -u`（重复行刻意不触发），既有 `count()` 数**行数**，
+两者算的不是同一类对象，因此「新 job 绿 ⟹ 既有 job 绿」**不成立**。
+**本机反例已实跑**（旧 `#h\na\na` → 新 `#h\na\na\na`）：新 job `✅ 名单未新增条目` **exit 0**、
+既有 job `预期红：2 → 3` / `❌ 变长（无 trailer）` **exit 1**。
+两者是**合取关系（任一红即拦下）**，不存在「谁赢」的裁量；上例里被拦下的是一次**重复行增行**，拦下它是**正确**结果。
+**不许因为「新 job 更强」就把既有 job 读成可以忽略。**
+
+### D2：判据的精确形式与归一化口径
+
+判据逐字：**`新条目集合 ⊆ 旧条目集合`**；不成立时**逐行列出新增的每一条**并要求 `Gates-Change-Approved-By:`。
+
+归一化**四条**：
+
+1. **口径对齐 `tools/gates/check_expected_red.py:66-70` 的 `load_allowlist()`
+   （`strip()` 后非空、且**行首第 0 列**不是 `#`），不对齐 `gates.yml` 里 `count()` 的 `^\s*#`。**
+   ⚠️ 仓内**本来就有两套**口径：一行 `  # x` 在 `count()` 眼里是注释，**在判定器眼里是一条名为 `# x` 的条目**。
+   新 job 比的必须是**判定器实际使用的那个集合**；抄 `count()` 等于对齐了两套里较弱的那一个。
+   **归一化函数逐字钉死**：
+
+   ```sh
+   norm(){ awk '{l=$0; sub(/^[[:space:]]+/,"",l); sub(/[[:space:]]+$/,"",l);
+                 if (l!="" && $0 !~ /^#/) print l}' | sort -u; }
+   ```
+
+   **三点都在这一行里**：`$0 !~ /^#/` **判原行的第 0 列**（对齐 `load_allowlist()`）·
+   `sub()` 去首尾空白后再输出（第 3 条）· `awk` **恒退 0**（不继承 `grep -v` 零匹配退 1 的缺陷）。
+   **本机实测已核对**：对 `# c` / `  # x` / `\ttests/a.py::t1  ` / `tests/b.py::t2` 四行输入，
+   `norm` 的输出与 `load_allowlist()` 的 Python 实现 `diff` **无输出、逐条一致**
+   （`# x` 被收成条目、首尾空白被去掉）。
+   ⚠️ **`awk '!/^[[:space:]]*(#|$)/'` 是错的**（实测）：它把 `  # x` 当注释丢掉，且**原样保留首尾空白**
+   —— 后者会让一次纯空白改动被判成「新增一条」，是一条假红。
+   **不得用 `grep -v`**（零匹配退 1，在 `set -o pipefail` 下把「名单被清空」这一次**完全合法的终局动作**
+   判成失败 —— 本机实测既有 `count()` 在只含注释的输入上 **exit 1**）；
+   **也不得用 `|| true` 去打补丁**：那是失败吞噬，红线 2 内。
+2. 两侧各自 `sort -u` 后比 —— 因此**行序调整**与**重复行**都不触发；
+3. 去掉行首行尾空白 —— 免得一次无害的对齐改动被当成「新增一条」；
+4. **不做任何模糊匹配**（不截断 `::`、不做前缀匹配）——
+   `tests/gates/foo.py` 与 `tests/gates/foo.py::test_x` 是**两条不同的条目**，
+   把前者当后者的父项去豁免，等于自造一个新的放宽口径。
+
+**落点分两级，写明免得被读成都在 CI 上**：**第 1、2 条在 CI 上各有一次实测放行**（变异实验 ③ 与 ②）；
+**第 3、4 条只有本机级实测放行**（判据脚本体的十二条输入里的 ⑩ 与 ⑪），**不占 CI 轮次**。
+
+**实现约束三条（不是风格问题，是假绿入口）**：
+
+- **读文件一律用命令替换**：`OLD=$(git show "$BASE:$FILE" | norm)` / `NEW=$(norm < "$FILE")`。
+  ⚠️ **不得用进程替换读文件** —— 本机实测：
+  `ADDED=$(comm -13 <(git show "HEAD:$FILE" | norm) <(norm < /nonexistent))` 在 `set -euo pipefail` 下
+  **打印 `✅ 名单未新增条目` 并 exit 0**（一条比既有棘轮还弱的**空转形态**）；
+  同一次读法写成命令替换 `NEW=$(norm < /nonexistent)` → **exit 1**，
+  `OLD=$(git show "BADREF:$FILE" | norm)` → **exit 128**，两者都 fail-closed。
+- 判据 step 开头加 `[ -f "$FILE" ] || { echo "❌ 名单文件不存在"; exit 1; }`。
+- **算集合差写进临时文件再 `comm`，不用进程替换，且必须处理空集**：
+
+  ```sh
+  T="${RUNNER_TEMP:-/tmp}"
+  printf '%s' "$OLD" > "$T/old.set"; printf '%s' "$NEW" > "$T/new.set"
+  ADDED=$(comm -13 "$T/old.set" "$T/new.set")
+  [ -z "$ADDED" ] && { echo "✅ 名单未新增条目"; exit 0; }
+  ```
+
+  ⚠️ **`printf '%s'` 不是 `printf '%s\n'`**：后者在变量为空串时会写出**一行空行**，
+  `wc -l` 数出 1 → 幻影条目 → 「名单划完」那种输入会**假红**。
+  ⚠️ **判空一律用 `[ -z "$ADDED" ]`，不用行数**，理由同上。
+  ⚠️ **`[ -z … ] && { …; exit 0; }` 后面必须还有语句**：若它成了 `run:` 块的最后一条语句，
+  `$ADDED` 非空时这个 AND-OR 列表返回 1，step 会**无任何提示地** exit 1 —— 红得对但说不清红因。
+  本 job 的失败分支写在它之后因此不触发；**这条限定原样记在这里，免得后人重排语句时踩上。**
+
+**残余风险照实记**：
+
+- **归一化本身就是一层可以被利用的面** —— 有人可以用一条只在归一化后才等价的写法混过去。
+  本节选的是**最小**归一化，⚠️ 但**「最小」是相对的判断，不是证明**。
+- **`count()` 与 `load_allowlist()` 的口径不一致是既有事实，本次只对齐判定器侧、不改 `count()`**
+  —— 因此落地之后仓内会有**三套**读法（`count()` / `load_allowlist()` / 新 job 的 `norm`，后两者一致）。
+  **这条代价照实记，不粉饰成「统一了口径」。**
+
+### D3：豁免出口与批准出口逐字复刻既有棘轮，不发明新语义
+
+1. 首次推送（`BASE` 全零）→ `exit 0`；
+2. 基线里没有这个文件 → `exit 0`；
+3. `pull_request` 取 `github.event.pull_request.base.sha`，`push` 取 `github.event.before`（与既有棘轮同形）；
+4. 增行时检查 `Gates-Change-Approved-By:`。
+
+⚠️ **第 4 条抄的是哪一个 `HEAD` 形态必须钉死，不能写「同形」了事**：
+`expected-red-ratchet` 用 `"$BASE..${{ github.sha }}"`（**`pull_request` 上那是 merge commit**），
+`verdict-tool-untouched` 显式取 `github.event.pull_request.head.sha`。
+**本次选后者**（显式 `HEAD`），理由是它扫的是**这条分支自己的提交**、不含 merge commit，
+语义更贴「本次改动带没带批准」；**代价是它正是那条 `[open]` 风险被观察到的形态**。
+`push` 侧一并钉死为 `HEAD="${{ github.sha }}"` —— `push` 事件上 `github.sha` 就是被推的那个提交，
+不存在 merge commit 的歧义。**因此不得再写「与既有棘轮逐字同形」，两者不是同一个形态。**
+
+⚠️ **第 4 条继承一条已登记的 `[open]` 风险**（`docs/masterplan/STATE.md` §3 2026-08-22 行：
+`verdict-tool-untouched` 上同 sha 同输入，attempt 1 exit 1 / attempt 2 exit 0，不可复现）。
+**本 job 的批准出口与 `verdict-tool-untouched` 是同一形态，因此继承同一条不可复现风险；
+人做一次带批准的合法增行可能被随机挡下，临时处置是 `gh run rerun --failed`。**
+⚠️ **本次不修它**（人裁定题），**且不得写成「已知无害」。**
+
+### D4：实验期改动 `tools/gates/expected-red.txt` 的授权面（逐条定性，不合并）
+
+**事实**：`docs/context/ai-autonomy-policy.md:80` 给该文件的规则是 **`allowed（只能变短）`**，
+Required Evidence 逐字「名单**变长**仍需 `Gates-Change-Approved-By:`」。
+本 plan 的变异实证会对该文件做**四类**改动，**逐条定性，穷尽**：
+
+| 动作 | 定性 | 理由 |
+|---|---|---|
+| 实验 ④：增行 + trailer | **合规** | 它走的正是那条规则给出的批准出口 |
+| Phase 1 B①：等长交换，不带 trailer | **刻意越线** | ⚠️ 它**不可能靠「补个 trailer」自洽** —— 带上 trailer 之后新 job 会走批准出口放行，**牙齿证明当场失效** |
+| 实验 ①：等长交换，不带 trailer | **刻意越线** | 同上 |
+| 实验 ③：只改注释 + 调行序，不带 trailer | **刻意越线** | 按 D5 自己的口径（「改注释既不是『变短』，也不在 `allowed（只能变短）` 的字面内」），注释改动**与行序调整**同样不在那条授权的字面内。⚠️ 不许一边用这条口径否掉「改表头」、一边在实验 ③ 里做同一件事而不定性 —— 那是同一份文件里的双重标准。它同样不能靠补 trailer 自洽 |
+| 实验 ②：纯删除 | **合规且无需论证** | 「变短」正是 `allowed` 的字面内容 |
+
+⚠️ **因此对该文件的越线动作共 3 类 4 次（B① · 实验 ① · 实验 ③），不是「唯一一处」。**
+
+**边界（写死，不是模糊承诺）—— 两条分支，职责不重叠**：
+
+- **实验分支 `ci/0337-2-experiments`**：Phase 1 B① 与 Phase 4 的全部七次推送都在它上面，
+  **它永不合并，也不删除**（历史 run 与提交按 sha 仍可访问）；
+- **落地分支 `ci/0337-2-land`**：从 **`main` 干净重开**，**只含 `gates.yml` 的那一次纯追加提交**，
+  `git log origin/main..ci/0337-2-land` **必须只有 1 条**，且 `git diff origin/main..ci/0337-2-land -- tools/gates/`
+  **无输出**；它自己跑一次 PR CI 全绿后 `--ff-only`。
+
+⚠️ **不许把实验与落地放在同一条分支上再 `--ff-only`** —— `--ff-only` 会把该分支**每一个提交对象**
+推进 `main` 历史，**包括实验 ④ 那条带假 trailer 的提交**，于是「永不合并」按构造为假。
+
+**因此**：假 trailer 与任何名单改动**都不进入 `main` 历史**；落 `main` 的提交对
+`tools/gates/expected-red.txt` `git diff` **无输出**（Phase 3 / 4 / 5 各实测一次）。
+
+⚠️ **这仍欠一次人的追认**，与上面 `.github/workflows/** = blocked` 那条是**同一次追认请求**，
+在本节与 `docs/masterplan/STATE.md` 里**一并提交，不单独放行**。
+
+⚠️ **另有一条不得含糊的**：loop 在实验 ④ 里写下的 `Gates-Change-Approved-By:` **不是一次真的人工批准**
+—— trailer 值写成一望即知的实验标记 `Gates-Change-Approved-By: EXPERIMENT-NOT-A-REAL-APPROVAL`，
+**且该提交永不合并**。**loop 不得用这个出口给自己的任何真实改动放行。**
+
+### D6：实验之间的分支状态 —— 每一次推送都从 `main` 基线重新起算，实验**不累积**
+
+**为什么这是一条必须裁定的**：两个棘轮 job 在 `pull_request` 上取的 `BASE` 都是
+`github.event.pull_request.base.sha` ＝ **`main` 的 tip**（Phase 1 B① 的日志逐字印证：
+`BASE="115f12d721041ae6c85b3494bd1d5e92657f74c2"`），**因此每一次推送判的都是
+「整条分支相对 `main` 的累计状态」，不是「本次提交的增量」**。
+
+| 候选 | 内容 | 取舍 |
+|---|---|---|
+| (a) | 保留累积语义，把「反误伤」两条实验的预测改成「新 job 红」 | **否掉**：那样实验 ②③ 就**测不到它们要测的东西**（「合法动作零误伤」需要新 job **绿**才算证据），两条反误伤实验会退化成两次无信息的红 |
+| **(b)** | **每次推送前先把 `tools/gates/expected-red.txt` 复原到 `main` 基线，再叠加本次实验自己的改动** | **选它**。实验之间**互不污染**，每一次推送的输入都恰好是那一条实验的构造，七条预测全部按构造可达 |
+
+**写死的机械前置（每一次推送之前都要跑，输出记进 plan）**：
+
+```sh
+git fetch origin main            # 先拿远端 tip
+git diff origin/main..ci/0337-2-experiments -- tools/gates/expected-red.txt
+```
+
+—— 输出**必须恰好只含本次实验自己的那一处改动**（首跑、clean 绿跑、revert 跑三次为**无输出**）。
+
+⚠️ **比的是 `origin/main` 不是本地 `main`**：两个棘轮取的 `github.event.pull_request.base.sha` 是**远端**
+base 分支在事件发生那一刻的 tip；本地 `main` 一旦落后（本仓开工时本地 `main` 确实领先 `origin/main` 一条
+文档提交），这条前置会打印「无输出」而 CI 实际比的是另一个基线，**那正是它要防的假绿**。
+⚠️ **时点写死**：**commit 之后、push 之前**跑（`git diff` 比的是提交；在 commit 之前跑报的是上一次推送的状态）。
+⚠️ **复原的做法写死**：`git checkout origin/main -- tools/gates/expected-red.txt`，
+**不是 `git revert`**（revert 会往分支历史里堆提交，让取证变噪）。
+⚠️ **这条规则对 Phase 1 B① 一并适用**：B① 的等长交换在它自己的 run 取证完成后**必须在下一次推送里被复原**
+（复原动作与新 job 的追加合并成同一次推送 ＝ Phase 4 首跑），否则「首跑全绿」按构造不可达。
+
+**配套：实验分支用 `git worktree`，主检出全程停在 `main` 上不切分支。**
+worktree 在 Phase 1 就建好（`git worktree add ../agenerp-0337-2-exp ci/0337-2-experiments`），
+**全部实验推送在该 worktree 里做**；Phase 2–4 的文档/取证改动**留在主检出的工作树里未提交**，
+由 Phase 5 的第三条分支 `ci/0337-2-docs` 一次性带走。
+**机械判据**：每一次实验推送前后，在**主检出**里跑 `git status --porcelain -- docs/` 并记下输出 ——
+**前后必须逐字相同**（证明实验一次都没碰到文档面）；Phase 4 收尾时主检出仍 `git branch --show-current` → `main`。
+
+### 新 job 判什么（落地形态，`gates.yml:442-485`）
+
+`expected-red-superset`（`name: 预期红名单不得新增条目`）—— 判据一句话：**新名单必须是旧名单的子集**。
+
+```sh
+norm(){ awk '{l=$0; sub(/^[[:space:]]+/,"",l); sub(/[[:space:]]+$/,"",l);
+              if (l!="" && $0 !~ /^#/) print l}' | sort -u; }
+OLD=$(git show "$BASE:$FILE" | norm); NEW=$(norm < "$FILE")
+ADDED=$(comm -13 "$T/old.set" "$T/new.set")
+[ -z "$ADDED" ] && { echo "✅ 名单未新增条目"; exit 0; }
+```
+
+`ADDED` 非空时逐条打印，然后才查 `Gates-Change-Approved-By:` 批准出口（D3：与既有棘轮同一条出口，
+不发明新语义）。两个 job **并存、合取**，任一红即拦下，不存在「谁赢」的裁量。
+
+`norm` 的四条归一化（D2，口径对齐 `check_expected_red.py` 的 `load_allowlist()` 而不是 `count()`）：
+去行首行尾空白 · 丢弃空行 · **只丢弃第 0 列的 `#` 注释行**（缩进的 `#` 会被收成条目，两侧一致）·
+`sort -u` 去重。**不做任何模糊匹配** —— `foo.py::test_x` → `foo.py` 算新增（本机输入 ⑪ 实证退 1）。
+
+### 实证：四次变异实验（PR #10，实验分支 `ci/0337-2-experiments`，**永不合并**）
+
+七次推送 / 四次变异，**七条预测 ⓪–⑥ 在推送之前逐字写死，事后全部命中，零条未预测的红**。
+
+| 实验 | 构造 | run id | `expected-red-superset` | `expected-red-ratchet` | 结论 |
+|---|---|---|---|---|---|
+| **①（承重）** | **等长交换**（删一条 + 加一条，无 trailer） | `32605108419` | **`failure`**，逐字点名 `+ tests/gates/test_normalizer_idempotent.py::test_normalize_orders_deterministically` | **`success`**，逐字 `✅ 名单没有变长` | **等长交换对既有棘轮隐形、对新 job 不隐形** |
+| ②（反误伤） | 纯删除一条 | `32605573715` | `success` | `success` | 合法划短零误伤 |
+| ③（反误伤） | 只改注释（第 0 列）+ 调行序 | `32605351055` | `success` | `success` | 集合不变即放行；**14 job 全绿** |
+| ④（批准出口） | 增一行 + 假 trailer | `32605983516` | `success`，逐字 `✅ 有人工批准 trailer，放行` | `success`，逐字 `✅ 名单变长，但有人工批准，放行` | 批准出口可达，**一次通过**，与既有棘轮在同一条 trailer 上同时可达 |
+
+另三次基线跑（首跑 `32604844351` · clean 绿跑 `32605776060` · revert 绿跑 `32606391200`）
+**均 14 job 全绿**。加上 Phase 1 的 B①（`32604019998`，新 job 尚不存在，`expected-red-ratchet` `success`
+而 `gates-l1` `failure` —— 隐形的第一手证据），本 plan 合计消耗 **8** 次实验 run。
+
+⚠️ **实验 ① 证明的是「等长交换对既有棘轮隐形」，不是「两个 job 同时绿」那个完整失败场景**
+—— 后者按构造在 CI 上不可达（`gates-l1` 必红），只有本机纯函数级证据（`verdict()` 在
+「X 已转绿被划掉 + Y 红被加入」这一对输入下退 0）。**这条限定不许被读没了。**
+
+⚠️ **实验期对 `tools/gates/expected-red.txt` 的四类改动里，只有「纯删除」落在
+`ai-autonomy-policy.md:80` 那条 `allowed（只能变短）` 授权的字面内**；增行 · 等长交换 · 改注释 · 调行序
+**四者都是主动越过一条成文授权规则的动作**（D4 已逐条定性）。边界是：throwaway 分支、
+**永不合并**、落 `main` 的 `git diff` 对 `tools/gates/` 无输出（Phase 3/4/5 各实测一次）。
+**这一笔与 `.github/workflows/** = blocked` 那条是同一次待人追认的请求；跑绿不等于已获授权。**
+
+### 落地
+
+从 `main` 干净重开 `ci/0337-2-land`，**只含 1 个提交、只含 `.github/workflows/gates.yml`**（`44	0`，
+删除列为 `0`，既有 441 行逐字节未动，job 键 **13 → 14**）。四条机械前置全部通过，其中第 ④ 条
+`git diff ci/0337-2-experiments ci/0337-2-land -- .github/workflows/gates.yml` → **无输出**
+—— 即**落地的 job 体与被实证过的那一份逐字节相同**（这条前置防的是「落地时重打一遍 `run:` 块并写漏了，
+而落地 PR 上名单没变、坏 job 体照样在『✅ 名单未新增条目』处退 0」这一路假绿）。
+
+PR **#11** 上 run `32606876626` **14 job 全绿** → `git merge --ff-only` → `Updating 53e88db..fe89fa5`。
+**落地 sha `fe89fa5423525536c35fecab2462957c579a222f` 与 PR #11 上跑绿的 head 逐字同一个 sha。**
+`main` 的 `push` **权威运行 `32607062968` → `success`，14 个 job 全部 `success`**；
+新 job（job id `97113594198`）逐字打 `✅ 名单未新增条目`。
+
+### 继承的风险与残余风险（登记而不消除）
+
+- **`Gates-Change-Approved-By:` 出口的不可复现风险原样继承**。`docs/masterplan/STATE.md` §3 已有的那条
+  `[open]` 是在 `verdict-tool-untouched` 上观察到的（同 sha 同输入两次 attempt 结论不同）；
+  新 job 的批准出口是**逐字复刻**同一形态（显式 `HEAD`，`pull_request` 上取 `head.sha` 而不是
+  `github.sha` 那个 merge commit），因此**继承同一条风险**。
+  实验 ④ 一次通过**只是一个成功样本，不推翻那条 `[open]`**，本 plan 不修它、不关它。
+- **归一化本身是一层可被利用的面**：`norm` 与 `load_allowlist()` 两侧口径必须保持一致，
+  任一侧单独变动都会在两个 job 之间开出一条缝。本 plan 不改 `check_expected_red.py`（`plan-first` 保护面）。
+- **仓内并存两个判据不同的棘轮 job**，这**不是冗余**：`expected-red-ratchet` 数行数、
+  `expected-red-superset` 比集合，前者能拦下的（纯增行）后者也能拦，但前者在名单被清空时会硬红
+  （`grep -v` 零匹配 + `pipefail`，Baseline 12），而后者在同一输入下退 0（本机输入 ⑦⑧a 实证）。
+  **合并两者需要动既有 job 的脚本体，那是另一次 D1，本 plan 不做。**
+- **`.github/workflows/** = blocked` 与 `AGENTS.md` 红线 2「只禁变松」的措辞不一致**这条老账仍在，
+  本次落地是第七次往 `gates.yml` 追加，**同样欠着那一次追认**。
+
+### 同一处漂移的其余活实例：逐条登记（**刻意不改 / 仍为真**，不是遗漏）
+
+收窄后的复核命令逐字：
+
+```sh
+grep -rn "expected-red-ratchet\|只能变短" AGENTS.md docs/context/ docs/architecture/ docs/backlog/ tools/ .github/
+```
+
+（⚠️ 追加式历史 `docs/logs/` · `docs/masterplan/` · `docs/plans/` · `docs/archive/` **不属于本清单** ——
+它们在写下的当天为真，红线 5 与本仓追加式惯例禁止改写。**这不是第四种落点，是不属于清单。**）
+
+| 落点 | 内容 | 判定 |
+|---|---|---|
+| `docs/context/ai-autonomy-policy.md:80` · `:89` | 服务端复核只写了一个 job | **已就地改准**（本 plan，两处；`allowed（只能变短）` 与 `:89` 的两句边界一个字未改） |
+| `tools/gates/expected-red.txt:8` `:9` `:19` | 表头只提 `expected-red-ratchet` | **刻意不改并已登记**（D5）。真理由是**授权面**不是技术面：`:80` 给该文件的授权是 `allowed（只能变短）`，**改注释既不是「变短」、也不在那条授权的字面内**，动它需要人批准，本 plan 不代人批。⚠️ 初稿给的技术理由（「会把两件事搅在一起」）**实测为假**：`count()` 与 `norm` 都逐行丢弃注释，只改表头对两个 job 完全惰性（实验 ③ 顺带实证）。**代价照实说：落地后这三行弱于事实，登记而不消除** |
+| `.github/workflows/gates.yml:271` · `:305-306` | 在**既有 job**（`verdict-tool-untouched`）的注释/文案块里写「服务端控制是上面的 `expected-red-ratchet` job」 | **刻意不改并已登记**：本 plan 对 `gates.yml` **纯追加**，按构造改不了既有行（红线 2 自查第 ① 条要求前 441 行逐字节未动） |
+| `docs/architecture/system-baseline.md:522` | 同上一句的散文版 | **刻意不改并已登记**：它落在 §14.1–§14.7 的冻结面内，而本节自己的 Exit Criteria 逐字要求那一段「逐字节未动」 |
+| `docs/context/ai-autonomy-policy.md:131` · `system-baseline.md:436` · `gates.yml:261` | 「`expected-red-ratchet` **只数**账本行数」 | **仍为真**：那个 job 至今仍只数行数，本 plan 一个字没改它 |
+| `AGENTS.md:10`（红线 1 的「边界」句）· `docs/backlog/p0-foundation-roadmap.md:144`（规则 3）· `docs/backlog/gate-proposal-seed-dataset.md:146` · `docs/backlog/needs-human-expected-red-handoff.md:20` | 契约陈述「名单只能变短」 | **仍为真**，且本 plan 落地后**第一次被完整兑现**（此前实现弱于它） |
+| `docs/backlog/needs-human-expected-red-handoff.md:45` | 「另有 `expected-red-ratchet` job（`:50-85`）拦『名单变长』」 | **仍为真**（该 job 与其行号未变），**但不完整**（现在还有第二个 job）。与表头三行**同因同处置**：该文件是一份**待人处理的移交单**，改它属人的动作面，**登记不改** |
+| `docs/backlog/p0-foundation-roadmap.md:89` `:90` · `system-baseline.md:598` `:603` | 带日期的历史证据行 / 历史那一刻的 job 清单 | **仍为真**（追加式历史证据，写下当天为真，不改写） |
+| `system-baseline.md:1099`–本节末 · `gates.yml:50` `:51` `:444` | 本节自己的正文 / job 键与 `name:` / 新 job 的注释 | **仍为真**（本 plan 新写或未触及） |
+
+**以上全部是刻意的不改或已判定为仍然为真，理由已逐条写下；不得被审计读成遗漏。**
+⚠️ **本清单是复核当天（2026-08-23）grep 实跑 28 条命中的逐条判定，不是「此后永远穷尽」的证明。**
