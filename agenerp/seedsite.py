@@ -33,7 +33,7 @@ from agenerp.seed import model as M
 from agenerp.site import SiteClient, SiteError, client_from_env
 
 # ── 本模块自有的纯 ERPNext 结构常量（不参与任何断言，§12.9 逐条列名）────────────
-ABBR = "XM"
+ABBR = M.COMPANY_ABBR
 DEFAULT_CURRENCY = "CNY"
 COUNTRY = "China"
 CHART_TEMPLATE = "Standard Template"
@@ -51,7 +51,7 @@ ROOT_TERRITORY = "All Territories"
 LEAF_TERRITORY = "Rest Of The World"
 ROOT_SUPPLIER_GROUP = "All Supplier Groups"
 LEAF_SUPPLIER_GROUP = "Local"
-WORKSTATION = "XM 织造机台"
+WORKSTATION = "模组装配线"
 
 # 建公司时由站点自己生成的树根（实测 82 条科目 + 5 个仓库），本模块只挂在它们下面。
 ROOT_WAREHOUSE = f"All Warehouses - {ABBR}"
@@ -87,7 +87,7 @@ def strip_abbr(derived: str) -> str:
     所以送进来的常量必须逐字形如 `<name> - {ABBR}`。此前这里容忍 `- {ABBR}` 这种少一个空格的写法，
     是被 `M.ACC_OPERATING` 的一处真缺陷逼出来的代偿（`docs/bugs/01-...md`）；
     该常量已在同一个 plan 里修好，代偿随之撤掉——继续容忍等于让下一个拼错的常量继续静默。
-    **不选「原样返回」**：那个串会被 `site_name_of` 再拼一次后缀，在站点上真建出 `X - XM - XM`。
+    **不选「原样返回」**：那个串会被 `site_name_of` 再拼一次后缀，在站点上真建出 `X - HRD - HRD`。
     """
     suffix = f" - {ABBR}"
     if not derived.endswith(suffix):
@@ -307,7 +307,7 @@ def plan_steps() -> tuple[Step, ...]:
 
 
 # ══════════════════════════════════════════════════════════════════════════
-# 单据段（plan `2026-08-22-2107-2`）—— 让**站点自己**算出 1,010 米 / ¥6,450
+# 单据段（plan `2026-08-22-2107-2`）—— 让**站点自己**算出 1,010 台 / ¥3,110,200
 # ══════════════════════════════════════════════════════════════════════════
 #
 # **本段与主数据段的分工**：主数据段只建不提交；单据段建完就提交（`docstatus` 0→1）。

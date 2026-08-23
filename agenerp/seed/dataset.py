@@ -34,7 +34,6 @@ def generate(seed: int = 42) -> Dataset:
         "Stock Entry": documents.stock_entries(rng),
         "Subcontracting Order": subcon_order,
         "Subcontracting Receipt": subcon_receipt,
-        "Loss Review": documents.loss_review(),
         "Delivery Note": documents.delivery(),
         "Sales Invoice": sales_invoice,
         "Purchase Invoice": purchase_invoice,

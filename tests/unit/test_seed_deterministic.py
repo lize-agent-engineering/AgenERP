@@ -92,51 +92,61 @@ def test_verify_passes_on_the_generated_dataset():
     assert verify(generate(42)) == []
 
 
-def test_receipts_total_two_thousand_metres():
+def test_receipts_total_two_thousand_units():
     dataset = generate(42)
     received = sum(
         float(row["actual_qty"])
         for row in dataset.of("Stock Ledger Entry")
-        if row["item_code"] == "XM-LACE-1000" and row["actual_qty"] > 0
+        if row["item_code"] == "HRD-PACK-5K" and row["actual_qty"] > 0
     )
     assert received == 2000.0
 
 
-def test_delivery_is_nine_hundred_ninety_metres():
+def test_delivery_is_nine_hundred_ninety_units():
     dataset = generate(42)
     note = dataset.of("Delivery Note")[0]
     assert note["items"][0]["qty"] == 990
 
 
 def test_finished_bin_holds_the_backlog():
-    """1,010 米 / ¥6,450 —— 这个数据集存在的理由。"""
+    """1,010 台 / ¥3,110,200 —— 这个数据集存在的理由。"""
     dataset = generate(42)
     bin_row = next(
         row
         for row in dataset.of("Bin")
-        if row["item_code"] == "XM-LACE-1000" and row["warehouse"] == "XM 成品仓 - XM"
+        if row["item_code"] == "HRD-PACK-5K" and row["warehouse"] == "成品仓 - HRD"
     )
     assert bin_row["actual_qty"] == 1010.0
-    assert bin_row["stock_value"] == 6450.0
+    assert bin_row["stock_value"] == 3110200.0
 
 
 def test_backlog_value_is_fifo_layered_not_moving_average():
-    """FIFO 分层：10 × ¥5.00 + 1,000 × ¥6.40。移动加权均价口径应得 ¥5,757，不是 ¥6,450。"""
-    assert 10 * 5.00 + 1000 * 6.40 == 6450.0
-    assert (5000.0 + 6400.0) / 2000 * 1010 == pytest.approx(5757.0)
+    """FIFO 分层：10 × ¥3,020 + 1,000 × ¥3,080 = ¥3,110,200。
+
+    移动加权均价口径会得 ¥3,080,500 —— 差 ¥29,700。两种口径都「对」，
+    但只有一种和站点实际算出来的一致，这条断言把口径钉死。
+    """
+    assert 10 * 3020.0 + 1000 * 3080.0 == 3110200.0
+    assert (3020000.0 + 3080000.0) / 2000 * 1010 == pytest.approx(3080500.0)
 
 
-def test_approved_loss_review_exists_and_is_approved():
-    review = generate(42).of("Loss Review")[0]
-    assert review["name"] == "LOSS-00003"
-    assert review["approved_loss_quantity"] == 10
-    assert review["status"] == "Approved"
+def test_sales_order_was_manually_closed_while_short_delivered():
+    """「990 台之谜」的成因，用**原生字段**表达（D-9：不继承 XM 的 Loss Review）。
+
+    订单 1,000 台、实发 990 台，缺口 10 台既没发也没记欠货 —— 有人把
+    `status` 置成 `Closed`。ERPNext 据此按完成计，账面因此全绿。
+    """
+    order = generate(42).of("Sales Order")[0]
+    assert order["status"] == "Closed"
+    assert order["per_delivered"] == 99.0
+    item = order["items"][0]
+    assert item["qty"] - item["delivered_qty"] == 10
 
 
-def test_overdue_pair_matches_spike_08():
+def test_overdue_pair_is_receivable_and_payable():
     dataset = generate(42)
-    assert dataset.of("Sales Invoice")[0]["outstanding_amount"] == pytest.approx(18612.0)
-    assert dataset.of("Purchase Invoice")[0]["outstanding_amount"] == pytest.approx(2200.0)
+    assert dataset.of("Sales Invoice")[0]["outstanding_amount"] == pytest.approx(4237200.0)
+    assert dataset.of("Purchase Invoice")[0]["outstanding_amount"] == pytest.approx(120000.0)
     for row in dataset.of("Sales Invoice") + dataset.of("Purchase Invoice"):
         assert row["status"] == "Overdue"
         assert row["due_date"] < dataset.as_of, "逾期必须由 as_of 与 due_date 判出，不是硬贴一个状态"
@@ -156,10 +166,11 @@ def test_books_are_all_green():
         float(r["credit"]) for r in dataset.of("GL Entry") if "主营业务收入" in r["account"]
     )
     cogs = sum(float(r["debit"]) for r in dataset.of("GL Entry") if "主营业务成本" in r["account"])
-    assert revenue - cogs == pytest.approx(13662.0, abs=0.01)
+    assert revenue - cogs == pytest.approx(1247400.0, abs=0.01)
     order_item = dataset.of("Sales Order")[0]["items"][0]
-    review = dataset.of("Loss Review")[0]
-    settled = order_item["delivered_qty"] + review["approved_loss_quantity"]
+    # 达成率取 ERPNext 原生口径：订单被置为 Closed，系统即按订单量完成计。
+    assert dataset.of("Sales Order")[0]["status"] == "Closed"
+    settled = order_item["qty"]
     assert settled / order_item["qty"] * 100 == pytest.approx(100.0), "达成率必须是 100%"
 
 
@@ -177,12 +188,12 @@ def _tampered(doctype: str, mutate) -> object:
     ("doctype", "mutate", "marker"),
     [
         ("Bin", lambda rows: rows.__setitem__(
-            next(i for i, r in enumerate(rows) if r["warehouse"] == "XM 成品仓 - XM"),
-            {**next(r for r in rows if r["warehouse"] == "XM 成品仓 - XM"), "actual_qty": 900.0},
+            next(i for i, r in enumerate(rows) if r["warehouse"] == "成品仓 - HRD"),
+            {**next(r for r in rows if r["warehouse"] == "成品仓 - HRD"), "actual_qty": 900.0},
         ), "成品仓结余"),
-        ("Loss Review", lambda rows: rows[0].__setitem__("status", "Draft"), "LOSS-00003 的状态"),
-        ("Loss Review", lambda rows: rows[0].__setitem__("approved_loss_quantity", 0),
-         "已审批损耗"),
+        ("Sales Order", lambda rows: rows[0].__setitem__("status", "To Deliver"), "的状态应为 Closed"),
+        ("Sales Order", lambda rows: rows[0]["items"][0].__setitem__("delivered_qty", 1000),
+         "的交付缺口应为"),
         ("Sales Invoice", lambda rows: rows[0].__setitem__("outstanding_amount", 1.0),
          "应收逾期合计"),
         ("Purchase Invoice", lambda rows: rows[0].__setitem__("outstanding_amount", 9.0),

@@ -64,9 +64,11 @@ def test_every_suffixed_constant_can_be_derived_by_the_site_autoname():
 def test_the_company_abbr_in_the_constants_is_bound_to_seedsite_abbr():
     """`seedsite.ABBR` 与常量里字面的公司缩写必须是同一个东西。
 
-    两处此刻各写各的（`seedsite.py` 一个 `ABBR = "XM"`，`model.py` 里 15 处字面 `XM`）。
-    没有这条绑定，改公司缩写时常量会集体失配而无人告知 —— 而 `strip_abbr`
-    自 plan `2026-08-22-2325-1` 起是失败即停，那会变成一次装载都起不来。
+    D-9 改造前两处各写各的（`seedsite.py` 一个 `ABBR = "XM"`，`model.py` 里 15 处
+    字面 `XM`）；现已收敛到单一出处 —— `model.COMPANY_ABBR`，`seedsite.ABBR` 从它取。
+    本条**保留为回归守卫**：哪天有人再把某处写死，这里立刻发红。没有它，改公司
+    缩写时常量会集体失配而无人告知 —— 而 `strip_abbr` 自 plan `2026-08-22-2325-1`
+    起是失败即停，那会变成一次装载都起不来。
     """
     for name, value in suffixed_constants():
         assert value.endswith(seedsite.ABBR), (

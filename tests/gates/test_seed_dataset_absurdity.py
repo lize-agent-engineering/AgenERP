@@ -3,11 +3,15 @@
 判据来源（roadmap P0 交付表，逐字）：
 
     种子数据 | **确定性程序化生成**的离散制造数据集（不含图片，无第三方权利），
-    **必须内置一个已知业务荒谬**（如成品积压 1,010 米）作为洞察 Agent 与
+    **必须内置一个已知业务荒谬**（如成品积压 1,010 台）作为洞察 Agent 与
     行业包规则的固定测例
 
 以及 P1 验收里那条对它的引用：行业包声明「成品库存无对应订单」规则后，
-应报出「成品仓积压 1,010 米、价值 6,450 元」。
+应报出「成品仓积压 1,010 台、价值 3,110,200 元」。
+
+D-9 起样板公司换成本项目自有的虚构实体（恒锐动力 / 储能电池包），单位由
+米改台、价格改为电池包量级；**数量骨架 1,000 / 990 / 1,010 原样保留**——
+那是这个测例的身份。历史实测记录（`docs/analysis/`）保持原样不改，那是证据。
 
 **本文件里的数字是判据自带的，绝不从 `agenerp.seed.checks` import。**
 那里有一份同名常量（`EXPECTED_BACKLOG_QTY` 等），但它是**被测实现的一部分**：
@@ -20,8 +24,8 @@ from __future__ import annotations
 import json
 
 # —— 判据自带的真值（出处：roadmap P0 交付表 + P1 验收）——
-BACKLOG_QTY_METERS = 1010.0      # 成品仓积压
-BACKLOG_VALUE_CNY = 6450.0       # 积压价值
+BACKLOG_QTY_UNITS = 1010.0       # 成品仓积压（台）
+BACKLOG_VALUE_CNY = 3110200.0    # 积压价值
 FINISHED_GOODS_HINT = "成品"      # 成品仓的识别线索
 
 # 第三方权利风险词：真实品牌 / 商标 / 受版权保护的作品名。
@@ -76,7 +80,7 @@ def test_backlog_absurdity_is_present_and_exact():
 
     qty = sum(float(b.get("actual_qty") or 0) for b in finished)
     value = sum(float(b.get("stock_value") or 0) for b in finished)
-    assert qty == BACKLOG_QTY_METERS, f"成品仓积压应为 {BACKLOG_QTY_METERS} 米，实际 {qty}"
+    assert qty == BACKLOG_QTY_UNITS, f"成品仓积压应为 {BACKLOG_QTY_UNITS} 米，实际 {qty}"
     assert value == BACKLOG_VALUE_CNY, f"积压价值应为 {BACKLOG_VALUE_CNY} 元，实际 {value}"
 
 

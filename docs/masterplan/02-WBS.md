@@ -65,7 +65,7 @@
 | P0.3 | 状态快照与 diff（任意时刻快照 + 两快照 diff + 断言 DSL） | P0.2 | 🔴 `tests/gates/test_snapshot_diff_structured.py` | **done** 2026-08-21T07:05Z · 状态快照与结构化 diff · 门禁两条 L1 转绿 |
 | P0.4 | 定制包规范化器（剥离 `modified`/`creation`/`owner`/`_comments` 并稳定排序） | P0.3 | 🔴 `tests/gates/test_normalizer_idempotent.py` | **done** 2026-08-21T07:05Z · 定制包规范化器 · 门禁三条转绿 |
 | P0.5 | 差集 apply 引擎（读包 → 求差 → **对差集执行删除**） | P0.4 | 🔴 `tests/gates/test_customization_roundtrip_delete.py` | `MD:p0-foundation` |
-| P0.6 | 种子数据：确定性程序化生成，**内置已知业务荒谬**（1,010 米积压） | P0.3 | 同种子两次生成 `diff` 为空，且断言积压场景存在：`python -m agenerp.seed --seed 42 --verify` 退 0 | `MD:p0-foundation` |
+| P0.6 | 种子数据：确定性程序化生成，**内置已知业务荒谬**（1,010 台积压） | P0.3 | 同种子两次生成 `diff` 为空，且断言积压场景存在：`python -m agenerp.seed --seed 42 --verify` 退 0 | `MD:p0-foundation` |
 | P0.7 | 零依赖启动 CI（空环境变量下 config + up + healthcheck） | P0.1, W0.7 | `CI:gates` 上 `test_zero_dep_boot` 绿 | `CI:gates` |
 | P0.8 | **CP9 · P0 阶段复盘**：AGE 与 LoopX 是否续用（判据见 [04](./04-RUNBOOK.md) §7） | P0.1–P0.7 | 复盘纪要落 `docs/audits/`，两项各有明确「续用/停用」结论 | 人 |
 
@@ -138,7 +138,7 @@
 
 | ID | 工作项 | 前置 | 验收 | 状态源 |
 |---|---|---|---|---|
-| P5.1 | 评测集：state-diff 判定 + 业务合理性规则；**补齐重复实验与统计显著性**（本轮所有探针每题各跑 1 次） | P4.6 | `python -m agenerp.bench run --repeat 5` 产出带方差的报告；1,010 米积压为 test case #1 | `MD:p5-eval` |
+| P5.1 | 评测集：state-diff 判定 + 业务合理性规则；**补齐重复实验与统计显著性**（本轮所有探针每题各跑 1 次） | P4.6 | `python -m agenerp.bench run --repeat 5` 产出带方差的报告；1,010 台积压为 test case #1 | `MD:p5-eval` |
 | P5.2 | 持续基准生成（随 DocType 演进自动更新） | P5.1 | `python -m agenerp.bench regen --check` 退 0 | `MD:p5-eval` |
 | P5.3 | 编排 Agent（意图路由、任务分解、跨 Agent 调度） | P5.1 | `pytest tests/agents/test_orchestrator.py -q` 退 0 | `MD:p5-eval` |
 | P5.4 | 行业包机制 v1（声明格式与分发） | P5.1 | 新增一个行业包**不改内核**即可加载：`python -m agenerp.packs add --from examples/pack-demo` 退 0 | `MD:p5-eval` |

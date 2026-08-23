@@ -11,7 +11,7 @@ from typing import Any
 from agenerp.seed import names as N
 from agenerp.seed.model import (
     ACC_OPERATING,
-    APPROVED_LOSS_QTY,
+    SHORTFALL_QTY,
     BOM_RAW_QTY,
     COMPANY,
     CUSTOMER,
@@ -21,8 +21,6 @@ from agenerp.seed.model import (
     INHOUSE_RATE,
     INHOUSE_VALUE,
     INVOICE_TERM_DAYS,
-    LOSS_REVIEW_NAME,
-    LOSS_REVIEW_STATUS,
     OPENING_RAW_QTY,
     OPERATION_MINUTES,
     ORDER_QTY,
@@ -47,7 +45,7 @@ Row = dict[str, Any]
 
 def _lot(rng: random.Random) -> str:
     """装饰性字段：批号后缀。**不参与任何断言**，存在只为让 `--seed` 是真参数。"""
-    return f"XM-LOT-{rng.randrange(100000, 1000000)}"
+    return f"HRD-LOT-{rng.randrange(100000, 1000000)}"
 
 
 def stock_entries(rng: random.Random) -> list[Row]:
@@ -59,7 +57,7 @@ def stock_entries(rng: random.Random) -> list[Row]:
             "company": COMPANY,
             "posting_date": day(0),
             "docstatus": 1,
-            "remarks": "XM-DEMO-OPENING",
+            "remarks": "HRD-OPENING-2026Q1",
             "items": [
                 {
                     "item_code": RAW_ITEM,
@@ -99,7 +97,7 @@ def stock_entries(rng: random.Random) -> list[Row]:
             "additional_costs": [
                 {
                     "expense_account": ACC_OPERATING,
-                    "description": "工序费用（织造/定型/成品检验）",
+                    "description": "工序费用（模组装配/BMS 调试老化/成品检验）",
                     "amount": OPERATION_MINUTES / 60 * WORKSTATION_HOUR_RATE,
                 }
             ],
@@ -198,27 +196,6 @@ def subcontracting() -> tuple[list[Row], list[Row]]:
     return order, receipt
 
 
-def loss_review() -> list[Row]:
-    """`LOSS-00003`：10 米**已审批**合理损耗。
-
-    「990 米之谜」靠它成立——销售单 1,000 米、发货 990 米，剩下的 10 米不是欠货，
-    是一笔审批过的损耗，因此达成率是 100% 而不是 99%。
-    """
-    return [
-        {
-            "name": LOSS_REVIEW_NAME,
-            "work_order": N.WORK_ORDER,
-            "sales_order": N.SALES_ORDER,
-            "input_quantity": ORDER_QTY,
-            "off_machine_quantity": ORDER_QTY,
-            "available_finished_quantity": ORDER_QTY,
-            "approved_loss_quantity": APPROVED_LOSS_QTY,
-            "actual_delivery_quantity": DELIVERY_QTY,
-            "status": LOSS_REVIEW_STATUS,
-        }
-    ]
-
-
 def delivery() -> list[Row]:
     return [
         {
@@ -228,8 +205,7 @@ def delivery() -> list[Row]:
             "posting_date": day(6),
             "docstatus": 1,
             "status": "Completed",
-            "po_no": "XM-DEMO-1000M",
-            "xm_loss_review": LOSS_REVIEW_NAME,
+            "po_no": "NNE-PO-2026-0117",
             "items": [
                 {
                     "item_code": FINISHED_ITEM,
@@ -260,7 +236,7 @@ def invoices() -> tuple[list[Row], list[Row]]:
             "due_date": day(6 + INVOICE_TERM_DAYS),
             "docstatus": 1,
             "status": "Overdue",
-            "po_no": "XM-DEMO-1000M",
+            "po_no": "NNE-PO-2026-0117",
             "items": [
                 {
                     "item_code": FINISHED_ITEM,
@@ -283,7 +259,7 @@ def invoices() -> tuple[list[Row], list[Row]]:
             "due_date": day(5 + INVOICE_TERM_DAYS),
             "docstatus": 1,
             "status": "Overdue",
-            "bill_no": "XM-DEMO-SUBCONTRACT",
+            "bill_no": "LGCN-2026-0043",
             "items": [
                 {
                     "item_code": SERVICE_ITEM,

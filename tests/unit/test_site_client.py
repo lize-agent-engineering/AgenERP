@@ -268,16 +268,16 @@ def _rows(*rows):
 
 def test_create_doc_returns_the_document_the_site_built():
     """`name` 由站点说了算：实测站点对 Warehouse/Account/Item/BOM 不采纳显式 `name`。"""
-    transport = FakeTransport([_created("XM 原料仓 - XM", warehouse_name="XM 原料仓")])
+    transport = FakeTransport([_created("原料仓 - HRD", warehouse_name="原料仓")])
 
     doc = _client(transport, api_key="k", api_secret="s").create_doc(
-        "Warehouse", {"warehouse_name": "XM 原料仓", "company": "XM 演示纺织有限公司"}
+        "Warehouse", {"warehouse_name": "原料仓", "company": "恒锐动力科技有限公司"}
     )
 
-    assert doc["name"] == "XM 原料仓 - XM"
+    assert doc["name"] == "原料仓 - HRD"
     assert transport.last.method == "POST"
     assert "/api/resource/Warehouse" in transport.last.url
-    assert json.loads(transport.last.body)["warehouse_name"] == "XM 原料仓"
+    assert json.loads(transport.last.body)["warehouse_name"] == "原料仓"
 
 
 def test_create_doc_raises_on_non_2xx_instead_of_pretending_it_exists():
@@ -285,7 +285,7 @@ def test_create_doc_raises_on_non_2xx_instead_of_pretending_it_exists():
     transport = FakeTransport([SiteResponse(409, '{"exc_type":"DuplicateEntryError"}')])
 
     with pytest.raises(SiteError) as excinfo:
-        _client(transport, api_key="k", api_secret="s").create_doc("Item", {"item_code": "XM-LACE-1000"})
+        _client(transport, api_key="k", api_secret="s").create_doc("Item", {"item_code": "HRD-PACK-5K"})
 
     assert "409" in str(excinfo.value)
     assert "DuplicateEntryError" in str(excinfo.value)
@@ -302,7 +302,7 @@ def test_create_doc_rejects_a_payload_without_a_data_object():
 def test_find_one_returns_the_row_when_the_site_has_it():
     transport = FakeTransport([_rows({"name": "织造"})])
 
-    got = _client(transport, api_key="k", api_secret="s").find_one("Operation", {"name": "织造"})
+    got = _client(transport, api_key="k", api_secret="s").find_one("Operation", {"name": "模组装配"})
 
     assert got == {"name": "织造"}
     url = transport.last.url
@@ -323,7 +323,7 @@ def test_find_one_raises_on_any_non_2xx_and_never_reads_it_as_absent(status):
     transport = FakeTransport([SiteResponse(status, '{"exc_type":"PermissionError"}')])
 
     with pytest.raises(SiteError) as excinfo:
-        _client(transport, api_key="k", api_secret="s").find_one("Operation", {"name": "织造"})
+        _client(transport, api_key="k", api_secret="s").find_one("Operation", {"name": "模组装配"})
 
     assert str(status) in str(excinfo.value)
 
@@ -332,18 +332,18 @@ def test_find_one_rejects_a_payload_without_data():
     transport = FakeTransport([SiteResponse(200, json.dumps({"exc": "boom"}))])
 
     with pytest.raises(SiteError):
-        _client(transport, api_key="k", api_secret="s").find_one("Operation", {"name": "织造"})
+        _client(transport, api_key="k", api_secret="s").find_one("Operation", {"name": "模组装配"})
 
 
 def test_ensure_doc_issues_zero_posts_when_the_document_already_exists():
     """幂等的判据是「第二跑零 POST」，不是「没报错」。"""
-    transport = FakeTransport([_rows({"name": "织造", "workstation": "XM 织造机台"})])
+    transport = FakeTransport([_rows({"name": "模组装配", "workstation": "模组装配线"})])
 
     doc, created = _client(transport, api_key="k", api_secret="s").ensure_doc(
-        "Operation", {"name": "织造"}, {"name": "织造"}
+        "Operation", {"name": "模组装配"}, {"name": "织造"}
     )
 
-    assert (doc["name"], created) == ("织造", False)
+    assert (doc["name"], created) == ("模组装配", False)
     assert [r.method for r in transport.requests] == ["GET"], [r.method for r in transport.requests]
 
 
@@ -351,7 +351,7 @@ def test_ensure_doc_posts_exactly_once_when_the_document_is_missing():
     transport = FakeTransport([_rows(), _created("织造")])
 
     doc, created = _client(transport, api_key="k", api_secret="s").ensure_doc(
-        "Operation", {"name": "织造"}, {"name": "织造"}
+        "Operation", {"name": "模组装配"}, {"name": "织造"}
     )
 
     assert (doc["name"], created) == ("织造", True)
@@ -363,7 +363,7 @@ def test_ensure_doc_does_not_update_an_existing_document():
     transport = FakeTransport([_rows({"name": "织造", "workstation": "旧工位"})])
 
     doc, created = _client(transport, api_key="k", api_secret="s").ensure_doc(
-        "Operation", {"name": "织造"}, {"name": "织造", "workstation": "新工位"}
+        "Operation", {"name": "模组装配"}, {"name": "织造", "workstation": "新工位"}
     )
 
     assert doc["workstation"] == "旧工位"

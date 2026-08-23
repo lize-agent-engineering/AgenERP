@@ -1,7 +1,7 @@
 """数据集里出现的单据号。**只此一处**，生成器与单测都从这里取。
 
-单据号取自冻结证据仓里 Spike 08 实测记录的那三张（`MAT-STE-2026-00003` /
-`MAT-SCR-2026-00001` / `MAT-DN-2026-00001`），其余按同族编号补齐。
+编号沿用 ERPNext 原生 naming series 的形态（`MAT-STE-` / `MAT-SCR-` / `MAT-DN-`
+等），本项目自行编号，不取自任何外部项目（D-9）。
 """
 
 OPENING = "MAT-STE-2026-00001"
@@ -15,4 +15,4 @@ WORK_ORDER = "MFG-WO-2026-00001"
 SUBCON_ORDER = "SC-ORD-2026-00001"
 SALES_INVOICE = "ACC-SINV-2026-00001"
 PURCHASE_INVOICE = "ACC-PINV-2026-00001"
-BOM = "BOM-XM-LACE-1000-001"
+BOM = "BOM-HRD-PACK-5K-001"

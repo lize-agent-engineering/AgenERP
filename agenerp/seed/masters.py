@@ -27,6 +27,9 @@ from agenerp.seed.model import (
     WH_WIP,
     WORKSTATION_HOUR_RATE,
     day,
+    SALES_ORDER_PER_DELIVERED,
+    SALES_ORDER_STATUS,
+    UOM_FINISHED,
 )
 
 Row = dict[str, Any]
@@ -35,7 +38,7 @@ def items() -> list[Row]:
     return [
         {
             "name": FINISHED_ITEM,
-            "item_name": "XM 经编花边布",
+            "item_name": "户用储能电池包 5kWh",
             "item_group": "成品",
             "stock_uom": "Meter",
             "is_stock_item": 1,
@@ -49,7 +52,7 @@ def items() -> list[Row]:
         },
         {
             "name": SERVICE_ITEM,
-            "item_name": "染整定型外协服务",
+            "item_name": "电池模组组装外协服务",
             "item_group": "服务",
             "stock_uom": "Nos",
             "is_stock_item": 0,
@@ -79,9 +82,9 @@ def bom() -> list[Row]:
                 {"item_code": RAW_ITEM, "qty": BOM_RAW_QTY, "rate": RAW_RATE},
             ],
             "operations": [
-                {"operation": "织造", "time_in_mins": 300, "hour_rate": WORKSTATION_HOUR_RATE},
-                {"operation": "定型", "time_in_mins": 180, "hour_rate": WORKSTATION_HOUR_RATE},
-                {"operation": "成品检验", "time_in_mins": 120, "hour_rate": WORKSTATION_HOUR_RATE},
+                {"operation": "模组装配", "time_in_mins": 25000, "hour_rate": WORKSTATION_HOUR_RATE},
+                {"operation": "BMS 调试老化", "time_in_mins": 12000, "hour_rate": WORKSTATION_HOUR_RATE},
+                {"operation": "成品检验", "time_in_mins": 8000, "hour_rate": WORKSTATION_HOUR_RATE},
             ],
             "operating_cost": OPERATION_MINUTES / 60 * WORKSTATION_HOUR_RATE,
             "raw_material_cost": BOM_RAW_QTY * RAW_RATE,
@@ -99,14 +102,18 @@ def sales_order() -> list[Row]:
             "transaction_date": day(0),
             "delivery_date": day(14),
             "docstatus": 1,
-            "status": "Completed",
+            # **这个数据集的要害。** 订单 1,000 台、实发 990 台，缺口 10 台既没发
+            # 也没记欠货——有人把 status 直接置成 Closed，ERPNext 原生行为据此
+            # 按完成计。两个都是原生字段，不需要任何 custom DocType（D-9）。
+            "status": SALES_ORDER_STATUS,
+            "per_delivered": SALES_ORDER_PER_DELIVERED,
             "currency": "CNY",
             "items": [
                 {
                     "item_code": FINISHED_ITEM,
                     "qty": ORDER_QTY,
                     "rate": SALES_RATE,
-                    "uom": "Meter",
+                    "uom": UOM_FINISHED,
                     "warehouse": WH_FINISHED,
                     "delivered_qty": DELIVERY_QTY,
                 }
