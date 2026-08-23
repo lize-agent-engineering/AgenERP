@@ -1467,7 +1467,13 @@ grep -rn "expected-red-ratchet\|只能变短" AGENTS.md docs/context/ docs/archi
 | ① | `git diff origin/main..ci/0337-2-docs -- .github/ tools/` | **无输出**，退 **0** | 文档面零触及 workflow 与 `tools/` ✅ |
 | ② | `! git log --format=%B origin/main..ci/0337-2-docs \| grep -q '^Gates-Change-Approved-By:'` | 退 **0** | 无假 trailer ✅ |
 
-PR **#12**，PR 上的 run **`RUNID_DOCS`** → **`CONCL_DOCS`**；`--ff-only` 合并 sha **`SHA_DOCS`**。
+PR **#12** `docs(0337-2): owner doc 回填 —— §14.8 · ai-autonomy-policy 两处改准 · roadmap/STATE 追加`，
+PR 上的 run **`32607680682`**（head `21db58fb19c7d3a40c1d6a6e426cf810941af430`）→ **`success`，14 个 job 全部 `success`**；
+`git merge --ff-only ci/0337-2-docs` → `fe89fa5..21db58f`，`gh pr view 12 --json state -q .state` → **`MERGED`**。
+**文档面合并 sha（全长）`21db58fb19c7d3a40c1d6a6e426cf810941af430`。**
+⚠️ **本行这三个值是在文档面落地之后由一次「回填提交」补上的**（提交自身的 CI 结论见本节末）——
+按构造它们不可能写在被引用的那次提交里，**照实记，不假装是同一次写下的**；
+做法与前驱 plan `0337-1` 的回填提交（`115f12d`）一致。
 
 **收尾实验 PR**
 
