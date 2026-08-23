@@ -266,7 +266,7 @@ Exit Criteria:
 
 ### Phase 2 — 把放弃掉的 scope 登记出去（不是让它消失）
 
-Status: planned
+Status: completed
 Targets: `docs/backlog/tools-dir-has-no-static-check-coverage.md`（新建）·
 `docs/backlog/p0-foundation-roadmap.md`（**纯追加**一行）· `docs/masterplan/STATE.md`（**只追加**一行）
 Skill: `none`
@@ -275,7 +275,7 @@ Skill: `none`
   ⚠️ 初稿把建文件标成 `Follow-up`、把 roadmap 追加标成 `Proof`，两处都不对，已按独立评审第 2 轮改准）
 - Prereqs: Phase 1
 
-- [ ] `Add` 新建 `docs/backlog/tools-dir-has-no-static-check-coverage.md`，
+- [x] `Add` 新建 `docs/backlog/tools-dir-has-no-static-check-coverage.md`，
       按本仓既有 backlog 条目的形态（`Status:` / 事实与取证 / 为什么 loop 不能自己做 / 触发条件 / 可选处置）写。
       **必须包含且不许省的四件事**：
       ① 实测事实（6 个 Python 文件、9 条告警、`tools/mission-driver/**` 零 `.py`）；
@@ -286,23 +286,23 @@ Skill: `none`
       —— **也就是说扩面的增量购买力接近零，这条要写在「可选处置」前面，不许只列好处**；
       ④ **代价照实记**：把 `check_expected_red.py`（`plan-first` + 服务端守卫）纳入 lint 作用域，
       等于让它**长期人质于将来的 ruff 版本**；以及 job 数 14 → 15 这条已被连续登记五次的增长。
-- [ ] `Follow-up` 该 backlog 条目必须写明**触发条件**（Anti-Slacking Rule：不许「以后有空再说」），
+- [x] `Follow-up` 该 backlog 条目必须写明**触发条件**（Anti-Slacking Rule：不许「以后有空再说」），
       至少含：**人裁定推翻 `0228-1` M2 时** · **第一次出现「`tools/**` 被改坏、当轮 `GATE_VERIFY` 绿、
       无人值守时才炸」时** · **人裁定给本仓引入 shellcheck / 扩 lint 面时**。
-- [ ] `Add` 往 `docs/backlog/p0-foundation-roadmap.md` **纯追加**一行 `9 现状 · <本 plan 的判据设施加严>`。
+- [x] `Add` 往 `docs/backlog/p0-foundation-roadmap.md` **纯追加**一行 `9 现状 · <本 plan 的判据设施加严>`。
       ⚠️ **既有行一个字不改**（`git diff` 只许显示新增），且必须逐字写明：
       本 plan **不改工作项 9 的 `done` 判据**（那条判据是「用判定器对 `tests/gates` 全部 19 条
       live 判定并 `success`」，与 ruff 的作用域**互不重叠**），
       **不得被读成「工作项 9 因此可以 `done`」**；**所有工作项的状态值一个字未改**。
-- [ ] `Add` 往 `docs/masterplan/STATE.md` **追加**一行证据（红线 5：只追加，不改写既有行）。
+- [x] `Add` 往 `docs/masterplan/STATE.md` **追加**一行证据（红线 5：只追加，不改写既有行）。
 
 Exit Criteria:
 
-- [ ] `docs/backlog/tools-dir-has-no-static-check-coverage.md` 存在，四件必含事项逐条可核，触发条件已写明
-- [ ] `docs/backlog/p0-foundation-roadmap.md` 的 `git diff` **只显示新增行，零删除零修改**
-- [ ] `docs/masterplan/STATE.md` 的 `git diff` **只显示新增行**
-- [ ] No owner-doc update required beyond the above
-- [ ] `docs/logs/` 更新
+- [x] `docs/backlog/tools-dir-has-no-static-check-coverage.md` 存在，四件必含事项逐条可核，触发条件已写明
+- [x] `docs/backlog/p0-foundation-roadmap.md` 的 `git diff` **只显示新增行，零删除零修改**
+- [x] `docs/masterplan/STATE.md` 的 `git diff` **只显示新增行**
+- [x] No owner-doc update required beyond the above
+- [x] `docs/logs/` 更新
 
 ## Draft Review Record
 
@@ -462,7 +462,35 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: <待关闭时填写>
+Status Note: **两个 Phase 全部交付并 ticked，`Plan Status` 仍是 `active`** ——
+按 `docs/plans/00-plan-authoring-and-execution-guide.md` Minimum Rule 13 与 Plan Status Flow
+（`completed` 逐字是「independent closure audit accepted closure」，且
+「do not mark it complete as a side effect of finishing the last implementation slice」），
+**置 `completed` 之前必须先有一次独立关闭审计**。前驱 plan `-1` 走的是同一路径
+（`151c68b` 交付完毕仍 `active` → `03ffaec` 审计判 `closure-approved` 后才 `completed`）。
+下面的 `Closure Audit Evidence` 由审计方填。
+
+交付面与证据（供审计复跑，逐条已在本机实跑）：
+
+- Phase 1 提交 sha `ca75ddc`；Phase 2 提交 sha `<PHASE2_SHA>`。
+- `python3 -m ruff check tests/gates` / `tests/gates/conftest.py` / `"$PWD/tests/gates"` / `./tests/gates`
+  → **全部 exit 0**，各打 `warning: No Python files found under the given path(s)` + `All checks passed!`；
+  落地前前三种**全部 exit 1**。
+- 隔离 A/B 三条 `diff` 无输出：`ruff check .` **9 → 9** · `ruff check agenerp tests/unit tests/contracts`
+  **exit 0 → exit 0** · `ruff check tools` **9 → 9**。
+- 本机变异一次：去掉 `force-exclude = true` → `ruff check tests/gates` **exit 1**，逐字点名
+  `tests/gates/conftest.py:29:8: F401 [*] `time` imported but unused` 与
+  `tests/gates/test_customization_roundtrip_delete.py:39:39: E741 Ambiguous variable name: `l``；复原 → **exit 0**。
+- `python3 tools/gates/check_expected_red.py` → **exit 0**，三行与 Baseline 8 `diff` 无输出；
+  `python3 -m pytest tests/unit -q` → **320 passed**；`python3 -m pytest tests/contracts -q` → **151 passed**；
+  `python3 tools/gates/check_expected_red.py && python3 -m pytest tests/unit -q`（GATE_VERIFY 原文）→ **exit 0**。
+- 红线机械自查（**Phase 1 那一个提交上**）：
+  `git diff --stat HEAD~1 HEAD -- tests/gates .github/workflows tools missions docs/masterplan` **无输出**。
+- Phase 2 的三处写入全部**纯追加**：`p0-foundation-roadmap.md` `numstat` **`1	0`** ·
+  `docs/masterplan/STATE.md` **`12	0`** · `docs/logs/2026/08-23.md` **`25	0`**；
+  `docs/context/project-context.md` **`2	2`**（只动 `:69-70` 那两行）。
+- ⚠️ **验证范围逐字是「本机」**：本 plan **零 `.github/workflows/**` 改动、零 CI 轮次消耗**，
+  **不得**宣称任何 CI 侧结论；`force-exclude` 在 CI 上**没有证伪面**（见 `## Deferred But Adjudicated`）。
 
 Closure Audit Evidence:
 

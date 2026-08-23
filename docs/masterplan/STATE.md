@@ -209,6 +209,18 @@
   · **登记而不消除**：`3` 是本仓新造的码，**不经监督器**的调用方看到它没有约定动作。实测 `check_budget.py` 在本仓的**唯一**调用方是 `tools/loop-supervisor.sh:70`（`tools/ab-run.sh:42,64` 调的是 `pass_usage.py`，**不调它**），所以残余只覆盖「人手工跑」与「将来新增的调用方」；处置是把三码语义写进 `--help` 与 docstring，**那是文档级约束，对将来的调用方没有强制力**。另：D3 之后一个**写坏的环境变量会直接停机**，这是**新增的停机入口**，代偿只有 stderr 上被拒绝的原值。
   · **红线自查**：`tests/gates/**` / `.github/workflows/**` / `DECISIONS.md` / `missions/**` / 证据仓 **零改动**（`git diff --numstat` 对四者均无输出）；`tools/gates/expected-red.txt` 与 `check_expected_red.py` / `gate-verify.mjs` **一个字节未动**；本 `STATE.md` 为**只追加**，上面每一行**一个字未改**（红线 5）。
 
+- 2026-08-23T09:40Z · P0.9/工作项 9 · `python3 -m ruff check tests/gates` → **exit 0**（落地前 **exit 1，2 条**）· `python3 tools/gates/check_expected_red.py && python3 -m pytest tests/unit -q` → **exit 0**（`320 passed`）· sha `ca75ddc`（Phase 1）· 下一项：本 plan 关闭审计
+  · **一处确认的契约/实现漂移已就地改准**（plan `2026-08-23-0859-2`）：`pyproject.toml` 的 `[tool.ruff] exclude = ["tests/gates"]` **只在目录遍历时生效**，显式传路径会**照样扫裁判目录**——那句注释「把它排除在 lint 作用域外，免得 lint 逼着去改裁判」**在字面上不成立**。加 `force-exclude = true` 后，目录 / 单文件 / 绝对路径 / `./` 前缀四种形态**全部 exit 0**，落地前三种**全部 exit 1**。
+  · **同一句不成立的话在仓里有三处**：`pyproject.toml:27-28` 与 `docs/context/project-context.md:69-70` **就地改准**（后者 `git diff --numstat` 逐字 `2	2`，该文件其余一行未动）；**第三处** `.github/workflows/gates.yml:437-439` **不改** —— 红线 2 的 `blocked` 面，已登记交人。`force-exclude` 落地后它从「不准确」变成「**准确但不完整**」，**方向是弱化不是加剧**，这是它可以挂着的理由，不是「它本来就没问题」。
+  · **隔离 A/B 是干净的**（本 plan 除这一行配置与两处注释外零代码改动）：`ruff check .` **9 → 9** · `ruff check agenerp tests/unit tests/contracts` **exit 0 → exit 0** · `ruff check tools` **9 → 9**，三条 `diff` 均**无输出**。
+  · **本机变异一次，红绿两端都跑**：去掉 `force-exclude = true` → `ruff check tests/gates` **exit 1**，逐字点名 `tests/gates/conftest.py:29:8: F401 [*] `time` imported but unused` 与 `tests/gates/test_customization_roundtrip_delete.py:39:39: E741 Ambiguous variable name: `l``；复原 → **exit 0**。
+  · **这是「挡住」不是「修好」，两者不得混为一谈**：裁判目录那 2 条告警**一条没修**，它们**此刻仍在** —— 红线 1，只有人能清（一次带 `Gates-Change-Approved-By:` 的清理）。
+  · **新引入一处假绿形态，照实登记不粉饰**：排除生效时 ruff **静默退 0**，输出只有 `warning: No Python files found under the given path(s)` 加 `All checks passed!` —— **「我检查了，全过」和「我根本没看」在退出码上长得一模一样**。处置写死两条并已落地：① `pyproject.toml` 与 `project-context.md` 的注释**明写**此事；② 那行 `warning:` 是唯一肉眼线索，**不得**被任何调用方用 `2>/dev/null` 吞掉。取舍全文见 `docs/architecture/system-baseline.md` §14.10。
+  · **`force-exclude` 在 CI 上没有证伪面**：交付形态里**没有任何 job** 会把 `tests/gates` 传给 ruff，所以「它是否还在生效」在 CI 上**不可证伪** —— 它是一个**潜伏的守卫**，上面那次本机变异**只在关闭当次做过一次，此后不再复核**。
+  · **验证范围（scoped，照实写，不得读成 full green）**：本 plan **零 `.github/workflows/**` 改动、零 CI 轮次消耗**，因此**不得宣称任何 CI 侧结论**。本机四条：`check_expected_red.py` → **0**（判定三行与开工基线 `diff` 无输出）· `pytest tests/unit -q` → **320 passed** · `pytest tests/contracts -q` → **151 passed** · GATE_VERIFY 原文命令 → **0**。
+  · **一块 scope 被独立评审整体移出，已带触发条件落进 backlog，不是静默删除**：`tools/**` 的 lint 扩面（连同 `2026-08-22-0228-1` 评审记录 M2「明确不扩面」的既有裁定原文、增量购买力接近零的反向证据、以及「把判定器纳入 lint = 让它长期人质于将来的 ruff 版本」这条代价）已写进 `docs/backlog/tools-dir-has-no-static-check-coverage.md`，三条触发条件写死。**本 plan 不重开别人的裁定。**
+  · **红线自查**：`tests/gates/**` / `.github/workflows/**` / `tools/**` / `missions/**` / `DECISIONS.md` / 证据仓 **零改动**（Phase 1 提交上 `git diff --stat -- tests/gates .github/workflows tools missions docs/masterplan` **无输出**）；本 `STATE.md` 为**只追加**，上面每一行**一个字未改**（红线 5）。
+
 ---
 
 ## §3 needs-human 队列
