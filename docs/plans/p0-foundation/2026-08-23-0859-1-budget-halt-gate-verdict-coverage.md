@@ -427,7 +427,7 @@ Exit Criteria:
 
 ### Phase 3 — 变异验证：证明这些断言有牙齿
 
-Status: planned
+Status: completed
 Targets: `tools/gates/check_budget.py` · `tools/gates/pass_usage.py`（实验后一律复原）·
 `docs/masterplan/STATE.md`（**只追加**一行证据）
 Skill: `none`
@@ -435,33 +435,59 @@ Skill: `none`
 - Item Types: `Proof`
 - Prereqs: Phase 2
 
-- [ ] `Proof` 变异 ①：撤掉 D1(e) 的顶层兜底 → 期望 `pytest tests/unit` **exit 1** 且**逐字点名
+- [x] `Proof` 变异 ①：撤掉 D1(e) 的顶层兜底 → 期望 `pytest tests/unit` **exit 1** 且**逐字点名
       红判据 B**（Phase 1 那条注入 `IsADirectoryError` 的通用契约断言）。
       ⚠️ **点名的必须是 B 不是 A** —— A 由 D1b(i) 单独就能绿，用 A 做这条变异会绿→绿空转。
       复原后回 exit 0。
-- [ ] `Proof` 变异 ②：把 D2 的 `config_path()` 体改回 `pathlib.Path("tools/gates/budget.json")` →
+- [x] `Proof` 变异 ②：把 D2 的 `config_path()` 体改回 `pathlib.Path("tools/gates/budget.json")` →
       期望那条 cwd 无关性断言红。⚠️ 若它在仓根 cwd 下也绿，说明断言没真测到路径 ——
       **那是判据无牙齿，必须当场改断言**。复原后回 exit 0。
-- [ ] `Proof` 变异 ③：把 `sum_usage` 的 `cache_read_input_tokens` 一项删掉 →
+- [x] `Proof` 变异 ③：把 `sum_usage` 的 `cache_read_input_tokens` 一项删掉 →
       期望 `test_pass_usage.py` 的聚合口径断言红并点名（fixture 的三个字段已按 Phase 1 取三个互不相同的非零值）。
       复原后回 exit 0。
-- [ ] `Proof` 变异 ④：把 D3 的「非纯数字环境变量 → 退 3」改回静默兜底 → 期望对应断言红并点名。
+- [x] `Proof` 变异 ④：把 D3 的「非纯数字环境变量 → 退 3」改回静默兜底 → 期望对应断言红并点名。
       复原后回 exit 0。
-- [ ] `Proof` 四次变异的八个退出码（红→绿 ×4）与**点名集合逐字**记进本 plan。
+- [x] `Proof` 四次变异的八个退出码（红→绿 ×4）与**点名集合逐字**记进本 plan。
       ⚠️ 只写「红了」不算证据；**任何一条出现「绿→绿」即判为该断言空转，必须当场补强而不是记成通过**。
-- [ ] `Proof` 收尾复跑 `GATE_VERIFY` 的原文命令
+- [x] `Proof` 收尾复跑 `GATE_VERIFY` 的原文命令
       `python3 tools/gates/check_expected_red.py && python3 -m pytest tests/unit -q`，记退出码与输出原文。
-- [ ] `Proof` 往 `docs/masterplan/STATE.md` **追加**一行证据（红线 5：只追加，不改写既有行）。
-- [ ] `Proof` 收尾实跑 `git status --porcelain`，确认四次变异全部复原、工作树只剩本 plan 的交付物。
+- [x] `Proof` 往 `docs/masterplan/STATE.md` **追加**一行证据（红线 5：只追加，不改写既有行）。
+- [x] `Proof` 收尾实跑 `git status --porcelain`，确认四次变异全部复原、工作树只剩本 plan 的交付物。
+
+Phase 3 实测记录（四次变异的八个退出码 + 点名集合，逐字入档；**没有任何一条「绿→绿」**）：
+
+| # | 变异 | 变异后 `python3 -m pytest tests/unit -q` | 逐字点名 | 复原后 |
+|---|---|---|---|---|
+| ① | 撤掉 `main()` 的顶层兜底 `except Exception`（D1(e)） | **exit 1**，`1 failed, 319 passed` | `FAILED tests/unit/test_budget_gate.py::test_gate_internal_failure_must_not_be_reported_as_over_budget` | **exit 0**，`320 passed` |
+| ② | `config_path()` 体改回 `pathlib.Path("tools/gates/budget.json")`（D2） | **exit 1** | `FAILED tests/unit/test_budget_gate.py::test_config_path_is_independent_of_cwd` | **exit 0** |
+| ③ | 删掉 `sum_usage` 的 `cache_read_input_tokens` 一项 | **exit 1** | `FAILED tests/unit/test_pass_usage.py::test_sum_usage_input_is_the_three_token_fields_summed` | **exit 0** |
+| ④ | 「非纯数字环境变量 → 退 3」改回 `if env.isdigit():` 静默兜底（D3） | **exit 1** | `FAILED tests/unit/test_budget_gate.py::test_non_numeric_env_var_halts_the_gate` | **exit 0** |
+
+- ⚠️ **变异 ① 点名的是红判据 B（通用契约，注入 `IsADirectoryError`），不是 A** —— 与 Phase 1 的预测一致：
+  A（不带时区的 `at`）由 D1b(i) 的归一逻辑单独就能绿，用 A 做这条变异会绿→绿空转。实测 ① 之下 A **仍然绿**。
+- ⚠️ **变异 ② 在仓根 cwd 下也红了**，即那条断言真测到了路径解析（它走 import 时留的原件 `_REAL_CONFIG_PATH`，
+  **没有** `monkeypatch` 掉 `config_path` 本身）。
+- 四次变异每次都**只点名一条**，无附带红。
+- 收尾 `python3 tools/gates/check_expected_red.py && python3 -m pytest tests/unit -q` → **exit 0**，输出逐字：
+
+  ```
+  判定模式：default —— 按 tools/gates/expected-red.txt 判定
+  门禁 19 项：预期红 7，绿 12，跳过 0
+  ✅ 与预期红名单完全一致
+  320 passed in 0.64s
+  ```
+
+- 收尾 `git status --porcelain` → **无输出**（四次变异全部复原）。
+- `git diff --numstat -- docs/masterplan/STATE.md` → **`10	0`**，删除列为 **0**（红线 5：只追加）。
 
 Exit Criteria:
 
-- [ ] 四条变异各自的红/绿八个退出码与点名集合已落纸；**没有任何一条是「绿→绿」**
-- [ ] 收尾 `python3 tools/gates/check_expected_red.py && python3 -m pytest tests/unit -q` → exit 0，原文入档
-- [ ] `docs/masterplan/STATE.md` 的 `git diff` **只显示新增行**
-- [ ] `git status --porcelain` 只含本 plan 的交付物
-- [ ] No owner-doc update required（本 phase 只取证；owner doc 已在 Phase 2 对齐）
-- [ ] `docs/logs/` 更新
+- [x] 四条变异各自的红/绿八个退出码与点名集合已落纸；**没有任何一条是「绿→绿」**
+- [x] 收尾 `python3 tools/gates/check_expected_red.py && python3 -m pytest tests/unit -q` → exit 0，原文入档
+- [x] `docs/masterplan/STATE.md` 的 `git diff` **只显示新增行**
+- [x] `git status --porcelain` 只含本 plan 的交付物
+- [x] No owner-doc update required（本 phase 只取证；owner doc 已在 Phase 2 对齐）
+- [x] `docs/logs/` 更新
 
 ## Draft Review Record
 
