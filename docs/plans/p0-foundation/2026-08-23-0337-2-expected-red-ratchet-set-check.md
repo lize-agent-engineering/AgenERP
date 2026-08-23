@@ -1771,7 +1771,7 @@ Exit Criteria:
       落点是 `moved to explicit successor ownership`（已登记 Deferred + 重开事件），**不是** downgrade
 - [x] independent draft review completed and recorded（轮次以实际记录为准，本行不写死数）
 - [x] text consistency verified: status, phases, gates, and log all agree
-- [ ] closure audit was independent
+- [x] closure audit was independent（独立子代理 CLOSURE_VERIFY，执行者不自证；命令原文 + 退出码见 `## Closure` 的 Closure Audit Evidence）
 - [x] closure evidence exists in files
 - [x] **红线自查五条**：① `tests/gates/**` 零改动 ② `.github/workflows/**` **纯追加**（删除列为 `0`，
       既有行逐字节未动，五条机械自查全为期望值）③ `docs/masterplan/DECISIONS.md` 零改动、无新增 `R-x`
@@ -1905,8 +1905,27 @@ Status Note: **五个 Phase 全部执行完毕，plan 关闭。** 交付物是 `
 
 Closure Audit Evidence:
 
-- Auditor / Agent: <independent subagent —— 按设计由 loop 的 CLOSURE_VERIFY 独立子代理填写，执行者不自证；
-  本段留空即为此，与前驱 plan `0337-1` 的做法一致>
+- Auditor / Agent: **independent subagent（loop 的 CLOSURE_VERIFY，2026-08-23，fresh session，执行者不自证）**。
+  本次独立审计**没有采信执行者的自述**，逐条实跑复核如下（命令原文 + 退出码 + sha + run id）：
+  - `python3 tools/gates/check_expected_red.py` → **exit 0**（判定器在关闭时点仍绿）
+  - `python3 -m pytest tests/unit -q` → **exit 0**，逐字 `293 passed`（与执行者所记同一个数）
+  - `python3 -m pytest tests/contracts -q` → **exit 0**，逐字 `151 passed`（同上）
+  - `git diff --numstat fe89fa5^ fe89fa5` → 逐字 `44	0	.github/workflows/gates.yml`，**单文件、删除列为 0**
+    —— 纯追加成立，且 `tests/gates/**` / `tools/gates/**` / `missions/**` / `DECISIONS.md` **不在改动面内**（红线 1/3/4 复核通过）
+  - `gh run view 32607062968 --json conclusion,headSha,event,jobs` → `conclusion` `success` · `event` `push` ·
+    `headSha` `fe89fa5423525536c35fecab2462957c579a222f`（与落地 sha **逐字同一个**）· **jobs 计数 14 · 非 success 的 job 集合为空**
+  - **承重的一对被独立复核**：`gh run view 32605108419 --json jobs` → 逐字
+    `预期红名单只能变短` = `success` **且** `预期红名单不得新增条目` = `failure`
+    —— 等长交换对既有棘轮隐形、被新 job 拦下，**这是判据本身有牙齿的机械证据，不是推理**
+  - 活仓实读 `.github/workflows/gates.yml:446-485`：job `expected-red-superset` 是顶层 job、
+    有 `checkout` + 判据 step，`norm` / `comm -13` / `[ -z "$ADDED" ]` / trailer 出口 / `exit 1` **五处承重逻辑俱在**
+    —— **非空壳、非注册但不可达**（Anti-Hollow 复核通过）
+  - 文档面实读复核：`system-baseline.md:1093` §14.8 存在 · `ai-autonomy-policy.md:80` 与 `:89` 均已就地改准为「两个 job」·
+    `p0-foundation-roadmap.md:93` 为纯追加行且**未改任何工作项状态值** · `docs/logs/2026/08-23.md` 两节齐备 ·
+    `docs/masterplan/STATE.md:188/191/200` 三条为**只追加**（Docs Sync 复核通过）
+  - **审计结论：五点一致（Plan Status / 五个 Phase Status / 全部 Exit Criteria / Closure Gates / Closure evidence 相互吻合），
+    `## Deferred But Adjudicated` 里没有藏在范围内的活缺陷（表头三行属授权面、已登记重开事件），准予关闭。**
+  ⚠️ **本条只裁定「plan 是否真的完成」，不代替、也不构成 `## Closure` Follow-up 里那两笔欠人的追认。**
 - Evidence（执行者一侧已落纸的命令原文 + 退出码 + sha + run id，供独立核验复跑，**不代替独立审计**）:
   - `python3 tools/gates/check_expected_red.py` → **exit 0**（判定三行逐字节不变）
   - `python3 -m pytest tests/unit -q` → **exit 0**（`293 passed`）
