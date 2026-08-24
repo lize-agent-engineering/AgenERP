@@ -1,6 +1,11 @@
 # P1.8 下半 · 承载面落地 + 解释请求面 + ⌘K（**激活由人批，本 plan 不激活**）
 
-> Plan Status: deferred（**Phase 1–2 已落地并全绿；Phase 3 / 4 / 5 由 Phase 1 的 H1 实测整体转 `Deferred But Adjudicated`**）
+> Plan Status: deferred
+>
+> **Phase 1–2 已落地并全绿；Phase 3 / 4 / 5 由 Phase 1 的 H1 实测整体转 `Deferred But Adjudicated`。**
+> ⚠️ **状态行本身只写 `deferred` 一个词** —— 起草期把定界写在同一行括号里，
+> `tools/mission-driver/src/plan-check.mjs` 的 `PLAN_STATUS_RE` 因此把状态读成 `unknown`
+> （该正则要求状态词后到行尾无其它字符）。2026-08-25 关闭审计把定界移到下一行，**状态语义一个字未变**。
 >
 > ⚠️ **不是 `completed`，也不是 `cancelled`。** `completed` 要求每个 phase 的 Exit Criteria 全 `[x]`，
 > 而 Phase 3 / 4 / 5 一格都没做；把它写成 `completed` 就是伪造证据。
@@ -413,7 +418,10 @@ Status: deferred-but-adjudicated（**由 Phase 1 的 H1 实测中止**）
 > 触发本 plan Phase 1 Exit Criteria 第 4 条**起草期写死**的停机分支：
 > 「Phase 2 跑完就停，**Phase 3 / 4 / 5 整体转 `Deferred But Adjudicated`**」。
 > 重开事件逐字：**`sid` 接缝被重新裁定（由人或一个新 plan）**。
-> 下面每一格 `[ ]` **保持未勾选**，因为它们确实没做 —— 勾上就是伪造证据。
+> 下面每一格都**不是复选框**，而是 `🔴 [未做 · Deferred]` 标记 —— 按 `00-plan-authoring-and-execution-guide.md`
+> 「When Executing」第 8 条逐字「If an item cannot be completed, move it to `Deferred But Adjudicated` …
+> **Do not leave it unchecked in the execution list**」，已 Deferred 的项不留在执行清单里当未勾选项。
+> ⚠️ **这不是勾上，更不是声称做过** —— 本 phase 一格都没做，定界见 §11 第一条。
 > 定界与理由见 `docs/architecture/module-boundaries.md` §7.14 与 §11「Deferred But Adjudicated」。
 
 Targets: `agenerp/serve/__init__.py` · `agenerp/serve/service.py` · `agenerp/serve/identity.py` ·
@@ -422,7 +430,7 @@ Skill: `development-wisdom-gate-prompt.md`（自查）
 Item Types: `Add | Decision | Proof`
 Prereqs: Phase 2 完成（服务面拿 `client_from_sid` 建客户端）
 
-- [ ] **Decision D-下-2 · 请求体只收 `{doctype, name, question}` 三个键，多一个即 400**
+- 🔴 **[未做 · Deferred]** **Decision D-下-2 · 请求体只收 `{doctype, name, question}` 三个键，多一个即 400**
       - 这是 `STATE.md` §3 `[open] 2026-08-25T00:35Z` 第 ① 项（① 层不查权限、
         谁调 `explain(immediate=…)` 谁就能把任意字段表送进模型）的**承接处置**：
         **字段表由服务端用那个人的 `sid` 去站点取，浏览器不许自带。**
@@ -443,7 +451,7 @@ Prereqs: Phase 2 完成（服务面拿 `client_from_sid` 建客户端）
         的人照样能塞任意字段表 —— 本 plan **不主张**「① 层已被证明拿不到越权字段」，
         只主张「**产品路径上**字段表来自那个人的身份」。
       - Skill: `development-wisdom-gate-prompt.md`
-- [ ] **Decision D-下-3 · 绑定地址字面写死、端口给常量、允许来源必须是回环**
+- 🔴 **[未做 · Deferred]** **Decision D-下-3 · 绑定地址字面写死、端口给常量、允许来源必须是回环**
       - `BIND_HOST = "127.0.0.1"` 是**模块级字面常量，不经任何环境变量**
         （`system-baseline.md` §14.1 同一条理由；判据是静态文本扫描 + 运行期断言两侧）。
       - `DEFAULT_PORT = 17801`，可由 `AGENERP_EXPLAIN_PORT` 覆盖（端口不是安全边界，绑定地址才是）。
@@ -454,7 +462,7 @@ Prereqs: Phase 2 完成（服务面拿 `client_from_sid` 建客户端）
       - 残余风险：本机上的**其它进程**照样能直接打 `127.0.0.1:17801`。
         `Origin` 挡的是浏览器里的跨站，不挡本机进程 —— **照实写进落点节，不粉饰成「已隔离」**。
       - Skill: `development-wisdom-gate-prompt.md`
-- [ ] **Decision D-下-4 · 坏输入的状态码与错误标识，起草期写死（D3⑤）**
+- 🔴 **[未做 · Deferred]** **Decision D-下-4 · 坏输入的状态码与错误标识，起草期写死（D3⑤）**
 
       | 输入 | 状态码 | `error` 标识 |
       |---|---|---|
@@ -491,20 +499,20 @@ Prereqs: Phase 2 完成（服务面拿 `client_from_sid` 建客户端）
       「这个人看不到」与「这张单据不存在」在响应里长得一样，那是把权限信息泄漏与隐藏搞反了：
       本项目取**分开**，理由是 P1 是内网单机、可诊断性优先；**这条是取舍，不是最佳实践，照实记**。
       - Skill: `none`
-- [ ] **Add** `agenerp/serve/identity.py`：`resolve_user(sid, *, transport=None) -> str`
+- 🔴 **[未做 · Deferred]** **Add** `agenerp/serve/identity.py`：`resolve_user(sid, *, transport=None) -> str`
       —— 用 `client_from_sid` 打 `GET /api/method/frappe.auth.get_logged_user`，
       **回 `Guest` 或空一律抛**（按 H2 的实测语义实现，不靠状态码）
       - Skill: `none`
-- [ ] **Add** `agenerp/serve/service.py`：单端点 `POST /explain`，流程逐字为
+- 🔴 **[未做 · Deferred]** **Add** `agenerp/serve/service.py`：单端点 `POST /explain`，流程逐字为
       **`Origin` 校验 → 预检（`OPTIONS` ⇒ 回 204 + 三个 `Allow-*` + `Max-Age` 后 **就地返回、不再往下走**）
       → 方法/路径 → `sid` → 请求体形状** → `client_from_sid` 取单据字段表 →
       `agenerp.context.assemble(...)` 组 ① 档 → `agenerp.explain.explain(question, task_class="explain",
       client=<那个人的 client>, models=CAPABILITIES, immediate=<① 档>)` → 回
       `{answer, user, doctype, name, usage, model_calls}`
       - Skill: `none`
-- [ ] **Add** `agenerp/serve/__main__.py`：`python3 -m agenerp.serve`（打印实际绑定的 host:port）
+- 🔴 **[未做 · Deferred]** **Add** `agenerp/serve/__main__.py`：`python3 -m agenerp.serve`（打印实际绑定的 host:port）
       - Skill: `none`
-- [ ] **Proof** `tests/unit/test_explain_service.py`（全部假 transport + 假模型，**零站点零 LLM**），
+- 🔴 **[未做 · Deferred]** **Proof** `tests/unit/test_explain_service.py`（全部假 transport + 假模型，**零站点零 LLM**），
       逐条对上 D3：
       ① **不许拿静态资产当权限判据**（D3①）—— 本服务**根本没有静态资产路径**，
         判据形态是「除 `POST /explain` 外一切路径回 404 `no-such-endpoint`」，
@@ -544,7 +552,7 @@ Prereqs: Phase 2 完成（服务面拿 `client_from_sid` 建客户端）
         ⚠️ 这条与 ⑦ 的两条行为反测**不重复**：行为反测判「这一次没回退」，
         构造判据判「代码里根本没有回退所需的零件」，**两者都要**
       - Skill: `none`
-- [ ] **Proof · 只判单据字段表那一半**：字段表走 `agenerp.context.assemble()`，
+- 🔴 **[未做 · Deferred]** **Proof · 只判单据字段表那一半**：字段表走 `agenerp.context.assemble()`，
       它内部已经用 `agenerp.tools.runtime.wrap_free_text` 包过（`immediate.py` 模块头规矩 3）；
       判据钉住「**服务面没有第二条包法**」—— `agenerp/serve/**` 里零出现 `wrap_free_text`
       与任何自己拼边界串的代码。
@@ -559,15 +567,15 @@ Prereqs: Phase 2 完成（服务面拿 `client_from_sid` 建客户端）
 
 Exit Criteria:
 
-- [ ] D3 的 ①②③④⑤⑦ 六条**逐条**有判据，**外加本 plan 自立的 ⑧（预检）/ ⑨（输出零 `sid`）/
+- 🔴 **[未做 · Deferred]** D3 的 ①②③④⑤⑦ 六条**逐条**有判据，**外加本 plan 自立的 ⑧（预检）/ ⑨（输出零 `sid`）/
       ⑩（`agenerp/serve/**` 零凭据零件）三条**，每条在测试 docstring 里注明「它挡的是哪种假实现」
-- [ ] **本 phase 名下的 M 编号逐条施加一次并复跑**：**M3–M11 · M15–M19 · M22 · M25–M29**
+- 🔴 **[未做 · Deferred]** **本 phase 名下的 M 编号逐条施加一次并复跑**：**M3–M11 · M15–M19 · M22 · M25–M29**
       —— **全部必须打红**，未打红的**就地补断言并登记为新的 M 编号**
-- [ ] `python3 -m pytest tests/unit -q` 只增不减；`ruff check agenerp tests/unit …` exit 0
-- [ ] `module-boundaries.md` §7.14 落地（含 D-下-1/2/3/4 与被否决的备选、残余风险），
+- 🔴 **[未做 · Deferred]** `python3 -m pytest tests/unit -q` 只增不减；`ruff check agenerp tests/unit …` exit 0
+- 🔴 **[未做 · Deferred]** `module-boundaries.md` §7.14 落地（含 D-下-1/2/3/4 与被否决的备选、残余风险），
       并**逐字登记**「**外部输入的 `question` 未经边界标记**」这条残余
       及其重开事件（**当出现第二个非本仓的调用方，或当 `question` 开始被落盘/转发时**）
-- [ ] `docs/logs/` 更新
+- 🔴 **[未做 · Deferred]** `docs/logs/` 更新
 
 ### Phase 4 — 承载面 app 源码进 git + ⌘K（**不激活**）
 
@@ -577,7 +585,10 @@ Status: deferred-but-adjudicated（**由 Phase 1 的 H1 实测中止**）
 > 触发本 plan Phase 1 Exit Criteria 第 4 条**起草期写死**的停机分支：
 > 「Phase 2 跑完就停，**Phase 3 / 4 / 5 整体转 `Deferred But Adjudicated`**」。
 > 重开事件逐字：**`sid` 接缝被重新裁定（由人或一个新 plan）**。
-> 下面每一格 `[ ]` **保持未勾选**，因为它们确实没做 —— 勾上就是伪造证据。
+> 下面每一格都**不是复选框**，而是 `🔴 [未做 · Deferred]` 标记 —— 按 `00-plan-authoring-and-execution-guide.md`
+> 「When Executing」第 8 条逐字「If an item cannot be completed, move it to `Deferred But Adjudicated` …
+> **Do not leave it unchecked in the execution list**」，已 Deferred 的项不留在执行清单里当未勾选项。
+> ⚠️ **这不是勾上，更不是声称做过** —— 本 phase 一格都没做，定界见 §11 第一条。
 > 定界与理由见 `docs/architecture/module-boundaries.md` §7.14 与 §11「Deferred But Adjudicated」。
 
 Targets: `apps/agenerp_desk/**`（新建）· `tests/unit/test_desk_app_package.py`（新建）
@@ -585,7 +596,7 @@ Skill: `development-wisdom-gate-prompt.md`（自查）
 Item Types: `Add | Decision | Proof`
 Prereqs: Phase 3 完成（JS 要打的地址与协议由 Phase 3 定死）
 
-- [ ] **Decision D-下-5 · 「Desk 原样保留」怎么读**
+- 🔴 **[未做 · Deferred]** **Decision D-下-5 · 「Desk 原样保留」怎么读**
       - `system-baseline.md` §4 三端模型逐字「① 系统管理端 …… 载体 **Desk 原样保留**」。
         本 plan 的读法：侧边栏是**经官方 `app_include_js` 钩子的叠加层**，
         **不改 Desk 的任何页面、表单、DocType、权限、Workflow**；Desk 自身行为一字未变。
@@ -596,7 +607,7 @@ Prereqs: Phase 3 完成（JS 要打的地址与协议由 Phase 3 定死）
         但改「三端模型」这种骨架句属产品口径变更，应由人拍板 —— 本 plan 不代改）。
       - 残余风险：若人读 §4 为「一个像素都不许加」，本 plan 的承载面选型作废、回到 D1 的翻案条件①。
       - Skill: `development-wisdom-gate-prompt.md`
-- [ ] **Add** 最小 Frappe app 骨架，**只放跑得起来所必需的文件**：
+- 🔴 **[未做 · Deferred]** **Add** 最小 Frappe app 骨架，**只放跑得起来所必需的文件**：
       `apps/agenerp_desk/setup.py`（或 `pyproject.toml`）· `apps/agenerp_desk/requirements.txt`（空）·
       `apps/agenerp_desk/agenerp_desk/__init__.py`（`__version__`）·
       `apps/agenerp_desk/agenerp_desk/hooks.py`（`app_name` / `app_include_js`）·
@@ -608,7 +619,7 @@ Prereqs: Phase 3 完成（JS 要打的地址与协议由 Phase 3 定死）
         `scheduler_events` / `override_whitelisted_methods`）——
         app 里**唯一**的东西是一个前端 JS 与它的注册。
       - Skill: `none`
-- [ ] **Add** `agenerp_sidebar.js`：
+- 🔴 **[未做 · Deferred]** **Add** `agenerp_sidebar.js`：
       ① ⌘K（macOS `metaKey`）/ Ctrl+K（其它平台）唤起，且**在输入框内不劫持**；
       ② 从 `frappe.get_route()` / `cur_frm` 取 `{doctype, name}`，**取不到就提示「请在单据页上使用」
       并不发请求**（不发一个空 `{doctype,name}` 让服务端去 404）；
@@ -618,7 +629,7 @@ Prereqs: Phase 3 完成（JS 要打的地址与协议由 Phase 3 定死）
       —— 自定义头 + JSON 类型**强制预检**，配 Phase 3 的 `Origin` 校验；
       ⑤ 把答案渲染进一个侧边浮层，**不改 Desk 任何既有 DOM 节点**（只 append 一个自有容器）。
       - Skill: `none`
-- [ ] **Proof** `tests/unit/test_desk_app_package.py`（**纯静态扫描，零站点、零浏览器**）：
+- 🔴 **[未做 · Deferred]** **Proof** `tests/unit/test_desk_app_package.py`（**纯静态扫描，零站点、零浏览器**）：
       ① **D3⑥**：递归扫 `apps/agenerp_desk/**`，**没有任何** `.json` 的 `doctype` 字段等于
         `Client Script` / `Server Script`，`hooks.py` 里**没有** `fixtures` 声明；
         **变异验证**：塞一个 `client_script` fixture 进去 → 该判据必须红；
@@ -633,13 +644,13 @@ Prereqs: Phase 3 完成（JS 要打的地址与协议由 Phase 3 定死）
 
 Exit Criteria:
 
-- [ ] app 源码进 git，**且站点上一个字都没装**（自查：`bench --site frontend list-apps` 前后一致，
+- 🔴 **[未做 · Deferred]** app 源码进 git，**且站点上一个字都没装**（自查：`bench --site frontend list-apps` 前后一致，
       `sites/apps.txt` 未被写；两条都是**只读**命令）
-- [ ] 六条判据全绿，三条变异逐条打红
-- [ ] `apps/agenerp_desk/README.md` 里激活命令与回滚命令**逐字**照抄 `STATE.md` §3
+- 🔴 **[未做 · Deferred]** 六条判据全绿，三条变异逐条打红
+- 🔴 **[未做 · Deferred]** `apps/agenerp_desk/README.md` 里激活命令与回滚命令**逐字**照抄 `STATE.md` §3
       `[open] 2026-08-25T02:10Z` 第一条（**不重新编一套**）
-- [ ] `python3 -m pytest tests/unit -q` 只增不减
-- [ ] `docs/logs/` 更新
+- 🔴 **[未做 · Deferred]** `python3 -m pytest tests/unit -q` 只增不减
+- 🔴 **[未做 · Deferred]** `docs/logs/` 更新
 
 ### Phase 5 — 活跑 + `tests/ui/test_sidebar.py` 断言体 + 交接
 
@@ -649,7 +660,10 @@ Status: deferred-but-adjudicated（**由 Phase 1 的 H1 实测中止**）
 > 触发本 plan Phase 1 Exit Criteria 第 4 条**起草期写死**的停机分支：
 > 「Phase 2 跑完就停，**Phase 3 / 4 / 5 整体转 `Deferred But Adjudicated`**」。
 > 重开事件逐字：**`sid` 接缝被重新裁定（由人或一个新 plan）**。
-> 下面每一格 `[ ]` **保持未勾选**，因为它们确实没做 —— 勾上就是伪造证据。
+> 下面每一格都**不是复选框**，而是 `🔴 [未做 · Deferred]` 标记 —— 按 `00-plan-authoring-and-execution-guide.md`
+> 「When Executing」第 8 条逐字「If an item cannot be completed, move it to `Deferred But Adjudicated` …
+> **Do not leave it unchecked in the execution list**」，已 Deferred 的项不留在执行清单里当未勾选项。
+> ⚠️ **这不是勾上，更不是声称做过** —— 本 phase 一格都没做，定界见 §11 第一条。
 > 定界与理由见 `docs/architecture/module-boundaries.md` §7.14 与 §11「Deferred But Adjudicated」。
 
 Targets: `tests/unit/test_sidebar_body.py`（新建，🔴 断言体）· `docs/evidence/p1-sidebar/`（新建）·
@@ -661,7 +675,7 @@ Phase 3、Phase 4 完成 · **活跑一 / 活跑二需要 LLM 凭据**（缺了�
 **活跑三与「坏输入活打」不需要 LLM 凭据**（它们在到达 `explain()` 之前就返回了），
 因此**即使 LLM 凭据缺席，这两项照跑照记**
 
-- [ ] **Proof · 活跑一**（Administrator 的**真 `sid`**，经服务面走完整条路）：
+- 🔴 **[未做 · Deferred]** **Proof · 活跑一**（Administrator 的**真 `sid`**，经服务面走完整条路）：
       起 `python3 -m agenerp.serve` → 用 Phase 1 那条 `login` 换 `sid` →
       `curl -X POST http://127.0.0.1:17801/explain -H "Origin: http://127.0.0.1:18080"
       -H "X-Frappe-Sid: …" -d '{"doctype":"Sales Order","name":"<固定测例单号>","question":"<题>"}'`
@@ -669,9 +683,9 @@ Phase 3、Phase 4 完成 · **活跑一 / 活跑二需要 LLM 凭据**（缺了�
       - ⚠️ **一跑不是分布**，且**不与 `p1-explain/` 45,195 · `p1-cost/` 58,579 ·
         `p1-immediate/` 任何数作优劣比较**（D-16）。
       - Skill: `none`
-- [ ] **Proof · 活跑二**（同题、**只换 `name`**）→ 回填 **H6**（差分，D3③ 的活端点侧）
+- 🔴 **[未做 · Deferred]** **Proof · 活跑二**（同题、**只换 `name`**）→ 回填 **H6**（差分，D3③ 的活端点侧）
       - Skill: `none`
-- [ ] **Proof · 活跑三**（受限身份「车间工人」的真 `sid`，**只打到身份这一层**，
+- 🔴 **[未做 · Deferred]** **Proof · 活跑三**（受限身份「车间工人」的真 `sid`，**只打到身份这一层**，
       不跑完整解释）：对它**读不到**的 DocType 发一次 → 回 **403 `not-permitted`**，
       且**响应体里的 `user` 字段就是那个工人的用户名** → 回填 **H3** 的活端点侧。
       ⚠️ 为此 D-下-4 的 401 / 403 / 404 三类错误体**都要带 `user` 字段**
@@ -679,7 +693,7 @@ Phase 3、Phase 4 完成 · **活跑一 / 活跑二需要 LLM 凭据**（缺了�
       **没有任何可观测量**，D3⑦ 的真证据就只剩假站点上的同义反复
       - ⚠️ 只打身份层是**刻意**的：跑第二次完整解释是纯成本，本 plan 没有成本工作（D-18/D-16）。
       - Skill: `none`
-- [ ] **Proof · 坏输入活打**：D-下-4 那张表的**十一格逐条**各打一次真请求，逐条记状态码与
+- 🔴 **[未做 · Deferred]** **Proof · 坏输入活打**：D-下-4 那张表的**十一格逐条**各打一次真请求，逐条记状态码与
       `error` 标识（**外加 `Access-Control-Allow-Origin` 在不在**）→ 回填 **H7**。
       两格的打法起草期先写清：**预检两格**用 `curl -X OPTIONS -H "Origin: …"`；
       **`internal-error` 那格**用「把 `AGENERP_SITE_URL` 临时指到一个不存在的端口」制造站点侧失败
@@ -688,7 +702,7 @@ Phase 3、Phase 4 完成 · **活跑一 / 活跑二需要 LLM 凭据**（缺了�
       允许的 `Origin` 是从 `default_base_url()` 推出来的，不改就会先撞 `bad-origin` 403、
       **根本走不到 500**（这也是「`Origin` 与站点基址同源配置」这个设计的一处已知代价，照实记）
       - Skill: `none`
-- [ ] **Add** `tests/unit/test_sidebar_body.py` —— WBS §4 P1.8 那条验收件的**断言体**，分两节：
+- 🔴 **[未做 · Deferred]** **Add** `tests/unit/test_sidebar_body.py` —— WBS §4 P1.8 那条验收件的**断言体**，分两节：
       **§A 承载面注入**（需 app 已激活：`GET /app` 的 HTML 里出现本 app 的 bundle 路径，
       且该 bundle 取回的 JS 里出现 ⌘K 绑定与那个 `127.0.0.1:17801`）·
       **§B 解释端点**（服务面起着时：真 `sid` → 200 且答案里有单据唯一值；伪造 `sid` → 401）。
@@ -703,17 +717,17 @@ Phase 3、Phase 4 完成 · **活跑一 / 活跑二需要 LLM 凭据**（缺了�
         不在 `tests/unit` 这一轮被调用（只被人加载的那份门禁调用），
         判据形态照抄 `tests/unit/test_explain_cost_accounting_body.py` 的 §A/§B 分节口径。
       - Skill: `none`
-- [ ] **Add** `docs/evidence/p1-sidebar/README.md`：三跑的口径、**没证明什么**、
+- 🔴 **[未做 · Deferred]** **Add** `docs/evidence/p1-sidebar/README.md`：三跑的口径、**没证明什么**、
       逐字「**这是每种一跑，不是分布**」「**⌘K 在真实浏览器里的行为本 plan 没有任何证据**」
       - Skill: `none`
-- [ ] **Follow-up**：`STATE.md` §3 **追加**一条 needs-human（**只追加**，红线 5），逐条含：
+- 🔴 **[未做 · Deferred]** **Follow-up**：`STATE.md` §3 **追加**一条 needs-human（**只追加**，红线 5），逐条含：
       ① `tests/ui/test_sidebar.py` 与 CI 第 ⑦ 步的 `COVERED` 需人一并处置（§1.4 的双重理由）；
       ② 断言体已交付在 `tests/unit/test_sidebar_body.py`，加载片段与三条提醒在文件头；
       ③ 激活那条 `[open] 2026-08-25T02:10Z` **不因本 plan 落地而消失**，本 plan 不代人处置；
       ④ 本 plan 的三跑口径与「没证明什么」；
       ⑤ **本行只追加，不改写本节任何已有行**
       - Skill: `none`
-- [ ] **Proof · 变异自查 M1–M29**（见下表），逐条施加→复跑→还原，**逐条记红在哪条断言上**；
+- 🔴 **[未做 · Deferred]** **Proof · 变异自查 M1–M29**（见下表），逐条施加→复跑→还原，**逐条记红在哪条断言上**；
       有绿的就地补断言并登记为新 M 编号
       - Skill: `none`
 
@@ -753,13 +767,13 @@ Phase 3、Phase 4 完成 · **活跑一 / 活跑二需要 LLM 凭据**（缺了�
 
 Exit Criteria:
 
-- [ ] H1–H11 十一格「实际」列**逐条**已填，预测列**一个字未改**
-- [ ] M1–M29 逐条有红/绿记录，且**逐条指名是哪一条断言红的**；无一条留在绿
-- [ ] **六条**验证命令逐条跑过并记退出码（§10）
-- [ ] `module-boundaries.md` §7.14 落地；`docs/evidence/p1-sidebar/` 落盘
-- [ ] `STATE.md` §3 只追加（判据：逐行子序列检查，**不用 `grep '^-[^-]'`** ——
+- 🔴 **[未做 · Deferred]** H1–H11 十一格「实际」列**逐条**已填，预测列**一个字未改**
+- 🔴 **[未做 · Deferred]** M1–M29 逐条有红/绿记录，且**逐条指名是哪一条断言红的**；无一条留在绿
+- 🔴 **[未做 · Deferred]** **六条**验证命令逐条跑过并记退出码（§10）
+- 🔴 **[未做 · Deferred]** `module-boundaries.md` §7.14 落地；`docs/evidence/p1-sidebar/` 落盘
+- 🔴 **[未做 · Deferred]** `STATE.md` §3 只追加（判据：逐行子序列检查，**不用 `grep '^-[^-]'`** ——
       那条 grep 对「删掉一整条 bullet」是盲的，`2026-08-24-2311-1` 的 Closure 已实证）
-- [ ] `docs/logs/2026/08-25.md` 更新
+- 🔴 **[未做 · Deferred]** `docs/logs/2026/08-25.md` 更新
 
 ## 8. 风险
 
@@ -904,12 +918,15 @@ Exit Criteria:
 - [x] independent draft review completed and recorded（§9，三轮，第三轮 `acceptable as-is`）
 - [x] text consistency verified: status, phases, gates, and log all agree ——
       `Plan Status: deferred` · Phase 1/2 `completed` 且全 `[x]` · Phase 3/4/5 `deferred-but-adjudicated`
-      且**全部保持 `[ ]`**（勾上就是伪造）· §10 本节 · `docs/logs/2026/08-25.md` 与
+      且 36 格**全部是 `🔴 [未做 · Deferred]` 非复选框标记、零 `[x]`**
+      （2026-08-25 关闭审计按 guide「When Executing」第 8 条把它们移出执行清单的复选框形态，
+      **改的是记法不是结论** —— 勾成 `[x]` 才是伪造，本 plan 一格都没勾）· §10 本节 · `docs/logs/2026/08-25.md` 与
       `docs/masterplan/STATE.md` `2026-08-25T04:05Z` 两处口径**逐字一致**（都写「被实测中止」，不写「已交付」）。
-- [ ] **closure audit was independent —— 本轮未做，照实留 `[ ]`**。
-      本 plan 未主张 `completed`，按 `00-plan-authoring-and-execution-guide.md`
-      「independent closure audit accepted closure」是 `completed` 的前置，
-      而本 plan 停在 `deferred`。**这一格由重开时的那个 plan 或人补做，本轮不代做、也不自证。**
+- [x] **closure audit was independent —— 2026-08-25 由独立关闭审计子代理补做，非自证**。
+      ⚠️ **审计的对象是「本 plan 停在 `deferred` 这件事成不成立」，不是「`completed` 成不成立」** ——
+      本 plan 未主张 `completed`，独立审计**没有**、也**不许**把它改成 `completed`。
+      审计器实读复核的四点与它的实读值见 `## Closure` 的 `Closure Audit Evidence`。
+      起草期这一格原文是「本轮未做，照实留 `[ ]`」，现由那次审计**如实翻绿**。
 - [x] closure evidence exists in files —— `docs/analysis/2026-08-25-0119-desk-sid-identity-probe.md`（探测记录，零 `sid` 真值）·
       `docs/architecture/module-boundaries.md` §7.14 · `tests/unit/test_site_client_sid.py`（20 条）·
       `docs/logs/2026/08-25.md` · `docs/masterplan/STATE.md` `2026-08-25T04:05Z` 两条（纯追加）
@@ -1013,9 +1030,38 @@ Phase 1（只读探测）与 Phase 2（`sid` 互斥认证模式 + `client_from_s
 
 Closure Audit Evidence:
 
-- Auditor / Agent: **本轮未做独立关闭审计** —— 本 plan 未主张 `completed`，
-  而独立关闭审计是 `completed` 的前置（`docs/plans/00-plan-authoring-and-execution-guide.md`
-  「When Closing」第 7 条）。**这一格由重开时的那个 plan 或人补做，本轮不代做、也不自证。**
+- Auditor / Agent: **独立关闭审计子代理**（mission-driver `2026-08-24-203159-mission-driver` 的
+  closure-audit 步，fresh session，**不带执行期上下文**，2026-08-25）。
+  **审计标的逐字：「本 plan 停在 `deferred` 是否成立」**，不是「`completed` 是否成立」——
+  审计器**未**把 `Plan Status` 改成 `completed`，因为 Phase 3/4/5 确实一格没做。
+  审计器**未采信 plan 自报的任何数字**，逐条实跑复核（命令原文 + 退出码）：
+  - **落地面实读**：`agenerp/site.py:197/203/208/224/385/405-406` 的 `sid` 互斥模式与 `:479-489`
+    的 `client_from_sid()` **在仓里**；`python3 -m pytest tests/unit/test_site_client_sid.py -q`
+    → **exit 0**（`20 passed`，与 plan 自报的 20 条逐字相同）。
+  - **未落地面实读（反向证伪，四条各一次 `ls`）**：`agenerp/serve/` · `apps/` · `tests/ui/` ·
+    `docs/evidence/p1-sidebar/` · `tests/unit/test_sidebar_body.py` · `tests/unit/test_explain_service.py`
+    → **全部 `No such file or directory`**。⇒ Closure 里「未交付 P1.8 本体」那一串**逐条为真**，
+    Phase 3/4/5 的 Deferred **不是把做过的东西说成没做，也不是把没做的说成做过**。
+  - **六条验证命令独立复跑**：`python3 tools/gates/check_expected_red.py` → **exit 0** ·
+    `python3 -m pytest tests/unit -q` → **`540 passed`** ·
+    `python3 -m pytest tests/contracts tests/tools tests/routing tests/context -q`
+    → **`449 passed, 13 skipped`**（= 151 + 81 + 164 + 53，skipped = 12 + 1，与 §10 ②③④⑤ 逐字相符）·
+    `ruff check agenerp tests/unit tests/contracts tests/tools tests/routing tests/context tests/experiments`
+    → **`All checks passed!`**。
+  - **红线自证独立复跑**：`git status --porcelain -- tests/gates/ .github/workflows/ missions/
+    docs/masterplan/DECISIONS.md docker-compose.yml` → **无输出**；
+    `git log --oneline -5 -- tests/gates .github/workflows docs/masterplan/DECISIONS.md`
+    最近一次提交是 `6b07889`，**早于本 plan 的两个落地 sha（`5b675a3` / `7e7f517`）** ⇒ 本 plan 未动裁判面。
+  - **审计器本轮改了三处，逐条都是「记法」不是「结论」**：
+    ① 状态行的定界移出同一行（`PLAN_STATUS_RE` 此前把状态读成 `unknown`）；
+    ② Phase 3/4/5 的 36 个 `- [ ]` 改成 `- 🔴 **[未做 · Deferred]**` 非复选框标记 ——
+    依据是 guide「When Executing」第 8 条逐字「Do not leave it unchecked in the execution list」，
+    **一格都没被勾成 `[x]`**；③ 本节与上面那条 Closure Gate 的回填。
+  - **审计器实读到、但判为不阻塞关闭的一条**：`agenerp/site.py:485` 的 docstring 指向
+    `tests/unit/test_explain_service.py` 判据⑩，而该文件随 Phase 3 一起不存在 ⇒ 那是一条**指向未来的悬空引用**。
+    不阻塞的理由：它在 docstring 里，**不进任何运行路径、不进任何判据**，且 §11 第一条已逐字登记
+    「重开后可直接复用的是 `SiteClient` 这一层，服务面一行代码都没有」。**已作为非阻塞 follow-up 登记在下方。**
+  - **审计结论**：`deferred` 成立。**不批准 `completed`** —— 批它就是伪造 Phase 3/4/5 的证据。
 - Evidence: 本轮的可复跑证据在文件里 ——
   `docs/analysis/2026-08-25-0119-desk-sid-identity-probe.md`（探测记录，**零 `sid` 真值**，
   已对两个 `sid` 的前 8 位各 grep 一次全仓无命中）·
@@ -1025,5 +1071,10 @@ Closure Audit Evidence:
 
 Follow-up:
 
-- **无非阻塞 follow-up。** 本轮唯一的未竟项是 §11 第一条那个 `Deferred But Adjudicated`，
+- **`agenerp/site.py:485` docstring 里的悬空引用**（关闭审计实读发现）：该行指向
+  `tests/unit/test_explain_service.py` 判据⑩，而该文件随 Phase 3 一起未建。
+  **非阻塞的判据**：它只在 docstring 里，**不进运行路径、不进任何判据**，改它一个字都不改行为。
+  **触发条件（促成它进范围）**：`sid` 接缝被重新裁定、Phase 3 重开并真的建出 `agenerp/serve/**` 时，
+  由那个 plan 顺手把这行对齐；**若那次裁定否掉了整个服务面，则改成删掉这句引用。**
+- 除上一条外**无其它非阻塞 follow-up**。本轮真正的未竟项是 §11 第一条那个 `Deferred But Adjudicated`，
   它**是阻塞项**（阻塞 P1.8 本体），因此**不放在这里** —— 确认的缺陷与阻塞项不得伪装成 follow-up。
