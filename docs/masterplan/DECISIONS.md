@@ -64,7 +64,7 @@
 | 职权与禁区 | [01-EXECUTION-MODEL.md](./01-EXECUTION-MODEL.md) §1 |
 | 翻案条件 | 无。这是人的选择 |
 
-### D-6 · LoopX 采用（试点，严格分层）
+### D-6 · LoopX 采用（试点，严格分层）　→ **已于 2026-08-23 CP9 复盘判定「停用」**
 
 | | |
 |---|---|
@@ -75,6 +75,14 @@
 | **事先写死的退出判据** | Day 0 的 `W0.12` 给 LoopX 集成 **2 小时上限**。超时仍未跑通「建 goal → 建 todo → `quota should-run` 决策 → 门禁退出码写回证据」这一闭环 → **当场退回 STATE.md 手工纪律，不再重试**，并在 §3 追加 `R-x` 记录 |
 | 复评时点 | 与 AGE 方法论一起纳入 **CP9 · P0 阶段复盘**：「是否续用」二选一，判据事先写死于 [04-RUNBOOK.md](./04-RUNBOOK.md) §7 |
 | 翻案条件 | 上面两条任一触发；或 LoopX 与 mission-driver 出现「谁说了算」的实例冲突 ≥2 次 |
+
+> **CP9 复盘结论（2026-08-24）：停用。** 判据事先写死为「跨会话恢复实际生效 ≥3 次」，
+> 实测 `loopx status` 回 `run-history goals=1 runs=1`，且 LoopX 自报
+> `state_file_missing` / `source_registry_missing` 并建议 `retire-global-goal`。
+> 本阶段实际发生的跨会话恢复靠 `STATE.md` 的 RESUME 协议 + git。
+> **停用 = 不再依赖，不是清除痕迹**：不删安装、不动 registry。
+> 重启评估须由**人**发起并作为新的采用决策，不是恢复旧决策。
+> 全文见 [`docs/audits/2026-08-23-CP9-P0-retrospective.md`](../audits/2026-08-23-CP9-P0-retrospective.md)。
 
 ### D-7 · 坚持在 ERPNext 之上做，不重造会计/制造内核
 
