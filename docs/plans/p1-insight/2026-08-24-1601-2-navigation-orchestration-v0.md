@@ -382,8 +382,8 @@ Exit Criteria:
 
 - [x] H1–H4 四条逐条有「吻合 / 不吻合」判定，写在 plan 里
 - [x] 质量判据以方向 + 上界形式落进 `tests/tools/test_navigation.py`，且 H4 反测为红
-- [ ] 两组数字落进 owner doc 落点节，逐字标注「本仓夹具实测，非站点实测」（硬约束 ④）
-      —— **落点节按 Phase 1 Exit Criteria 的裁定集中在 Phase 3 一次写完**，本条随 §7.6a 落地一并勾上
+- [x] 两组数字落进 owner doc 落点节，逐字标注「本仓夹具实测，非站点实测」（硬约束 ④）
+      —— **落点节按 Phase 1 Exit Criteria 的裁定集中在 Phase 3 一次写完**，已随 `module-boundaries.md` §7.6a 落地
 - [x] `docs/logs/2026/08-24.md` 更新
 
 
@@ -425,18 +425,18 @@ H4 的空包变体（`opening_injection_verified` 人工置真、但包里没有
 
 ### Phase 3 — 权限拒绝熔断 + 落点节 + 收口
 
-Status: planned
+Status: completed
 Targets: `agenerp/orchestration/circuit.py` · `tests/tools/test_navigation.py` · `docs/architecture/module-boundaries.md` · `docs/masterplan/STATE.md`（**仅追加**）
 Skill: `development-wisdom-gate-prompt.md`（收尾自查）
 
 - Item Types: `Add | Proof | Fix | Decision`
 - Prereqs: Phase 1、Phase 2
 
-- [ ] `Add` — `DenialBreaker`：单次会话内**连续** N 次权限拒绝即终止（N 默认 5，§7.4 建议值），
+- [x] `Add` — `DenialBreaker`：单次会话内**连续** N 次权限拒绝即终止（N 默认 5，§7.4 建议值），
       终止时产出**所需权限清单**与固定文案。**「连续」不是「累计」**——中间成功一次即清零，
       这一点必须有独立断言（累计版会把正常会话误刹）。
       - Skill: `none`
-- [ ] `Decision | Add` — 拒绝的识别口径**沿用已实测的那一条**：`agenerp/tools/site_scope.py:70`
+- [x] `Decision | Add` — 拒绝的识别口径**沿用已实测的那一条**：`agenerp/tools/site_scope.py:70`
       逐字「**只有 HTTP 403 被判成『这个身份读不到』**」，其余任何失败照旧抛出去（判定代码在 `:79-84`）。
       **不得**把站点宕机、超时、5xx 计进熔断计数——那会把「站点坏了」读成「你没权限」。
       ⚠️ **它今天不是一个可复用件**：那段判定内联在 `doctypes_with_data` 里，
@@ -453,13 +453,13 @@ Skill: `development-wisdom-gate-prompt.md`（收尾自查）
       撞 §3 Non-Goals 3。**残余风险**：两处口径靠一条断言绑定，
       有人只改一处且顺手改断言就会漂移——这条写进落点节，靠人复核兜。
       - Skill: `none`
-- [ ] `Proof` — `tests/tools/test_navigation.py` 追加：
+- [x] `Proof` — `tests/tools/test_navigation.py` 追加：
       ① 连续 5 次 403 → 刹车，且返回值含所需权限清单；
       ② 4 次 403 + 1 次成功 + 4 次 403 → **不刹车**（连续 vs 累计的反测）；
       ③ 5 次**非 403 失败** → **不刹车**（站点宕机不算权限拒绝）；
       ④ 刹车文案与所需权限清单**非空且指名 DocType**。
       - Skill: `none`
-- [ ] `Proof` — **假实现变异自查**（逐个植入 → 跑 `python3 -m pytest tests/tools -q` → 原样还原，
+- [x] `Proof` — **假实现变异自查**（逐个植入 → 跑 `python3 -m pytest tests/tools -q` → 原样还原，
       结果表进 plan）。**八个，一个不少**：
       M1 装配器不注入、只写标志 `True`；
       M2 注入产物只保留 `can_read: True` 的行；
@@ -481,7 +481,7 @@ Skill: `development-wisdom-gate-prompt.md`（收尾自查）
          （对应反测 B：`FakeSite.requests` 里会冒出 `GET /api/resource/DocType`，必须红）。
       **八个一个不少；任何一个没被打红，就地补断言，并把「补了什么」写进 plan。**
       - Skill: `none`
-- [ ] `Fix` — `docs/architecture/module-boundaries.md`：
+- [x] `Fix` — `docs/architecture/module-boundaries.md`：
       (a) **§7.4 末尾追加落点**（熔断从「仍未做」改为已落地，含 N 值、连续语义、403-only 口径、
       以及「**接到真实循环上是 P1.4 的动作**」这句限定）；
       (b) **§7.6 追加一节「编排层在本仓的落点」**（各文件职责、D1/D2/D3 三个 `Decision`、
@@ -489,7 +489,7 @@ Skill: `development-wisdom-gate-prompt.md`（收尾自查）
       ⚠️ §7.6 里那句「§7.4 的权限拒绝熔断（N=5）仍未做……归 P1.0 的控制循环」**必须一并改准**
       ——它现在是**确认的 owner-doc 漂移**（P1.0 已 `done` 且未做它），按指南第 14 条不可降级为 follow-up。
       - Skill: `none`
-- [ ] `Add | Proof` — 收口时**在 STATE §3 追加**一条 needs-human，内容三项
+- [x] `Add | Proof` — 收口时**在 STATE §3 追加**一条 needs-human，内容三项
       （**不是 `Decision`**：三项内容都由已有事实直接推出，没有待选方案，因而没有备选与残余风险可写）：
       (a) `tests/tools`（含新文件 `test_navigation.py`）/ `tests/routing` / `tests/context`
       接进 CI 的 `unit-and-contracts` / `lint` 与 `commands.test`；
@@ -501,11 +501,52 @@ Skill: `development-wisdom-gate-prompt.md`（收尾自查）
 
 Exit Criteria:
 
-- [ ] 熔断四条断言全绿，含「连续 vs 累计」与「403-only」两条反测
-- [ ] 变异自查 **M1–M8 八项**结果表进 plan，含「由此当场加强过的地方」
-- [ ] `module-boundaries.md` §7.4 与 §7.6 两处更新，且 §7.6 那句已失效的归属被改准
-- [ ] STATE §3 追加一条 needs-human，且 `git diff --numstat` 对该文件的**删除列为 0**
-- [ ] `docs/logs/2026/08-24.md` 更新
+- [x] 熔断四条断言全绿，含「连续 vs 累计」与「403-only」两条反测
+- [x] 变异自查 **M1–M8 八项**结果表进 plan，含「由此当场加强过的地方」
+- [x] `module-boundaries.md` §7.4 与 §7.6 两处更新，且 §7.6 那句已失效的归属被改准
+- [x] STATE §3 追加一条 needs-human，且 `git diff --numstat` 对该文件的**删除列为 0**
+- [x] `docs/logs/2026/08-24.md` 更新
+
+
+#### Phase 3 执行记录 · M1–M8 变异自查（**八个，一个不少**）
+
+协议：逐个植入 → `python3 -m pytest tests/tools -q` → **按字节还原**（还原后
+`git status --porcelain agenerp/orchestration/opening.py` 无输出）。**只改实现，不动测试。**
+
+| 变异 | 植入内容 | 退出码 | 被打红的判据 |
+|---|---|---|---|
+| **M1** | 装配器不注入、直接回一个 `opening_injection_verified = True` 的包 | **1** | 8 条，含 `test_opening_injection_really_happens_on_the_site`（判据落 `FakeSite.requests`） |
+| **M2** | 注入产物只保留 `can_read: True` 的行 | **1** | 5 条，含 `test_the_injected_scope_keeps_the_rows_it_cannot_read` 与 H1/H2 |
+| **M3** | **保签名**，`run_metric` 内部按开场包分叉，off 那一路 `copy.deepcopy(strategy)` | **1** | **只有** `test_the_two_runs_share_one_strategy_object`（两组数字逐位相同，只有 `is` 能打红） |
+| **M4** | 熔断改成累计计数（成功不清零） | **1** | `test_a_success_in_the_middle_clears_the_streak` |
+| **M5** | 熔断把非 403 失败也计进去 | **1** | `test_site_outages_are_not_permission_denials` · `test_an_outage_neither_counts_nor_clears` |
+| **M6** | **装配路径上**覆盖 `permission_probe_method` | **1** | `test_the_probe_method_fact_is_carried_over_by_identity`（⚠️ 见下） |
+| **M7** | 注入代价写成常量 `InjectionCost(1, 1)` | **1** | 3 条代价判据 |
+| **M8** | 装配器忽略调用方给的候选集、一律走发现式路径 | **1** | 8 条，含反测 B `test_a_given_candidate_set_never_triggers_metadata_discovery` |
+
+**八个全部被打红。**
+
+##### 由此当场加强过的地方（**M6 第一轮是绿的，照实写**）
+
+M6 第一轮植入后 **`79 passed`，exit 0**。原因不是漏了断言，而是断言**不够狠**：
+原判据只有 `pack.facts[...] == pack.result.facts[...]`，而「装配路径上把它写死成
+`'has_permission'`」这个变异让**两边同时**变成那个字面量，相等断言照样成立。
+
+就地补了两条：
+
+- `test_the_probe_method_fact_is_carried_over_by_identity` —— 用一个 `str` 子类实例
+  （与 `"has_permission"` **相等但不是同一个对象**，`str` 子类不被 CPython 驻留）
+  作为执行体交出来的事实，断言 `pack.facts[...] **is** traced`。**同一性，不是相等。**
+- `test_the_pack_never_invents_a_probe_method` —— 执行体一个 `has_permission` 都没调时，
+  开场包里这个键必须**不存在**（挡住「无条件补一个」那种更粗的写法）。
+
+补完之后 M6 的两个变体逐一复跑：**M6a**（守卫内写死）→ exit 1，红的正是同一性那条；
+**M6b**（无条件补一个）→ exit 1，两条都红。
+
+##### 变异自查本身的残余风险，照实记
+
+M1–M8 是**起草期自己挑的**变异，挑不到自己没想到的地方 —— P1.2 的独立关闭审计
+就另出了一个 A5 打中起草期的盲区。本 plan 同样不假设 M1–M8 穷尽了失败模式。
 
 ## 8. 本 mission 四条硬约束的逐条对照
 

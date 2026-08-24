@@ -101,6 +101,27 @@ Spike 01 探针 3 实测：以车间工人身份（仅可读 3 个 DocType）询
 
 配合 `permission.scope`，理想路径是 Agent 在**第一次查询之前**就判定「此问题超出我的可见范围」，而不是撞 35 次墙。
 
+**落点（2026-08-24，P1.3）**：`agenerp/orchestration/circuit.py` 的 `DenialBreaker`。
+plan [`2026-08-24-1601-2`](../plans/p1-insight/2026-08-24-1601-2-navigation-orchestration-v0.md)。
+
+| 项 | 落地形态 |
+|---|---|
+| N | 默认 **5**（`DENIAL_THRESHOLD`，本节建议值） |
+| 「连续」语义 | **连续，不是累计**：中间成功一次即清零。累计版会把一个跑了两小时、零星撞过 5 次权限边界的正常会话误刹，判据 `test_a_success_in_the_middle_clears_the_streak` 钉住它 |
+| 拒绝的识别口径 | **只有 HTTP 403** 算权限拒绝，沿用 `agenerp/tools/site_scope.py` 的 `doctypes_with_data` 那条实测口径。站点宕机 / 超时 / 5xx **不计进熔断计数** —— 那会把「站点坏了」读成「你没权限」 |
+| 非 403 失败的处理 | **既不计数、也不清零**。当成清零处理就给「每两次 403 之间制造一次超时」留了一条绕过路径；当成计数就把一次站点故障读成一次越权探测 |
+| 终止时给出什么 | 固定文案「你的权限不足以回答这个问题」+ **所需权限清单**（形如 `read:GL Entry`，**指名 DocType**） |
+| 两处 403 口径的一致性 | 靠一条**行为级**断言绑定：拿 `FakeSite` 驱动 `doctypes_with_data` 两次（403 那次进 `unreadable`、非 403 那次原样抛出），断言编排层对同样两种输入给出相同分类。**不比源码文本** |
+
+⚠️ **接到真实控制循环上是 P1.4 的动作，本期没做。** 本期能证明的是
+「喂 `DenialBreaker` N 次权限拒绝，它会刹车、会给出所需权限清单」，
+**不是**「真实会话里它一定被调用到」——循环本体归 P1.4（plan §3 Non-Goals 1）。
+⚠️ **本节的「写入审计，标记为权限探测事件」那一行本期未落地**：审计写入面属控制循环，
+与上一条同因。
+
+⚠️ **「35 次」是 Spike 01 在别的站点上对真模型的实测**，不是本仓的数字。
+本仓自己量出的导航数字见 §7.6a，**两者不是同一个量，不得互相引用为佐证**（D-16）。
+
 ### 7.5 工具结果的数据边界标记
 
 ERP 中大量字段是**用户可写的自由文本**——备注、评论、异常处理说明、附件描述。这些字段会被 `doc.get` 原样返回给 Agent，构成真实的提示注入攻击面。
@@ -180,7 +201,8 @@ sha `5a712a7`）：十条契约各有执行体，且**只有一个执行入口**
 - ~~**工具的运行时执行器**：十条契约今天只有声明，没有一条被真正调用过（属 P1 控制循环）。~~
   **2026-08-24 已不成立**：执行器已落地（见上表），十个工具在活站点上各跑过一次并守约
   （`tests/tools/test_live_conformance.py`，带凭据实跑 exit 0）。
-  §7.4 的**权限拒绝熔断**（N=5）仍未做——它是**控制循环**的行为，不是工具的，归 P1.0 的控制循环。
+  ~~§7.4 的**权限拒绝熔断**（N=5）仍未做——它是**控制循环**的行为，不是工具的，归 P1.0 的控制循环。~~
+  **2026-08-24 两处均已改准**：① P1.0 交付的是**实验设施**（`tools/experiments/`，模块头逐字「不进 `agenerp/`」）且已 `done`，熔断从来没有在它名下被做过——那是一条**责任人空缺的悬空条目**，不是别人的欠账；② 熔断已由 **P1.3** 落地在 `agenerp/orchestration/circuit.py`，落点见 §7.4 末尾与 §7.6a。**但它尚未接到任何真实控制循环上**，接线归 P1.4。
 
 **执行面落地时实测出来的三条限制，照实记在这里**（2026-08-24，活站点 `frontend`）：
 
@@ -206,6 +228,95 @@ sha `5a712a7`）：十条契约各有执行体，且**只有一个执行入口**
 **判据缺口，如实记在这里**：`python3 -m pytest tests/contracts -q` **不在** `missions/p0-foundation.json` 的 `commands.test` 里
 （那条是 `python3 tools/gates/check_expected_red.py && python3 -m pytest tests/unit -q`），因此 `GATE_VERIFY` 复跑不到它。
 `missions/**` 是角色 B 禁区，loop 无权自己补。代偿控制是独立关闭审计。人要补上，把该命令加进 `commands.test` 即可。
+
+### 7.6a 编排层在本仓的落点（P1.3 · 2026-08-24）
+
+plan [`2026-08-24-1601-2`](../plans/p1-insight/2026-08-24-1601-2-navigation-orchestration-v0.md)。
+owner doc 是 `docs/design/agents-and-roles.md` §5.1（`permission.scope`「由控制循环在会话开场
+自动注入」）、`docs/design/context-and-memory.md` §8.1（结构化导航优先）与本文件 §7.4（熔断）。
+
+**不是控制循环本体**（模型选工具 → 回注 → 作答 → 门禁 → 强制续跑）：那归 P1.4。
+本层交付「循环开场要做的事」与「循环出事时要刹的车」，三个对象各自可独立构造。
+
+| 落点 | 内容 |
+|---|---|
+| `agenerp/orchestration/opening.py` | 会话开场装配器 `open_session(...)`：在任何模型消息之前执行一次 `permission.scope`，产物 + 注入代价 + **由记录推导的**事实进 `OpeningPack` |
+| `agenerp/orchestration/navigation.py` | 确定性导航策略 `ScopeFirstStrategy` 与度量骨架 `run_metric(strategy, opening_pack, tasks, ...)`。**零模型参与**（D-15） |
+| `agenerp/orchestration/circuit.py` | §7.4 的 `DenialBreaker` + 403 识别口径（`is_permission_denial` / `result_is_permission_denial`） |
+| `tests/tools/test_navigation.py` | 本层全部判据（32 条，假站点，零网络零凭据零 docker）。文件名由 `docs/masterplan/02-WBS.md` §4 第 82 行的验收原文点名 |
+
+#### 「开场自动注入」的两段机制，**分名分述，不许混为一谈**
+
+| | 事实的含义 | 谁给 | 可验性 |
+|---|---|---|---|
+| **契约面** `injected_at_session_start`（`agenerp/tools_readonly.py` 的 `PERMISSION_SCOPE` 第二条后置断言） | 「本次调用是编排面在会话开场发起的」 | **调用方自证**（本性如此：工具没有「会话」这个概念，推不出编排面的事） | **弱**：调用方说了算 |
+| **开场包面** `opening_injection_verified`（`OpeningPack.facts`） | 「注入这件事**真的发生过**」 | 从 `ToolResult` **推导** | **强**：可从站点留痕核出，写死标志会被反测打红 |
+
+`agenerp/tools/runtime.py` 的事实合并是 `{**caller_facts, **outcome.facts}`，
+`agenerp/contracts.py` 的 `Condition.evaluate` 在事实缺席时直接判否 —— 因此装配器**必须**
+把契约面那条交进 `ReadOnlyContext`，否则 `execute("permission.scope", ...)` 必然在
+`postconditions` 上 abort。
+
+⚠️ **`tools_readonly.py` 那条后置断言在 P1.3 之后仍然是一个调用方自证的软断言。**
+任何绕过 `agenerp/orchestration/` 直接调 `execute` 的人都能把它填成 `True`。
+**不得**把它说成「注入已被契约保证」——P1.3 加强的是**编排面**，不是契约面。
+
+#### 三个 `Decision`（供人复核）
+
+- **D1 编排面落哪个包** —— 选定新包 `agenerp/orchestration/`，判据落既有的 `tests/tools/`。
+  否决 (A) 并进 `agenerp/context/`（P1.2 的 Non-Goals 3 把控制循环排除在上下文层之外，
+  塞进去等于让 P1.2 收口后的结果面被悄悄扩写）；否决 (C) 塞进 `agenerp/tools/runtime.py`
+  （那是**工具执行入口**这一个咽喉，让工具层知道循环的事方向反了）。
+  **残余风险**：本层与 P1.4 循环本体的接缝**只有单侧**（本层提供，P1.4 消费），
+  未被任何真实循环验证过。
+- **D2 §7.4 熔断进不进本期** —— 选定「进」。它是**责任人空缺的悬空条目**（见 §7.6 那条已改准的归属）、
+  是**确定性规则**（D-15）、且与开场注入同源（注入是主路径，熔断是兜底，
+  分在两个 plan 里会让「主路径失效时会怎样」没有归属）。**残余风险**见 §7.4 末尾的 ⚠️。
+- **D3 「导航质量」用什么口径量** —— 选定「**确定性导航策略在假站点上的 `execute()` 调用次数**，
+  on / off 两组对照，两组**共用同一个策略对象**」。否决 (A) 拿真模型跑几次比次数
+  （P1.0 实测每格 3 次只够看方向不够算比率，且每跑一次烧一次 token、结论还不稳）；
+  否决 (B) 直接把「35 → 1」写成断言目标值（D-16：那是别的站点上的数字）。
+
+#### 导航质量：**本仓夹具实测，非站点实测**
+
+计数口径先定死再跑（否则 H1/H3 的真假可以事后选）：「调用次数」= 一次会话内 `execute()`
+被调用的总次数，**含开场注入那一次**；「站点请求次数」= `ToolResult.request_count` 之和，
+**另计一栏**；终点是「可以开始作答」**或**「可以明确拒答」，两者都算终点。
+候选集 10 个 DocType，注入代价 `request_count = 10`（逐个 `has_permission`）。
+
+| 导航题 | on `execute()` | off `execute()` | on 站点请求 | off 站点请求 | 终点 |
+|---|---|---|---|---|---|
+| ① 受限身份问不可见 DocType | **1** | **5** | 10 | 5 | 两组都拒答 |
+| ② 可见范围内的单跳取数 | 2 | 1 | 12 | 2 | 两组都作答 |
+| ③ 多跳结构化导航（`meta.fields` / `doc.links`） | 4 | 3 | 16 | 6 | 两组都作答 |
+
+**这几个数是本仓夹具（`tests/tools/conftest.py` 的 `FakeSite`）上的实测，不是站点实测。**
+§7.4 记的「35 次」是 Spike 01 在**别的站点**上对真模型的实测，
+**两者不是同一个量、不是同一道题，不得互相引用为佐证**（D-16）。
+
+**两件不好看的事照实记**：
+
+1. **注入在站点请求这一栏上是净亏的，连它赢的那道题也是**（① 题 10 对 5）。
+   「调用次数少」与「站点请求少」是两件事，口径分两栏正是为了让这一点藏不住。
+   **「开场自动注入更省」这句话只在 `execute()` 次数这一栏成立。**
+2. **off 组那 5 次由题面决定**（① 题写死了 4 条备选路线）。题目与备选路线逐条写死在
+   `tests/tools/test_navigation.py` 的 `TASKS` 里，人复核时能看见选了什么、没选什么。
+   **选题偏向这条残余风险不消除。**
+
+判据形状是**方向 + 上界**，不钉具体次数：次数会随夹具演进漂移，钉死它会让判据红在夹具
+而不是红在实现。**残余风险**：方向性断言比数值断言弱，一个「只慢一点点」的退化不会被打红；
+缓解是把上表的数字写在这里，人复核时能看见趋势。**残余风险不消除。**
+
+#### 判据缺口与验证范围，照实记
+
+`tests/tools`（含本期新增的 `test_navigation.py`）**已在 CI 的 `unit-and-contracts` job 里**
+（2026-08-24 由人接进 `.github/workflows/gates.yml` 的第 ③ 步，并加了一条「没有测试目录被漏在
+CI 之外」的元判据），`lint` job 的 ruff 作用域也已含它。
+**但它仍不在 `missions/p1-insight.json` 的 `commands.test` 里**
+（那条是 `python3 tools/gates/check_expected_red.py && python3 -m pytest tests/unit -q`），
+因此 `GATE_VERIFY` 子进程**复跑不到本层的判据**。`missions/**` 与 `.github/workflows/**`
+loop 都无权自己动，已挂进 `docs/masterplan/STATE.md` §3 的 needs-human 队列。
+代偿控制：M1–M8 变异自查 + 独立关闭审计 + 那条队列行。
 
 ### 7.7 上下文层在本仓的落点（P1.2 · 2026-08-24）
 
