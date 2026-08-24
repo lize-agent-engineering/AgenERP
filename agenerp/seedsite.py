@@ -1059,19 +1059,19 @@ def _link_field_checks(client: SiteClient) -> list[CheckResult]:
         for row in dataset.of(doctype):
             name = str(row.get("name") or "")
             links = {
-                field: value for field, value in row.items()
-                if field != "name" and isinstance(value, str) and value in all_names
+                key: value for key, value in row.items()
+                if key != "name" and isinstance(value, str) and value in all_names
             }
             if not links:
                 continue
             site_doc = client.get(f"/api/resource/{doctype}/{name}").get("data", {})
-            for field, expected in sorted(links.items()):
-                actual = site_doc.get(field)
+            for key, expected in sorted(links.items()):
+                actual = site_doc.get(key)
                 results.append(CheckResult(
-                    label=f"{doctype} {name}.{field}",
+                    label=f"{doctype} {name}.{key}",
                     actual=repr(actual),
                     expected=repr(expected),
-                    source=f"agenerp.seed 生成的数据集（{doctype}.{field} → {all_names[expected]}）",
+                    source=f"agenerp.seed 生成的数据集（{doctype}.{key} → {all_names[expected]}）",
                     ok=actual == expected,
                 ))
     return results
