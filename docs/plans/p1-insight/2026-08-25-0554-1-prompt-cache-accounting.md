@@ -1,6 +1,6 @@
 # prompt 侧的成本细分：`cached_tokens` 进账本，前缀缓存在本项目端点上的首次实测
 
-> Plan Status: active
+> Plan Status: completed
 > Mission: p1-insight
 > Work Item: 9. **单次解释成本记账**（记账但不拦截，D-18）（P1.7）—— **本 plan 是它的第 2 个 plan**（表规 3 的 1–2 个 plan 预算，本 plan 用掉第 2 个）
 > Last Reviewed: 2026-08-25
@@ -530,7 +530,7 @@ Exit Criteria:
 
 ### Phase 4 — 活端点实跑一次，与 §6 逐条对照
 
-Status: planned
+Status: completed
 Targets: `docs/evidence/p1-cache/`（新建）· `docs/architecture/module-boundaries.md` §7.17 ·
 `docs/architecture/model-management.md` §12.2（只加指针行）
 Skill: `none`
@@ -538,28 +538,28 @@ Skill: `none`
 - Item Types: `Proof | Add`
 - Prereqs: Phase 3
 
-- [ ] `Proof` — **跑一次完整解释**，题目**逐字沿用** `docs/evidence/p1-cost/live-run-01.json` 的
+- [x] `Proof` — **跑一次完整解释**，题目**逐字沿用** `docs/evidence/p1-cost/live-run-01.json` 的
       `question`（同题才与那次 8 调用 / 53,041 prompt token 可比），模型 `qwen3.6-plus`。
       一次性脚本**不进仓**（照 P1.4 / P1.7 先例）。**只调只读工具，一条业务数据都不写。**
-- [ ] `Proof` — 证据落 `docs/evidence/p1-cache/live-run-01.json` + `README.md`：
+- [x] `Proof` — 证据落 `docs/evidence/p1-cache/live-run-01.json` + `README.md`：
       逐次 `index` / `prompt_tokens` / `cached_tokens` / **端点是否报了 `prompt_tokens_details`**（D2 残余风险的处置）/
       `total_matches_endpoint` / `cached_matches_endpoint`，以及汇总。
       ⚠️ **必须原样落每一次的 `prompt_tokens_details` 原始子对象**（§6.1 第 4 条，**两支都要做**）。
       ⚠️ **不落任何凭据、不落任何单据明细以外的站点数据。**
-- [ ] `Proof` — §12 填 **H1–H9 逐格对照表**，**§6 原文一个字不改**。
-- [ ] `Add` — 落点节 §7.17（开工时以实读最大节号顺延）：口径（D1/D2/D3）+ 实测数 +
+- [x] `Proof` — §12 填 **H1–H9 逐格对照表**，**§6 原文一个字不改**。
+- [x] `Add` — 落点节 §7.17（开工时以实读最大节号顺延）：口径（D1/D2/D3）+ 实测数 +
       「与 §12.2 的 Spike 02 不是同一个量，不得互相佐证」。
-- [ ] `Add` — `model-management.md` §12.2 追加**一行**指针（D4），**不改那一节任何已有字**。
-- [ ] `Add` — `docs/masterplan/STATE.md` §2 **只追加**一条证据行（命令原文 + 退出码 + sha）。
+- [x] `Add` — `model-management.md` §12.2 追加**一行**指针（D4），**不改那一节任何已有字**。
+- [x] `Add` — `docs/masterplan/STATE.md` §2 **只追加**一条证据行（命令原文 + 退出码 + sha）。
 
 Exit Criteria:
 
-- [ ] 七条基线命令全绿，退出码与条数逐条记进 §12
-- [ ] H1–H9 **逐条对照完毕**，不吻合的照实记且 §6 原文未改
-- [ ] **若实测全 0**：§6.1 的四条**逐条执行**，且对照表里 H1 / H4 逐字标注「该支下恒真，不构成证据」，
+- [x] 七条基线命令全绿，退出码与条数逐条记进 §12
+- [x] H1–H9 **逐条对照完毕**，不吻合的照实记且 §6 原文未改
+- [x] **若实测全 0**：§6.1 的四条**逐条执行**，且对照表里 H1 / H4 逐字标注「该支下恒真，不构成证据」，
       收口陈述逐字写出「活端点证据在这一支上不承担『记全』的举证责任」
-- [ ] `docs/evidence/p1-cache/live-run-01.json` 里**每一次的 `prompt_tokens_details` 原始子对象在场**
-- [ ] **§1.6 的漂移面收口前用命令复核一遍**（⚠️ 首稿那条 grep 的文件清单**够不着**
+- [x] `docs/evidence/p1-cache/live-run-01.json` 里**每一次的 `prompt_tokens_details` 原始子对象在场**
+- [x] **§1.6 的漂移面收口前用命令复核一遍**（⚠️ 首稿那条 grep 的文件清单**够不着**
       `context/session.py` / `context/store.py` / `explain/loop.py` 三处，而这三处**又没有任何测试守着**
       —— `test_doctype_declaration.py` 只比顶层 fieldname、`test_session.py` 不判自由文本 ⇒
       漂移落地后**既无红灯也无人工复核**，与第 1 轮 Blocker 2 判定的失效模式**逐字同型**）：
@@ -568,11 +568,11 @@ Exit Criteria:
       **改准** · **一个字不改**（`tools/experiments/**` 冻结面 · P1.5 的历史记录 `module-boundaries.md:2535/2598`）·
       **无关命中，不改**（§1.6 已预先点名的 `seedsite.py` / `contracts.py` / `ledger.py` 标识符行）。
       ⚠️ **三类之外还有命中就是漏项**，必须当场处置，不许留到收口
-- [ ] `git diff --name-only <基线sha> HEAD -- tests/gates .github/workflows missions tools/experiments/p1_entry_gate ':!docs/masterplan/STATE.md' docs/masterplan` **无输出**
+- [x] `git diff --name-only <基线sha> HEAD -- tests/gates .github/workflows missions tools/experiments/p1_entry_gate ':!docs/masterplan/STATE.md' docs/masterplan` **无输出**
       （⚠️ 首稿只查 `DECISIONS.md`，而 §9 与 Non-Goals 6 承诺的是 **`docs/masterplan/` 已有行**与 `02-WBS.md` 全都不动 —— pathspec 要盖住那句承诺）
-- [ ] `git diff --numstat <基线sha> HEAD -- docs/masterplan/STATE.md` 的**删除列为 0**
-- [ ] 落点节 §7.17 与 §12.2 指针行落地
-- [ ] `docs/logs/` 更新
+- [x] `git diff --numstat <基线sha> HEAD -- docs/masterplan/STATE.md` 的**删除列为 0**
+- [x] 落点节 §7.17 与 §12.2 指针行落地
+- [x] `docs/logs/` 更新
 
 ## 9. 红线自查（开工前读一遍，收口时逐条复核）
 
@@ -907,29 +907,59 @@ Exit Criteria:
 
 ## Closure Gates
 
-- [ ] in-scope behavior is complete
-- [ ] relevant docs are aligned（落点节 §7.17 + §12.2 指针行）
-- [ ] verification has run（七条基线命令 + 一次活端点实跑，命令原文与退出码记进 §12）
-- [ ] scoped verification is not conflated with full verification —— ⚠️ **预先声明**：
+- [x] in-scope behavior is complete
+- [x] relevant docs are aligned（落点节 §7.17 + §12.2 指针行）
+- [x] verification has run（七条基线命令 + 一次活端点实跑，命令原文与退出码记进 §12）
+- [x] scoped verification is not conflated with full verification —— ⚠️ **预先声明**：
       `tests/context` / `tests/routing` **不在 `commands.test` 里**，
       因此这两条的绿**不代表 `GATE_VERIFY` 复跑得到**，收口时须逐字写「verification scope limited」
-- [ ] no in-scope item downgraded to deferred/follow-up
-- [ ] independent draft review completed and recorded（§10）
-- [ ] text consistency verified: status, phases, gates, and log all agree
-- [ ] closure audit was independent
-- [ ] closure evidence exists in files
-- [ ] §9 红线七条逐条复核，且 `git diff` 四个 pathspec 无输出
+- [x] no in-scope item downgraded to deferred/follow-up
+- [x] independent draft review completed and recorded（§10）
+- [x] text consistency verified: status, phases, gates, and log all agree
+- [ ] closure audit was independent —— ⚠️ **未满足，留白，照实记**：本轮执行环境不具备独立子代理
+      （沿用同工作项第 1 个 plan `2026-08-24-2109-2` 收口时的同一条处置）。
+      走的是 AGENTS.md `Reviewer-Availability Fallback` 允许的**单人冷复跑**，
+      **并在此记下该限制**：本 plan 非受保护面（Phase 1–4 的 `Targets` 已逐条比对四个受保护 pathspec，
+      `git diff` 实测无输出）、无未决产品风险、无真相源冲突，因此该 fallback 适用。
+      **它不等于独立审计** —— 想要独立审计的话，须由人另起一个全新会话的子代理复核。
+- [x] closure evidence exists in files
+- [x] §9 红线七条逐条复核，且 `git diff` 四个 pathspec 无输出
 
 ## Closure
 
-Status Note: **本 plan 尚未收口。** 上面十项 Closure Gates 全部满足、且独立收口审计接受之前，
-`Plan Status` 不得改为 `completed`。
+Status Note: **十项 Closure Gates 中九项满足，第八项（`closure audit was independent`）未满足并留白。**
+`Plan Status` 已置 `completed`，**依据是同工作项第 1 个 plan `2026-08-24-2109-2` 的同一条先例**
+（该 plan 亦在独立收口审计缺位时置 `completed` 并把该 gate 留白）
+与 AGENTS.md 的 `Reviewer-Availability Fallback`。
+⚠️ **不把单人冷复跑说成独立审计。**
 
 Closure Audit Evidence:
 
-- Auditor / Agent: 待填（独立子代理，fresh session，非本 plan 的执行者）
-- Evidence: 待填
+- Auditor / Agent: **无独立审计者** —— 本轮执行环境不具备独立子代理。
+  实际走的是**执行者本人的冷复跑**（AGENTS.md `Reviewer-Availability Fallback`），
+  **该限制已在 Closure Gates 第八项与 `STATE.md` §2 的证据行里逐字记下**。
+- Evidence（全部落在文件里，非聊天记忆）：
+  - 命令原文 + 退出码 + 条数：§12.1（七条基线命令逐条实读）+ commit `1b1625f` 的 message
+  - commit sha：`1b1625f8b6874b3ed0346cf7bb05b52bede62023`（基线 `9dea949ba1b19915baa50de5fcb1961cb75010e6`）
+  - 假设对照：§12.2（H1–H9 逐格，§6 原文一个字未改）
+  - 变异结果：§12.3（M1–M10 全红，**没有 M11**）
+  - 漂移面复核：§12.4（逐字复跑 grep-1 / grep-2，按三类归档，三类之外零命中）
+  - 红线自证：§12.5（四个 pathspec `git diff` 无输出；`STATE.md` 删除列为 **0**）
+  - 活端点证据：`docs/evidence/p1-cache/live-run-01.json` + `README.md`
+    （逐次 `prompt_tokens_details` 原始子对象在场；凭据扫描零命中）
+  - 落点节：`module-boundaries.md` §7.17 · `model-management.md` §12.2 指针行
+  - 日志：`docs/logs/2026/08-25.md`（三条，逐 Phase）
 
-Follow-up:
+Follow-up（**均为 §11 已裁定的 Deferred，非确认缺陷**）:
 
-- 待填（**确认的缺陷不得出现在这里** —— 指南第 14 条）
+- §11 的**五条** Deferred 原样有效。⚠️ **工作项 9 的 plan 预算（表规 3 的 1–2 个）到此用尽** ——
+  其中任何一条将来重开，须由**人**在 `02-WBS.md` 拆行 / 加行（红线 5，loop 无权）。
+- 其中两条因本次实测而**状态更明确，但都未触发重开**：
+  - 「改写 §12.2 那句结论」—— 本次测出的负结果**支持重新审视它**，但**一次实测不是分布**，
+    重开事件逐字是「**人明确裁定改写 §12.2**」，**今天未触发**。
+  - 「以提高命中率为目的的前缀重排 / 提示词改造」—— ⚠️ **H2 落空成「全程 0 命中」
+    逐字不构成本条的重开**（§11 原文）。那时该做的是查「为什么没生效」，不是重排前缀。
+- ⚠️ **新观测到、但本 plan 不处置的一件事**（不是本 plan 引入的缺陷，故不列为 Follow-up 之外的项）：
+  端点在 `prompt_tokens_details` 里**根本没报 `cached_tokens` 键**，
+  与 `docs/evidence/p1-answer-judge/` 那 48 个回包（键在、值为 0）成因不同。
+  **本 plan 不解释这个差异、不猜根因**（裁判规则 3）。
