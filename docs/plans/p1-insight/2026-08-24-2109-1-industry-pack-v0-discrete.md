@@ -603,7 +603,12 @@ Exit Criteria:
 - [x] no in-scope item downgraded to deferred/follow-up
 - [x] independent draft review completed and recorded（§9）
 - [x] text consistency verified: status, phases, gates, and log all agree
-- [ ] closure audit was independent —— ⚠️ **留白，不勾**：本轮执行环境不具备独立子代理，执行者自审不算独立（照 P1.3 / P1.5 首次收口的同一处理）。详见 `## Closure`
+- [x] closure audit was independent —— **2026-08-24 由独立会话补做**（mission-driver 派发的独立收口审计器，
+      session `2026-08-24-203159-mission-driver`，fresh session、不带实现上下文，非执行者自审）。
+      ⚠️ **执行当轮的原状照实保留、不粉饰**：那一轮执行环境不具备独立子代理，
+      而**执行者自审不算独立**，此项曾留白为 `[ ]`（先例：P1.3 / P1.4 / P1.5 首次收口同此）。
+      ⚠️ **仍然不得把 §9 的三轮起草评审读成关闭审计** —— 那是开工前的，判的是 plan；关闭审计判的是**已落地的实现**。
+      补做记录见 `## Closure` 末尾的「独立关闭审计补做记录」一节 —— 原 `Closure Audit Evidence` 块**一个字未改写**。
 - [x] closure evidence exists in files
 - [x] `docs/backlog/p1-insight-roadmap.md` 工作项 8 未停在 `todo`（回写归属见 Phase 3 的归属声明）
 - [x] **收口时逐字声明五件事**：① `rule.lookup` **未接线**（本 plan 交付的是包与校验器，不是装载）；
@@ -815,3 +820,68 @@ Follow-up:
   已按缺陷处理，落 `docs/bugs/02-live-site-sales-order-is-not-closed-so-the-account-green-trap-is-absent.md`
   并在 STATE §3 立了 `[open]` 的 needs-human。它的归属（种子装载面）**不在本 plan 的交付面内**，
   因此不构成本 plan 的 in-scope 降级。
+
+### 独立关闭审计补做记录（2026-08-24，追加节 —— 上方 `Closure Audit Evidence` 块一个字未改写）
+
+- **Auditor / Agent**：mission-driver 派发的**独立收口审计器**（session `2026-08-24-203159-mission-driver`），
+  fresh session、不带实现上下文、非本 plan 的执行者。这正是上方那一节写死的「补做条件」。
+- **审计基线**：`git log --oneline -1` → `eda554f`（本 plan 的收口落账提交；实现提交是 `6682b68`）；
+  `git status --porcelain` 只有同批第二个 plan `2026-08-24-2109-2-explain-cost-accounting.md` 未跟踪（起草产物），
+  本 plan 交付面内的文件工作树干净。
+
+- **复跑（命令原文 + 退出码，逐条抄自终端，与 §12.6 声称的数字逐字对照）**：
+  - `python3 tools/gates/check_expected_red.py && python3 -m pytest tests/unit -q` → **exit 0** ·
+    `门禁 11 项：预期红 0，绿 11，跳过 0` · `453 passed` **吻合**
+  - `python3 -m pytest tests/contracts -q` → **exit 0** · `151 passed` **吻合**
+  - `python3 -m pytest tests/tools -q` → **exit 0** · `81 passed, 12 skipped` **吻合**
+  - `ruff check agenerp tests/unit tests/contracts tests/tools tests/routing tests/context tests/experiments`
+    → **exit 0** · `All checks passed!` **吻合**
+  - `python3 -m agenerp.packs validate --pack discrete` → **exit 0** ·
+    实测输出逐字列出**三条**规则及其测例名 **吻合**
+  - `python3 -m pytest tests/unit/test_industry_pack.py -q` → **exit 0** · **`39 passed`** ——
+    与 §12.6 的「基线 414 → 收口 453，差 **+39**」**逐字吻合**（新增判据条数不是估的，是复跑数出来的）
+
+- **实读核对（不信 `[x]`，逐条对活代码）**：
+  - 制品 `industry-packs/discrete/pack.json` 在盘上，`pack_id: discrete`、**三条规则各带 `test_case`**；
+    三条分别是成品积压 / 外协发出未收 / 订单已关闭却少发 —— 覆盖 Goal 4 点名的**外协一类**。
+  - `agenerp/packs/` 三个模块齐全（`__init__.py` / `loader.py` / `__main__.py`）：
+    `load_pack` 把 `PackNotFound` 与 `PackLoadError` **分得开**（不是同一个非零）；
+    `validate_pack` 真的委派到 `agenerp.inspection.engine.check_test_cases`，**不是只查键存在**；
+    `__main__.py` 的四个退出码 `0/3/4/5` 互不相等且 `2` 留给 argparse。
+  - **D3 的扩算子真的落到了求值面**（反空壳）：`agenerp/inspection/rules.py:56-62` 登记
+    `EXCLUDE_EQUALS` / `EXCLUDE_NOT_EQUALS`、`ROW_FILTER_KEYS` 含 `value`，
+    且 `agenerp/inspection/engine.py:170,172` **真的在 `_excluded()` 里分支求值** ——
+    不是「登记了但没人读」。
+  - **D5 的出处真的落到了 `Hit`**（反空壳）：`engine.py:109` 的 `pack_id: str = ""`、
+    `:113` 进 `as_dict()`、`:215/251/263/283` 一路从 `run()` / `inspect_site()` 的形参盖进每条命中 ——
+    来源那一层是 `Pack.pack_id`，**不是从 `rule_id` 猜的**。
+  - 坏包夹具在 `tests/unit/pack_fixtures/`（`missing-test-case` / `failing-test-case`），
+    **没有躺进 `industry-packs/`** —— 与 Phase 2 写死的口径一致。
+  - `tests/unit/test_industry_pack.py` 里 H2 / H3 / H5 / H6 / H7 各自有具名判据，
+    H3 的两种变异**各自 parametrize 逐条施加**（含最后一条），另有一条
+    `test_h3_the_number_of_rules_is_what_the_per_rule_sweep_assumes` 钉住「含最后一条」这句话不会悄悄失效。
+
+- **红线复核（独立复跑，不采信 §12.7 的转述）**：
+  `git diff --name-only 928a888 HEAD -- tests/gates .github/workflows missions docs/masterplan/DECISIONS.md`
+  → **无输出**；`git diff --numstat 928a888 HEAD -- docs/masterplan/STATE.md` → **`14 0`**（删除列为 0，只追加）。
+  改动清单 21 个文件全部落在本 plan 声明的 Targets 内。**红线 1–7 无一触碰。**
+
+- **五点一致性**：`Plan Status: completed` · Phase 1/2/3 三个 `Status: completed` ·
+  三组 Exit Criteria 全 `[x]` · §10 Closure Gates 全 `[x]`（本条即最后一条）·
+  `docs/logs/2026/08-24.md` 首条与 `docs/backlog/p1-insight-roadmap.md` 工作项 8（**`done`**，未停在 `todo`）
+  所述数字与结论**逐条一致**。
+
+- **Deferred 诚实性核查（重点看有没有把缺陷藏进 follow-up）**：§12.5 那条活站点差异
+  （`closed-order-short-delivered` 离线命中 10、站点零命中）**没有**被降级成 follow-up ——
+  已按缺陷落 `docs/bugs/02-live-site-sales-order-is-not-closed-so-the-account-green-trap-is-absent.md`
+  并在 `docs/masterplan/STATE.md` §3 立了 `[open]` 的 needs-human，且归属（种子装载面 `agenerp/seedsite.py`）
+  确实不在本 plan 的交付面内。§11 四条 Deferred 各有 classification 与重开条件，**无一条是确认的活缺陷**。
+
+- **收口叙述的五件事逐条复核，无一处夸大**：① `rule.lookup` 确实**未接线**
+  （`agenerp/tools/queries.py` 仍 `raise ToolError`，只改了 docstring）；② WBS 验收命令字符串定稿证据行在
+  `STATE.md` §2:324-325，`docs/masterplan/` 已有行未被代改；③ H1 预测表**原文一格未改**，
+  R3 那格记的是 `部分吻合`；④ 外协那条确实**未在真实数据上验证过命中**；
+  ⑤ 消融判据确实被逐字标注为「接近恒真」并降级为附带断言。
+
+- **判定**：**通过。** Exit Criteria 与活代码逐条吻合，新增代码全部有运行时调用面（无空壳），
+  五点一致，Deferred 无藏缺陷，docs 已同步。本 plan 可保持 `completed`。
