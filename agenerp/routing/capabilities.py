@@ -82,6 +82,18 @@ class ModelProfile:
 # 产品包里没有任何厂商端点或厂商 SDK。人可以增删这张表而不改任何代码路径。
 # 出处逐行写在 owner doc §12.5 的 `model-profiles` 表里。
 KNOWN_MODEL_PROFILES: Mapping[str, ModelProfile] = {
+    # P1.0 第二轮实测过的两个（2026-08-24）。`multi_hop` 的取值**首次有本项目
+    # 实测支撑**，不再只靠人填 —— 见 §12.5 出处列与 `docs/evidence/p1-entry-gate-round2/`。
+    "qwen3.8-max": ModelProfile(
+        name="qwen3.8-max",
+        capabilities=frozenset({"tool_calling", "long_context", "reasoning", "multi_hop"}),
+        is_reasoning_model=True,
+    ),
+    "qwen3.7-plus-2026-05-26": ModelProfile(
+        name="qwen3.7-plus-2026-05-26",
+        capabilities=frozenset({"tool_calling", "long_context", "reasoning", "multi_hop"}),
+        is_reasoning_model=True,
+    ),
     "qwen3.6-plus": ModelProfile(
         name="qwen3.6-plus",
         capabilities=frozenset({"tool_calling", "long_context", "reasoning", "multi_hop"}),

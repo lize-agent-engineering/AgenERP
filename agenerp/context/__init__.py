@@ -19,10 +19,28 @@ from agenerp.context.immediate import (
     assemble,
     trim,
 )
+from agenerp.context.session import (
+    ConversationSession,
+    ExecutedAction,
+    SnapshotRef,
+    ToolCall,
+    Turn,
+    start,
+)
+from agenerp.context.store import JsonFileSessionStore, SessionStore
+
 __all__ = (
     "ContextBudgetExceeded",
     "CurrentDocument",
     "ImmediateContext",
     "assemble",
     "trim",
+    "ConversationSession",
+    "ExecutedAction",
+    "SnapshotRef",
+    "ToolCall",
+    "Turn",
+    "start",
+    "SessionStore",
+    "JsonFileSessionStore",
 )

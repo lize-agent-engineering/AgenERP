@@ -194,6 +194,8 @@ Spike 02 实测（`claude:sonnet`，四道探针的通过态）：
 
 | 模型 | 具备能力 | 计 reasoning token | 出处 |
 |---|---|---|---|
+| `qwen3.8-max` | `tool_calling` · `long_context` · `reasoning` · `multi_hop` | 是 | **P1.0 第二轮实测**：两跳题 门禁 off **2/3**、on **3/3**（`docs/evidence/p1-entry-gate-round2/`）。落在预注册假设 H6 的「正确 ≥2/3」那一支 —— `multi_hop` 首次有本项目实测支撑 |
+| `qwen3.7-plus-2026-05-26` | `tool_calling` · `long_context` · `reasoning` · `multi_hop` | 是 | **P1.0 第二轮实测**：两跳题 门禁 off **3/3**、on **3/3**。⚠️ 必须用带日期版本号，裸别名 `qwen3.7-plus` 报 `Free quota exhausted`（D-17）|
 | `qwen3.6-plus` | `tool_calling` · `long_context` · `reasoning` · `multi_hop` | 是 | D-11 默认模型（选型未翻案）；`is_reasoning_model` 是**硬证据**——7 份轨迹里每次调用都有非零 `reasoning_tokens`。⚠️ **`multi_hop` 是本表最弱的一格**，见下方限定 |
 | `qwen-plus` | `tool_calling` · `long_context` | 否 | P1.0 弱模型，门禁 off **0/3**、on **1/3**，两跳题上未表现出 `multi_hop`；7 份轨迹里 `reasoning_tokens` **全为 0** |
 | `qwen3:14b` | `tool_calling` | 否 | §12.3 Spike 03：JSON 动作协议稳定（结论 1），多跳追溯不够（结论 3）；长上下文与推理强度**本仓未观测，故不声明** |

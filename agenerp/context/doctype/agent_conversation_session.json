@@ -1,0 +1,83 @@
+{
+  "actions": [],
+  "allow_rename": 0,
+  "autoname": "field:session_id",
+  "creation": "2026-08-24 00:00:00.000000",
+  "custom": 1,
+  "description": "AgenERP 上下文层 ② 会话的落处（P1.2）。**本文件只是声明，本仓没有任何 apply 逻辑**：在活站点上建这张表是风险档 L3、强制人批的动作，不由 loop 执行。字段与 agenerp/context/session.py 的 ConversationSession 逐字段同构，判据 tests/context/test_doctype_declaration.py。",
+  "doctype": "DocType",
+  "editable_grid": 0,
+  "engine": "InnoDB",
+  "field_order": [
+    "session_id",
+    "user",
+    "turns",
+    "actions",
+    "snapshots"
+  ],
+  "fields": [
+    {
+      "fieldname": "session_id",
+      "fieldtype": "Data",
+      "in_list_view": 1,
+      "label": "Session ID",
+      "reqd": 1,
+      "unique": 1
+    },
+    {
+      "fieldname": "user",
+      "fieldtype": "Link",
+      "in_list_view": 1,
+      "label": "User",
+      "options": "User"
+    },
+    {
+      "description": "对话轮次：角色 / 文本 / 工具调用 / 每轮 token 三项（prompt · completion · reasoning）。reasoning 是 completion 的细分，不是第四个桶；会话累计的 total 只是 prompt + completion。",
+      "fieldname": "turns",
+      "fieldtype": "Code",
+      "label": "Turns",
+      "options": "JSON"
+    },
+    {
+      "description": "已执行动作的审计记录。§8.2 优先级规则 ②：不可压缩，逐条留着。",
+      "fieldname": "actions",
+      "fieldtype": "Code",
+      "label": "Executed Actions",
+      "options": "JSON"
+    },
+    {
+      "description": "取证前后的只读快照**引用**（label / scope / entry_count），不复制快照内容。v0 的 ② 端只有只读工具，这里**不是写操作的回滚点**。",
+      "fieldname": "snapshots",
+      "fieldtype": "Code",
+      "label": "Snapshot References",
+      "options": "JSON"
+    }
+  ],
+  "index_web_pages_for_search": 0,
+  "is_submittable": 0,
+  "links": [],
+  "modified": "2026-08-24 00:00:00.000000",
+  "module": "AgenERP",
+  "name": "Agent Conversation Session",
+  "naming_rule": "By fieldname",
+  "owner": "Administrator",
+  "permissions": [
+    {
+      "create": 1,
+      "delete": 0,
+      "email": 0,
+      "export": 0,
+      "print": 0,
+      "read": 1,
+      "report": 0,
+      "role": "System Manager",
+      "share": 0,
+      "write": 1
+    }
+  ],
+  "quick_entry": 0,
+  "sort_field": "modified",
+  "sort_order": "DESC",
+  "states": [],
+  "track_changes": 1
+}
