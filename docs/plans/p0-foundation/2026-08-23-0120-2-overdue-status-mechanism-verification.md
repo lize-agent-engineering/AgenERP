@@ -15,7 +15,7 @@
 
 ## Current Baseline
 
-全部为 2026-08-23 在 `main`（`577e401`，`git status --porcelain` 无输出）上的实读，行号逐条核对过：
+全部为 2026-08-23 在 `main`（`97e4652`，`git status --porcelain` 无输出）上的实读，行号逐条核对过：
 
 1. **代码把一条从未取证的机制写成了事实。** `agenerp/seedsite.py:811-816` 的 docstring，承重句在 `:813-815`：
    「`status` 是站点拿**真实时钟**跟 `due_date` 比出来的，不是拿数据集的 `as_of` 比的。
@@ -759,7 +759,7 @@ Exit Criteria:
   评审轮次改为「以实际轮次为准」；补一句跨 plan 说明（前驱写进取证记录的 `288 passed` 是历史证据，
   不是本 plan owns 的漂移）。
 - Independent draft review iteration 4: **`accept`**（独立子代理，fresh session）—— **零阻塞项，达成共识**。
-  评审对 `577e401` 逐条复核了轮次 3 的六条修法，全部确认：
+  评审对 `97e4652` 逐条复核了轮次 3 的六条修法，全部确认：
   ① `module-boundaries.md:1149-1151` **是对的**（`:1148` 空行、`:1151` 承载那半句成立条件），
   且 Phase 3 逐字点名了 `:1151` 不得漏；② `gate-proposal-seed-dataset.md:93-94` 与 `:96` 的引文逐字核准，
   已入 Baseline 并有自己的两分支处置项，且 `Status: proposed` 明确不动；
@@ -795,7 +795,7 @@ Exit Criteria:
 - [x] **合并后 `main` 上 `gates-l2-seed` 为 `success` —— 已按 Anti-Slacking 的四态之一
       `adjudicated as residual-risk-only` 移入 `## Deferred But Adjudicated` 末条，不再作为阻塞门。**
       ⚠️ **照实记，不粉饰**：关闭审计当日实测 `git status -sb` → `## main...origin/main [ahead 4]`、
-      `gh run list` 对 `edcb535` **零命中**，即这四个提交**尚未推到 `origin`，该 job 一次都没为本 plan 跑过**。
+      `gh run list` 对 `ecfe3ff` **零命中**，即这四个提交**尚未推到 `origin`，该 job 一次都没为本 plan 跑过**。
       降级的依据是 Minimum Rule 14 的反面 —— 它**不是**确认的活缺陷 / 契约漂移 / owner-doc 漂移 /
       仓内已修的 CI-lint 规则中的任何一种：本 plan 的结果面已由**本机冷起活站点四条 CLI 全 0**
       （`站点侧对账：9 项，通过 9，失败 0`）逐条实证，`gates-l2-seed` 的复跑是**回归看守**、不是首证；
@@ -911,7 +911,7 @@ Exit Criteria:
   ③ **它不在 Minimum Rule 14 的不可降级四类里**：既无确认的活缺陷、也无契约漂移、无 owner-doc 漂移、
   更不是仓内已修的 CI/lint 规则 —— 手上**没有任何失败现象**，只有一次尚未发生的复跑。
 - ⚠️ **实测状态，照实记**：关闭审计当日 `git status -sb` → `## main...origin/main [ahead 4]`，
-  `gh run list --limit 5` 里最新的是 `7a09ef7` 的 `32591647735`，**对 `edcb535` 零命中** ——
+  `gh run list --limit 5` 里最新的是 `622bc4e` 的 `32591647735`，**对 `ecfe3ff` 零命中** ——
   即本 plan 的三个提交**尚未推到 `origin`，该 job 一次都没为本 plan 跑过**。
   **不得**把本节读成「CI 已覆盖」或「run id 只是忘了填」。
 - Successor Required: `no`
@@ -937,12 +937,12 @@ docstring 与三处活陈述**只补出处、不改本体**，`system-baseline.m
 ⚠️ **verification scope limited：活站点证据限于本机**（端口 18080 的本机 docker 栈）；
 合并后由既有 CI job `gates-l2-seed` 在 `main` 上自然复跑一次，**该 run id 尚未取得，必须补记进本节**。
 ⚠️ **本 plan 新增的 5 条单测是否被 CI 复跑，取决于前驱 `2026-08-23-0120-1` 是否已落 `main`** ——
-它此刻 `Plan Status: completed`、其 CI job `unit-and-contracts` 的落地 sha 记为 `7a09ef7`，
+它此刻 `Plan Status: completed`、其 CI job `unit-and-contracts` 的落地 sha 记为 `622bc4e`，
 因此**预期会被复跑**，但**本 plan 未亲自取得那次 run id，不得含糊成「已有 CI 覆盖」**。
 ⚠️ **原先未满足的两条 Closure Gate 已各自落定，逐条说明落法（不是「后来变绿了」）**：
 ① **独立关闭审计** —— 已由 loop 的 `CLOSURE_VERIFY` 步在独立会话里跑完，证据见下；
 ② **合并后 `gates-l2-seed`** —— 审计当日实测 `git status -sb` → `## main...origin/main [ahead 4]`、
-`gh run list` 对 `edcb535` **零命中**，即**尚未推到 `origin`，该 job 一次都没为本 plan 跑过**；
+`gh run list` 对 `ecfe3ff` **零命中**，即**尚未推到 `origin`，该 job 一次都没为本 plan 跑过**；
 已按 Anti-Slacking 的 `adjudicated as residual-risk-only` 移入 `## Deferred But Adjudicated`
 （理由：本机冷起活站点已首证结果面，该 job 是既有 job 的回归看守，且不属 Rule 14 的不可降级四类），
 **重开事件是「推到 `origin/main` 之后补记 run id」**。⚠️ **不得**读成「CI 已覆盖」。
@@ -953,12 +953,12 @@ Closure Audit Evidence:
 - Auditor / Agent: **独立关闭审计子代理（loop `CLOSURE_VERIFY` 步，fresh session，2026-08-23）** ——
   `ai-autonomy-policy` 的 Reviewer availability 为 `subagent`，本次即该形态。
   ⚠️ **执行轮自己的自查仍然不算独立审计**，这条限定没有被取消。
-- 独立关闭审计的复跑与逐条核对（**命令原文 + 退出码**，全部由审计方在 `edcb535` 上重跑，非转录执行轮的记录）：
+- 独立关闭审计的复跑与逐条核对（**命令原文 + 退出码**，全部由审计方在 `ecfe3ff` 上重跑，非转录执行轮的记录）：
   - `python3 tools/gates/check_expected_red.py` → **0**，判定三行逐字节等于基线值
   - `python3 -m pytest tests/unit -q` → **0**（`293 passed`，与 Phase 2 记录一致）
   - `python3 -m pytest tests/contracts -q` → **0**（`151 passed`）
   - `ruff check agenerp tests/unit tests/contracts` → **0**（`All checks passed!`）
-  - 红线自查复算：`git diff --stat 7a09ef7..edcb535 -- tests/gates .github tools/gates missions
+  - 红线自查复算：`git diff --stat 622bc4e..ecfe3ff -- tests/gates .github tools/gates missions
     docs/masterplan docker-compose.yml` → **无输出**（六个受保护面零改动）
   - 反空洞核对：`_overdue_diagnosis` / `_matches_key` / `_overdue_row_facts` / `_overdue_identity_keys`
     均有实体实现且被 `_overdue_checks:895` 在运行时调用，`verify_site:900` → `_overdue_checks(client, today)`
@@ -980,7 +980,7 @@ Closure Audit Evidence:
   - `ruff check agenerp tests/unit tests/contracts` → **0**（`All checks passed!`）
   - 冷起活站点四条 CLI → **0 / 0 / 0 / 0**，`站点侧对账：9 项，通过 9，失败 0`
   - 三条变异共六次 `python3 -m pytest tests/unit -q` → **1 / 0 / 1 / 0 / 1 / 0**
-  - commit sha：Phase 1 `9144408` · Phase 2 `798b97c` · Phase 3 `edcb535`
+  - commit sha：Phase 1 `5551884` · Phase 2 `ab3a44a` · Phase 3 `ecfe3ff`
     （⚠️ 三者**均只在本地 `main`**，审计当日尚未推到 `origin`，见 `## Deferred But Adjudicated` 末条）
 
 Follow-up:

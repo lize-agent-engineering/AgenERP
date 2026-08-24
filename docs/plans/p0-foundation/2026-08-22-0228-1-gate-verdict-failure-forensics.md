@@ -15,7 +15,7 @@
 
 ## Current Baseline
 
-每一条都是 2026-08-22 在 `10c737c` 上实测，且已被一轮独立草案评审逐条复核。
+每一条都是 2026-08-22 在 `5e76f27` 上实测，且已被一轮独立草案评审逐条复核。
 
 - **判定器把唯一的取证载体删了。** `tools/gates/check_expected_red.py:66-76` 的 `run_pytest`
   以 `-q --tb=no --junitxml=<JUNIT>` 起 pytest，`capture_output=True` 吃掉 stdout/stderr，
@@ -50,10 +50,10 @@
   **本 plan 不修 `agenerp/**`，因此不满足重开条件，一次 CI 都不许跑。**
 - **`verdict-tool-untouched` 对本 plan 没有合法通路。** 该 job（只在分支
   `ci/0027-2-l2-full-live-gate` 上）比 `git diff --name-only $BASE $HEAD -- tools/gates/check_expected_red.py …`，
-  而 PR #1 的 `baseRefOid` 钉在 `7b0f585`（`gh pr view 1 --json baseRefOid,headRefOid` 实测），
+  而 PR #1 的 `baseRefOid` 钉在 `627c7a9`（`gh pr view 1 --json baseRefOid,headRefOid` 实测），
   比两棵树时「main 有而分支没有」同样算命中。放行的唯一方式是提交信息里的
   `^Gates-Change-Approved-By:` trailer —— 那是**人工批准**，AI 自己加等于伪造。
-  另：本机 `main`（`10c737c`）比 `origin/main`（`3425dae`）**领先 6 个提交**，未推。
+  另：本机 `main`（`5e76f27`）比 `origin/main`（`86b9828`）**领先 6 个提交**，未推。
 - **`.github/workflows/**` 在 `ai-autonomy-policy.md:80` 是 `blocked | 人工批准`**，
   不只是红线 2 的「不得放松」。本 plan 因此**一行 workflow 都不改**。
 
@@ -276,7 +276,7 @@ CI 侧消费面（在 `gates-l2-live` 上加一个 `if: failure()` 取证步骤�
    STATE §3 写死的重开条件是「successor 修好 `agenerp` 侧清除面后推一次」。本 plan 不修 `agenerp`，
    不满足该条件，因此不跑 CI。
 2. **给判定器改动出具 `Gates-Change-Approved-By:` trailer** —— 分支上的 `verdict-tool-untouched`
-   会因为「main 有而分支没有该改动」而红（`git diff BASE HEAD` 比两棵树，PR #1 的 base 钉在 `7b0f585`）。
+   会因为「main 有而分支没有该改动」而红（`git diff BASE HEAD` 比两棵树，PR #1 的 base 钉在 `627c7a9`）。
    trailer 是人工批准，AI 自加即伪造。
 
 本条**不是** `Follow-up`，也不是被降级的 in-scope 项：它自始不在本 plan 的结果面内（见 `## Non-Goals`）。
@@ -285,10 +285,10 @@ CI 侧消费面（在 `gates-l2-live` 上加一个 `if: failure()` 取证步骤�
 
 - Independent draft review iteration 1: **needs revision**（fresh session，2026-08-22）—— 判 5 条 BLOCKING：
   ① 停机线在生效，原 Phase 3「预期红的一次 CI 实跑」是在停机状态下继续烧 CI 轮次，与上一轮
-  `e5e644f` 的拒绝执行直接冲突；② 原 Phase 1 的「删掉 `unlink`」会把「pytest 没跑起来 → exit 2」
+  `4a933c1` 的拒绝执行直接冲突；② 原 Phase 1 的「删掉 `unlink`」会把「pytest 没跑起来 → exit 2」
   这条保命闸变成「拿上一轮旧报告判定」，评审用 `--this-arg-does-not-exist` 实证旧报告 `timestamp=` 不变；
   ③ 原 Phase 2 对 `verdict-tool-untouched` 的缓解（`git diff main <branch>`）**不是** CI 实际算的比较，
-  PR #1 的 `baseRefOid` 钉在 `7b0f585`、本机 `main` 还领先 `origin/main` 6 个提交，
+  PR #1 的 `baseRefOid` 钉在 `627c7a9`、本机 `main` 还领先 `origin/main` 6 个提交，
   合并 main 进分支反而**必然**触发该 job，而放行只能靠人工 trailer；
   ④ 原 Phase 1 的 Exit Criterion「本机用现成的 7 条预期红实证断言原文」不可满足——
   实测那 7 条全是 setup error（`failed on setup with "Failed: compose_stack 需要 AGENERP_LIVE=1`），
@@ -353,15 +353,15 @@ CI 侧消费面（在 `gates-l2-live` 上加一个 `if: failure()` 取证步骤�
 
 ## Closure
 
-Status Note: Phase 1 全部执行完毕，本机 scoped 验证全绿（命令原文与退出码见 Phase 1 的 `Execution Evidence`），**独立关闭审计已完成并接受关闭**。**verification scope limited**：本仓无全量套件，本 plan 全部为本机 scoped 验证，**CI 一次未跑**（停机线在生效，且本 plan 不满足 STATE §3 的重开条件；`git log --oneline origin/main -1` → `508c75b`，交付提交 `57ad6d5` **未推送**，因此审计期同样零 CI 消耗）。判定器是 `ai-autonomy-policy.md` 的 `plan-first` 受保护面，关闭审计由**执行器之外**的独立 `CLOSURE_VERIFY` 步做，执行器未自审。
+Status Note: Phase 1 全部执行完毕，本机 scoped 验证全绿（命令原文与退出码见 Phase 1 的 `Execution Evidence`），**独立关闭审计已完成并接受关闭**。**verification scope limited**：本仓无全量套件，本 plan 全部为本机 scoped 验证，**CI 一次未跑**（停机线在生效，且本 plan 不满足 STATE §3 的重开条件；`git log --oneline origin/main -1` → `3ed5f5b`，交付提交 `e27994e` **未推送**，因此审计期同样零 CI 消耗）。判定器是 `ai-autonomy-policy.md` 的 `plan-first` 受保护面，关闭审计由**执行器之外**的独立 `CLOSURE_VERIFY` 步做，执行器未自审。
 
 Closure Audit Evidence:
 
 - Auditor / Agent: 独立 `CLOSURE_VERIFY` 步（fresh session，MISSION_DRIVER `2026-08-22-055517-mission-driver`），
   非本 plan 的执行器；审计期不改任何交付文件，只复跑命令并回填本节与 `## Closure Gates` 两条。
 - Evidence（执行侧）: Phase 1 的 `Execution Evidence` 代码块 · `docs/logs/2026/08-22.md` 首条 ·
-  `docs/architecture/system-baseline.md` §14.4 末节（`git show 57ad6d5 -- docs/architecture/system-baseline.md | grep '^-[^-]'` → 无输出，exit 1，纯追加）·
-  `docs/backlog/p0-foundation-roadmap.md` 工作项 9「三次补记」· 交付提交 `57ad6d5`（8 files，+615/-68）
+  `docs/architecture/system-baseline.md` §14.4 末节（`git show e27994e -- docs/architecture/system-baseline.md | grep '^-[^-]'` → 无输出，exit 1，纯追加）·
+  `docs/backlog/p0-foundation-roadmap.md` 工作项 9「三次补记」· 交付提交 `e27994e`（8 files，+615/-68）
 - Evidence（审计侧复跑，2026-08-22，命令原文 + 退出码）:
   - `python3 -m pytest tests/unit -q` → `217 passed`，exit 0
   - `python3 -m pytest tests/contracts -q` → `151 passed`，exit 0
@@ -381,7 +381,7 @@ Closure Audit Evidence:
     `git status --porcelain` 无输出（工作区已还原）
 - Anti-Hollow: `failure_details()` 被 `explain_last_gate_failures.py` 的 `report_lines()` 实调用（非注册即孤儿），
   端到端实跑已打出真实红因原文；`unlink` 前移后 FATAL 分支实测仍 exit 2，无空函数体 / `return null` 占位 / 吞异常。
-- 红线自查（审计侧独立复核）: `git show --stat 57ad6d5` 的 8 个文件**未触及**
+- 红线自查（审计侧独立复核）: `git show --stat e27994e` 的 8 个文件**未触及**
   `tests/gates/` · `.github/workflows/` · `tools/gates/expected-red.txt` · `missions/` · `docs/masterplan/DECISIONS.md`；
   `git status --porcelain` 在审计结束时为空。
 

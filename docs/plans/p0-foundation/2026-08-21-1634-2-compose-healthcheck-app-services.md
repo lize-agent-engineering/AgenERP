@@ -10,7 +10,7 @@
 
 ## Current Baseline
 
-以下每条都在 `07d684c` 上实测读出。
+以下每条都在 `5d8022e` 上实测读出。
 
 **已就位：**
 
@@ -329,8 +329,8 @@ Exit Criteria:
 ## Draft Review Record
 
 - Independent draft review iteration 1: `needs revision` → 已就地修订为 `accept`
-  （mission-driver `2026-08-21-171157` 的 review 步，独立于起草会话；评审时 HEAD 为 `d45698a`，
-  草案 Baseline 读的是 `07d684c`——其间唯一一个提交 `d45698a` 只改 `tools/ab-run.sh` 一个文件，
+  （mission-driver `2026-08-21-171157` 的 review 步，独立于起草会话；评审时 HEAD 为 `3032866`，
+  草案 Baseline 读的是 `5d8022e`——其间唯一一个提交 `3032866` 只改 `tools/ab-run.sh` 一个文件，
   与本 plan 涉及的 `docker-compose.yml` / `tests/**` / `tools/gates/**` 无交集，故 Baseline 的结论仍然成立）。
   复核方式是逐条实跑核对可验证断言，不是通读。**实跑核准的有**：
   `grep -n "healthcheck:" docker-compose.yml` → 只有 `:59` / `:72` / `:85` 三处（db / redis-cache / redis-queue），

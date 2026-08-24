@@ -13,8 +13,8 @@
 
 ## Current Baseline
 
-以下每一条都是 2026-08-21 起草时在**活站点上实测**得来的。起草基线 sha **`3fed439`**。
-⚠️ 起草过程中 HEAD 动过：人在 22:21:59 提交了 `3fed439`，**把 `STATE.md` §3 里最后三条 `[open]` 全部转成 `resolved`**
+以下每一条都是 2026-08-21 起草时在**活站点上实测**得来的。起草基线 sha **`873c97f`**。
+⚠️ 起草过程中 HEAD 动过：人在 22:21:59 提交了 `873c97f`，**把 `STATE.md` §3 里最后三条 `[open]` 全部转成 `resolved`**
 （实测 `grep -c "^- \[open\]" docs/masterplan/STATE.md` → `0`）。原草案把「CI 那半」排除在外的理由正是
 「它卡在一条 §3 的 `[open]` 上」——**那条依据在起草时已经不成立**，草案评审逐字指出。本 plan 已据此把 CI 那半收回范围内。
 栈以 `AGENERP_HTTP_PORT=18080 docker compose up -d --wait --wait-timeout 300` 冷起（exit 0；
@@ -34,7 +34,7 @@ assert "AI 能力未配置" in resp.text
 `compose_stack.http_get` 带 `Host: frontend` 头（`tests/gates/conftest.py`）。
 该门禁**仍在** `tools/gates/expected-red.txt` 名单内。
 
-**红因由本 plan 起草时在 `3fed439` 上亲自复跑坐实**：
+**红因由本 plan 起草时在 `873c97f` 上亲自复跑坐实**：
 
 ```
 AGENERP_HTTP_PORT=18080 AGENERP_LIVE=1 AGENERP_ADMIN_PASSWORD=admin \
@@ -108,7 +108,7 @@ curl -H "Host: frontend" http://127.0.0.1:18080/ → status=200，正文含「AI
 
 `docs/backlog/p0-foundation-roadmap.md` 的工作项 8 对照行写着「**剩下两半仍缺**：
 ① `compose_stack` fixture 在 `tests/gates/conftest.py`（红线 1，等人处置，见 STATE §3）」。
-①**是错的**：fixture 已由人在 `ede5440` 实现，阻塞已在 `3fed439` 关闭。
+①**是错的**：fixture 已由人在 `9abeb89` 实现，阻塞已在 `873c97f` 关闭。
 这与 `project-context.md:48` 那处是同一类确认漂移，本 plan 两处都改（Minimum Rule 14，不可降级）。
 
 **缺口**
@@ -384,7 +384,7 @@ Skill: `none`
 - [x] `Proof` 复跑 `ruff check agenerp tests/unit tests/contracts` → exit 0。
 - [x] `Fix` 更正 `docs/context/project-context.md:48` 的**已知假陈述**：该行现在写着
       「`compose_stack` fixture 仍抛 `NotImplementedError`（红线 1，等人处置）」，
-      而 fixture 已由人在 `ede5440` 实现、阻塞已在 `3fed439` 关闭。
+      而 fixture 已由人在 `9abeb89` 实现、阻塞已在 `873c97f` 关闭。
       这是确认的 owner-doc 漂移（Minimum Rule 14 的非降级项），且本 plan 正好在编辑同一行。
       同时把首页文案这一事实补进「Run app locally」一行。
 
@@ -418,7 +418,7 @@ Exit Criteria:
 - `Proof` `ruff check agenerp tests/unit tests/contracts` → **exit 0**（`All checks passed!`）。
 - `Fix` `docs/context/project-context.md:48` 的假陈述已就地改准：原文写「`compose_stack` fixture 仍抛
   `NotImplementedError`（红线 1，等人处置）」——实测 `grep -c NotImplementedError tests/gates/conftest.py` → **0**，
-  fixture 已由人在 `ede5440` 实现、阻塞已在 `3fed439` 关闭。该行现在改成三段式：
+  fixture 已由人在 `9abeb89` 实现、阻塞已在 `873c97f` 关闭。该行现在改成三段式：
   ① 起栈与健康判定已实证（不动，归 `1634-2`）；② 首页降级文案已落地（本 plan，带冷起证据）；
   ③ L2 在 live 判定环境下已全绿**但名单不动**，理由逐字写清（默认判定环境无 `AGENERP_LIVE`，
   L2 在那里恒红；人在 `STATE.md` §2 11:20Z 裁定「名单必须反映判定器实际看到的」）。
@@ -473,7 +473,7 @@ Skill: `none`
 - [x] `Proof` 若 runner 上的 compose 2.38.2 与本机 v5.0.2 表现不同（plan `1022-1` 登记的 watch-only residual），
       **照实记录差异并停下来**，不为了让 job 变绿而改 compose 语法——那会动到工作项 3 已关闭的交付面。
 - [x] `Fix` **先改掉 roadmap 工作项 8 对照行里的那句假话**：① 声称 `compose_stack` 仍抛
-      `NotImplementedError`、仍在等人处置——fixture 已由人在 `ede5440` 实现，阻塞已在 `3fed439` 关闭。
+      `NotImplementedError`、仍在等人处置——fixture 已由人在 `9abeb89` 实现，阻塞已在 `873c97f` 关闭。
       这是确认的 owner-doc 漂移，非降级项（Minimum Rule 14），不许混在下一项的「更新对照行」里含糊带过。
 - [x] `Add` 更新 `docs/backlog/p0-foundation-roadmap.md` 工作项 8 的对照行与状态：
       两半都已落地时，**是否置 `done` 取决于「从预期红名单划掉」这个条件在选定方案下是否可满足**。
@@ -516,7 +516,7 @@ Exit Criteria:
   **零删除、零修改行**——`on:` / `permissions:` 两个共享块与现有 6 个 job **一行未改**；
   新 job 无 `continue-on-error`（全文 `continue-on-error` 计数 **0**）、无 job 级 `if:`
   （两处 `if: always()` 都在 step 上，且都是「无论如何都要拆栈/看日志」，是加严不是放松）。
-- `Proof` **CI 上真跑了一次，拿到真实结论**。sha **`6ac1005`**（push 到 `main`，触发既有 `on: push`，
+- `Proof` **CI 上真跑了一次，拿到真实结论**。sha **`ad42e91`**（push 到 `main`，触发既有 `on: push`，
   一个 trigger 都没加）· run id **`32499273158`**：
   · `gh run view 32499273158 --json conclusion` → **`success`**；七个 job **全绿**
     （原有 6 个 + 新增的 `L2 慢门禁（零依赖启动）`）。
@@ -537,8 +537,8 @@ Exit Criteria:
   但仍保持 watch-only：本次只覆盖了 `test_zero_dep_boot.py` 三条，不是全部 L2。
 - `Fix` roadmap 工作项 8 对照行里的假话已改准：原文「① `compose_stack` fixture 在
   `tests/gates/conftest.py`（红线 1，等人处置，见 STATE §3）」——实测
-  `grep -c NotImplementedError tests/gates/conftest.py` → **0**，fixture 已由人在 `ede5440` 实现，
-  阻塞已在 `3fed439` 关闭，STATE §3 此刻一条 `[open]` 都没有。该行改为指向新增的「8 现状」行。
+  `grep -c NotImplementedError tests/gates/conftest.py` → **0**，fixture 已由人在 `9abeb89` 实现，
+  阻塞已在 `873c97f` 关闭，STATE §3 此刻一条 `[open]` 都没有。该行改为指向新增的「8 现状」行。
 - `Add` roadmap 新增「8 现状」行：两半均已落地（附冷起与 CI 的证据），
   **状态保持 `planned` 不置 `done`**，理由逐字写清——置 `done` 的条件是「从 `expected-red.txt` 划掉」，
   而选定方案 (i) 对名单零改动，与工作项 4/5/6/7 同一情形。`## Work Item Status` 块第 8 项不动。
@@ -592,7 +592,7 @@ Exit Criteria:
 ## Draft Review Record
 
 - **Independent draft review iteration 1: needs revision**（独立子代理，fresh session）。
-  8 条 blocking：① 引用了 `STATE.md` §3 一条**已不存在**的 `[open]`（起草期间人提交 `3fed439`，
+  8 条 blocking：① 引用了 `STATE.md` §3 一条**已不存在**的 `[open]`（起草期间人提交 `873c97f`，
   把最后三条 `[open]` 全转成 `resolved`）；② 把「CI 的 L2 job」排除在外**是变相缩范围**——
   前驱 plan `1634-2` 把首页文案与 CI job **指向同一个 successor**，两者的重开事件都已触发；
   ③ 因此会逼出工作项 8 的第三个 plan，违反 roadmap「一个工作项 = 1–2 个 plan」；
@@ -601,7 +601,7 @@ Exit Criteria:
   ⑥ Phase 2 要求仓内脚本在容器里跑，而 `docker-compose.yml` **零 bind mount**，脚本对容器不可见；
   ⑦ 基线说 AI 变量只进 `backend`，实际是 4 个服务；
   ⑧ Phase 3 编辑 `project-context.md:48` 却不修那一行上的已知假陈述。
-- **Revision after iteration 1**：基线 sha 改成 `3fed439`；**CI 那半收回范围内**成为 Phase 4，
+- **Revision after iteration 1**：基线 sha 改成 `873c97f`；**CI 那半收回范围内**成为 Phase 4，
   并写明两半共用同一条关闭链（因此仍是一个结果面、仍是 1–2 个 plan）；`Decision` ② 加硬约束
   「无论 AI 是否已配置，正文都必须逐字含 `AI 能力未配置`」；Phase 2 新增红线 7 的文本扫描判据；
   引导逻辑的落盘方式改成三候选 `Decision`（bind mount / 内联 command / 排除下载）；
@@ -661,7 +661,7 @@ Exit Criteria:
   pytest 退出码直接判，有人把它们改绿而不改实现，棘轮不会响。**代偿控制**：`gates-untouched` job
   仍然拦着对 `tests/gates/**` 的无批准改动，而那几条断言就在 `tests/gates/**` 内。
 - Successor Required: `no`（判定器改造属判据设施，超出 P0；真要做时是候选 (ii)）
-- **⚠️ 2026-08-22 追加，记为了结（不改写上面任何一行——那是本 plan 已关闭的证据）**：本条已被 plan `2026-08-22-1206-1-verdict-guard-mutation-proof` 与 `2026-08-22-1206-2-gates-l2-live-lands-on-main` 两个 plan 共同了结。`main` 的 `gates.yml` 末尾已落地 `gates-l2-live` job（落地 sha `3503f2c89d78f44f94e0e0ff9f6061ca72e90b89`），它走 `tools/gates/check_expected_red.py` 的 **live 判定模式**，契约是「全部门禁绿、零 red、零 skip」，**比预期红名单棘轮更紧**——L2 那几条断言在 CI 上不再只由 pytest 退出码直接判，「有人把它们改绿而不改实现」会被 live 契约与 `gates-untouched` 双重挡住。**`main` push 权威运行 `32572618933`（event `push`，head `3503f2c`）九个 job 全部 `success`**，`gates-l2-live` job `97030229667` 日志逐字 `门禁 19 项：红 0，绿 19，跳过 0`。口径见 `docs/architecture/system-baseline.md` §14.4。⚠️ **残余照实记**：`gates-l2` job 未退休，它那条绕开判定器的路径仍然存在（已登记为人动作 Deferred）。
+- **⚠️ 2026-08-22 追加，记为了结（不改写上面任何一行——那是本 plan 已关闭的证据）**：本条已被 plan `2026-08-22-1206-1-verdict-guard-mutation-proof` 与 `2026-08-22-1206-2-gates-l2-live-lands-on-main` 两个 plan 共同了结。`main` 的 `gates.yml` 末尾已落地 `gates-l2-live` job（落地 sha `a22247225220297ed38efd3fd6d1a61c43553ea4`），它走 `tools/gates/check_expected_red.py` 的 **live 判定模式**，契约是「全部门禁绿、零 red、零 skip」，**比预期红名单棘轮更紧**——L2 那几条断言在 CI 上不再只由 pytest 退出码直接判，「有人把它们改绿而不改实现」会被 live 契约与 `gates-untouched` 双重挡住。**`main` push 权威运行 `32572618933`（event `push`，head `a222472`）九个 job 全部 `success`**，`gates-l2-live` job `97030229667` 日志逐字 `门禁 19 项：红 0，绿 19，跳过 0`。口径见 `docs/architecture/system-baseline.md` §14.4。⚠️ **残余照实记**：`gates-l2` job 未退休，它那条绕开判定器的路径仍然存在（已登记为人动作 Deferred）。
 
 ### 判定器没有「live 名单」这个概念
 
@@ -669,7 +669,7 @@ Exit Criteria:
 - Why Not Blocking Closure: 这是判据设施改造，影响面比工作项 8 大；P0 先要「CI 真跑到过 L2」这个事实。
 - Successor Required: `yes` —— 重开事件：**当 CI 的 L2 覆盖面扩到 `test_zero_dep_boot.py` 之外时**
   （例如把 `test_customization_roundtrip_delete.py` 也搬上 CI），届时逐条手写退出码断言不再可行。
-- **⚠️ 2026-08-22 追加，记为了结（不改写上面任何一行）**：本条写死的重开事件**已经发生并已被处置**。CI 的 L2 覆盖面已扩到整目录 **19 条**（含 `test_customization_roundtrip_delete.py`），由 plan `2026-08-22-1206-2-gates-l2-live-lands-on-main` 落进 `main`（落地 sha `3503f2c89d78f44f94e0e0ff9f6061ca72e90b89`，权威运行 `32572618933` 九个 job 全绿）。**处置方式恰好是本条预告的那一条**：不再逐条手写退出码断言，改由判定器的 live 判定模式统一判（plan `2026-08-22-0027-1` 交付判定设施半、`2026-08-22-0027-2` 交付 CI 消费半、`2026-08-22-1206-1-verdict-guard-mutation-proof` 交付守卫的四条变异实证、本批第二个 plan 交付落地面）。**判定器仍然没有「live 名单」这个概念，这是明示取舍不是遗漏**：live 模式**不读** `expected-red.txt`，契约写死为全绿零 skip，偏离与理由记在 `docs/architecture/system-baseline.md` §14.4。
+- **⚠️ 2026-08-22 追加，记为了结（不改写上面任何一行）**：本条写死的重开事件**已经发生并已被处置**。CI 的 L2 覆盖面已扩到整目录 **19 条**（含 `test_customization_roundtrip_delete.py`），由 plan `2026-08-22-1206-2-gates-l2-live-lands-on-main` 落进 `main`（落地 sha `a22247225220297ed38efd3fd6d1a61c43553ea4`，权威运行 `32572618933` 九个 job 全绿）。**处置方式恰好是本条预告的那一条**：不再逐条手写退出码断言，改由判定器的 live 判定模式统一判（plan `2026-08-22-0027-1` 交付判定设施半、`2026-08-22-0027-2` 交付 CI 消费半、`2026-08-22-1206-1-verdict-guard-mutation-proof` 交付守卫的四条变异实证、本批第二个 plan 交付落地面）。**判定器仍然没有「live 名单」这个概念，这是明示取舍不是遗漏**：live 模式**不读** `expected-red.txt`，契约写死为全绿零 skip，偏离与理由记在 `docs/architecture/system-baseline.md` §14.4。
 
 ### 首页文案不随 AI 配置的后续变更而更新
 
@@ -712,12 +712,12 @@ Closure Audit Evidence:
 - Auditor / Agent: **独立子代理（fresh session，未参与实现）**，一轮，见上方 `## Closure Audit Record`。
   审计员**自己复跑取证**，不采信 plan 里写的退出码；另自做四次变异验证与两次绕过实验，并自行做了一次 `down -v` 冷起。
 - Evidence（审计员实跑的退出码，与执行者的记录逐条对照后一致）：
-  · 红线：`git diff 3fed439..HEAD --stat -- tests/gates docs/masterplan/DECISIONS.md missions` → **无输出**；
-    `git diff 3fed439..HEAD --numstat docs/masterplan/STATE.md` → **`24 0`**（删除列为 0，只追加）；
-    `git diff 3fed439..HEAD -- .github/workflows/` → 唯一 hunk **`50 insertions / 0 deletions`**，
+  · 红线：`git diff 873c97f..HEAD --stat -- tests/gates docs/masterplan/DECISIONS.md missions` → **无输出**；
+    `git diff 873c97f..HEAD --numstat docs/masterplan/STATE.md` → **`24 0`**（删除列为 0，只追加）；
+    `git diff 873c97f..HEAD -- .github/workflows/` → 唯一 hunk **`50 insertions / 0 deletions`**，
     `grep -c continue-on-error` → **0**，job 级 `if:` → **零命中**；
     `grep -rn "Server Script\|Client Script" tools/bootstrap/ docker-compose.yml` → **exit 1（零命中）**。
-  · 判据：`git diff 3fed439..HEAD -- tools/gates/expected-red.txt` → **无输出**；
+  · 判据：`git diff 873c97f..HEAD -- tools/gates/expected-red.txt` → **无输出**；
     `… -- tests/unit/test_compose_zero_dep.py` → 唯一 hunk **纯追加**。
   · 变异（审计员自做）：服务改名 / 删 `restart: "no"` / AI 变量进探针 / 脚本加脚本标签 →
     各自 `1 failed, 12 passed` 且红对了地方；三个文件 `shasum -a 256` 全部还原。
@@ -729,11 +729,11 @@ Closure Audit Evidence:
   · 冷起（审计员自做）：`down -v` → **0**；`up -d --wait --wait-timeout 300` → **0（76 秒）**；
     `curl -H "Host: frontend" http://127.0.0.1:18080/` → **200**，命中 **1** 次，`<title>Login</title>` 仍在；
     冷起后 live 门禁 → **0，`3 passed in 0.46s`**；幂等复跑 → **0**，引导日志「已是目标内容，跳过」。
-  · CI（审计员逐字核对日志）：`gh run view 32499273158` → `conclusion=success`，`headSha=6ac1005a…`，**7 个 job 全绿**；
+  · CI（审计员逐字核对日志）：`gh run view 32499273158` → `conclusion=success`，`headSha=ad42e916…`，**7 个 job 全绿**；
     `gates-l2` `15:44:57Z → 15:48:34Z`，门禁 step 逐字 **`3 passed in 2.68s`**，
     引导日志逐字「引导：首页横幅已写入（AI 能力状态）」，runner `28.0.4` / `Compose v2.38.2`。
     **plan 引的时间、通过数、版本号与日志逐条相符。**
-- **修完之后的第二次 CI 复跑**（关闭审计的改动自己也上了 CI）：sha `bd32959`，run **`32501003150`**，`conclusion=success`，**七个 job 全绿**，含新增判据后的 `gates-l1` 与再跑一遍的 `gates-l2`。
+- **修完之后的第二次 CI 复跑**（关闭审计的改动自己也上了 CI）：sha `d21dcfe`，run **`32501003150`**，`conclusion=success`，**七个 job 全绿**，含新增判据后的 `gates-l1` 与再跑一遍的 `gates-l2`。
 - 审计轮次结论：iteration 1 `needs revision`（3 blocking + 5 nit）→ **三条 blocking 与 nit 1 全部就地修掉，
   一条都没有降级成 follow-up**；处置明细见 `## Closure Audit Record` 的 revision 段。
 

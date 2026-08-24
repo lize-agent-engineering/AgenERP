@@ -15,12 +15,12 @@
 
 ## Current Baseline
 
-以下每一条都是 2026-08-22 在 `478392e` 上实读或实跑得到的，不是回忆。
+以下每一条都是 2026-08-22 在 `6f04d23` 上实读或实跑得到的，不是回忆。
 **⚠️ 本节有三条是独立草案评审第 1 轮推翻起草时写法后重写的**（第 8、9、11 条），逐条标了出处。
 
 1. **重开事件已满足。** `1634-1` 那条 Deferred 逐字写的重开事件是「人对 `STATE.md` §3 的
    (a)/(b)/(c)/(d) 作出选择之后」。那条 §3 行现已 `[resolved]`（`docs/masterplan/archive/STATE-2026-08-22.md:195`），
-   人在 `ede5440` 亲手实现了三个 fixture（含 `live_site`），阻塞在 `3fed439` 关闭。
+   人在 `9abeb89` 亲手实现了三个 fixture（含 `live_site`），阻塞在 `873c97f` 关闭。
    工作项 4/5/6 的同源 Deferred 已据此重开并各自落地，本 plan 走的是同一条路径。
 2. **A 半是活的。** `python3 -m agenerp.seed --seed 42 --verify` → **exit 0**；
    `python3 -m pytest tests/unit -q` → **exit 0**，`221 passed in 0.65s`。
@@ -520,7 +520,7 @@ Status Note: **四个 Phase 全部执行完毕，`Plan Status: completed`。**
 「删掉**任一**登记项必红」这条在 `ensure_doc` 上**不成立**（扫描守卫看不见没有 verb 的名字）。
 处置是**补判据**（新增 `NON_VERB_WRITE_METHODS` + 两条测例），不是勾掉 gate、也不是把 gate 改宽。
 
-**红线自查（锚开工 sha `478392e`）**：`tests/gates` / `tools/gates/expected-red.txt` / `agenerp/seed`
+**红线自查（锚开工 sha `6f04d23`）**：`tests/gates` / `tools/gates/expected-red.txt` / `agenerp/seed`
 三条路径的 `git diff --stat` 与 `git status --porcelain` **全部无输出**。
 roadmap 的删除行**恰好两行**且都在 `## 当前基线`，工作项状态块与对照表**零删除**；
 工作项 7 仍是 `planned`，**未被置 `done`**。
@@ -532,7 +532,7 @@ Closure Audit Evidence:
 
 - Auditor / Agent: **独立关闭审计子代理**（fresh session，`2026-08-22-185331-mission-driver`），非本 plan 的执行者。
 - 审计方法：**不读执行者的结论当证据**，九条判据在活仓、活站点上**当场复跑**，退出码原样抄录如下。
-  锚 sha `da048a2`（`git status --porcelain` 无输出，工作树干净）。
+  锚 sha `aaa7792`（`git status --porcelain` 无输出，工作树干净）。
 
 | 复跑的命令原文 | 退出码 | 当场取得的输出 |
 |---|---|---|
@@ -542,8 +542,8 @@ Closure Audit Evidence:
 | `python3 tools/gates/check_expected_red.py`（默认判定） | **0** | `门禁 19 项：预期红 7，绿 12，跳过 0` / `✅ 与预期红名单完全一致` |
 | `AGENERP_HTTP_PORT=18080 AGENERP_SITE=frontend AGENERP_SITE_URL=http://127.0.0.1:18080 AGENERP_ADMIN_PASSWORD=admin python3 -m agenerp.seedsite --load-masters --site frontend` | **0** | `合计：新建 0 / 已存在 40` —— **幂等在审计侧独立复现**（这是第三跑） |
 | 同上 + `AGENERP_LIVE=1 python3 tools/gates/check_expected_red.py`（**装载之后**） | **0** | `门禁 19 项：红 0，绿 19，跳过 0` —— 种子数据留在站点上并未弄红任何一条 |
-| `git diff --stat 478392e..HEAD -- tests/gates tools/gates/expected-red.txt agenerp/seed .github/workflows missions docs/masterplan/DECISIONS.md` | **0** | **无输出**（红线路径一个字节未改） |
-| `git diff 478392e..HEAD -- docs/masterplan/STATE.md \| grep -c "^-[^-]"` | — | **0**（STATE.md 纯追加，零删除行） |
+| `git diff --stat 6f04d23..HEAD -- tests/gates tools/gates/expected-red.txt agenerp/seed .github/workflows missions docs/masterplan/DECISIONS.md` | **0** | **无输出**（红线路径一个字节未改） |
+| `git diff 6f04d23..HEAD -- docs/masterplan/STATE.md \| grep -c "^-[^-]"` | — | **0**（STATE.md 纯追加，零删除行） |
 
 - **变异验证四条逐条独立复跑，`## Closure` 里写的四条全部为真**（改动均已复原，复原后 `248 passed`）：
   ① `find_one` 改成吞 `SiteError` 判不存在 → `4 failed`，逐字点名
@@ -568,7 +568,7 @@ Closure Audit Evidence:
   `project-context.md:56` 验证命令表新增一行且四条口径齐备 · `docs/logs/2026/08-22.md` 五条（Phase 1–4 + 关闭自查）·
   `STATE.md` §2 两行追加。**五点一致（Plan Status / 四个 Phase Status / 各 Exit Criteria / Closure Gates / Closure 证据）成立。**
 - **审计当场修掉的两处 plan 文件缺陷**（不是复述执行者的记录，是本次发现并修的）：
-  ① 本文件在 `da048a2` 里**整段正文被重复了一份**（`## Deferred But Adjudicated` 后误插了一份从 front matter 到
+  ① 本文件在 `aaa7792` 里**整段正文被重复了一份**（`## Deferred But Adjudicated` 后误插了一份从 front matter 到
   `## Draft Review Record` 的完整副本，两份 `diff` 逐字节相同），已删除重复段；
   ② `Closure Gates` 的「closure audit was independent」与本节的 `Auditor / Agent` 仍是待填占位，已由本次审计填实。
 - **裁定：接受关闭。** 交付面在活仓活站点上可复跑、判据有牙齿、红线零触碰、漂移零隐藏。

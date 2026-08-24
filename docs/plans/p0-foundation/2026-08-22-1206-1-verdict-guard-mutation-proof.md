@@ -16,32 +16,32 @@
 
 ## Current Baseline
 
-⚠️ **本节在独立评审第 5 轮整体重测过一次：起草时的基线 `main` @ `aba9a5f` 已经过期。**
-以下每一条都是 **2026-08-22 独立评审第 5 轮在 `main` @ `4d7b311` 上实跑得出的**，不是从旧 plan 抄的。
+⚠️ **本节在独立评审第 5 轮整体重测过一次：起草时的基线 `main` @ `e480048` 已经过期。**
+以下每一条都是 **2026-08-22 独立评审第 5 轮在 `main` @ `c2c9205` 上实跑得出的**，不是从旧 plan 抄的。
 被改准的是 **A / A3 / C5.4** 与它们下游的判据锚点；**C1–C5.3 / D / E / F / G / G2 逐条复测仍为真**
 （复测读数见 `## Draft Review Record` 的 iteration 5）。
 
 **A. 仓库状态**
 
-- `git log --oneline -1` → `4d7b311 fix(ops): plist 不再注入预算变量 —— 单一真相源留了个注入口就不单一`
+- `git log --oneline -1` → `c2c9205 fix(ops): plist 不再注入预算变量 —— 单一真相源留了个注入口就不单一`
 - `git status --porcelain` → **空**（工作区干净）。⚠️ 起草时这里是两行 `??`（本批两个 draft plan 未跟踪）；
-  它们已随 `6288666` 进入版本库，因此现在为空。
+  它们已随 `752d6d5` 进入版本库，因此现在为空。
 - **A3 · ⚠️ 起草时那条「本地 `main` 领先 `origin/main` 10 个提交，未推」已经不成立，本轮就地改准**：
   实测 `git rev-parse main origin/main` → **两值相等**，均为
-  `4d7b311d0dd8e1e0da2d8a47329984d6d484eef4`；`git log --oneline origin/main..main | wc -l` → `0`。
-  那 10 个提交（含 `57ad6d5 feat(gates): 门禁判定失败取证`）**已经推上去了**，其后 `main` 上又落了两个提交
-  （`6288666` 预算阈值单一真相源 · `4d7b311` plist 不再注入预算变量），且都已推。
+  `c2c9205b63bb068feb5a067a1c3d0c8ad10b6b96`；`git log --oneline origin/main..main | wc -l` → `0`。
+  那 10 个提交（含 `e27994e feat(gates): 门禁判定失败取证`）**已经推上去了**，其后 `main` 上又落了两个提交
+  （`752d6d5` 预算阈值单一真相源 · `c2c9205` plist 不再注入预算变量），且都已推。
   **后果逐条说清，因为它改的是 Phase 1 的动作而不只是措辞**：
   · ① **Phase 1 第二个 `Decision` 要做的那一推已被现实满足**——`git push origin main` 现在是 no-op。
     它的**安全窗口论证仍必须留痕**（`main` 上此刻仍零 `verdict-tool-untouched`，见 B），
     但那一推不再消耗 CI 预算，也不再是「趁现在」的抢跑；该 `Decision` 因此降级为**核验 + 留痕**，见 Phase 1。
-  · ② `$CUT`（切分支那一刻的 `main` sha）的期望值从 `aba9a5f…` 改为 **`4d7b311…`**，
+  · ② `$CUT`（切分支那一刻的 `main` sha）的期望值从 `e480048…` 改为 **`c2c9205…`**，
     全 plan 所有以它为锚的判据同步改准。
-  · ③ **Phase 4 红线自查原来写死的 `aba9a5f..HEAD` 锚点会误报，这是本轮抓到的唯一一条会直接卡住执行的硬伤**：
-    实测 `git diff --stat aba9a5f..HEAD -- tests/gates agenerp docs/masterplan/DECISIONS.md missions tools/gates`
-    → **非空**（`tools/gates/budget.json` +10 / `tools/gates/check_budget.py` +21 −1，来自 `6288666`）。
+  · ③ **Phase 4 红线自查原来写死的 `e480048..HEAD` 锚点会误报，这是本轮抓到的唯一一条会直接卡住执行的硬伤**：
+    实测 `git diff --stat e480048..HEAD -- tests/gates agenerp docs/masterplan/DECISIONS.md missions tools/gates`
+    → **非空**（`tools/gates/budget.json` +10 / `tools/gates/check_budget.py` +21 −1，来自 `752d6d5`）。
     那两个文件与本 plan 无关，锚点已全部改成 `$CUT`（= 开工那一刻的 `main` sha）。
-  · ④ 起草时写的「GitHub 拿的基是 `origin/main` @ `508c75b`」本来就是错的（C5 已实测推翻），此处不再重复。
+  · ④ 起草时写的「GitHub 拿的基是 `origin/main` @ `3ed5f5b`」本来就是错的（C5 已实测推翻），此处不再重复。
 
 **B. `main` 上没有这两个 job（工作项 9 的关闭判据在 `main` 上不成立）**
 
@@ -55,21 +55,21 @@
 
 - `gh pr view 1 --json number,state,headRefName,baseRefName,mergeable` → `{"baseRefName":"main","headRefName":"ci/0027-2-l2-full-live-gate","mergeable":"MERGEABLE","number":1,"state":"OPEN"}`
 - **C1 · 合并 PR #1 不会删掉任何东西。** 判据是 merge-base，不是 tip-to-tip：
-  `git merge-base main origin/ci/0027-2-l2-full-live-gate` → `77addbb`；
-  `git diff --numstat 77addbb origin/ci/0027-2-l2-full-live-gate` → **三行**
+  `git merge-base main origin/ci/0027-2-l2-full-live-gate` → `06561fa`；
+  `git diff --numstat 06561fa origin/ci/0027-2-l2-full-live-gate` → **三行**
   `118 0 .github/workflows/gates.yml` / `32 0 agenerp/oob.py` / `8 1 agenerp/snapshot.py`；
-  `git log --oneline main..origin/ci/…` → **两个提交**（`c2c688b` / `9a8832f`），**都不删任何文件**。
-  且 `agenerp/oob.py` 与 `agenerp/snapshot.py` 的内容**已经在 `main` 上**（`578eb8f` 那次 cherry-pick），
+  `git log --oneline main..origin/ci/…` → **两个提交**（`c6a9269` / `2ef7cdc`），**都不删任何文件**。
+  且 `agenerp/oob.py` 与 `agenerp/snapshot.py` 的内容**已经在 `main` 上**（`7338dca` 那次 cherry-pick），
   `git diff --numstat main origin/ci/… -- agenerp/` → **零输出**。
   **结论：今天合并 PR #1，落到 `main` 上的净效果就是那 118 行 `gates.yml`，别的一个字节都不动。**
 - **C2 · 一处必须记下来的读数陷阱（本 plan 起草时踩过）**：`git diff --stat main origin/ci/…` → `23 个文件，+384 / −3455`，
   看起来像「合并会回退 3455 行」——**那是 tip-to-tip 两点式，不是合并会应用的差集**。合并应用的是
   merge-base→分支，即上面那三行。同理 `gh pr view 1 --json changedFiles,additions,deletions` → `6 / 417 / 17`
-  也不是本地口径。⚠️ **本句此前写的「GitHub 拿的基是 `origin/main` @ `508c75b`（见 A3），比本地 merge-base 旧」
-  两处都错，已改准**：GitHub 拿的基是 **PR 创建时钉住的 `7b0f585`**，既不是 `origin/main` 也不是本地 merge-base；
-  而 `508c75b` 比本地 merge-base `77addbb` **新**，不是旧（`77addbb` 出现在 `git log 7b0f585..508c75b` 里）。
-  机械对照：`git diff --numstat 7b0f585 origin/ci/…` 汇总 → `files=6 +417 -17`，与 GitHub 读数**逐字相符**；
-  `git diff --numstat $(git merge-base 508c75b origin/ci/…) origin/ci/…` → `files=3 +158 -1`，**对不上**。
+  也不是本地口径。⚠️ **本句此前写的「GitHub 拿的基是 `origin/main` @ `3ed5f5b`（见 A3），比本地 merge-base 旧」
+  两处都错，已改准**：GitHub 拿的基是 **PR 创建时钉住的 `627c7a9`**，既不是 `origin/main` 也不是本地 merge-base；
+  而 `3ed5f5b` 比本地 merge-base `06561fa` **新**，不是旧（`06561fa` 出现在 `git log 627c7a9..3ed5f5b` 里）。
+  机械对照：`git diff --numstat 627c7a9 origin/ci/…` 汇总 → `files=6 +417 -17`，与 GitHub 读数**逐字相符**；
+  `git diff --numstat $(git merge-base 3ed5f5b origin/ci/…) origin/ci/…` → `files=3 +158 -1`，**对不上**。
   这条错误的完整后果见 **C5**——它不是一处措辞瑕疵，它推翻了本 plan 原来的整个实验载体设计。
   **本 plan 此后一律用 merge-base 形式写 diff 判据**，两点式 `git diff main <分支>` / `git diff main..<分支>` 一处不留
   （`git log` 的 `A..B` 区间形式不在此列——对 `git log` 而言 `main..分支` 与 `merge-base..分支` 本就等价）——它还有第二个毛病：
@@ -78,9 +78,9 @@
   起草时是 `10`，`main` 此后又前进了），但「落后」的后果不是「合并会删东西」，而是「分支上的 CI 跑的不是 `main` 的代码」**——
   这条真实后果见 C4，也是本 plan Phase 1 存在的唯一理由。
 - **C4 · 上一次绿证据的基线已过期（本 plan 存在的真正理由）**：run `32533449466`
-  （`gates-l2-live` job `96929876654` `success`）跑在分支 head `c2c688b` 上，而
+  （`gates-l2-live` job `96929876654` `success`）跑在分支 head `c6a9269` 上，而
   `git diff --numstat main origin/ci/… -- tools/gates/check_expected_red.py` → `7	42` ——
-  **判定器本身在 `main` 上已被 plan `2026-08-22-0228-1`（提交 `57ad6d5`，取证面）改过，那次绿没有覆盖当前这份判定器**。
+  **判定器本身在 `main` 上已被 plan `2026-08-22-0228-1`（提交 `e27994e`，取证面）改过，那次绿没有覆盖当前这份判定器**。
   `agenerp/**`、`tests/gates/**`、`docker-compose.yml` 三处两边**逐字节相同**（`git diff --numstat` 对这些路径零输出），
   所以过期的只有判定器这一处——**但它恰好是 `gates-l2-live` 唯一执行的那条命令**。
   分支上再跑一百次 CI，跑的也不是 `main` 上那份判定器。
@@ -88,37 +88,37 @@
 - **C5 · ⚠️ `pull_request` 的 `BASE` 不跟随 base 分支 tip，它在 PR 创建时就被钉死（独立评审第 4 轮实测推翻本 plan 原设计）**：
   本 plan 此前（以及 iteration 2/3 的评审结论）都写着「`pull_request` 事件的 `BASE` 取的是 base 分支的 tip（即 `origin/main`）」。
   **这句话是错的**，四条读数一致否掉它：
-  · `gh pr view 1 --json baseRefOid` → `7b0f585f7c8082a64902da65e6e3314cb239dc9f`；
-  · `gh api repos/:owner/:repo/pulls/1 --jq .base.sha` → 同一个 `7b0f585`，而彼时 `origin/main` 已是 `508c75b`；
-  · `gh api repos/:owner/:repo/actions/runs/32533449466 --jq '[.pull_requests[].base.sha]'` → `["7b0f585…"]`——
-    那次 `synchronize` 发生在 `origin/main` 移到 `508c75b` **之后 37 分钟**，`base.sha` **仍是** `7b0f585`；
+  · `gh pr view 1 --json baseRefOid` → `627c7a94e4580e74a778cd8cb6e66391f3ea4633`；
+  · `gh api repos/:owner/:repo/pulls/1 --jq .base.sha` → 同一个 `627c7a9`，而彼时 `origin/main` 已是 `3ed5f5b`；
+  · `gh api repos/:owner/:repo/actions/runs/32533449466 --jq '[.pull_requests[].base.sha]'` → `["627c7a9…"]`——
+    那次 `synchronize` 发生在 `origin/main` 移到 `3ed5f5b` **之后 37 分钟**，`base.sha` **仍是** `627c7a9`；
   · 本仓自己的 `docs/masterplan/STATE.md:81` 早就记着 `gh pr view 1 --json state,baseRefOid` → `OPEN` / `7b0f585f7c…`，
     **本 plan 起草时没读它**。
-  `7b0f585` 是 PR 创建时（2026-08-21T17:40:08Z）`main` 的 tip，实测 `git merge-base --is-ancestor 7b0f585 main` → 成立、
-  `git merge-base --is-ancestor 7b0f585 origin/ci/…` → 成立。
+  `627c7a9` 是 PR 创建时（2026-08-21T17:40:08Z）`main` 的 tip，实测 `git merge-base --is-ancestor 627c7a9 main` → 成立、
+  `git merge-base --is-ancestor 627c7a9 origin/ci/…` → 成立。
 - **C5.1 · 这条事实如何击穿原设计（必须写清，否则下一轮又会绕回去）**：守卫在 PR 上取 `BASE=github.event.pull_request.base.sha`，
-  即 `7b0f585`，并跑**两点式** `git diff --name-only "$BASE" "$HEAD"`。原设计要把**同一个分支** force-push 成 `main`(`aba9a5f`) + 118 行追加，
+  即 `627c7a9`，并跑**两点式** `git diff --name-only "$BASE" "$HEAD"`。原设计要把**同一个分支** force-push 成 `main`(`e480048`) + 118 行追加，
   于是守卫会算：
-  · `git diff --name-only 7b0f585 aba9a5f -- tools/gates/check_expected_red.py tools/gates/gate-verify.mjs` → **命中该文件**
-    （`57ad6d5` 那次取证面改动落在这个区间里）；
-  · `git log --format=%B 7b0f585..aba9a5f | grep -c '^Gates-Change-Approved-By:'` → `0`。
+  · `git diff --name-only 627c7a9 e480048 -- tools/gates/check_expected_red.py tools/gates/gate-verify.mjs` → **命中该文件**
+    （`e27994e` 那次取证面改动落在这个区间里）；
+  · `git log --format=%B 627c7a9..e480048 | grep -c '^Gates-Change-Approved-By:'` → `0`。
   → **守卫在刷新后的每一次运行上都 `failure`，与是否施加实验载荷无关**。后果逐条：Phase 2 的基线绿（含
   `verdict-tool-untouched` 日志逐字 `✅ 未触及判定器`）**拿不到**；实验 ② ③ 期望的 `success` **拿不到**；
   实验 ① 失去全部鉴别力（加不加那个空行它都红）。**「先推 `origin/main` 再刷新分支」消灭不了这一条**——
   `base.sha` 根本不看 `origin/main`。iteration 2/3 把那条时序约束称作「最硬的一条」「最有价值的一条」，
   **在这条实测面前它对 `pull_request` 路径是无效的**（它对 `push` 路径仍然有效，见 Phase 1 `Decision` 2 改准后的理由）。
 - **C5.2 · 顺带纠正的第二个后果（原「硬判据」会必然失败）**：GitHub 的 PR 读数以 `base.sha` 为基。
-  刷新后 `git diff --numstat 7b0f585 aba9a5f` → `files=24 +3752 -281`，加上 gates.yml 那一处后 PR 会读出约
+  刷新后 `git diff --numstat 627c7a9 e480048` → `files=24 +3752 -281`，加上 gates.yml 那一处后 PR 会读出约
   `25 / +3870 / −281`，**而不是**原 plan 钉死的 `1 / 118 / 0`。姊妹 plan 的 Phase 1 预检 ③ 拿的正是这个值当硬闸，
   两个 plan 会在同一处一起卡死。
 - **C5.3 · 已有那次绿证据对本条**不构成**反证，照实记**：run `32533449466` 的守卫绿，是因为
-  `git diff --name-only 7b0f585 c2c688b -- …` 与 `git diff --name-only 508c75b c2c688b -- …` **两者都为空**——
+  `git diff --name-only 627c7a9 c6a9269 -- …` 与 `git diff --name-only 3ed5f5b c6a9269 -- …` **两者都为空**——
   它对「`BASE` 到底是哪一个」**不作鉴别**。本条结论靠的是上面 C5 那四条直接读数，不是靠它。
 - **C5.4 · 因此本 plan 换实验载体：不 force-push PR #1，另开一条新分支与一个新 PR。**
   新 PR 的 `base.sha` 在创建那一刻等于当时的 `origin/main`，因此只要**建 PR 那一刻 `origin/main == main`**，
   就有 `BASE = $CUT`，四条实验各自回到它们本来要证明的那条出口。
-  ⚠️ **第 5 轮改准**：这个前提**此刻已经成立**（A3：两值相等，均为 `4d7b311`），
-  不再需要原文那句「先把 `origin/main` 推到 `aba9a5f`」的抢跑；
+  ⚠️ **第 5 轮改准**：这个前提**此刻已经成立**（A3：两值相等，均为 `c2c9205`），
+  不再需要原文那句「先把 `origin/main` 推到 `e480048`」的抢跑；
   但**建 PR 前必须现场重新核验一次两值相等**——Phase 4 会推 `main`，执行若跨过那一步再复跑，前提会重新变得不平凡。
   做法与备选见 Phase 1 第一个 `Decision`。
   **额外的好处照实记**：`base.sha` 一旦钉死就不再漂移，Phase 4 往 `main` 推文档**不会**动摇实验区间——
@@ -171,7 +171,7 @@
   `AGENTS.md` 第 3 行又把红线置于一切之上。**因此本 plan 不停下等人。**
 - **本 plan 的处置**：沿用**已在 `main` 上落地的先例**——plan `2026-08-21-2220-2` 用同一条「纯追加 = 加严」的读法
   把 `gates-l2` job 加进了 `main` 的 `gates.yml`（`main` 上 7 个 job 键里就有它；
-  **先例的机械出处**：`git log -S 'gates-l2:' -- .github/workflows/gates.yml` → `6ac1005`，至今未被推翻）。本 plan 不替人改那一行 Rule，
+  **先例的机械出处**：`git log -S 'gates-l2:' -- .github/workflows/gates.yml` → `ad42e91`，至今未被推翻）。本 plan 不替人改那一行 Rule，
   只在 `## Deferred But Adjudicated` 里把这条人动作项**继续挂着**并指向已有登记。
 
 ## Goals
@@ -184,7 +184,7 @@
    且新 PR 的 `baseRefOid` **恰好等于**切分支时那个 `main` sha。
    **三条理由，缺一条这个 Goal 都不成立**：① 让 CI 在 `main` 的代码上跑（C4）；
    ② 让本批第二个 plan 的 `--ff-only` 落地成为可能（分支不含 `main` 就 ff 不动）；
-   ③ **最硬的一条**：`pull_request` 的 `BASE` 在 PR 创建时钉死（C5），沿用 PR #1 会让 `BASE` 永远停在 `7b0f585`，
+   ③ **最硬的一条**：`pull_request` 的 `BASE` 在 PR 创建时钉死（C5），沿用 PR #1 会让 `BASE` 永远停在 `627c7a9`，
    守卫恒红、四条实验全部失去鉴别力。**这不是「消除合并风险」**——C1 已实测合并 PR #1 删不掉任何东西。
 3. **在当前 `main` 基线（含 `2026-08-22-0228-1` 改过的判定器）上重新取得 `gates-l2-live` 的 `success`**，
    把 C4 那处过期的绿证据补成有效的。
@@ -310,31 +310,31 @@ Skill: `none`
       **⚠️ 本项的理由在独立评审第 1 轮被推翻过一次，下面是改准后的版本**：起草时写的
       「PR #1 按现状合并会回退 3455 行」是**两点式误读**，C1 已实测**合并删不掉任何东西**。
       真实理由只剩两条，都成立且都够硬：
-      · **理由一（C4）**：分支落后 `main` 21 个提交（C3），其中 `57ad6d5` 改的正是 `gates-l2-live` 唯一执行的那条命令
+      · **理由一（C4）**：分支落后 `main` 21 个提交（C3），其中 `e27994e` 改的正是 `gates-l2-live` 唯一执行的那条命令
         （判定器）。不追平，分支上的 CI 就永远证明不了 `main` 的代码。
       · **理由二**：本批第二个 plan 选的是 `--ff-only` 落地，**分支不包含 `main` 就 ff 不动**。
       · **理由三（独立评审第 4 轮新增，是三条里最硬的一条）**：`pull_request` 的 `BASE` 在 **PR 创建时**钉死（C5），
-        PR #1 的 `baseRefOid` 永远是 `7b0f585`。**沿用 PR #1 的分支做实验，守卫恒红且与实验载荷无关**（C5.1），
+        PR #1 的 `baseRefOid` 永远是 `627c7a9`。**沿用 PR #1 的分支做实验，守卫恒红且与实验载荷无关**（C5.1），
         四条实验一条也证明不了。所以载体必须换，而不只是把分支追平。
       - **选定方案（⚠️ 本项在独立评审第 4 轮被整条改写）**：**不动 PR #1，另开新分支与新 PR**——
         `git switch -c ci/1206-1-verdict-guard-proof main` → 把已实测那 118 行原样追加到
         `.github/workflows/gates.yml` 末尾 → **一个**提交 → `git push -u origin ci/1206-1-verdict-guard-proof`
         → `gh pr create --base main --head ci/1206-1-verdict-guard-proof`。
         **顺序硬约束**：`git push origin main`（第二个 `Decision`）**必须在 `gh pr create` 之前**完成——
-        新 PR 的 `base.sha` 等于**创建那一刻 `origin/main` 的 tip**，`origin/main` 还停在 `508c75b` 时建 PR，
-        `BASE` 就是 `508c75b`，区间里含无 trailer 的 `57ad6d5`，守卫照样恒红。
+        新 PR 的 `base.sha` 等于**创建那一刻 `origin/main` 的 tip**，`origin/main` 还停在 `3ed5f5b` 时建 PR，
+        `BASE` 就是 `3ed5f5b`，区间里含无 trailer 的 `e27994e`，守卫照样恒红。
       - **⚠️ 提交信息硬约束**：该提交的 message **不得包含 `Gates-Change-Approved-By:`**。
         守卫扫的是整个 `BASE..HEAD` 区间的 message（`git log --format=%B "$BASE..$HEAD" | grep -q '^Gates-Change-Approved-By:'`），
         区间里任何一个提交带了 trailer，实验 ① 就会**放行成 `success`**，整组实验当场作废。
       - **备选 (a) `git merge main` 进分支**：**不选**。会产生 merge commit，PR diff 里混进 `main` 那 21 个提交的内容，
         「PR 上评审的就是这 118 行」这句话不再成立。
-      - **备选 (b) `git rebase main`**：**不选**。分支上的 `c2c688b`（`agenerp/oob.py` 的 `FALSY_RESULT` 修复）
-        内容**已经在 `main` 上**（`578eb8f`，实测 `git diff --numstat main origin/… -- agenerp/` 零输出），
+      - **备选 (b) `git rebase main`**：**不选**。分支上的 `c6a9269`（`agenerp/oob.py` 的 `FALSY_RESULT` 修复）
+        内容**已经在 `main` 上**（`7338dca`，实测 `git diff --numstat main origin/… -- agenerp/` 零输出），
         rebase 会产出空提交或冲突，换来一段没有信息量的历史。
       - **备选 (c) 什么都不做，直接让第二个 plan 合并 PR #1**：**不选**，理由是 C4——
         那样落到 `main` 的 118 行**从未在 `main` 的判定器上跑过**。
       - **备选 (d) force-push PR #1 的分支（本项改写前的选定方案）**：**不选**，理由是 C5.1——
-        `base.sha` 钉死在 `7b0f585` 不随之更新，守卫恒红，四条实验全部作废；且 C5.2 那条 `1 / 118 / 0` 硬判据也会必然失败。
+        `base.sha` 钉死在 `627c7a9` 不随之更新，守卫恒红，四条实验全部作废；且 C5.2 那条 `1 / 118 / 0` 硬判据也会必然失败。
       - **备选 (e) `gh pr edit 1 --base <临时分支>` 再改回 `main`，逼 GitHub 重算 `base.sha`**：**不选**。
         **本仓从未实测过这个行为**，把一组实验的成立前提押在一个未验证的 GitHub 行为上，正是本 plan 反复批评的毛病。
         建新 PR 是同样成本、且语义确定的路。
@@ -353,13 +353,13 @@ Skill: `none`
 - [x] `Decision` **建 PR 之前 `origin/main` 必须已等于 `main`——⚠️ 第 5 轮整条改准：这个前提此刻已经成立，
       本项因此从「执行一次抢跑推送」降级为「核验 + 留痕」，但一条也不许略过**。
       **改准的事实（A3）**：起草时本地 `main` 领先 `origin/main` 10 个提交、未推；
-      实测此刻 `git rev-parse main origin/main` → **两值相等**（均为 `4d7b311…`），
-      `git log --oneline origin/main..main | wc -l` → `0`。那 10 个提交（含无 trailer 的判定器改动 `57ad6d5`）**早已推上去**。
+      实测此刻 `git rev-parse main origin/main` → **两值相等**（均为 `c2c9205…`），
+      `git log --oneline origin/main..main | wc -l` → `0`。那 10 个提交（含无 trailer 的判定器改动 `e27994e`）**早已推上去**。
       **为什么这个前提仍然承重（论据保留，因为它解释了「为什么现在是安全的」而不只是「现在没事」）**：
       新 PR 的 `base.sha` **等于 `gh pr create` 那一刻 `origin/main` 的 tip**（C5）。
       若 `origin/main` 落后于 `main`，`BASE` 就会落在一个**含无 trailer 判定器改动**的区间起点上
-      （起草时那个具体形态：`git diff --name-only 508c75b aba9a5f -- tools/gates/check_expected_red.py tools/gates/gate-verify.mjs`
-      → 命中；`git log --format=%B 508c75b..aba9a5f | grep -c '^Gates-Change-Approved-By:'` → `0`）
+      （起草时那个具体形态：`git diff --name-only 3ed5f5b e480048 -- tools/gates/check_expected_red.py tools/gates/gate-verify.mjs`
+      → 命中；`git log --format=%B 3ed5f5b..e480048 | grep -c '^Gates-Change-Approved-By:'` → `0`）
       → **守卫在新 PR 上恒红**，Phase 2 的基线绿拿不到，四条实验全部失去鉴别力。
       **`push` 路径那半的风险已经过去，照实记**：起草时担心的「守卫落进 `main` 之后再推这 10 个提交必然红」
       （`BASE=github.event.before`，区间含无 trailer 的判定器改动）**已经不会发生**——那些提交在守卫落地**之前**就推完了。
@@ -370,7 +370,7 @@ Skill: `none`
         补推前必须跑下面那四条预检。顺序硬约束不变：**`origin/main == main` 成立在前 → 切新分支 → `gh pr create`**。
       - **备选 (a) 不核验，直接建 PR**：**不选**——`base.sha` 一旦钉在一个落后的 sha 上就不可挽回，
         只能弃掉这个 PR 重建（C5：`base.sha` 不随 base 分支 tip 更新）。核验成本是一条命令。
-      - **备选 (b) 给 `57ad6d5` 补 trailer**：**不选**（此刻已无必要，且原理由仍成立）——
+      - **备选 (b) 给 `e27994e` 补 trailer**：**不选**（此刻已无必要，且原理由仍成立）——
         改写已推历史，且 trailer 是给人用的批准语义，loop 不得自签。
       - **四条推前预检**（只在真需要补推时跑；Phase 4 那次收尾推送**无条件**跑同一组），
         任何一条不为期望值就不推：
@@ -382,7 +382,7 @@ Skill: `none`
         若确需补推，那一推会在 `main` 上触发一次完整 CI 运行（此刻 `main` 上的 7 个 job），按下面 `Fix` 项的红处置分支走。
       - Skill: `none`
 - [x] `Fix` 按上面两个 `Decision` **依次**执行（**顺序是硬约束，见 `Decision` 2 的选定项**）：
-      ① **核验** `git rev-parse main origin/main` 两值相等（期望均为 `$CUT` = `4d7b311…`），抄进 plan；
+      ① **核验** `git rev-parse main origin/main` 两值相等（期望均为 `$CUT` = `c2c9205…`），抄进 plan；
       不等则跑四条预检后 `git push origin main`，并记录那次 `main` push 运行的 run id 与全部 job 结论；
       ② `git switch -c ci/1206-1-verdict-guard-proof main` + 追加 118 行 + 单提交 +
       `git push -u origin ci/1206-1-verdict-guard-proof`；③ `gh pr create --base main --head ci/1206-1-verdict-guard-proof`。
@@ -394,7 +394,7 @@ Skill: `none`
       - Skill: `none`
 - [x] `Proof` **形态判据五条，输出逐字抄进本 plan。一律用 merge-base 形式，不用两点式**
       （两点式在 `main` 前进后会因与分支无关的原因失败，见 C2）。
-      **先把切分支那一刻的 `main` sha 记成 `$CUT` 并写进 plan**（`CUT=$(git rev-parse main)`，期望 `4d7b311…`）——
+      **先把切分支那一刻的 `main` sha 记成 `$CUT` 并写进 plan**（`CUT=$(git rev-parse main)`，期望 `c2c9205…`）——
       后面每一条判据都以它为锚，**不用 `git rev-parse main`**：Phase 4 会往 `main` 提文档，`main` 之后必然前进：
       · `MB=$(git merge-base main ci/1206-1-verdict-guard-proof); git diff --numstat "$MB" ci/1206-1-verdict-guard-proof`
         → 期望**恰好一行** `118	0	.github/workflows/gates.yml`；且此时 `$MB` 应逐字等于 `$CUT`（切分支的直接推论）；
@@ -422,7 +422,7 @@ Skill: `none`
       ⚠️ **这条是硬判据，没有豁免，但它成立有前提，前提就是上一项的第五条**：
       GitHub 按 `base.sha` 算 PR 读数（C5.2），`baseRefOid == $CUT` 成立时读数才**必须**是 `1 / 118 / 0`。
       两条要一起看：`baseRefOid` 对不上时，`1 / 118 / 0` 对不上是**推论而不是新问题**，去修前者。
-      ⚠️ **这条问的是新 PR，不是 PR #1**：PR #1 的读数仍是 `6 / 417 / 17`（基 `7b0f585`），
+      ⚠️ **这条问的是新 PR，不是 PR #1**：PR #1 的读数仍是 `6 / 417 / 17`（基 `627c7a9`），
       本 plan 不动它，也不拿它当判据。本批第二个 plan 的 Phase 1 预检 ③ 拿的是**新 PR** 的这个值。
       - Skill: `none`
 
@@ -434,7 +434,7 @@ Exit Criteria:
 三条**互相不可同时满足**。改准后一律锚在 `$CUT`（切分支那一刻的 `main` sha）与「祖先 + 只含文档」上，
 不锚在浮动的 `git rev-parse main` 上。
 
-- [x] **`$CUT` 已记进 plan**（切分支那一刻的 `git rev-parse main`，期望 `4d7b311…`），此后各判据一律以它为锚
+- [x] **`$CUT` 已记进 plan**（切分支那一刻的 `git rev-parse main`，期望 `c2c9205…`），此后各判据一律以它为锚
 - [x] 新分支形态：`git merge-base main ci/1206-1-verdict-guard-proof` == `$CUT`，区间内**恰好一个**提交，
       净 diff 为 `118	0	.github/workflows/gates.yml`
 - [x] 追加的 118 行与 run `32533449466` 上跑过的那份**逐字一致**（对着保命闸文件比，有输出为证）
@@ -454,28 +454,28 @@ Exit Criteria:
 - [x] `gh pr view <新 PR 号>` 读数逐字为 `state: OPEN` / `changedFiles: 1` / `additions: 118` / `deletions: 0`
       （**硬判据，无豁免**；它成立以上一条为前提）
 - [x] PR #1 一个字节未动：`gh pr view 1 --json state,headRefOid,baseRefOid` 与开工时逐字相同
-      （`OPEN` / `c2c688b…` / `7b0f585…`）
+      （`OPEN` / `c6a9269…` / `627c7a9…`）
 - [x] `docs/logs/2026/08-22.md` 已追加本阶段记录
 
 #### Phase 1 执行记录（2026-08-22 实跑回填）
 
 **⚠️ 开工第一件事就是一处基线改准，必须写在最前面**：本 plan `## Current Baseline` A / A3 记的
-`main` @ `4d7b311` 在执行当日**又已过期**——实测 `main` 已前进到 `f689d0e docs(decisions): D-8 —— OAuth
+`main` @ `c2c9205` 在执行当日**又已过期**——实测 `main` 已前进到 `940935c docs(decisions): D-8 —— OAuth
 过期照旧由人处理，不换认证不加通知`（一个提交，改的是 `docs/masterplan/DECISIONS.md`，与本 plan 无关）。
-因此 **`$CUT` 的实测值是 `f689d0e7cde3f2733b044b004f7a314f14958973`，不是 plan 里写的 `4d7b311…`**。
+因此 **`$CUT` 的实测值是 `940935c84395a3671dafd5b12e4bdf979262982c`，不是 plan 里写的 `c2c9205…`**。
 plan 全篇的判据锚点写的是 `$CUT` 这个符号而不是那个字面值（第 5 轮评审改准的正是这件事），
 所以**没有一条判据因此失效**；下面全部读数一律以实测 `$CUT` 为准。
-`4d7b311` 那个期望值就此作废，**不去追认它**。
+`c2c9205` 那个期望值就此作废，**不去追认它**。
 
 **① `origin/main == main` 核验（`gh pr create` 之前，顺序留痕）**
 
 | 命令 | 输出 | 时序 |
 |---|---|---|
 | `git fetch origin --prune` | （无关输出） | 建 PR 前 |
-| `git rev-parse main origin/main` | `f689d0e7cde3f2733b044b004f7a314f14958973` / `f689d0e7cde3f2733b044b004f7a314f14958973` —— **两值相等** | 建 PR 前 |
+| `git rev-parse main origin/main` | `940935c84395a3671dafd5b12e4bdf979262982c` / `940935c84395a3671dafd5b12e4bdf979262982c` —— **两值相等** | 建 PR 前 |
 | `git rev-list --left-right --count origin/main...main` | `0	0` | 建 PR 前 |
 | `git log --oneline origin/main..main \| wc -l` | `0` | 建 PR 前 |
-| `git fetch origin main; git rev-parse main origin/main`（**紧贴 `gh pr create` 之前再核一次**） | 两值仍为 `f689d0e…` | `gh pr create` 前一条命令 |
+| `git fetch origin main; git rev-parse main origin/main`（**紧贴 `gh pr create` 之前再核一次**） | 两值仍为 `940935c…` | `gh pr create` 前一条命令 |
 
 **核验相等，本阶段无 `main` push 运行**（Exit Criteria 逐字要求此处不得留空）。四条推前预检因此**未跑**——
 它们的触发条件是「核验不等而补推」，本阶段不成立；Phase 4 那次收尾推送会无条件跑同一组。
@@ -495,8 +495,8 @@ plan 全篇的判据锚点写的是 `$CUT` 这个符号而不是那个字面值�
 - `git switch -c ci/1206-1-verdict-guard-proof main` → `Switched to a new branch 'ci/1206-1-verdict-guard-proof'`
 - `cat /tmp/two-jobs.yml >> .github/workflows/gates.yml` → `wc -l` = `308`；
   `diff .github/workflows/gates.yml <(git show origin/ci/0027-2-l2-full-live-gate:.github/workflows/gates.yml)` → **无输出**
-- `git commit`（**message 不含 `Gates-Change-Approved-By:`**）→ `[ci/1206-1-verdict-guard-proof b7348bf] 1 file changed, 118 insertions(+)`，
-  提交 sha **`b7348bf3a1eb1eccbe1c032af8bd73ed808ed4af`**
+- `git commit`（**message 不含 `Gates-Change-Approved-By:`**）→ `[ci/1206-1-verdict-guard-proof 050eedf] 1 file changed, 118 insertions(+)`，
+  提交 sha **`050eedf01bd309b5f57c23a00e0a2c8d6ea4a113`**
 - `git push -u origin ci/1206-1-verdict-guard-proof` → `* [new branch]`，exit 0
 - `gh pr create --base main --head ci/1206-1-verdict-guard-proof …` → **PR #2**
   （`https://github.com/lize-agent-engineering/AgenERP/pull/2`）。正文首行逐字写明「本 PR 取代 PR #1 作为
@@ -510,7 +510,7 @@ plan 全篇的判据锚点写的是 `$CUT` 这个符号而不是那个字面值�
 | 2 | `git log --oneline "$MB"..ci/1206-1-verdict-guard-proof \| wc -l` | `1` | ✅ |
 | 3 | `diff <(git show "$MB":.github/workflows/gates.yml) <(head -n 190 .github/workflows/gates.yml)` | **无输出** | ✅ |
 | 4 | `diff /tmp/two-jobs.yml <(tail -n 118 .github/workflows/gates.yml)` | **无输出** | ✅ |
-| 5 | `gh pr view 2 --json baseRefOid` | `{"baseRefOid":"f689d0e7cde3f2733b044b004f7a314f14958973"}` —— **逐字等于 `$CUT`** | ✅ **全批最承重的一条，C5 那颗钉子钉住了** |
+| 5 | `gh pr view 2 --json baseRefOid` | `{"baseRefOid":"940935c84395a3671dafd5b12e4bdf979262982c"}` —— **逐字等于 `$CUT`** | ✅ **全批最承重的一条，C5 那颗钉子钉住了** |
 
 **⑤ trailer 洁净度预检**
 
@@ -522,7 +522,7 @@ plan 全篇的判据锚点写的是 `$CUT` 这个符号而不是那个字面值�
   `{"additions":118,"changedFiles":1,"deletions":0,"mergeable":"MERGEABLE","state":"OPEN"}` ——
   逐字为 `OPEN` / `1` / `118` / `0` ✅（它成立的前提是判据 5，两条一起读）
 - `gh pr view 1 --json state,headRefOid,baseRefOid` →
-  `{"baseRefOid":"7b0f585f7c8082a64902da65e6e3314cb239dc9f","headRefOid":"c2c688b7f6bc49a96d1e89a3582014334ba8fb71","state":"OPEN"}`
+  `{"baseRefOid":"627c7a94e4580e74a778cd8cb6e66391f3ea4633","headRefOid":"c6a92697d78414d788c4178da20b859afac911e7","state":"OPEN"}`
   —— 与开工时逐字相同，**PR #1 一个字节未动** ✅
 
 **⑦ 一处必须照实记的偏差：工作树带进来一个前序会话的未提交改动**
@@ -537,7 +537,7 @@ plan 全篇的判据锚点写的是 `$CUT` 这个符号而不是那个字面值�
 这一条偏差**不隐藏、不改判据去迁就**：多出来的那个文件仍在 `docs/plans/p0-foundation/**` 之内，
 与 Phase 4 收尾那条更宽的收敛判据逐字相容；**丢弃它才是真正的损失**（销毁一次独立评审的产物）。
 
-**⑧ 本阶段 CI 消耗**：`gh pr create` 触发 `pull_request` 事件一次 → run **`32569935835`**（head `b7348bf`）。
+**⑧ 本阶段 CI 消耗**：`gh pr create` 触发 `pull_request` 事件一次 → run **`32569935835`**（head `050eedf`）。
 **这一次运行同时就是 Phase 2 的基线运行**，不另起。滚动计数：**1 / 12**。
 （`git push -u origin <分支>` 本身**不触发**：`gates.yml` 的 `on: push` 限定 `branches: [main]`。）
 
@@ -595,7 +595,7 @@ Exit Criteria:
 
 **② 新 PR（PR #2 / `ci/1206-1-verdict-guard-proof`）上的完整运行**
 
-- run **`32569935835`**，event `pull_request`，head sha **`b7348bf3a1eb1eccbe1c032af8bd73ed808ed4af`**，
+- run **`32569935835`**，event `pull_request`，head sha **`050eedf01bd309b5f57c23a00e0a2c8d6ea4a113`**，
   run 结论 **`success`**。**这就是 `gh pr create` 触发的那一次，Phase 1 与 Phase 2 共用一次运行，不另起。**
 - 九个 job 逐字（`gh run view 32569935835 --json jobs`）：
 
@@ -620,7 +620,7 @@ Exit Criteria:
 ```
 
 **Baseline C4 那处过期的绿证据就此补成有效的**：run `32533449466` 那次绿跑在判定器被
-plan `2026-08-22-0228-1`（`57ad6d5` 取证面）改**之前**的版本上；本次运行的 checkout 是 `$CUT` + 118 行，
+plan `2026-08-22-0228-1`（`e27994e` 取证面）改**之前**的版本上；本次运行的 checkout 是 `$CUT` + 118 行，
 判定器就是 `main` 上当前那一份。
 
 **④ `verdict-tool-untouched` 的日志判据（基线出口）**
@@ -637,7 +637,7 @@ plan `2026-08-22-0228-1`（`57ad6d5` 取证面）改**之前**的版本上；本
 
 **⑥ CI 滚动计数**：本阶段**未新增运行**（复用 Phase 1 那一次）。仍为 **1 / 12**。
 
-**⑦ `<Phase 2 sha>` 就此钉死为 `b7348bf3a1eb1eccbe1c032af8bd73ed808ed4af`**
+**⑦ `<Phase 2 sha>` 就此钉死为 `050eedf01bd309b5f57c23a00e0a2c8d6ea4a113`**
 （Phase 2 不在分支上产生任何提交，它等于 Phase 1 那个 118 行追加提交），
 Phase 3 的三次 `git reset --hard` 全部以它为目标。
 
@@ -711,7 +711,7 @@ Skill: `none`
       做法：先按隔离纪律 reset 回 Phase 2 sha，再推一个改 `tools/gates/check_expected_red.py`
       （同样是**文件末尾加一个空行**，语义无关）且提交信息**带** trailer 的提交。
       ⚠️ **与「loop 不得自签批准」那句的界线，此处逐字划清**（独立评审第 2 轮）：
-      Phase 1 备选 (b) 拒绝给 `57ad6d5` 补 trailer，是因为那会**追认一次真实的判定器改动**。
+      Phase 1 备选 (b) 拒绝给 `e27994e` 补 trailer，是因为那会**追认一次真实的判定器改动**。
       本条不同：它是**一次性实验载荷，不批准任何真实改动**，且会在清理步骤被 `reset` 移出分支，
       **永不进入 `main`、也不留在 PR 的最终形态里**。
       ⚠️ **措辞准确性（第 4 轮评审 nit）**：`reset` + force-push **不等于「抹掉」**——
@@ -791,12 +791,12 @@ Exit Criteria:
 | ③（reset 后） | 空 | `2` | `2` ✅ | `0` | `0` ✅ |
 | ④（reset 后） | 空 | `2` | `2` ✅ | `1` | `1` ✅ |
 
-③ 与 ④ 开跑前各做了一次 `git reset --hard b7348bf` + `git push --force-with-lease`，实测输出
-`+ a8e8305...b7348bf (forced update)` 与 `+ cf73d90...b7348bf (forced update)`。
+③ 与 ④ 开跑前各做了一次 `git reset --hard 050eedf` + `git push --force-with-lease`，实测输出
+`+ a8e8305...050eedf (forced update)` 与 `+ cf73d90...050eedf (forced update)`。
 
 **⚠️ 一条本仓此前明确写着「没实测过」的事实，本阶段实测出来了**：plan 的「CI 运行预算」逐字写着
 「**不做「reset 到已跑过的 sha 不另计」这种假设**——force-push 会不会触发 `synchronize` 事件本仓没实测过」。
-**实测结论：会触发，而且每一次都触发。** 三次 force-push 回 `b7348bf` 各自开出一次完整运行
+**实测结论：会触发，而且每一次都触发。** 三次 force-push 回 `050eedf` 各自开出一次完整运行
 （`32570657720` / `32570916073` / `32571266013`），**即使目标 sha 上已经跑过绿**。
 按最坏情形算预算这个决定因此是对的。
 
@@ -884,25 +884,25 @@ Exit Criteria:
 
 **⑥ 清理实验提交（七条机械判据，逐条实测值）**
 
-`git reset --hard b7348bf` + `git push --force-with-lease` → `+ cf73d90...b7348bf (forced update)`。
+`git reset --hard 050eedf` + `git push --force-with-lease` → `+ cf73d90...050eedf (forced update)`。
 
 | # | 判据 | 实测输出 | 期望 |
 |---|---|---|---|
-| 1 | `git rev-parse ci/1206-1-verdict-guard-proof` | `b7348bf3a1eb1eccbe1c032af8bd73ed808ed4af` | 逐字等于 Phase 2 sha ✅ |
+| 1 | `git rev-parse ci/1206-1-verdict-guard-proof` | `050eedf01bd309b5f57c23a00e0a2c8d6ea4a113` | 逐字等于 Phase 2 sha ✅ |
 | 2 | `git diff --numstat "$CUT" ci/1206-1-verdict-guard-proof` | 恰好一行 `118	0	.github/workflows/gates.yml` | ✅ |
 | 3 | 同上 `-- tools/gates/check_expected_red.py tools/gates/expected-red.txt` | **输出为空** | ✅ |
 | 4 | `git log --format=%B "$CUT"..<分支> \| grep -c '^Gates-Change-Approved-By:'` | `0` | ✅ 实验 ④ 的 trailer 已随 reset 消失 |
 | 5 | `gh pr view 2 --json changedFiles,additions,deletions` | `1` / `118` / `0` | ✅ 硬判据 |
-| 6 | `gh pr view 2 --json baseRefOid` | `f689d0e7cde3f2733b044b004f7a314f14958973` | ✅ 仍逐字等于 `$CUT`，C5 那颗钉子没松 |
-| 7 | `gh pr view 2 --json headRefOid` | `b7348bf3a1eb1eccbe1c032af8bd73ed808ed4af` | ✅ 等于 Phase 2 那次 run 的 head sha |
+| 6 | `gh pr view 2 --json baseRefOid` | `940935c84395a3671dafd5b12e4bdf979262982c` | ✅ 仍逐字等于 `$CUT`，C5 那颗钉子没松 |
+| 7 | `gh pr view 2 --json headRefOid` | `050eedf01bd309b5f57c23a00e0a2c8d6ea4a113` | ✅ 等于 Phase 2 那次 run 的 head sha |
 
 ⚠️ **措辞准确性（plan 自己要求的）**：`reset` + force-push **不等于「抹掉」**——
 `47e0069` / `4516e7f` / `a8e8305` / `cf73d90` 四个提交按 sha 在 GitHub 上仍可长期访问。
 成立的说法只有「**不进 `main`、不留在 PR 最终形态里**」这两句。
 
-**清理后的 head 上有一次全绿**：`headRefOid` = `b7348bf`，与 Phase 2 那次运行 **`32569935835`**
+**清理后的 head 上有一次全绿**：`headRefOid` = `050eedf`，与 Phase 2 那次运行 **`32569935835`**
 （九个 job 全 `success`）的 head sha 逐字相同，**引用它即可，未制造新的**。
-额外地，两次 reset force-push 各自开出的运行 **`32570657720`** 与 **`32570916073`** 也都在 `b7348bf` 上全绿，
+额外地，两次 reset force-push 各自开出的运行 **`32570657720`** 与 **`32570916073`** 也都在 `050eedf` 上全绿，
 是同一结论的两次冗余复现。
 
 **⑦ 本阶段抓到的新缺陷（本 plan 交付面之外，登记不修）**
@@ -926,15 +926,15 @@ Exit Criteria:
 
 | # | run id | head | 用途 | 结论 |
 |---|---|---|---|---|
-| 1 | `32569935835` | `b7348bf` | 建 PR 触发 = Phase 2 基线 | `success` |
+| 1 | `32569935835` | `050eedf` | 建 PR 触发 = Phase 2 基线 | `success` |
 | 2 | `32570222139` | `47e0069` | 实验 ① | `failure`（**预期红**） |
 | 3 | `32570426423` | `4516e7f` | 实验 ② | `success` |
-| 4 | `32570657720` | `b7348bf` | ③ 前 reset force-push | `success` |
+| 4 | `32570657720` | `050eedf` | ③ 前 reset force-push | `success` |
 | 5 | `32570691388` | `a8e8305` | 实验 ③ | `success` |
-| 6 | `32570916073` | `b7348bf` | ④ 前 reset force-push | `success` |
+| 6 | `32570916073` | `050eedf` | ④ 前 reset force-push | `success` |
 | 7 | `32570942284` attempt 1 | `cf73d90` | 实验 ④ | `failure`（**真红 #1**） |
 | 8 | `32570942284` attempt 2 | `cf73d90` | 实验 ④ 原样复跑 | `success` |
-| 9 | `32571266013` | `b7348bf` | 最终清理 force-push | （见 Phase 4 回填） |
+| 9 | `32571266013` | `050eedf` | 最终清理 force-push | （见 Phase 4 回填） |
 
 **滚动计数 9 / 12**（rerun 的 attempt 按一次算，不占便宜）。Phase 4 收尾推 `main` 还要一次 → 预计终值 **10 / 12**，**未超预算**。
 
@@ -971,10 +971,10 @@ Skill: `none`
       · `ruff check agenerp tests/unit tests/contracts` → 期望 exit 0。
       - Skill: `none`
 - [x] `Proof` **红线自查（机械可核，输出逐字抄进 plan）**：
-      ⚠️ **第 5 轮改准，锚点从写死的 `aba9a5f` 换成 `$CUT`（= 开工那一刻的 `main` sha，实测 `4d7b311…`）**。
-      原因不是措辞：`aba9a5f` 已被 `main` 甩在身后两个提交，实测
-      `git diff --stat aba9a5f..HEAD -- tests/gates agenerp docs/masterplan/DECISIONS.md missions tools/gates`
-      → **非空**（`tools/gates/budget.json` / `tools/gates/check_budget.py`，来自与本 plan 无关的 `6288666`）。
+      ⚠️ **第 5 轮改准，锚点从写死的 `e480048` 换成 `$CUT`（= 开工那一刻的 `main` sha，实测 `c2c9205…`）**。
+      原因不是措辞：`e480048` 已被 `main` 甩在身后两个提交，实测
+      `git diff --stat e480048..HEAD -- tests/gates agenerp docs/masterplan/DECISIONS.md missions tools/gates`
+      → **非空**（`tools/gates/budget.json` / `tools/gates/check_budget.py`，来自与本 plan 无关的 `752d6d5`）。
       照原文执行，这条红线自查会**因为别人的提交**而失败，把一次干净的收尾误判成红线违规。
       · `git diff --stat "$CUT"..HEAD -- tests/gates agenerp docs/masterplan/DECISIONS.md missions tools/gates` → 期望**输出为空**；
       · `git status --porcelain -- tests/gates agenerp docs/masterplan/DECISIONS.md missions tools/gates` → 期望**输出为空**
@@ -991,7 +991,7 @@ Skill: `none`
       记录那次 `main` push 运行的 run id 与全部 job 结论。
       ⚠️ **收尾判据不是「`git rev-parse main origin/main` 两值相等」，第 4 轮评审已改准，原因必须写下来**：
       本 plan 置 `completed` 还需要一次**独立关闭审计的回填提交**（`## Closure` 段 + `Closure Gates` 打勾，
-      本仓每个 plan 都这么收尾，最近一例是 `aba9a5f docs(p0-foundation): plan-1041-1 独立关闭审计回填`）。
+      本仓每个 plan 都这么收尾，最近一例是 `e480048 docs(p0-foundation): plan-1041-1 独立关闭审计回填`）。
       那次回填**必然发生在本次推送之后**，于是「两值相等」在**姊妹 plan 开工那一刻必然为假**——
       而姊妹 plan 的 Phase 1 预检 ⑥ 原本拿它当停机闸，**两个 plan 会在这里死锁**。
       **改准后的收尾判据（与姊妹 plan 预检 ⑥ 逐字一致，两边必须同时改）**：
@@ -1054,7 +1054,7 @@ Exit Criteria:
 
 **判定器默认环境输出的「前 / 后」两次实跑逐字节相同**（Protected Areas Required Evidence，G2 第三条）：
 `diff /tmp/verdict-before.txt /tmp/verdict-after.txt` → **无输出**。
-「前」记于 Phase 2 开跑前（`main` @ `f689d0e`），「后」记于此处；本 plan 对判定器的**净改动为零**。
+「前」记于 Phase 2 开跑前（`main` @ `940935c`），「后」记于此处；本 plan 对判定器的**净改动为零**。
 
 **⑤ 红线自查（锚 `$CUT` = `f689d0e7cde…`，不用裸 `git diff`；四条全为期望值）**
 
@@ -1065,8 +1065,8 @@ Exit Criteria:
 | `git diff "$CUT"..HEAD -- .github/workflows/` | **无输出** | ✅ **本 plan 对 `main` 的 workflow 零改动**，那 118 行只在分支上 |
 | `git diff "$CUT"..HEAD -- docs/masterplan/STATE.md \| grep '^-' \| grep -v '^---'` | **无输出** | ✅ 只追加（`git diff --numstat` → `20	0`） |
 
-⚠️ **锚点从 plan 原文写死的 `aba9a5f` 换成 `$CUT` 这一步是必须的**：`aba9a5f` 已被 `main` 甩在身后三个提交
-（`6288666` / `4d7b311` / `f689d0e`），照原文执行这条自查会因为**别人的提交**而失败，
+⚠️ **锚点从 plan 原文写死的 `e480048` 换成 `$CUT` 这一步是必须的**：`e480048` 已被 `main` 甩在身后三个提交
+（`752d6d5` / `c2c9205` / `940935c`），照原文执行这条自查会因为**别人的提交**而失败，
 把一次干净的收尾误判成红线违规。
 
 **⑥ 一件按 Non-Goals 明确不做的事，写在这里免得下一轮以为漏了**
@@ -1093,12 +1093,12 @@ Exit Criteria:
 
 **⑧ 推送结果**
 
-`git push origin main` → **exit 0**，`f689d0e..10da9e7  main -> main`，推的是 **6 个文件，全部在 `docs/**` 下**：
+`git push origin main` → **exit 0**，`940935c..d259e42  main -> main`，推的是 **6 个文件，全部在 `docs/**` 下**：
 `docs/architecture/system-baseline.md` · `docs/logs/2026/08-22.md` · `docs/masterplan/STATE.md` ·
 `docs/plans/p0-foundation/2026-08-22-0027-2-…md` · 本 plan 文件 · `docs/plans/p0-foundation/2026-08-22-1206-2-…md`
 （最后一个是 Phase 1 ⑦ 记的那处偏差：前序会话留在工作树里的姊妹 plan 评审改写，内容一字未改）。
 
-那次 `main` push 运行：run **`32571701925`**，event `push`，head **`10da9e7506ead7d1121130343649dc7728613bf5`**，
+那次 `main` push 运行：run **`32571701925`**，event `push`，head **`d259e428cd777b65f1a742f15f6358f35f409238`**，
 run 结论 **`success`**。**七个 job 全部 `success`**：
 
 | job | job id | conclusion |
@@ -1115,7 +1115,7 @@ run 结论 **`success`**。**七个 job 全部 `success`**：
 **此刻仍不在 `main` 上**。因此本 plan `## Non-Goals` 第二条逐字说的那件事成立——
 **这次 `main` push 运行不构成守卫 `push` BASE/HEAD 路径的实测，也不构成工作项 9 判据的成立。**
 
-**Phase 3 那次最终清理 force-push 开出的运行 `32571266013`**（head `b7348bf`）**结论亦为 `success`**，
+**Phase 3 那次最终清理 force-push 开出的运行 `32571266013`**（head `050eedf`）**结论亦为 `success`**，
 是「清理后的 head 上有一次全绿」的第三次冗余复现。
 
 **CI 运行次数终值：10 / 12，未超预算。** 逐条：
@@ -1140,8 +1140,8 @@ run 结论 **`success`**。**七个 job 全部 `success`**：
 
 - **Independent draft review iteration 1: `needs revision`**（独立子代理，fresh session，2026-08-22）。
   **推翻了本 plan 的一条中心事实**：起草时写的「PR #1 按现状合并会回退 3455 行」是**两点式误读**——
-  合并用的是 merge-base，实测 `git merge-base main origin/ci/…` → `77addbb`，
-  `git diff --numstat 77addbb origin/ci/…` 只有三行且**零删除**，`agenerp/` 两处内容已在 `main` 上，
+  合并用的是 merge-base，实测 `git merge-base main origin/ci/…` → `06561fa`，
+  `git diff --numstat 06561fa origin/ci/…` 只有三行且**零删除**，`agenerp/` 两处内容已在 `main` 上，
   **合并 PR #1 删不掉任何东西**。据此改准的有：Baseline C 全节重写、Goals 2 重新定性
   （从「消除合并风险」改成「追平 `main` 以让 CI 跑对代码 + 让 ff-only 成为可能」）、Phase 1 `Decision` 的理由与备选重写。
   其余 blocking 逐条落地：`git status` 实测是 2 行不是 0；所有两点式 `main..分支` 判据改成 merge-base 形式；
@@ -1154,12 +1154,12 @@ run 结论 **`success`**。**七个 job 全部 `success`**：
   「不把两个 job 落进 `main` 的 `gates.yml`」并写明 Phase 4 那次 `main` push 不构成守卫 `push` 路径实测。
 - **Independent draft review iteration 2（针对姊妹 plan，结论回灌本 plan）：`needs revision`**（另一独立子代理，fresh session，2026-08-22）。
   它实测发现一条**时序约束**，直接改变了本 plan Phase 1 的动作序列：本地 `main` 领先 `origin/main` **10 个提交**
-  （`git rev-parse main origin/main` → `aba9a5f` / `508c75b`），其中 `57ad6d5` 改了判定器且**不带 trailer**
-  （`git log --format=%B 508c75b..aba9a5f | grep -c '^Gates-Change-Approved-By:'` → `0`）。
+  （`git rev-parse main origin/main` → `e480048` / `3ed5f5b`），其中 `e27994e` 改了判定器且**不带 trailer**
+  （`git log --format=%B 3ed5f5b..e480048 | grep -c '^Gates-Change-Approved-By:'` → `0`）。
   **守卫一旦落进 `main`，再推这 10 个提交就必然红。** 因此本 plan 新增「趁 `main` 上还没有守卫，先把 `origin/main` 追平」
   这个 `Decision`（带两条推前预检与安全窗口论证），并在 Phase 4 收尾时再推一次，使 `git rev-parse main origin/main` 相等。
   同一轮还回灌了：守卫体内 `|| true` 的假阴入口登记为 Deferred（继承自既有 `gates-untouched`，非本批引入）；
-  Protected Areas 那处措辞不一致补上该表**前言**的逐字反证与先例的机械出处（`git log -S 'gates-l2:'` → `6ac1005`）。
+  Protected Areas 那处措辞不一致补上该表**前言**的逐字反证与先例的机械出处（`git log -S 'gates-l2:'` → `ad42e91`）。
 - **Independent draft review iteration 3: `needs revision`**（第三个独立子代理，fresh session，2026-08-22）。
   它复核确认 Baseline A/A3/B/C1–C4/D/E/F/G **逐条实测为真**、round-1 的修订确实落地，
   但抓出修订自己引入的新矛盾与残留，12 条 blocking 全部落地：
@@ -1172,7 +1172,7 @@ run 结论 **`success`**。**七个 job 全部 `success`**：
   ④ 7 次 CI 预算漏算 Phase 4 那次 `main` 推与隔离纪律的三次 reset 推送，已重新逐项枚举为**上限 12 次**，
   并拒绝「reset 到已跑过的 sha 不另计」这种没实测过的假设。
   ⑤ **最有价值的一条**：守卫**已经活在 PR 分支上**，而 `pull_request` 的 `BASE` 取的是 base 分支 tip。
-  若先刷分支后推 `main`，`BASE=508c75b`，区间含无 trailer 的 `57ad6d5` → **守卫当场红，Phase 2 的基线绿根本拿不到**。
+  若先刷分支后推 `main`，`BASE=3ed5f5b`，区间含无 trailer 的 `e27994e` → **守卫当场红，Phase 2 的基线绿根本拿不到**。
   已把「先推 `main`、再刷分支」写成 Phase 1 `Decision` 的**理由三**与硬约束。
   ⑥ 预期红 / 真红 两个定义不互补，「只有守卫红但 head sha 不是实验 ① 的」那一格两边都落不进去——
   而那正是 plan 自己预判会发生的情形。已改成「凡不满足预期红三条的任何一次红，一律按真红计」。
@@ -1198,15 +1198,15 @@ run 结论 **`success`**。**七个 job 全部 `success`**：
   Anti-Slacking 禁用词零命中、四个 Deferred 各有重开事件、无一步触碰红线 1/2/3/5/6/7。
   但**推翻了本 plan 的实验载体设计**，7 条 blocking 全部落地：
   ① **中心事实被证伪**：`pull_request` 的 `BASE` **不**取 base 分支 tip，它在 **PR 创建时钉死**。
-  实测 `gh pr view 1 --json baseRefOid` → `7b0f585`，而彼时 `origin/main` 已是 `508c75b`；
-  run `32533449466` 那次 `synchronize` 发生在 `origin/main` 前进 **37 分钟之后**，`base.sha` 仍是 `7b0f585`；
+  实测 `gh pr view 1 --json baseRefOid` → `627c7a9`，而彼时 `origin/main` 已是 `3ed5f5b`；
+  run `32533449466` 那次 `synchronize` 发生在 `origin/main` 前进 **37 分钟之后**，`base.sha` 仍是 `627c7a9`；
   本仓 `STATE.md:81` 早就记着这个值，起草时没读。**后果**：原设计（force-push PR #1 的分支到 `main`+append）
-  会让守卫算 `git diff 7b0f585 aba9a5f` → 命中判定器、trailer `0` → **守卫恒红且与实验载荷无关**，
+  会让守卫算 `git diff 627c7a9 e480048` → 命中判定器、trailer `0` → **守卫恒红且与实验载荷无关**，
   Phase 2 基线绿拿不到、实验 ②③ 拿不到、实验 ① 失去全部鉴别力。
   已新增 Baseline **C5 / C5.1 / C5.2 / C5.3 / C5.4** 五节，并把实验载体整体改成
   **新分支 `ci/1206-1-verdict-guard-proof` + 新 PR**（`base.sha` 在创建时等于当时的 `origin/main`，
   故「先推 `main` 再建 PR」的顺序约束**保留但换了论据**）；PR #1 全程不动，新增备选 (d)(e) 与两条残余风险。
-  ② Baseline C2 一句话里两处事实错误（基不是 `508c75b` 而是 `7b0f585`；`508c75b` 比本地 merge-base **新**不是旧）。已改准。
+  ② Baseline C2 一句话里两处事实错误（基不是 `3ed5f5b` 而是 `627c7a9`；`3ed5f5b` 比本地 merge-base **新**不是旧）。已改准。
   ③ `1 / 118 / 0` 那条「硬判据」在原设计下必然读出约 `25 / +3870 / −281`（GitHub 按 `base.sha` 算），
   而姊妹 plan 的预检 ③ 拿它当硬闸 → 两个 plan 一起卡死。已随载体改换修复，并补上**最承重的新判据 `baseRefOid == $CUT`**。
   ④ Phase 1 三条 Exit Criteria **互相不可同时满足**（日志按「全程硬规矩」提到 `main` 上 → `main` 前进 → 前两条同时为假）。
@@ -1223,11 +1223,11 @@ run 结论 **`success`**。**七个 job 全部 `success`**：
   实验 ④ 的「被 `reset` 抹掉」改准为「移出分支」（force-push 掉的提交按 sha 仍可访问）。
 - **Independent draft review iteration 5: `accept`（改准后可执行）**（第五个独立子代理，fresh session，2026-08-22）。
   它按 `docs/plans/00-plan-authoring-and-execution-guide.md` 逐条核了格式、完整性、边界与关闭证据，
-  并**在 `main` @ `4d7b311` 上重跑了 Current Baseline 的每一条**。
+  并**在 `main` @ `c2c9205` 上重跑了 Current Baseline 的每一条**。
   **复测仍为真（读数逐字）**：
   · B —— `git show main:.github/workflows/gates.yml | sed -n '/^jobs:/,$p' | grep -E '^  [a-z0-9-]+:'` → 7 个 job 键，
     与 plan 所列一致；`grep -cE 'gates-l2-live|verdict-tool-untouched'` → `0`（退出码 1）；文件 190 行。
-  · C1 —— `git merge-base main origin/ci/0027-2-l2-full-live-gate` → `77addbb`；
+  · C1 —— `git merge-base main origin/ci/0027-2-l2-full-live-gate` → `06561fa`；
     该区间 `git diff --numstat` → 三行 `118 0 .github/workflows/gates.yml` / `32 0 agenerp/oob.py` / `8 1 agenerp/snapshot.py`；
     `git diff --numstat main origin/ci/… -- agenerp/` → 零输出。
   · C4 —— `git diff --numstat main origin/ci/… -- tools/gates/check_expected_red.py` → `7 42`（判定器仍已过期）；
@@ -1246,13 +1246,13 @@ run 结论 **`success`**。**七个 job 全部 `success`**：
     逐字 `门禁 19 项：预期红 7，绿 12，跳过 0` / `✅ 与预期红名单完全一致`（= Phase 2「前」基线的期望值，已核准）。
   · 规则自查 —— Rule 12 的 `grep -B5 "\- \[ \]" <plan> | grep "Status: completed"` **无输出**；
     Anti-Slacking 禁用词零命中；四个 Deferred 各有分类与重开事件。
-  **本轮改准的 5 条 blocking（起因是同一件事：起草基线 `aba9a5f` 已过期）**：
-  ① **Current Baseline A / A3 整节失效** —— 实测 `git rev-parse main origin/main` **两值相等**（均 `4d7b311`），
+  **本轮改准的 5 条 blocking（起因是同一件事：起草基线 `e480048` 已过期）**：
+  ① **Current Baseline A / A3 整节失效** —— 实测 `git rev-parse main origin/main` **两值相等**（均 `c2c9205`），
   `origin/main..main` → `0`，`git status --porcelain` → 空。那 10 个提交早已推上去，`main` 其后又落了
-  `6288666` / `4d7b311` 两个提交。A / A3 已按实测重写并逐条列出后果。
+  `752d6d5` / `c2c9205` 两个提交。A / A3 已按实测重写并逐条列出后果。
   ② **Phase 4 红线自查会因别人的提交而误报**（本轮唯一一条会直接卡住执行的硬伤）：
-  实测 `git diff --stat aba9a5f..HEAD -- … tools/gates` → **非空**（`budget.json` / `check_budget.py`，来自 `6288666`）。
-  四条命令的锚点已全部从写死的 `aba9a5f` 换成 `$CUT`。
+  实测 `git diff --stat e480048..HEAD -- … tools/gates` → **非空**（`budget.json` / `check_budget.py`，来自 `752d6d5`）。
+  四条命令的锚点已全部从写死的 `e480048` 换成 `$CUT`。
   ③ **Phase 1 第二个 `Decision` 要执行一次已经不存在的推送**。已降级为「核验 + 留痕」，
   保留 `base.sha` 的顺序硬约束与四条推前预检（只在真需要补推时跑），并把「安全窗口已被用掉且用对了」照实记下来。
   ④ **换载体后的三处残留会把执行带回被否掉的老设计**：Phase 1 标题「（PR #1 就地刷新）」、
@@ -1261,7 +1261,7 @@ run 结论 **`success`**。**七个 job 全部 `success`**：
   ⑤ **两处判据/闸门会永远勾不上**：Phase 1 Exit Criteria 的「`origin/main` 已追平…… 那次 `main` push 运行的结论」
   与同形的 Closure Gate，都以一次 no-op 推送为前提。已改成「核验相等 → 逐字写明无 push 运行；不等才补推并记 run」。
   同批改准的还有：回滚策略「推两次」→「正常路径只推一次」、CI 预算枚举去掉「追平 1」（**总额 12 不变**，那一格并进机动）、
-  C5.4 的「先把 `origin/main` 推到 `aba9a5f`」、C3 与 `Decision` 1 理由一的「落后 10 个提交」→ 实测 `21`、
+  C5.4 的「先把 `origin/main` 推到 `e480048`」、C3 与 `Decision` 1 理由一的「落后 10 个提交」→ 实测 `21`、
   Phase 1 `Targets` 补上 `docs/logs/2026/08-22.md`（Exit Criteria 要求它但 Targets 漏列）。
   **结论**：载体设计（新分支 + 新 PR + 四条实验 + 隔离纪律）经复测**成立且未被本轮任何读数动摇**，
   Baseline 过期属锚点问题而非结构问题，已就地改准 → **`Plan Status` 置 `active`**。
@@ -1385,9 +1385,9 @@ run 结论 **`success`**。**七个 job 全部 `success`**：
 Status Note: 四个 Phase 全部执行完毕，逐项证据写在各 Phase 的「执行记录」小节下（命令原文 + 退出码 + sha + run id / job id）。
 交付面：**守卫 `verdict-tool-untouched` 的四次变异实证拿到了**（`0027-2` 只欠三条，本 plan 多补一条出口），
 且 `gates-l2-live` 在当前 `main` 基线（含 `0228-1` 改过的判定器）上重新拿到 `success`。
-实验载体是本 plan 新建的分支 `ci/1206-1-verdict-guard-proof` 与 **PR #2**（`baseRefOid` 逐字等于 `$CUT` `f689d0e…`），
+实验载体是本 plan 新建的分支 `ci/1206-1-verdict-guard-proof` 与 **PR #2**（`baseRefOid` 逐字等于 `$CUT` `940935c…`），
 **PR #1 与 `ci/0027-2-l2-full-live-gate` 一个字节未动**。
-提交四个：`f8a6189`（P1）· `c4fa00a`（P2）· `063a25e`（P3）· P4 的文档提交。
+提交四个：`61e2085`（P1）· `d5a8c39`（P2）· `d02c1b2`（P3）· P4 的文档提交。
 
 **⚠️ 交付强度必须照实读，不得读成「四条全成立」**：实验 ①②③ 干净成立；
 **实验 ④「触及 + 带 trailer → 放行」在同一个 sha、同一份输入上一红一绿**
@@ -1419,10 +1419,10 @@ Closure Audit Evidence:
 - Auditor / Agent: **独立关闭审计子代理**（`MISSION_DRIVER` 的 `CLOSURE_VERIFY` 步，task `2026-08-22-185331-mission-driver`）——
   **不是本 plan 的执行器**。`## Closure Gates` 的 17 个勾**全部由本步回填，执行器一个未自勾**（`AGENTS.md` 裁判规则：自勾即自审）。
 - Evidence —— **以下读数全部为本次审计当场实跑所得，不是从 plan 正文抄的**：
-  - **红线自查复跑**（锚 `$CUT` = `f689d0e`）：
-    `git diff --stat f689d0e..HEAD -- tests/gates agenerp docs/masterplan/DECISIONS.md missions tools/gates` → **无输出**；
-    `git diff --stat f689d0e..HEAD -- .github/workflows/` → **无输出**；
-    `git diff f689d0e..HEAD -- docs/masterplan/STATE.md | grep '^-' | grep -v '^---'` → **无输出**（只追加）；
+  - **红线自查复跑**（锚 `$CUT` = `940935c`）：
+    `git diff --stat 940935c..HEAD -- tests/gates agenerp docs/masterplan/DECISIONS.md missions tools/gates` → **无输出**；
+    `git diff --stat 940935c..HEAD -- .github/workflows/` → **无输出**；
+    `git diff 940935c..HEAD -- docs/masterplan/STATE.md | grep '^-' | grep -v '^---'` → **无输出**（只追加）；
     `git status --porcelain` → **空**。→ 红线 1 / 2 / 3 / 5 未越。
   - **本机四条命令复跑，全 exit 0，与 plan 记录逐字一致**：
     `python3 tools/gates/check_expected_red.py` → `判定模式：default —— 按 tools/gates/expected-red.txt 判定` /
@@ -1437,9 +1437,9 @@ Closure Audit Evidence:
     **一红一绿属实**。→ 本审计**拒绝任何「四条全成立」的读法**，并已就地改准 `## Closure Gates` 覆盖面那一框的措辞（见该框内 ⚠️）。
   - **载体隔离属实**：`gh pr view 1` → `OPEN` / `c2c688b7f6bc…` / `7b0f585f7c80…`（与开工时逐字相同，**PR #1 一字节未动**）；
     `gh pr view 2` → `OPEN` / `b7348bf3a1eb…` / **`baseRefOid` = `f689d0e7cde3…`，逐字等于 `$CUT`**。
-  - **实验提交已清理**：`git diff --name-only f689d0e b7348bf` → **只有 `.github/workflows/gates.yml` 一个文件**；
-    `git diff --stat f689d0e b7348bf -- tools/gates/check_expected_red.py tools/gates/expected-red.txt` → **无输出**（净 diff 为空）；
-    `git log --format=%B f689d0e..b7348bf | grep -c '^Gates-Change-Approved-By:'` → `0`。
+  - **实验提交已清理**：`git diff --name-only 940935c 050eedf` → **只有 `.github/workflows/gates.yml` 一个文件**；
+    `git diff --stat 940935c 050eedf -- tools/gates/check_expected_red.py tools/gates/expected-red.txt` → **无输出**（净 diff 为空）；
+    `git log --format=%B 940935c..050eedf | grep -c '^Gates-Change-Approved-By:'` → `0`。
   - **`2026-08-22-0027-2` 未被改写**：`grep '^> Plan Status'` → `deferred`；`grep -c '^\s*-\s\[ \]'` → **`19`**。
   - **两次 `main` / PR 全绿运行属实**：`main` push run `32571701925`（head `10da9e7506…`）→ `success`，**七个 job 全 `success`**；
     Phase 2 run `32569935835`（head `b7348bf3a1…`）→ **九个 job 全 `success`**（含 `L2 全量 live 判定（19 条）` `97023867883` 与守卫 `97023868017`）。

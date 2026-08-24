@@ -169,7 +169,7 @@ Skill: `none`
       - 预期 **exit 1**，「名单内的门禁却绿了」列出本工作项两条 L1（若 plan 2 的三行尚未被人划掉，则一并列出，共五条）。
       - 同 plan 2 的禁止清单：不改 `EXPECTED_RED.txt`、不改判定器、不加 skip/xfail、不把实现改回不可用。
       - **执行记录（2026-08-21）· 实测 exit 0，与起草时的预期不同，前提已被人变更**：
-        人在 `920ce0e`（提交信息带 `Gates-Change-Approved-By: lize`）裁定「测试代码是裁判、预期红名单只是账本」，
+        人在 `4bbe3f5`（提交信息带 `Gates-Change-Approved-By: lize`）裁定「测试代码是裁判、预期红名单只是账本」，
         把名单由 `tests/gates/EXPECTED_RED.txt` 迁至**红线外**的 `tools/gates/expected-red.txt`，
         并一次划掉 5 行（规范化器 3 + 快照 diff 2，含本工作项两条 L1）。`AGENTS.md` 红线 1 已同步补上该边界。
         故本轮实测 `python3 tools/gates/check_expected_red.py` → **exit 0**（门禁 13 项：预期红 8，绿 5，跳过 0）。
@@ -177,17 +177,17 @@ Skill: `none`
       - Skill: `none`
 - [x] `Add` 向 `docs/masterplan/STATE.md` §3 **追加**一行 needs-human（只追加，不改写、不删除已有行）。
       - **执行记录（2026-08-21）· 落点改为 §2 会话日志，§3 不新增 `open` 行**：本项的前提是上一项会退 1、
-        因而存在「等人划名单」这件待办。该前提已随 `920ce0e` 消失——本 plan `## Human Handoff` 的验收条件
+        因而存在「等人划名单」这件待办。该前提已随 `4bbe3f5` 消失——本 plan `## Human Handoff` 的验收条件
         （`check_expected_red.py` → exit 0）在开工前就已满足。此时往 §3 塞一条 `[open]` 等于凭空造一个人的待办，
         违反裁判规则 2 的诚实要求。故改为向 **§2 会话日志**（同样是追加式证据段）追加 4 行：
-        执行结果与四条命令退出码 + sha `9ae88bf`、`e145e43` 遗留契约测试已清、§3 不新增 open 行的理由、红线区间自查。
+        执行结果与四条命令退出码 + sha `6b52f3b`、`9292b5b` 遗留契约测试已清、§3 不新增 open 行的理由、红线区间自查。
         `git diff --stat docs/masterplan/STATE.md` → `5 insertions(+)`、删除行数 0，只追加不改写（红线 5 满足）。
       - 授权链与 plan 2 相同：`AGENTS.md` 红线 5「`STATE.md` 只允许追加证据行」+ 执行器人格 `tools/mission-driver/agents/build.claude.md` 的直接指示，二者按 `AGENTS.md` 开头的次序高于 `01-EXECUTION-MODEL.md` §1「角色 B 不得手写 STATE」与 `gate-verify.mjs` 注释的反向说法；该矛盾已登记，**不由本 plan 消解**。
       - 行格式照 §3 表头，四个字段齐全，WBS 行 ID 用 **P0.3**（`02-WBS.md` 里快照 diff 是 P0.3；roadmap 的「工作项 2」是 mission 内编号，别混用）。处置栏留 `open`。
       - Skill: `none`
 - [x] `Add` **末步**：把本 plan 文件头的 `> Plan Status:` 由 `active` 改为 `deferred`，并在 `## Human Handoff` 写明重开条件。
       - **执行记录（2026-08-21）· 保持 `active`，不置 `deferred`**：`deferred` 的唯一理由是「等人划名单」，
-        而人已在开工前用 `920ce0e` 做完（见上两项）。本 plan `## Human Handoff` 自己写的重开条件就是
+        而人已在开工前用 `4bbe3f5` 做完（见上两项）。本 plan `## Human Handoff` 自己写的重开条件就是
         「上述提交落地后把本 plan 由 `deferred` 改回 `active` 走关闭审计」——先置 `deferred` 再立刻改回 `active`
         没有任何信息量，且会让引擎误以为此处仍卡着人。故直接停在 `active`，交独立 `CLOSURE_AUDIT` 关闭。
       - **`CLOSURE_SCRIPT_CHECK` 判 fail 不再是死路**：`tools/mission-driver/flows/plan-execution.json` 的
@@ -203,13 +203,13 @@ Exit Criteria:
 - [x] `docs/architecture/` 下已记录 Snapshot / 来源接口 / Diff 的结构边界与不变量 —— `docs/architecture/module-boundaries.md` **§11.5 状态快照与结构化 diff 的结构边界**
 - [x] `docs/logs/2026/08-20.md` 已更新，含命令原文 + 退出码 + sha —— 实际落在 `docs/logs/2026/08-21.md`（执行日；理由见上方执行记录）
 - [x] ~~`STATE.md` §3 多出一行 `[open]`~~ —— 前提消失，改为 §2 追加 4 行证据；`git diff --stat docs/masterplan/STATE.md` → `5 insertions(+)`，删除 0，**只有新增行**
-- [x] 红线 1 自查用**区间** diff：`git diff --name-only b8aadbf..HEAD -- tests/gates/ .github/workflows/ docs/masterplan/DECISIONS.md` → **输出为空**（`b8aadbf` 是本轮开工时的 HEAD；`git diff --name-only HEAD` 只看未提交改动，与 `gate-verify.mjs` 的写保护共享同一盲区，自查不能沿用它）
+- [x] 红线 1 自查用**区间** diff：`git diff --name-only 8d73ee5..HEAD -- tests/gates/ .github/workflows/ docs/masterplan/DECISIONS.md` → **输出为空**（`8d73ee5` 是本轮开工时的 HEAD；`git diff --name-only HEAD` 只看未提交改动，与 `gate-verify.mjs` 的写保护共享同一盲区，自查不能沿用它）
 - [x] Phase 1–3 的**执行项与 Exit Criteria** 全部 `[x]`；`## Closure Gates` 的 9 个框**保持未勾**，等独立关闭审计
-- [x] ~~本 plan 文件头为 `> Plan Status: deferred`~~ —— 执行步收尾时改为 **`active`**：deferral 的唯一理由（等人划名单）已由人在开工前的 `920ce0e` 消解，理由见上方执行记录。**2026-08-21 独立关闭审计通过后由审计步改为 `completed`**（见 `## Closure`）
+- [x] ~~本 plan 文件头为 `> Plan Status: deferred`~~ —— 执行步收尾时改为 **`active`**：deferral 的唯一理由（等人划名单）已由人在开工前的 `4bbe3f5` 消解，理由见上方执行记录。**2026-08-21 独立关闭审计通过后由审计步改为 `completed`**（见 `## Closure`）
 
 ## 收尾协议（给执行本 plan 的会话）
 
-> **执行记录（2026-08-21）**：下面三条的共同前提——「名单在红线内、只能等人划」——已由 `920ce0e` 消解
+> **执行记录（2026-08-21）**：下面三条的共同前提——「名单在红线内、只能等人划」——已由 `4bbe3f5` 消解
 > （名单迁至红线外的 `tools/gates/expected-red.txt`，`AGENTS.md` 红线 1 同步补了边界；人已划掉含本工作项
 > 两条 L1 在内的 5 行）。故第 1 条描述的矛盾本轮**没有发生**（`build-verify` 若再要求划名单，划的是账本不是裁判，
 > 不触红线）；第 2 条的「`GATE_VERIFY` 判 fail 是预期终局」**不再成立**——`check_expected_red.py` 实测 exit 0；
@@ -227,7 +227,7 @@ Exit Criteria:
 - ✅ **已满足（2026-08-21，人在本 plan 开工前完成）**。下面三行是原文，保留以便对照。
 - 待办：人提交一次带 `Gates-Change-Approved-By: <姓名>` trailer 的提交，把 `tests/gates/EXPECTED_RED.txt` 里 `test_snapshot_diff_structured.py` 的**两条 L1**（`test_two_snapshots_of_unchanged_site_diff_empty`、`test_diff_is_structured_not_text`）划掉。**第三条 `test_field_addition_shows_up_as_structured_change` 必须留在名单里**——它属工作项 6，本 plan 结束后它仍然红。
 - 验收：`python3 tools/gates/check_expected_red.py` → exit 0。
-- **实际落地**：`920ce0e`（`Gates-Change-Approved-By: lize`）不止划名单，还把名单整体迁出红线 1
+- **实际落地**：`4bbe3f5`（`Gates-Change-Approved-By: lize`）不止划名单，还把名单整体迁出红线 1
   （`tests/gates/EXPECTED_RED.txt` → `tools/gates/expected-red.txt`），并同步改了 `AGENTS.md` 红线 1 的边界说明。
   一次划掉 5 行（规范化器 3 + 快照 diff 2）；第三条 live 断言仍留在名单里，符合本节要求。
   验收实测：`python3 tools/gates/check_expected_red.py` → **exit 0**（门禁 13 项：预期红 8，绿 5，跳过 0）。
@@ -259,7 +259,7 @@ Exit Criteria:
 - [x] independent draft review completed and recorded —— `## Draft Review Record` 四轮迭代（iteration 4 `accept`，agent `a39d683b1f978d6d3`）
 - [x] text consistency verified: status, phases, gates, and log all agree —— Plan Status `completed` / Phase 1–3 `Status: completed` 且执行项与 Exit Criteria 全 `[x]` / 本节九框全 `[x]` / `docs/logs/2026/08-21.md` 与 `docs/masterplan/STATE.md` §2 四行证据一致
 - [x] closure audit was independent —— 由独立 `CLOSURE_AUDIT` 代理完成，不采信 plan 内既有 `[x]`，逐条读活代码 + 原样复跑
-- [x] closure evidence exists in files —— `docs/architecture/module-boundaries.md` §11.5、`docs/logs/2026/08-21.md`、`docs/masterplan/STATE.md` §2（2026-08-21T10:20Z 四行）、commit `e145e43` / `9ae88bf` / `3d405fb`
+- [x] closure evidence exists in files —— `docs/architecture/module-boundaries.md` §11.5、`docs/logs/2026/08-21.md`、`docs/masterplan/STATE.md` §2（2026-08-21T10:20Z 四行）、commit `9292b5b` / `6b52f3b` / `084c17e`
 
 ## Deferred But Adjudicated
 
@@ -287,14 +287,14 @@ Exit Criteria:
 ## Closure
 
 Status Note: 三个 Phase 的执行项与 Exit Criteria 全部落地并经独立审计复核；四条验证命令原样复跑全部退 0；
-`## Human Handoff` 的验收条件（`check_expected_red.py` → exit 0）已由人的 `920ce0e` 满足，deferral 理由不复存在。
+`## Human Handoff` 的验收条件（`check_expected_red.py` → exit 0）已由人的 `4bbe3f5` 满足，deferral 理由不复存在。
 红线自查用区间 diff 通过（`tests/gates/` / `.github/workflows/` / `DECISIONS.md` 本轮零改动），
 `STATE.md` 只追加不改写（`5 insertions(+)`，删除 0）。故本 plan 可关闭为 `completed`。
 
 Closure Audit Evidence:
 
 - Auditor / Agent: 独立关闭审计代理（`CLOSURE_AUDIT`，fresh session，不带实现上下文，未参与本 plan 任何实现）
-- 审计日期 / 基线: 2026-08-21 · HEAD `3d405fb` · 工作区 `git status --porcelain` 输出为空
+- 审计日期 / 基线: 2026-08-21 · HEAD `084c17e` · 工作区 `git status --porcelain` 输出为空
 - 审计方法: **不采信 plan 内既有 `[x]`**——逐条读活代码与活文档，原样复跑全部验证命令，退出码单独取 `$?`
 
 | 复核项 | 方法 | 实测 |
@@ -305,8 +305,8 @@ Closure Audit Evidence:
 | 预期红名单 | `python3 tools/gates/check_expected_red.py` | **exit 0** · 门禁 13 项：预期红 8，绿 5，跳过 0 |
 | 全量门禁（scope 限制的对照） | `python3 -m pytest tests/gates -q --tb=line` | 1 failed / 5 passed / 7 errors —— 未报全绿 |
 | live 断言红因 | `python3 -m pytest tests/gates/...::test_field_addition_shows_up_as_structured_change -q --tb=line` | 仍红，红因为 `live_site` 的 `NotImplementedError`（属工作项 4/6，未被本 plan 弄成别的错） |
-| 红线 1/2/3 | `git diff --name-only b8aadbf..HEAD -- tests/gates/ .github/workflows/ docs/masterplan/DECISIONS.md` | **输出为空** |
-| 红线 5（STATE 只追加） | `git diff --stat 9ae88bf..3d405fb -- docs/masterplan/STATE.md` | `5 insertions(+)`，删除 0 |
+| 红线 1/2/3 | `git diff --name-only 8d73ee5..HEAD -- tests/gates/ .github/workflows/ docs/masterplan/DECISIONS.md` | **输出为空** |
+| 红线 5（STATE 只追加） | `git diff --stat 6b52f3b..084c17e -- docs/masterplan/STATE.md` | `5 insertions(+)`，删除 0 |
 
 - 反空壳复核（逐个读代码，非签名比对）: `capture` 经 `resolve_source` 真实走 `OfflineSnapshotSource.read` 的
   `glob("*.json")` → `json.loads` → `normalize` → `SnapshotEntry` 路径；`diff` 用 `by_key()` 集合运算算出三类，

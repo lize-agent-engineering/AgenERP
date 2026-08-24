@@ -10,7 +10,7 @@
 
 ## Current Baseline
 
-起草时（2026-08-21，HEAD `a9de1bb`）逐条读活代码与活门禁得出。
+起草时（2026-08-21，HEAD `e528bce`）逐条读活代码与活门禁得出。
 
 ### 缺口
 
@@ -176,7 +176,7 @@ Exit Criteria:
 - [x] roadmap 工作项 6 已由 `todo` 置 `planned`
 - [x] Explore 的命令原文、输出、结论落进 plan（含全站 Custom Field 清点）
 - [x] 三条 `Decision` 各有选择、备选与残余风险，且写进 `module-boundaries.md` §11.6
-- [x] **本 plan 引用的每个行号在开工时逐条复核过**（本仓已有行号漂移被修正的先例，`0f7cf14`）；
+- [x] **本 plan 引用的每个行号在开工时逐条复核过**（本仓已有行号漂移被修正的先例，`69f891a`）；
       引用一律「符号名 + 行号」，符号名对不上就以符号名为准
 - [x] `docs/logs/2026/08-21.md` 追加条目
 
@@ -589,7 +589,7 @@ Closure Audit Evidence:
 - Auditor / Agent（第 2 轮，**独立**，2026-08-21）: **独立关闭审计者**，mission-driver 任务
   `2026-08-21-191514-mission-driver` 的独立审计步骤，与执行会话不同上下文、未参与实现。
   **结论：approved。** 核验方式与结果：
-  - 复跑（工作树 `76c7926`，干净）：`python3 tools/gates/check_expected_red.py` → **exit 0**
+  - 复跑（工作树 `e41d22a`，干净）：`python3 tools/gates/check_expected_red.py` → **exit 0**
     （「门禁 19 项：预期红 7，绿 12，跳过 0 / 与预期红名单完全一致」）；
     `python3 -m pytest tests/unit -q` → **exit 0**（`144 passed`）；
     `python3 -m pytest tests/unit/test_pack_export.py -q` → **exit 0**（`15 passed`，≥ 8 的下限满足）；
@@ -614,7 +614,7 @@ Closure Audit Evidence:
        `test_export_produces_readable_diff_only` 仍绿（变动行里的 `name` 含探针名）——两条陈述互不矛盾。
   - 五点一致性（Plan Status / 三个 Phase Status / 各 Exit Criteria / Closure Gates / Closure 证据）**已核，一致**；
     `docs/logs/2026/08-21.md`、`module-boundaries.md` §11.6、roadmap 第 6 行三处文档**均已同步且与 plan 口径一致**。
-  - 红线复核：`git show --stat e19b64f` 触及 7 个文件，**不含** `tests/gates/`、`.github/workflows/`、
+  - 红线复核：`git show --stat 1c97c47` 触及 7 个文件，**不含** `tests/gates/`、`.github/workflows/`、
     `missions/`、`docs/masterplan/`；`tools/gates/expected-red.txt` 未变。
 - Evidence（命令原文 + 退出码，逐条复跑得到）：
   | 命令 | 退出码 |
@@ -628,7 +628,7 @@ Closure Audit Evidence:
 - 红线自查：`git diff --name-only` 不含 `tests/gates/`、`.github/workflows/`、`missions/`、
   `docs/masterplan/`；`tools/gates/expected-red.txt` 未变。本轮**未追加 STATE 证据行**——
   名单矛盾已由第 1 顺位登记进 STATE §3，本 plan 不重复登记。
-- commit sha：`e19b64f`（本 plan 的全部产物在这一个提交里；上述所有退出码均在该提交的工作树上取得）。
+- commit sha：`1c97c47`（本 plan 的全部产物在这一个提交里；上述所有退出码均在该提交的工作树上取得）。
 
 Follow-up:
 

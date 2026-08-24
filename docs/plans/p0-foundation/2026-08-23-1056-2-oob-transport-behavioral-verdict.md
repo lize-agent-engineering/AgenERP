@@ -7,13 +7,13 @@
 > Mission: p0-foundation
 > Work Item: 工作项 9 · 判据设施的加严（`agenerp/oob.py` 侧）
 > Last Reviewed: 2026-08-23
-> Source: 本轮 mission-driver 起草时在 `main` @ `499fe24` 上实跑覆盖率 + 三次变异实验（证据见 `## Current Baseline`）
+> Source: 本轮 mission-driver 起草时在 `main` @ `ffc1be4` 上实跑覆盖率 + 三次变异实验（证据见 `## Current Baseline`）
 > Related: `2026-08-23-1056-1-site-write-methods-behavioral-verdict.md`（本批第一个 plan，同一形态、另一个模块）· `2026-08-23-0859-1-budget-halt-gate-verdict-coverage.md`（前驱形态）
 > Audit: required
 
 ## Current Baseline
 
-**全部为 2026-08-23 在 `main` @ `499fe24a039f11ee191f036bd7a3a642d30d5024` 上实跑/实读，不是推理。**
+**全部为 2026-08-23 在 `main` @ `ffc1be4ce1440746f589ebf45f6ef7504d556fee` 上实跑/实读，不是推理。**
 
 | # | 事实 | 取证命令 → 结果 |
 |---|---|---|

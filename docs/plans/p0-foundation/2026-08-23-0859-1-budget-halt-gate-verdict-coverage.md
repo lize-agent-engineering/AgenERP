@@ -19,7 +19,7 @@
 
 ## Current Baseline
 
-全部为 2026-08-23 在 `main`（`6001ea0ae15cf3c84cc1bca19f138a738a50a7fc`）上的实读与实跑。
+全部为 2026-08-23 在 `main`（`2cfe03a06768e8b9d7f9db02a315301c5df689d5`）上的实读与实跑。
 工作树在取证时干净（`git status --porcelain` 无输出）。
 
 1. **停机闸的位置与它的退出码契约**。`tools/loop-supervisor.sh` 的模块头逐字写着五道闸，
@@ -683,10 +683,10 @@ live 判定并 `success`）与本 plan 互不重叠，roadmap 只**追加**一�
 Closure Audit Evidence:
 
 - Auditor / Agent: **独立子代理**（fresh session，read-only + 实跑；agentId `aea5cb4ddc8c3fe85`），
-  2026-08-23，审计区间 `6001ea0..151c68b`
+  2026-08-23，审计区间 `2cfe03a..cda4152`
 - Verdict: **`closure-approved`**，**零阻断项**
 - Evidence（审计自己实跑，不是照抄本 plan 的表）：
-  - 红线七项 `git diff --numstat 6001ea0..HEAD -- <path>` **全部为空**
+  - 红线七项 `git diff --numstat 2cfe03a..HEAD -- <path>` **全部为空**
     （`tests/gates` · `.github/workflows` · `missions` · `DECISIONS.md` · `expected-red.txt` ·
     `check_expected_red.py` · `gate-verify.mjs`）；`STATE.md` → `10	0`，**删除列 0**；
     证据仓 `XM_PATH` 实读 `git status --porcelain` **空**、`HEAD` = 冻结的 `1c622c8…`、
@@ -700,9 +700,9 @@ Closure Audit Evidence:
   - `grep -n "exclude-session" tools/gates/check_budget.py` → **零命中**；`--help` 三码语义齐备
   - **四次变异由审计自己重跑**，四次各 **exit 1 且只点名一条**、复原后各 **exit 0 / `320 passed`**，
     **无一条「绿→绿」**；且实测确认变异 ① 之下红判据 **A 仍然绿、只有 B 火** —— 与 Phase 1 的预测一致
-  - **活缺陷已消除是实测的**：同一输入（不带时区的 `at`）在 `6001ea0` 上 **exit 1**，在 `151c68b` 上
+  - **活缺陷已消除是实测的**：同一输入（不带时区的 `at`）在 `2cfe03a` 上 **exit 1**，在 `cda4152` 上
     **exit 0 且 stderr 有归一告警**；坏环境变量 **exit 3**；非仓根 cwd 下读到文件的 10 亿而非内置 2 亿
-  - 收尾 `git status --porcelain` → **空**；`HEAD` = `151c68bf3b1baeddb7165f0ebe5a6fe677291faa`
+  - 收尾 `git status --porcelain` → **空**；`HEAD` = `cda4152b3e6fb04dcaa6c4044523b472433b6117`
 - ⚠️ **审计方式的限定照实记**：本次是**子代理独立冷复跑**，**不是人复核**。
   按 `AGENTS.md` 的 Reviewer-Availability Fallback，本 plan 的改动面全部落在 Protected Areas 之外
   （已由审计独立复核 `ai-autonomy-policy.md:79`–`:90` 与 `gates.yml:293` 的 pathspec），故该方式成立。
@@ -711,9 +711,9 @@ Follow-up:
 
 - **（非阻断，已就地登记进 `system-baseline.md` §14.9，不是推迟的工作项）** `argparse` 的用法错误退 `2`，
   而闸 2 把 `2` 当放行 —— `parse_args()` 坐在 `try` 之外。审计实测确认它是**既有行为**
-  （同一探针在 `6001ea0` 上也是 exit 2）且**从监督器不可达**（闸 2 不带参数调它）。
+  （同一探针在 `2cfe03a` 上也是 exit 2）且**从监督器不可达**（闸 2 不带参数调它）。
 - **（非阻断，同上）** `usage_since` 的 `except (ValueError, KeyError): continue` 仍静默丢弃畸形行，
   即**少算用量**、向放行倾斜；既有意图、已被断言钉住，与 D1b 那条「负时区被少算」同向，已补进残余清单。
-- **（非阻断，措辞纠正，已写进 §14.9）** 本 plan D0 那条机械判据若对着 `6001ea0..HEAD` 读是**空的**
-  （测试文件在该区间内是新增的，按构造零删除行）；它真正咬得住的区间是 **`0eff5eb..1d0ce60`**，
+- **（非阻断，措辞纠正，已写进 §14.9）** 本 plan D0 那条机械判据若对着 `2cfe03a..HEAD` 读是**空的**
+  （测试文件在该区间内是新增的，按构造零删除行）；它真正咬得住的区间是 **`b1e73f0..4d4856c`**，
   审计已在那个区间上实跑确认成立。

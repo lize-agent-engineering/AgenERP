@@ -182,7 +182,7 @@ Next payment due        –          ← 没欠款，所以「付款失败」是
 2026-08-24 实测踩到：人做 CI 配置修复时用了 `git add -A`，把 loop **还没写完**的
 `agenerp/orchestration/` 三个模块一起提交了。后果不是冲突（那反而好办），
 而是**归属错乱**——loop 收口时按 sha 记证据，那三个模块的产出 sha 变成了
-人的那笔 CI 提交。它自己发现并改准了（`ed63c68`），但这属于运气。
+人的那笔 CI 提交。它自己发现并改准了（`44ce646`），但这属于运气。
 
 > **只 add 自己实际动过的文件，逐个写路径。**
 > `git add docs/masterplan/STATE.md .github/workflows/gates.yml` ✅

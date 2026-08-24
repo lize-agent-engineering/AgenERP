@@ -180,7 +180,7 @@ Exit Criteria:
 
 ## 基线实测证据
 
-起草时在 `main`（`c353c91`）上实跑，供后继会话核对而非凭记忆：
+起草时在 `main`（`69b7f30`）上实跑，供后继会话核对而非凭记忆：
 
 - `python3 tools/gates/check_expected_red.py` → **exit 0**，输出「门禁 13 项：预期红 13，绿 0，跳过 0」
 - `python3 -m pytest tests/gates -q --tb=line` → **6 failed / 7 errors / 0 passed**；其中 5 条红因逐字为 `ModuleNotFoundError: No module named 'agenerp'`
@@ -242,7 +242,7 @@ Exit Criteria:
 Status Note: **三个 Phase 已全部执行完毕并复跑验证通过；独立关闭审计已完成并接受关闭；`Plan Status: completed`。**
 执行步当时未自报审计（`AGENTS.md` §⚖️ 裁判规则 1），审计由 CLOSURE 步的独立代理补齐，记录见下方 Closure Audit Evidence。
 
-执行证据（2026-08-20 本机实跑，Python 3.12.9 / pytest 9.0.2，基线 sha `c353c91`）：
+执行证据（2026-08-20 本机实跑，Python 3.12.9 / pytest 9.0.2，基线 sha `69b7f30`）：
 
 | 命令 | 退出码 | 输出要点 |
 | --- | --- | --- |
@@ -265,7 +265,7 @@ Status Note: **三个 Phase 已全部执行完毕并复跑验证通过；独立�
 Closure Audit Evidence:
 
 - Auditor / Agent: 独立关闭审计代理（CLOSURE 步，fresh session，不带实现上下文），任务 id `2026-08-20-234105-mission-driver`
-- 审计日期 / 基线：2026-08-21，仓库 `main` @ `c78d877`（工作树 clean）
+- 审计日期 / 基线：2026-08-21，仓库 `main` @ `bf7d3ee`（工作树 clean）
 - 审计方法：不采信 plan 里的 `[x]`，对每条 Exit Criteria 逐条读活代码 + 原样复跑命令；同时核对红线未被触碰。
 - **复跑结果（本机 Python 3.12.9 / pytest 9.0.2，与 plan 记录逐条一致）**：
 
@@ -283,7 +283,7 @@ Closure Audit Evidence:
 - **反空壳核查**：`agenerp/pack.py`、`agenerp/snapshot.py` 六个函数**无空函数体、无 `return None` 占位、无吞异常**，一律 `raise NotImplementedError` 且消息指向 roadmap 工作项；签名与 `tests/gates/test_normalizer_idempotent.py:32-55`、`tests/gates/test_customization_roundtrip_delete.py:18-68`、`tests/gates/test_snapshot_diff_structured.py:13-42` 的调用处逐字对齐（含关键字调用 `doctype=` / `into=` / `site=` / `scope=`）。`tests/unit/test_contract_surface.py` 的两条参数化测试**真实被执行**（12 passed = 6 名字 × 2 条），非注册未触达。
 - **五点一致性**：`Plan Status: completed` / Phase 1–3 均 `Status: completed` 且全部 Exit Criteria `[x]` / Closure Gates 9 条全 `[x]` / Closure 证据表与 `docs/logs/2026/08-20.md` 的实测记录逐条对应——一致。
 - **Deferred 诚实性**：四条 `Deferred But Adjudicated` 均为红线内不可动的控制面（`missions/**`、`missions/prompts/build-verify.md`）或纸面规定未实现，**无一条是本 plan 作用域内的活缺陷**；两处确认存在的活缺陷（`project-context.md` 与 `ai-autonomy-policy.md` 的占位符阻断）已按指南规则 14 记为 `Fix` 并在 Phase 3 落地，未被降级。
-- **红线核查**：`git log -- tests/gates .github/workflows docs/masterplan/DECISIONS.md` 最新提交为 `5a970fe`，**早于**本 plan 的 `f180b40` / `c78d877`——本 plan 未触碰任何红线区；收尾时门禁一条未变绿（`check_expected_red.py` 仍 exit 0）。
+- **红线核查**：`git log -- tests/gates .github/workflows docs/masterplan/DECISIONS.md` 最新提交为 `1d75ca3`，**早于**本 plan 的 `a1e7beb` / `bf7d3ee`——本 plan 未触碰任何红线区；收尾时门禁一条未变绿（`check_expected_red.py` 仍 exit 0）。
 - **文档同步**：`docs/logs/2026/08-20.md` 条目齐全（三个 Phase + 实测退出码 + next step）；owner doc `docs/context/project-context.md` 与 `docs/context/ai-autonomy-policy.md` 已填实；`docs/backlog/needs-human-expected-red-handoff.md` 四组冲突齐全，冲突 3 选项 (b) 标注「实测不成立，此选项作废」（`:97`）。
 - **审计结论**：`approved` —— 全部 Exit Criteria 与 Closure Gates 在活仓库中得到证据支持，接受关闭。
 

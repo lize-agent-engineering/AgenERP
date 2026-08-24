@@ -74,7 +74,7 @@ silently removing items from scope is a violation」），逐条记明：
 
 ## Current Baseline
 
-全部为 2026-08-23 在 `main`（`6001ea0ae15cf3c84cc1bca19f138a738a50a7fc`）上的实读与实跑；
+全部为 2026-08-23 在 `main`（`2cfe03a06768e8b9d7f9db02a315301c5df689d5`）上的实读与实跑；
 上述每一条都经**独立草案评审**复跑核对过一次（评审报告逐项标 ✅）。
 
 1. **`pyproject.toml` 的 `[tool.ruff]` 现状**（`:24-29`，**引全，不截断**）：
@@ -468,14 +468,14 @@ Status Note: **两个 Phase 全部交付并 ticked，独立关闭审计已完成
 （`completed` 逐字是「independent closure audit accepted closure」，且
 「do not mark it complete as a side effect of finishing the last implementation slice」），
 **置 `completed` 之前必须先有一次独立关闭审计**。前驱 plan `-1` 走的是同一路径
-（`151c68b` 交付完毕仍 `active` → `03ffaec` 审计判 `closure-approved` 后才 `completed`）。
-本 plan 同路径：`aad08c4` / `02a382a` 交付完毕仍 `active` → 下面的 `Closure Audit Evidence`
+（`cda4152` 交付完毕仍 `active` → `702893a` 审计判 `closure-approved` 后才 `completed`）。
+本 plan 同路径：`cec74d4` / `144cde8` 交付完毕仍 `active` → 下面的 `Closure Audit Evidence`
 由**独立关闭审计方**填写并据此置 `completed`。**九条 Closure Gates 在审计复跑通过之后才 ticked，
 不是交付切片的副作用。**
 
 交付面与证据（供审计复跑，逐条已在本机实跑）：
 
-- Phase 1 提交 sha `ca75ddc`；Phase 2 提交 sha `aad08c4`。
+- Phase 1 提交 sha `dc7e54f`；Phase 2 提交 sha `cec74d4`。
 - `python3 -m ruff check tests/gates` / `tests/gates/conftest.py` / `"$PWD/tests/gates"` / `./tests/gates`
   → **全部 exit 0**，各打 `warning: No Python files found under the given path(s)` + `All checks passed!`；
   落地前前三种**全部 exit 1**。
@@ -498,7 +498,7 @@ Status Note: **两个 Phase 全部交付并 ticked，独立关闭审计已完成
 Closure Audit Evidence:
 
 - **Auditor / Agent**: 独立关闭审计子代理（fresh session，2026-08-23），**未参与本 plan 的起草与执行**。
-  审计基准 `main` `02a382a3cd52f69650c66784a45656e8c749030e`，审计开始与结束时
+  审计基准 `main` `144cde81712cd093c0b2b88bd548d629f3ebf3e6`，审计开始与结束时
   `git status --porcelain` **均为空**（工作树干净，全部结论对着已提交状态得出）。
 - **裁定**：`closure-approved`，**零阻断项**。九条 Closure Gates 逐条复跑核过，均 ticked。
 - **审计侧实跑（命令原文 + 退出码，非转述交付方的记录）**：
@@ -533,7 +533,7 @@ Closure Audit Evidence:
     第二句「门禁判定器是 `tools/gates/check_expected_red.py`，与 ruff 无关」**一个字未动**。
   - `grep -c "排除在 lint 作用域外" pyproject.toml docs/context/project-context.md` → **两者均为 `0`**
     ——那句不成立的话在两处 owner doc 上**都已不再出现**（Rule 14 非降级交付面**实证成立**）。
-  - `git show --numstat ca75ddc` → `docs/context/project-context.md` 逐字 **`2	2`**（只动 `:69-70` 两行，
+  - `git show --numstat dc7e54f` → `docs/context/project-context.md` 逐字 **`2	2`**（只动 `:69-70` 两行，
     该文件其余一行未动）· `pyproject.toml` **`6	1`** · `system-baseline.md` **`63	0`**（纯追加）·
     `docs/logs/2026/08-23.md` **`29	0`**。
   - `docs/architecture/system-baseline.md` **§14.10 实读存在**（`:1567` 起，编号未与 §14.9 冲突），
@@ -547,13 +547,13 @@ Closure Audit Evidence:
     **三条触发条件写死**（人推翻 M2 时 · `tools/**` 被改坏而当轮绿、无人值守时才炸时 · 人裁定引入 shellcheck / 扩面时），
     **零 Anti-Slacking 禁用词**。
 - **红线机械自查（审计侧独立复跑，pathspec 与作用域按 N3 的收窄读）**：
-  - `git diff --stat ca75ddc~1 ca75ddc -- tests/gates .github/workflows tools missions docs/masterplan`
+  - `git diff --stat dc7e54f~1 dc7e54f -- tests/gates .github/workflows tools missions docs/masterplan`
     → **无输出**（Phase 1 那一个提交，判据字面成立）。
-  - `git diff --stat ca75ddc~1 HEAD -- tests/gates .github/workflows tools missions docs/masterplan/DECISIONS.md`
+  - `git diff --stat dc7e54f~1 HEAD -- tests/gates .github/workflows tools missions docs/masterplan/DECISIONS.md`
     → **无输出**（**全 plan 范围**：红线 1 / 2 / 3 与 `missions/**` `tools/**` 零字节改动）。
-  - `git diff --numstat ca75ddc~1 HEAD -- docs/masterplan/STATE.md` → 逐字 **`12	0`**
+  - `git diff --numstat dc7e54f~1 HEAD -- docs/masterplan/STATE.md` → 逐字 **`12	0`**
     （**删除列为 `0`** —— 红线 5 的「只追加」字面成立）。
-  - `git show --numstat aad08c4` → `p0-foundation-roadmap.md` **`1	0`** ·
+  - `git show --numstat cec74d4` → `p0-foundation-roadmap.md` **`1	0`** ·
     `tools-dir-has-no-static-check-coverage.md` **`102	0`** · `docs/logs/2026/08-23.md` **`25	0`** ·
     `docs/masterplan/STATE.md` **`12	0`** —— **四处写入删除列全为 `0`，纯追加成立**。
   - 证据仓（红线 6）零触及：两个提交合计只动 9 个仓内文件，`XM_PATH` 不在其中。

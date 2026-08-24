@@ -10,7 +10,7 @@
 
 ## Current Baseline
 
-起草时（2026-08-21，HEAD `a9de1bb`）逐条读活代码得出。
+起草时（2026-08-21，HEAD `e528bce`）逐条读活代码得出。
 
 ### 承重条款：这是整个 P0 里唯一证明「revert 撤得回」的判据
 
@@ -26,7 +26,7 @@
   `plan_apply`（`:73`，纯函数求差 + 方向不变量 `_assert_direction`，`:88` 起）——**全部已实现**（A 半，plan `…-1553-1`）。
 - `agenerp/pack.py:71` `apply_pack(path, site)` 已改成委派链：
   `read_pack` → `capture(PACK_SCOPE, source=SiteSnapshotSource(site))` → `execute_plan`。签名不变。
-- ⚠️ **以下两项起草时（HEAD `a9de1bb`）尚不在仓里**，由前置 plan 交付，本 plan 的 Phase 1 Prereqs 要求它们先关闭：
+- ⚠️ **以下两项起草时（HEAD `e528bce`）尚不在仓里**，由前置 plan 交付，本 plan 的 Phase 1 Prereqs 要求它们先关闭：
   第 1 顺位的站点客户端（`agenerp/site.py`，起草时 `ls` 不存在）与第 2 顺位的 `export_customizations`
   （`agenerp/pack.py:66` 起草时仍 `raise`）。写在这一节标题下是为了说明依赖，不是说它们已就绪。
 
@@ -37,7 +37,7 @@
 
 `agenerp/apply.py:105` `execute_plan(plan, site)` —— 函数体 `raise NotImplementedError`（`:107`），
 消息逐字写着「B 半（对站点执行）… loop 无权实现」。**那个「无权」的前提已经在 2026-08-21T11:13Z 消失**：
-人在 `ede5440` 写完了三个 fixture（`tests/gates/conftest.py`），正是 STATE §3 那行 `[open]` 的处置项 (a)。
+人在 `9abeb89` 写完了三个 fixture（`tests/gates/conftest.py`），正是 STATE §3 那行 `[open]` 的处置项 (a)。
 本 plan 因此有权做这半边，**但仍不得改 `tests/gates/**` 一个字节**（红线 1 未变）。
 
 ### 门禁逐字要求
@@ -789,10 +789,10 @@ Closure Audit Evidence:
       `def test_` **19 条**，plan 要求 ≥ 8）
     - `ruff check agenerp tests/unit tests/contracts` → **0**（All checks passed!）
     - `python3 -m pytest tests/contracts -q` → **0**（151 passed）
-    - `git status --porcelain` → **无输出**（工作区干净）；`git log --oneline -1` → `b6bd6d5`
-  - **红线复核（不信 plan 自述，直接查提交内容）**：`git show --stat a69542e` 的 12 个文件里
+    - `git status --porcelain` → **无输出**（工作区干净）；`git log --oneline -1` → `b3bfca8`
+  - **红线复核（不信 plan 自述，直接查提交内容）**：`git show --stat 6c4387b` 的 12 个文件里
     **没有** `tests/gates/`、`.github/workflows/`、`missions/`、`docs/masterplan/`、
-    `tools/gates/expected-red.txt` 任何一项；`docs/masterplan/DECISIONS.md` 最近一次改动是 `ede5440`（人）。
+    `tools/gates/expected-red.txt` 任何一项；`docs/masterplan/DECISIONS.md` 最近一次改动是 `9abeb89`（人）。
   - **文档同步复核**：`module-boundaries.md` §11.6 落点表四行「已实现（B 半）」在位（`:334`–`:338`）、
     §11.1 已补实测反证（`:215`）；`docs/backlog/p0-foundation-roadmap.md:58` 的「5 现状」行在位且保持
     `planned`；`docs/context/ai-autonomy-policy.md:86` 的「对活站点的破坏性写」加严行在位；
@@ -812,7 +812,7 @@ Closure Audit Evidence:
   - `ruff check agenerp tests/unit tests/contracts` → **0**（All checks passed!）
   - `python3 -m pytest tests/contracts -q` → **0**（151 passed）
   - live 七条命令的原文与退出码见 `## 实测回填` 的 Phase 3 节
-  - commit sha: `a69542e`（`feat(p0-foundation): execute_plan 对活站点真的删除（工作项 5 的 B 半）`）
+  - commit sha: `6c4387b`（`feat(p0-foundation): execute_plan 对活站点真的删除（工作项 5 的 B 半）`）
 - 红线自查: `git status --porcelain -- tests/gates/ .github/workflows/ missions/ docs/masterplan/ tools/gates/expected-red.txt`
   → **输出为空**
 

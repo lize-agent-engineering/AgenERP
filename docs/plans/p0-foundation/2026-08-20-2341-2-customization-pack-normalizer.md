@@ -198,9 +198,9 @@ Phase 3 完成后，`GATE_VERIFY` 会判 fail。**这是预期终局。**
 **本节只追加，不改写上面 `## Human Handoff` 与 `## Closure` 的任何一行。** 那两节记录的是当时为真的事，改写等于销毁证据。
 
 `## Human Handoff` 写的重开条件是：「上述提交落地后，把本 plan 由 `deferred` 改回 `active` 走关闭审计。」
-**该条件已经发生**，实测证据如下（2026-08-21，HEAD `f47031f`）：
+**该条件已经发生**，实测证据如下（2026-08-21，HEAD `2992c73`）：
 
-- 人在 `920ce0e`（`git log --format=%B` 含 `Gates-Change-Approved-By: lize`）里做了两件事：把预期红名单由 `tests/gates/EXPECTED_RED.txt`
+- 人在 `4bbe3f5`（`git log --format=%B` 含 `Gates-Change-Approved-By: lize`）里做了两件事：把预期红名单由 `tests/gates/EXPECTED_RED.txt`
   迁至 **`tools/gates/expected-red.txt`**（迁出红线 1），并划掉含本工作项三条在内的 5 行。
 - `ls tests/gates/EXPECTED_RED.txt` → **不存在**；`grep -c 'test_normalizer_idempotent' tools/gates/expected-red.txt` → **0**。
 - `python3 tools/gates/check_expected_red.py` → **exit 0**（「门禁 13 项：预期红 8，绿 5，跳过 0」）。
@@ -220,7 +220,7 @@ Phase 3 完成后，`GATE_VERIFY` 会判 fail。**这是预期终局。**
    不关掉它，引擎会一直停在工作项 1 上）。
 
 **一处看起来不一致、实则不是的地方，先说明白**：Phase 3 末步那个 `[x]` 写着「把 `Plan Status` 由 `active` 改为 `deferred`」，
-而文件头现在是 `active`。**那一项当时确实做了**（提交 `9889194` 可查），它记录的是当时执行到位的事实；
+而文件头现在是 `active`。**那一项当时确实做了**（提交 `fd6de45` 可查），它记录的是当时执行到位的事实；
 `deferred` 的存在意义是「停住等人」，人已经来过了，条件消失，状态随之改回。
 计划指南规则 11 要求的一致性是「顶上说完成、里面还 draft」那类**自相矛盾的完成宣称**——本 plan 顶上不说完成，
 `## Closure` 仍写着「未关闭」，九框仍未勾，三者互洽。
@@ -231,7 +231,7 @@ Phase 3 完成后，`GATE_VERIFY` 会判 fail。**这是预期终局。**
 `grep -n '\- \[ \]'` 在本文件里只剩 `## Closure Gates` 的 9 个框——按本 plan 与
 `AGENTS.md` 裁判规则 1，那 9 个框执行步无权自证，留给独立 `CLOSURE_AUDIT` 步。
 
-原样复跑（基线 HEAD `f47031f`，退出码单独取 `$?`）：
+原样复跑（基线 HEAD `2992c73`，退出码单独取 `$?`）：
 
 | 命令原文 | 退出码 | 输出摘要 |
 |---|---|---|
@@ -240,11 +240,11 @@ Phase 3 完成后，`GATE_VERIFY` 会判 fail。**这是预期终局。**
 | `python3 -m pytest tests/gates/test_normalizer_idempotent.py -q` | **0** | 3 passed |
 | `ruff check agenerp tests/unit` | **0** | All checks passed! |
 | `python3 -m pytest tests/gates -q --tb=no` | 1 | 1 failed / 5 passed / 7 errors —— 其余 8 条仍红且全在预期红名单内，**未报全绿** |
-| `git diff --name-only f47031f..HEAD -- tests/gates/` | 0 | **输出为空**（红线 1 区间自查） |
+| `git diff --name-only 2992c73..HEAD -- tests/gates/` | 0 | **输出为空**（红线 1 区间自查） |
 | `git status --short -- tests/gates/ tools/gates/ .github/ docs/masterplan/` | 0 | **输出为空**（本轮零改动） |
 
-⚠️ 与 `## Closure` 那一节记录的差别（那节记的是 2026-08-21 早些时候、HEAD `9889194` 的实测，**不改写**）：
-`python3 tools/gates/check_expected_red.py` 当时 **exit 1**，现在 **exit 0** —— 差别来自人的 `920ce0e`
+⚠️ 与 `## Closure` 那一节记录的差别（那节记的是 2026-08-21 早些时候、HEAD `fd6de45` 的实测，**不改写**）：
+`python3 tools/gates/check_expected_red.py` 当时 **exit 1**，现在 **exit 0** —— 差别来自人的 `4bbe3f5`
 （`Gates-Change-Approved-By: lize`），不是实现改动。`## Human Handoff` 的验收条件由此满足。
 
 本轮落地的**唯一**文档改动（均在 `docs/backlog/`，不触红线）：
@@ -283,12 +283,12 @@ Phase 3 完成后，`GATE_VERIFY` 会判 fail。**这是预期终局。**
 ## Closure
 
 Status Note: **已关闭（2026-08-21，第二次独立关闭审计通过）。** 第一次审计的结论是「not closable —— blocked on human」，
-阻塞点是那次只有人能做的划名单提交；该提交已于 `920ce0e`（`Gates-Change-Approved-By: lize`）落地，
+阻塞点是那次只有人能做的划名单提交；该提交已于 `4bbe3f5`（`Gates-Change-Approved-By: lize`）落地，
 `## Human Handoff` 写明的验收条件 `python3 tools/gates/check_expected_red.py` → **exit 0** 已实测满足。
 实现侧自第一次审计以来**零改动**，本次审计对着 live repo 逐条复跑判据后确认全部为真。
 **下面「历史记录」小节逐字保留第一次审计当时的原文，一行未改**——那记录的是当时为真的事。
 
-### 独立关闭审计（第二次 · 2026-08-21 · HEAD `f47031f`）
+### 独立关闭审计（第二次 · 2026-08-21 · HEAD `2992c73`）
 
 Closure Audit Evidence（本次）:
 
@@ -300,9 +300,9 @@ Closure Audit Evidence（本次）:
   - `python3 -m pytest tests/unit -q` → **exit 0**（40 passed）
   - `ruff check agenerp tests/unit` → **exit 0**（All checks passed!）
   - `python3 -m pytest tests/gates -q --tb=no` → exit 1（1 failed / 5 passed / 7 errors）——仍红的 8 条**全在** `tools/gates/expected-red.txt` 内，未报全绿
-  - `git rev-parse HEAD` → `f47031fb5803ce374e2d231fcaf475c876dd1e6b`
+  - `git rev-parse HEAD` → `2992c73e5a46c1a928735dc511e0a4c360dbe970`
 - 红线自查（区间 diff，不用 `git diff HEAD` 的盲区）:
-  - `git log --format='%h %an %s' f180b40..HEAD -- tests/gates/` → 仅两条：`920ce0e lize`（带 `Gates-Change-Approved-By: lize`，人的名单迁移）与 `e145e43`（同一次迁移里删除已迁出的 `tests/gates/EXPECTED_RED.txt`，由人代为落盘）。**本 plan 的三个提交 `37ffc5d` / `9889194` / `9c67e96` 一个字节都没碰 `tests/gates/`**
+  - `git log --format='%h %an %s' a1e7beb..HEAD -- tests/gates/` → 仅两条：`4bbe3f5 lize`（带 `Gates-Change-Approved-By: lize`，人的名单迁移）与 `9292b5b`（同一次迁移里删除已迁出的 `tests/gates/EXPECTED_RED.txt`，由人代为落盘）。**本 plan 的三个提交 `70a7391` / `fd6de45` / `71c6cf5` 一个字节都没碰 `tests/gates/`**
   - `git status --short -- tests/gates/ .github/ docs/masterplan/` → **输出为空**（本次审计零改动于红线目录）
 - 反空壳复核（读 `agenerp/pack.py` 全文）: `normalize` → `_normalize_value` 有真实递归剥离 + 双层排序；`_is_volatile_key` 做 `lower()` 子串匹配（`modified_by` / `owner_id` 一并命中）；`_entry_sort_key` 对缺 `fieldname` 的条目退化为 `repr`。无空函数体、无 `return None` 占位、无吞异常。运行时可达性：`tests/gates/test_normalizer_idempotent.py` 与 `tests/unit/test_pack_normalize.py`（19 条断言）双向调用，`tests/unit/test_contract_surface.py` 的 `IMPLEMENTED` 清单含 `agenerp.pack:normalize` 并断言其可调用
 - 未越界复核: `agenerp/pack.py` 的 `export_customizations` / `apply_pack` 仍 `raise NotImplementedError`，且仍在 `test_contract_surface.py` 的 `NOT_YET_IMPLEMENTED` 清单内——本 plan 没有顺手把 Non-Goals 里的工作项做掉
@@ -311,11 +311,11 @@ Closure Audit Evidence（本次）:
 
 审计时发现、经核实**不构成缺陷**的三处表面不一致，逐条记录以免后人重复排查：
 
-- Phase 3 末步的 `[x]` 写「把 `Plan Status` 改为 `deferred`」，而文件头现为 `completed`：那一步当时**确实执行了**（提交 `9889194`），`deferred` 的作用是「停住等人」；人已来过，条件消失，状态依次经 `active`（`DRAFT_PLANS` 重开）走到 `completed`。这是状态机的正常推进，不是自相矛盾的完成宣称
+- Phase 3 末步的 `[x]` 写「把 `Plan Status` 改为 `deferred`」，而文件头现为 `completed`：那一步当时**确实执行了**（提交 `fd6de45`），`deferred` 的作用是「停住等人」；人已来过，条件消失，状态依次经 `active`（`DRAFT_PLANS` 重开）走到 `completed`。这是状态机的正常推进，不是自相矛盾的完成宣称
 - Phase 1 Exit Criteria 写「其余 10 条仍红」，现测为 8 条：差额 2 条是 plan 3（`test_snapshot_diff_structured.py`）转绿所致，与本 plan 无关，判据的实质（本 plan 未让别的门禁意外变绿或变红）成立
 - Phase 2 第三项写 `capture` / `diff` 仍在 `NOT_YET_IMPLEMENTED`，现二者已在 `IMPLEMENTED`：同样由 plan 3 落地，本 plan 执行当时的记录为真
 
-### 历史记录 —— 第一次关闭审计（2026-08-21 · HEAD `9889194` · 结论 not closable，原文逐字保留）
+### 历史记录 —— 第一次关闭审计（2026-08-21 · HEAD `fd6de45` · 结论 not closable，原文逐字保留）
 
 Status Note: **未关闭 —— 不是因为活没干完，是因为最后一步只有人能做。**
 独立关闭审计（2026-08-21）已逐条对着 live repo 复跑判据：Phase 1–3 的执行项与 Exit Criteria **全部为真**，
@@ -329,19 +329,19 @@ Closure Audit Evidence:
 
 - Auditor / Agent: 独立关闭审计子代理（mission-driver `2026-08-20-234105-mission-driver`，fresh session，未参与本 plan 实现）
 - 审计结论: **not closable —— blocked on human**（实现侧无缺陷，无需回 EXECUTE 改代码）
-- 复跑证据（2026-08-21，HEAD `9889194`，命令原文 + 退出码）:
+- 复跑证据（2026-08-21，HEAD `fd6de45`，命令原文 + 退出码）:
   - `python3 -m pytest tests/gates/test_normalizer_idempotent.py -q` → **exit 0**（3 passed）
   - `python3 -m pytest tests/unit -q` → **exit 0**（22 passed）
   - `python3 -m pytest tests/gates -q --tb=no` → 3 passed / 3 failed / 7 errors，即**其余 10 条仍红**，本 plan 未让别的门禁意外变绿或变红
   - `ruff check agenerp tests/unit` → **exit 0**（All checks passed!）
   - `python3 tools/gates/check_expected_red.py` → **exit 1**（「名单内的门禁却绿了」列出本工作项三条）——按 Phase 3 约定，**这条 exit 1 是成功的证据**
-  - `git diff --name-only f180b40..HEAD -- tests/gates/` → **输出为空**（红线 1 区间自查通过，未沿用 `git diff HEAD` 的盲区）
+  - `git diff --name-only a1e7beb..HEAD -- tests/gates/` → **输出为空**（红线 1 区间自查通过，未沿用 `git diff HEAD` 的盲区）
 - 反空壳抽查: `agenerp/pack.py` 的 `_normalize_value` / `_is_volatile_key` / `_entry_sort_key` 均有实体行为；
   `export_customizations` / `apply_pack` 仍 `raise NotImplementedError`，且 `tests/unit/test_contract_surface.py`
   的 `NOT_YET_IMPLEMENTED` 仍断言它们连同 `capture` / `diff` / `schema_drift` 抛错——本 plan 没有顺手把别的工作项做掉，
   也没有把它们改成静默返回
 - 文档同步核对: `docs/logs/2026/08-20.md` 有 plan 2 条目（命令原文 + 退出码 + sha）；
-  `docs/masterplan/STATE.md` §3 有 `[open] 2026-08-21 · … · P0.4 · … · sha 37ffc5d` 一行，`git` 显示只有新增行
+  `docs/masterplan/STATE.md` §3 有 `[open] 2026-08-21 · … · P0.4 · … · sha 70a7391` 一行，`git` 显示只有新增行
 - 五点一致性: `Plan Status: deferred` / 三个 Phase 均 `completed` 且执行项与 Exit Criteria 全 `[x]` /
   `## Closure Gates` 九框未勾 / 本节记「未关闭」——**四者互洽**，没有「顶上说完成、里面还 draft」的情形
 - `closureScriptCheck` 判 fail（`9 unchecked items`）: **预期之内**，Phase 3 末步已写明理由。

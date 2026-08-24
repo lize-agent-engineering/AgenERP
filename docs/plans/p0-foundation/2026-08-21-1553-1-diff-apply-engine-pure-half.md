@@ -10,7 +10,7 @@
 
 ## Current Baseline
 
-起草时（2026-08-21，HEAD `494440d`）逐条读活代码得出，不靠记忆、不抄旧 plan。
+起草时（2026-08-21，HEAD `eb7a4ab`）逐条读活代码得出，不靠记忆、不抄旧 plan。
 
 ### 工作项 5 的判据在哪里、够不够得着
 
@@ -273,7 +273,7 @@ Exit Criteria:
 ## Draft Review Record
 
 - Independent draft review iteration 1: `accept`（`MISSION_DRIVER:2026-08-21-155943-mission-driver` 的独立评审步，与起草会话分离）
-  after 逐条对**评审时的 HEAD `d6672cc`**（起草时为 `494440d`，其间循环另有提交推进；
+  after 逐条对**评审时的 HEAD `59471bc`**（起草时为 `eb7a4ab`，其间循环另有提交推进；
   本 plan 涉及的 `agenerp/**` / `tests/gates/**` / `tools/gates/expected-red.txt` 在两个 sha 之间无差异，
   故 Current Baseline 的结论仍然成立）的活代码复核基线并就地修掉以下问题：
   (1) Phase 1 的 `Item Types` 漏了实际存在的 `Fix` 项（指南规则 7）；
@@ -348,8 +348,8 @@ B 半（对站点执行删除）从起草起就是 Non-Goal，已在 `## Deferre
 Closure Audit Evidence:
 
 - Auditor / Agent: 独立关闭审计会话 `MISSION_DRIVER:2026-08-21-155943-mission-driver` 的 `CLOSURE_AUDIT` 步，
-  与 `EXECUTE` 会话分离（`EXECUTE` 的产物是 `0603ccf` / `dac7a9f` / `8718f40`，本步只改本 plan 文件）。
-- 审计基线 sha：`8718f40`（`git status --short` 输出为空，工作区干净）。开工基线 `<base>` = `d6672cc`。
+  与 `EXECUTE` 会话分离（`EXECUTE` 的产物是 `fc390bb` / `2b380b7` / `75f59f9`，本步只改本 plan 文件）。
+- 审计基线 sha：`75f59f9`（`git status --short` 输出为空，工作区干净）。开工基线 `<base>` = `59471bc`。
 - **实跑复核（命令原文 + 退出码，本审计会话现跑，非抄执行日志）**：
   - `python3 tools/gates/check_expected_red.py` → **exit 0**（门禁 13 项：预期红 7，绿 6，跳过 0）
   - `python3 -m pytest tests/unit -q` → **exit 0**（**73 passed**）
@@ -357,10 +357,10 @@ Closure Audit Evidence:
   - `python3 -m pytest tests/gates/test_customization_roundtrip_delete.py -q --tb=line` → **exit 1**，
     **`4 errors`**（`ERROR at setup`，逐字 `NotImplementedError: live_site 尚未实现 …`）——
     与起草评审基线形态逐字一致，无漂移，四条仍红且红在 fixture 层
-  - `git diff --name-only d6672cc..HEAD -- tests/gates/ .github/workflows/ missions/ tools/gates/ docs/masterplan/DECISIONS.md`
+  - `git diff --name-only 59471bc..HEAD -- tests/gates/ .github/workflows/ missions/ tools/gates/ docs/masterplan/DECISIONS.md`
     → **输出为空**（红线 1/2/3/6 零触碰）
-  - `git diff --numstat d6672cc..HEAD -- docs/masterplan/` → **输出为空**（`STATE.md` 未改，停手分支未触发）
-  - `git diff --numstat d6672cc..HEAD -- docs/architecture/module-boundaries.md` → `50	0`（删除列为 0，只追加）
+  - `git diff --numstat 59471bc..HEAD -- docs/masterplan/` → **输出为空**（`STATE.md` 未改，停手分支未触发）
+  - `git diff --numstat 59471bc..HEAD -- docs/architecture/module-boundaries.md` → `50	0`（删除列为 0，只追加）
 - **verification scope limited**：本仓无全量套件（`docs/context/project-context.md` 的验证表里
   Build 与 Typecheck 逐字为 `none`，L2 门禁未解锁）。上列命令即本仓验证面的全部，**不等同于「全量绿」**。
 - **反假判据复核（逐条读活代码，不信 `[x]`）**：

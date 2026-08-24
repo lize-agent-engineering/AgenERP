@@ -145,7 +145,7 @@ ERP 中大量字段是**用户可写的自由文本**——备注、评论、异
 声明面（工作项 4 的 A 半）来自 plan `docs/plans/p0-foundation/2026-08-21-1022-2-tool-contract-layer-v0.md`。
 
 **执行面（B 半）已于 2026-08-24 落地**（plan `docs/plans/p1-insight/2026-08-24-P1.0a-tool-execution-layer.md`，
-sha `5a712a7`）：十条契约各有执行体，且**只有一个执行入口**。
+sha `35313cb`）：十条契约各有执行体，且**只有一个执行入口**。
 ⚠️ **工作项 4 的判据仍未全满足**：WBS §4 第 78 行点名的 🔴 `tests/gates/test_tool_execution_live.py`
 在**红线 1 内**，执行者不得创建；同等强度的断言写在**非保护路径**
 `tests/tools/test_live_conformance.py`，把它提升进 `tests/gates/` 并接进 CI 是**人的动作**
@@ -670,7 +670,7 @@ B 半（`execute_plan` 的删除路径、作用域收窄、建/改显式拒绝�
 `tools/gates/expected-red.txt` **一行未动**（默认判定环境下 L2 恒红，
 `AGENERP_LIVE` 未设即 `pytest.fail`；划掉会让默认 `GATE_VERIFY` 立刻转红），
 roadmap 工作项 5 / 6 均停在 `planned`。该矛盾此前登记在 `docs/masterplan/STATE.md` §3，
-人已于 2026-08-21T14:21Z（`3fed439`）把 §3 的 `[open]` 全部关闭；口径以 §2
+人已于 2026-08-21T14:21Z（`873c97f`）把 §3 的 `[open]` 全部关闭；口径以 §2
 （2026-08-21T11:20Z「名单必须反映判定器实际看到的」）为准。
 **live 环境下判定器退 1 是预期**（名单内的条目在 live 下变绿），不得被读成回归。
 A 半的判据落在 `tests/unit/test_apply_plan.py`、B 半与清除面的落在
@@ -874,7 +874,7 @@ Custom Field 不删列，所以此前每跑一轮就留一条孤儿列——清�
 | `agenerp/site.py` · `SiteError` | 站点侧一切失败的统一异常：连不上 / 认证失败 / 非 2xx / 载荷不是 JSON | 已实现 |
 | `agenerp/site.py` · `client_from_env(site)` | 环境 → 客户端的组装点，缺凭据时抛并指名变量 | 已实现 |
 | `agenerp/site.py` · `Transport` / `UrllibTransport` | 可注入的传输接缝：单测喂假件，产品走标准库 | 已实现 |
-| `agenerp/site.py` · 写 / 删方法 | 归工作项 5 的删除段（plan [`2026-08-21-1922-3`](../plans/p0-foundation/2026-08-21-1922-3-execute-plan-site-delete.md)）。**白名单有且只有一条** `SiteClient.delete_custom_field`（模块头第 4 条，`agenerp/site.py:16-17`）；不提供「删任意 DocType 文档」的通用方法 | 已实现（判据 `tests/unit/test_site_client.py` 的 `WRITE_METHOD_ALLOWLIST`）。**⚠️ 2026-08-22 就地改准（确认的 owner-doc 漂移，Minimum Rule 14 不降级）**：本格此前是一句**否定态的状态词**（原文逐字取法：`git show 4ac3517:docs/architecture/module-boundaries.md | sed -n '581p'`；此处不复述那个词，因为本 plan 的机判判据要求本表行范围内不再出现它）。**那句话从 2026-08-21 起就是假的**——`1922-3` 已于 **2026-08-21 关闭**，方法已落地并在活站点上实测删过字段，本次是**改准一句假陈述，不是「新增一项」**，它整整假了一天。同一份文档的 §11.6 落点表（`:338` 一带）当时就写着「已实现（B 半）」，两张表在同一个文件里互相矛盾了同样长的时间。改准由 plan [`2026-08-22-1041-1`](../plans/p0-foundation/2026-08-22-1041-1-destructive-write-owner-doc-alignment.md) 做 |
+| `agenerp/site.py` · 写 / 删方法 | 归工作项 5 的删除段（plan [`2026-08-21-1922-3`](../plans/p0-foundation/2026-08-21-1922-3-execute-plan-site-delete.md)）。**白名单有且只有一条** `SiteClient.delete_custom_field`（模块头第 4 条，`agenerp/site.py:16-17`）；不提供「删任意 DocType 文档」的通用方法 | 已实现（判据 `tests/unit/test_site_client.py` 的 `WRITE_METHOD_ALLOWLIST`）。**⚠️ 2026-08-22 就地改准（确认的 owner-doc 漂移，Minimum Rule 14 不降级）**：本格此前是一句**否定态的状态词**（原文逐字取法：`git show 57702c5:docs/architecture/module-boundaries.md | sed -n '581p'`；此处不复述那个词，因为本 plan 的机判判据要求本表行范围内不再出现它）。**那句话从 2026-08-21 起就是假的**——`1922-3` 已于 **2026-08-21 关闭**，方法已落地并在活站点上实测删过字段，本次是**改准一句假陈述，不是「新增一项」**，它整整假了一天。同一份文档的 §11.6 落点表（`:338` 一带）当时就写着「已实现（B 半）」，两张表在同一个文件里互相矛盾了同样长的时间。改准由 plan [`2026-08-22-1041-1`](../plans/p0-foundation/2026-08-22-1041-1-destructive-write-owner-doc-alignment.md) 做 |
 
 **配置口径（环境变量，产品代码不内置口令默认值）**：
 

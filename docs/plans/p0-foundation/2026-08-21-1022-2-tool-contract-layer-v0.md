@@ -10,7 +10,7 @@
 
 ## Current Baseline
 
-起草时（2026-08-21，HEAD `f47031f`）读活代码 + 实跑 + 独立评审复核得出。**凡是被评审推翻的说法，这里写的是校正后的版本。**
+起草时（2026-08-21，HEAD `2992c73`）读活代码 + 实跑 + 独立评审复核得出。**凡是被评审推翻的说法，这里写的是校正后的版本。**
 
 ### 判据归属：先把话说准
 
@@ -286,7 +286,7 @@ Skill: `none`
       内容必须准确到可供人做红线决定，**不许写成「绕不过去」**：
       - 事实：`live_site` 定义在 `tests/gates/conftest.py:15`（`:17` 是 `raise`），属红线 1；同文件 `:5` 写着「实现到位时把 raise 换成真东西即可」，
         而 `:7` 紧接着写「⚠️ 本文件同样在 `tests/gates/**` 红线内：loop 不得修改」——**那句话是写给人的，不是给 loop 的指令，两句并不冲突**
-        （`tests/gates/README.md` 也明写「这个目录里的文件，loop 一律不得修改」）。**不要把它写成第二个「冲突 1」**：冲突 1 已由人在 `920ce0e` 裁定关闭，`tests/gates/EXPECTED_RED.txt` 已不存在。
+        （`tests/gates/README.md` 也明写「这个目录里的文件，loop 一律不得修改」）。**不要把它写成第二个「冲突 1」**：冲突 1 已由人在 `4bbe3f5` 裁定关闭，`tests/gates/EXPECTED_RED.txt` 已不存在。
       - 实测：同名 fixture 覆盖**不可能**（就近者胜，`NotImplementedError: inner`）；但 `pytest_fixture_setup` hook 级绕道**可行**（根级 conftest 即可让门禁 `1 passed`，不碰 `tests/gates/**` 一个字节）。
       - 处置项（**本 plan 不替人选**）：
         (a) 人带 `Gates-Change-Approved-By:` trailer 把三个 fixture 的 `raise` 换成真实现；
@@ -366,7 +366,7 @@ Exit Criteria:
   要害四条：① roadmap 第 4 行的**门禁测试列不是空的**（`—` 在的是「层」列），原稿据此推出的「本工作项没有绑定判据」不成立；
   ② 判据先行：A 半确实没有绑定门禁，且 `pytest tests/contracts` **不在 `commands.test` 里**，等于 loop 自判；
   ③ 「`live_site` 实测无法绕过」**被实跑推翻**——`pytest_fixture_setup` hook 可在不碰 `tests/gates/**` 的前提下让门禁 `1 passed`；
-  ④ 原稿引 `tests/gates/README.md` 那句「把 raise 换成真东西即可」是**伪造引文**（该句只在 `conftest.py:5`，README 写的是相反的话），且冲突 1 早已由 `920ce0e` 关闭。
+  ④ 原稿引 `tests/gates/README.md` 那句「把 raise 换成真东西即可」是**伪造引文**（该句只在 `conftest.py:5`，README 写的是相反的话），且冲突 1 早已由 `4bbe3f5` 关闭。
   另有：写死门禁计数（`…-1` 会改变它）、缺开工前置检查与末步 `Plan Status`、熔断/数据边界包裹在 P0 无验收、十工具清单是 loop 自选却被冻进 owner doc、WBS P0.2 被择优引用（前置 P0.1 与冲突 4.2 未提）。nit 若干。
 - Revision after iteration 1: 全文重写。判据归属改写为「工作项 4 的绑定判据是 B 半，A 半是本 plan 自己的切法」并承担责任；
   新增 `## 判据缺口登记` 三条与三行 `STATE.md` §3 登记（判据缺口 / 十工具选法 / B 半障碍含 hook 绕道处置项 (d)）；
@@ -451,7 +451,7 @@ Exit Criteria:
 - **交给 successor 的一条已查实约束**：它要自带 `planned → done` 的写入落点。
   `closure-audit.md` 里 `roadmap` 出现 **0** 次、`plan-review.md:22` 只改 plan 自己的 `Plan Status`、`execute.md:11` 已被本 plan 按优先级次序否掉——
   **没有任何引擎产物被指示写这一步**。照本 plan Phase 1 第 5 点的办法自带一条幂等兜底即可。
-  不这么做的后果此刻就在仓里看得见：roadmap 工作项 1 至今仍是 `todo`，而规范化器早已实现、转绿并在 `920ce0e` 划出名单。
+  不这么做的后果此刻就在仓里看得见：roadmap 工作项 1 至今仍是 `todo`，而规范化器早已实现、转绿并在 `4bbe3f5` 划出名单。
 - 重开事件：`…-1-zero-dep-boot-compose.md` 关闭**且**人对 Phase 3 登记的 (a)/(b)/(c)/(d) 作出选择之后。
 
 ### §7.4 权限拒绝熔断（N=5）与 §7.5 数据边界标记的**包裹动作**
@@ -505,8 +505,8 @@ Closure Audit Evidence:
 
 - Auditor / Agent: 独立关闭审计会话（`MISSION_DRIVER:2026-08-21-150632-mission-driver` 的 `CLOSURE_AUDIT` 步），
   与 `EXECUTE` 会话分离；**不采信 plan 内既有 `[x]`**，逐条复跑并读活代码复核。
-- 审计基线 sha：`8721b0d`。本 plan 的实现落在 `c3bd794`（代码 + 文档）与 `8721b0d`（日志 + 三阶段勾选）；
-  `agenerp/contracts.py` 在开工前由 `091a150` 落盘（在途产物，`EXECUTE` 已记明判为续做而非停手）。
+- 审计基线 sha：`b44b2d0`。本 plan 的实现落在 `de72743`（代码 + 文档）与 `b44b2d0`（日志 + 三阶段勾选）；
+  `agenerp/contracts.py` 在开工前由 `21901a9` 落盘（在途产物，`EXECUTE` 已记明判为续做而非停手）。
 - 逐条复跑（命令原文 + 退出码，退出码单独取 `$?`）：
   - `python3 -m pytest tests/contracts -q` → **exit 0**（151 passed）—— `02-WBS.md` P0.2 的验收命令原文
   - `python3 -m pytest tests/unit -q` → **exit 0**（50 passed）
@@ -521,11 +521,11 @@ Closure Audit Evidence:
   - `! python3 -m pytest tests -q --tb=no 2>&1 | grep -q 'import file mismatch'` → **exit 0**（无跨目录同名冲突）
   - 零依赖判据（`import agenerp.contracts` / `agenerp.tools_readonly` 前后的顶层模块集合求差，
     差集中不属于 `sys.stdlib_module_names` 且不是 `agenerp` 的）→ **空** → **exit 0**
-- 红线自查（区间 diff；基线取本 plan 自身两个提交的父 `d35ec2b`，避开中间那次人工迁库提交对 `STATE.md`/`02-WBS.md` 的改写）：
-  - `git diff --name-only d35ec2b..HEAD -- tests/gates/ .github/workflows/ missions/ tools/gates/ docs/masterplan/DECISIONS.md` → **输出为空**
-  - `git diff --numstat d35ec2b..HEAD -- docs/masterplan/` → 仅 `5	0  docs/masterplan/STATE.md`（**只增不删**，删除行实测计数 0）；
+- 红线自查（区间 diff；基线取本 plan 自身两个提交的父 `51becdb`，避开中间那次人工迁库提交对 `STATE.md`/`02-WBS.md` 的改写）：
+  - `git diff --name-only 51becdb..HEAD -- tests/gates/ .github/workflows/ missions/ tools/gates/ docs/masterplan/DECISIONS.md` → **输出为空**
+  - `git diff --numstat 51becdb..HEAD -- docs/masterplan/` → 仅 `5	0  docs/masterplan/STATE.md`（**只增不删**，删除行实测计数 0）；
     新增部分含且仅含**一行** `[open]`（B 半红线障碍），`docs/masterplan/` 下无其他文件被本 plan 改动
-  - `git diff --numstat 091a150..HEAD -- docs/architecture/module-boundaries.md` → `58	0`（**只追加**）
+  - `git diff --numstat 21901a9..HEAD -- docs/architecture/module-boundaries.md` → `58	0`（**只追加**）
 - 交付物读活代码复核（不看 `[x]`，看仓里的东西）：
   - `agenerp/contracts.py`（320 行）：`ToolContract` 九段字段齐全（`tool` / `target` / `risk` / `requires_permission` /
     `preconditions` / `postconditions` / `returns` / `on_violation` / `approval`）；`Returns` 含 §7.3.1 三项

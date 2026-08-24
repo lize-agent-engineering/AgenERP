@@ -17,9 +17,9 @@
 
 ## Current Baseline
 
-以下每一条都是 2026-08-22 在 `10c737c` 上实测或从 CI 日志逐字抄来的。
+以下每一条都是 2026-08-22 在 `5e76f27` 上实测或从 CI 日志逐字抄来的。
 
-- **红是可复现的，不是抖动。** CI run `32509351108`（PR #1，head `9a8832f`，分支
+- **红是可复现的，不是抖动。** CI run `32509351108`（PR #1，head `2ef7cdc`，分支
   `ci/0027-2-l2-full-live-gate`）两次 attempt（第二次是 `gh run rerun --failed` 原样复跑）
   **都**打出 `门禁 19 项：红 1，绿 18，跳过 0`，都逐字点名
   `tests/gates/test_customization_roundtrip_delete.py::test_no_orphan_column_left_behind`。
@@ -51,13 +51,13 @@
   其 Closure Audit Log 第四条另记了「停机后空转 4 轮」的成本停机线风险。本 plan 因此对 CI 实跑设硬上限。
 - **⚠️ 推分支的唯一合法形态：只把 `agenerp/**` 的修复 cherry-pick 上去，绝不把 `main` 合进分支。**
   分支上的 `verdict-tool-untouched` 比的是 `git diff --name-only $BASE $HEAD -- tools/gates/check_expected_red.py …`，
-  `$BASE` 取 `github.event.pull_request.base.sha`，而 PR #1 的 `baseRefOid` **钉在 `7b0f585`**
+  `$BASE` 取 `github.event.pull_request.base.sha`，而 PR #1 的 `baseRefOid` **钉在 `627c7a9`**
   （`gh pr view 1 --json baseRefOid,headRefOid` 实测），不随 `origin/main` 走。
   `git diff` 比的是两棵树，所以「main 有而分支没有」同样算命中——
   **把 `main`（含前驱 plan 的判定器改动）合进分支会必然点亮该 job**，而放行只能靠人工
-  `^Gates-Change-Approved-By:` trailer，AI 自加即伪造。`7b0f585` 与分支都不含判定器改动，
+  `^Gates-Change-Approved-By:` trailer，AI 自加即伪造。`627c7a9` 与分支都不含判定器改动，
   只 cherry-pick `agenerp/**` 时该 diff 为空，job 保持 `success`（前两次 attempt 实测均 `success`）。
-- 本机 `main`（`10c737c`）比 `origin/main`（`3425dae`）**领先 6 个提交**，未推。本 plan 不推 `main`。
+- 本机 `main`（`5e76f27`）比 `origin/main`（`86b9828`）**领先 6 个提交**，未推。本 plan 不推 `main`。
 
 ## Goals
 
@@ -135,7 +135,7 @@ Skill: `bug-diagnosis-prompt.md`
       + `schema_drift("Item")` 各一份，逐字抄下（Baseline 说是 5–6 条，以本轮实测为准）；
       ③ 在常驻站点上跑一次 live 整目录判定，抄下退出码与输出，作为「冷起前的本机基线」。
       这一项做完再往下走；顺序颠倒就再也补不回来。
-      - 实测（2026-08-22，`0cfd3bd`，常驻站点 `Up 6 hours`）：
+      - 实测（2026-08-22，`c85db20`，常驻站点 `Up 6 hours`）：
         ① `docker compose -f docker-compose.yml exec -T backend bench --site frontend backup` → **exit 0**，
         `Database: ./frontend/private/backups/20260822_034532-frontend-database.sql.gz 797.9KiB`；
         `docker compose -f docker-compose.yml cp backend:/home/frappe/frappe-bench/sites/frontend/private/backups ./.backups-2026-08-22`
@@ -371,12 +371,12 @@ Skill: `none`
 - Prereqs: **Phase 3 三面证明全绿**（硬前置，未全绿不得推分支）;
   **PR #1 必须仍是 `OPEN`**（硬前置）——Baseline 实测：往该分支 `push` **不触发任何运行**
   （`on: push` 限定 `branches: [main]`），CI 只由开着的 PR 的 `pull_request` 事件触发。
-  推之前先 `gh pr view 1 --json state,baseRefOid` 确认 `state=OPEN` 且 `baseRefOid` 仍是 `7b0f585`；
+  推之前先 `gh pr view 1 --json state,baseRefOid` 确认 `state=OPEN` 且 `baseRefOid` 仍是 `627c7a9`；
   任一条不成立则**不推**，按 `## Deferred But Adjudicated` 的固定处置停机等人
   （PR 被关掉或 base 被移动都属于人的动作，loop 不替人重开 PR）。
   - **两条硬前置推前实测均成立**：Phase 3 三面证明全绿（见上）；
     `gh pr view 1 --json state,baseRefOid,headRefOid,headRefName` →
-    `{"baseRefOid":"7b0f585f7c8082a64902da65e6e3314cb239dc9f","headRefName":"ci/0027-2-l2-full-live-gate","headRefOid":"9a8832f…","state":"OPEN"}`。
+    `{"baseRefOid":"627c7a94e4580e74a778cd8cb6e66391f3ea4633","headRefName":"ci/0027-2-l2-full-live-gate","headRefOid":"2ef7cdc…","state":"OPEN"}`。
 
 - [x] `Decision`（**草案评审阶段已裁定，执行时照做**）：本阶段跑 CI 是**合法**的，理由是它逐字满足
       STATE §3 那条 `[open]` 停机行自己写死的重开条件（「successor 修好 `agenerp` 侧清除面后，
@@ -388,21 +388,21 @@ Skill: `none`
       - **照做**：Phase 3 全绿后才推，实跑 1 次即绿，未用到第 2 次配额。
 - [x] `Fix`：推分支的形态**只能是把 `agenerp/**` 的修复 cherry-pick 到 `ci/0027-2-l2-full-live-gate`**，
       **不得 merge / rebase `main` 进分支**（会点亮 `verdict-tool-untouched`，见 Baseline）。
-      推之前实跑 `git diff --name-only 7b0f585 <branch-head> -- tools/gates/check_expected_red.py tools/gates/gate-verify.mjs`
+      推之前实跑 `git diff --name-only 627c7a9 <branch-head> -- tools/gates/check_expected_red.py tools/gates/gate-verify.mjs`
       确认**无输出**，把命令与输出抄进本 plan。
-      - 形态：`git checkout -B ci/0027-2-l2-full-live-gate origin/ci/0027-2-l2-full-live-gate`（基线 `9a8832f`）
-        → `git checkout 578eb8f -- agenerp/oob.py agenerp/snapshot.py` → 提交 `c2c688b`。
+      - 形态：`git checkout -B ci/0027-2-l2-full-live-gate origin/ci/0027-2-l2-full-live-gate`（基线 `2ef7cdc`）
+        → `git checkout 7338dca -- agenerp/oob.py agenerp/snapshot.py` → 提交 `c6a9269`。
         **只取两个文件，未 merge / rebase `main`。**
-      - `git diff --name-only 9a8832f c2c688b` → 逐字只有两行：`agenerp/oob.py` · `agenerp/snapshot.py`。
-      - `git diff --name-only 7b0f585 c2c688b -- tools/gates/check_expected_red.py tools/gates/gate-verify.mjs`
+      - `git diff --name-only 2ef7cdc c6a9269` → 逐字只有两行：`agenerp/oob.py` · `agenerp/snapshot.py`。
+      - `git diff --name-only 627c7a9 c6a9269 -- tools/gates/check_expected_red.py tools/gates/gate-verify.mjs`
         → **无输出**（exit 0）。
-      - `git push origin ci/0027-2-l2-full-live-gate` → **exit 0**，`9a8832f..c2c688b`。
+      - `git push origin ci/0027-2-l2-full-live-gate` → **exit 0**，`2ef7cdc..c6a9269`。
 - [x] `Proof`：推分支（PR #1 的 `pull_request` synchronize 事件）触发 CI，读 `gates-l2-live` 的结论。**上限 2 次实跑**（首跑 + 必要时 1 次原样复跑）。
       绿：记 run id / job id / sha。红：**先原样复跑一次**（裁判规则 3），仍红则按固定处置停机，
       **不猜根因**，把前驱取证步骤打出的红因原文追加进 STATE §3。
       - **绿，首跑即绿，用了 1 次实跑（上限 2）**。三件套：
         **run id `32533449466`** · **job id `96929876654`**（`L2 全量 live 判定（19 条）` = `gates-l2-live`）·
-        **sha `c2c688b7f6bc49a96d1e89a3582014334ba8fb71`**。
+        **sha `c6a92697d78414d788c4178da20b859afac911e7`**。
       - `gh run view 32533449466 --json status,conclusion,headSha` → `"conclusion":"success"` / `"status":"completed"`。
       - 该 job 日志逐字：`判定模式：live（AGENERP_LIVE=1）—— 契约为全部门禁绿、零 skip，不读预期红名单` /
         `门禁 19 项：红 0，绿 19，跳过 0` / `✅ live 判定：全部门禁绿，零 red、零 skip`。
@@ -444,10 +444,10 @@ Skill: `none`
 
 Exit Criteria:
 
-- [x] 推之前 `gh pr view 1 --json state,baseRefOid` 实测为 `OPEN` / `7b0f585`，命令与输出在案
-- [x] `gates-l2-live` 在 CI 上 `success`（run `32533449466` / job `96929876654` / sha `c2c688b`）
+- [x] 推之前 `gh pr view 1 --json state,baseRefOid` 实测为 `OPEN` / `627c7a9`，命令与输出在案
+- [x] `gates-l2-live` 在 CI 上 `success`（run `32533449466` / job `96929876654` / sha `c6a9269`）
 - [x] `verdict-tool-untouched` 仍 `success`（job `96929876658`）；
-      `git diff --name-only 7b0f585 c2c688b -- tools/gates/check_expected_red.py tools/gates/gate-verify.mjs` 无输出
+      `git diff --name-only 627c7a9 c6a9269 -- tools/gates/check_expected_red.py tools/gates/gate-verify.mjs` 无输出
 - [x] CI 实跑次数 ≤ 2 —— `gh run list --branch ci/0027-2-l2-full-live-gate` 推前 1 条、推后 2 条，**差 1**
 - [x] roadmap 三行 + `project-context.md` 的确认漂移已就地改准
 - [x] `0027-2` 的 Closure Audit Log 有追加行，其既有行一字未改
@@ -458,7 +458,7 @@ Exit Criteria:
 
 - Independent draft review iteration 1: `needs revision → 已就地修复，accept`（MISSION_DRIVER 评审步骤，2026-08-22）。
   逐条复核了 Baseline 的每一条事实，**全部实测对得上**：`gh pr view 1` → PR #1 `state=OPEN`、
-  `baseRefOid=7b0f585f7c…`（与 plan 写的 `7b0f585` 一致）；`agenerp/pack.py` 的 `apply_pack` 委派链、
+  `baseRefOid=7b0f585f7c…`（与 plan 写的 `627c7a9` 一致）；`agenerp/pack.py` 的 `apply_pack` 委派链、
   `agenerp/apply.py:245` 的 `if not plan.deletes: return` 与 `:251` 的 `drop_orphan_columns`、
   `agenerp/snapshot.py` `schema_drift` 的「答不上话抛 `OobError` 不返回空元组」、
   `tools/gates/check_expected_red.py` 的 `capture_output=True` + `JUNIT.unlink()`，逐一核对无误；
@@ -493,7 +493,7 @@ Exit Criteria:
       `drop_orphan_columns` 在运行时调用；`grep -rn FALSY_RESULT agenerp tests` 命中 4 处产品代码 + 5 处判据。
       非零退出仍由 `_run` 抛 `OobError`、非 list / 非 str 列名仍抛——无吞异常、无 `{}` 空体、无 `return None` 占位。
 - [x] relevant docs are aligned —— 审计实测：`module-boundaries.md` §11.8 追加了「『不伪装成功』的唯一例外」整段
-      （`git show 578eb8f -- docs/architecture/module-boundaries.md` 为 `27 insertions`，零删除）；
+      （`git show 7338dca -- docs/architecture/module-boundaries.md` 为 `27 insertions`，零删除）；
       `grep -c 32533449466` → roadmap **3** · `project-context.md` **2** · STATE **3**；
       `0027-2` 的 `Closure Audit Log` 第五条已在案且 `grep -c '^-[^-]'` → **0**（纯追加）。
       日志侧本审计补齐了 Phase 4 那半（见下一条 Follow-up 与 `docs/logs/2026/08-22.md`）。
@@ -502,7 +502,7 @@ Exit Criteria:
       `ruff check agenerp tests/unit tests/contracts` → **exit 0**（`All checks passed!`）·
       `python3 -m pytest tests/contracts -q` → **exit 0**（`151 passed in 0.06s`）·
       `gh run view 32533449466 --json status,conclusion,headSha` → 逐字
-      `{"conclusion":"success","headSha":"c2c688b7f6bc49a96d1e89a3582014334ba8fb71","status":"completed"}`，
+      `{"conclusion":"success","headSha":"c6a92697d78414d788c4178da20b859afac911e7","status":"completed"}`，
       `gh run view 32533449466 --json jobs` 列出**九个 job 全部 `success`**。
       站点侧四跑与变异 A/B 属一次性现场证据（站点已被后续 `down -v` 冷起覆盖），审计不重复破坏站点，
       按 CI 侧同形态绿（run `32533449466` 的 `gates-l2-live`）交叉支撑。
@@ -523,7 +523,7 @@ Exit Criteria:
 - [x] closure evidence exists in files —— 证据落在仓库里可复查：`docs/logs/2026/08-22.md` 的 `0228-2` 条目 ·
       `docs/masterplan/STATE.md` §2 的 `2026-08-22T14:40Z` 行与 §3 的 `[resolved]` 行 ·
       `docs/architecture/module-boundaries.md` §11.8 追加段 · `0027-2` 的 `Closure Audit Log` 第五条 ·
-      提交 `578eb8f`（实现 + 判据 + 文档）与 `d27c9a2`（回写）· 分支 `ci/0027-2-l2-full-live-gate` 上的 `c2c688b`
+      提交 `7338dca`（实现 + 判据 + 文档）与 `58353ba`（回写）· 分支 `ci/0027-2-l2-full-live-gate` 上的 `c6a9269`
       （`git ls-remote origin ci/0027-2-l2-full-live-gate` 实测 head = `c2c688b7f6…`）。
 - [x] **`0027-2` 指名的证据在案** —— 前后全量 `capture` 对照两侧站点各一次（全新站点与非空累积站点，
       均 `entries added/removed: []` / `columns added/removed: []`）写在 Phase 1 第 4 项与 Phase 3 第 2 项；
@@ -531,9 +531,9 @@ Exit Criteria:
 - [x] 冷起**前**的常驻站点证据三件在案 —— Phase 1 第 1 项：`bench backup` exit 0 +
       `docker compose cp` exit 0（817012 字节 `.sql.gz`）· 孤儿列全集实测 `["agenerp_gate_probe"]`（1 条，
       与 Baseline 的「5–6 条」不符处已照实改准）· 冷起前 live 整目录判定 exit 0 / `红 0，绿 19，跳过 0`。
-- [x] `git diff` 未触及红线面 —— 审计实跑 `git diff --name-only 508c75b HEAD -- tests/gates tools/gates/expected-red.txt docs/masterplan/DECISIONS.md missions .github/workflows`
-      → **无输出**；本 plan 自己的两个提交 `git show --stat 578eb8f d27c9a2` 共 11 个文件，无一落在红线面。
-      STATE 纯追加实测 `git diff 0cfd3bd HEAD -- docs/masterplan/STATE.md | grep -c '^-[^-]'` → **0**。
+- [x] `git diff` 未触及红线面 —— 审计实跑 `git diff --name-only 3ed5f5b HEAD -- tests/gates tools/gates/expected-red.txt docs/masterplan/DECISIONS.md missions .github/workflows`
+      → **无输出**；本 plan 自己的两个提交 `git show --stat 7338dca 58353ba` 共 11 个文件，无一落在红线面。
+      STATE 纯追加实测 `git diff c85db20 HEAD -- docs/masterplan/STATE.md | grep -c '^-[^-]'` → **0**。
 
 ## Deferred But Adjudicated
 
@@ -571,12 +571,12 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: 四个 Phase 全部执行完毕，逐项证据写在各 Phase 项下（命令原文 + 退出码 + sha）。**verification scope limited**：本仓无全量套件（无 build、无 typecheck），本 plan 覆盖的是 `ruff` · `pytest tests/unit`（221 passed）· `pytest tests/contracts`（151 passed）· 默认判定环境判定器 · 本机 live 整目录判定（冷起全新站点 3 跑 + 多轮累积站点 1 跑，均 exit 0）· 变异验证（冷起全新站点，A/B 各一次）· CI run `32533449466`（九个 job 全绿）。交付 sha：`main` 上 `578eb8f`（**未推**）、分支 `ci/0027-2-l2-full-live-gate` 上 `c2c688b`（已推）。**`## Closure Gates` 十二框本轮一个未勾，`Closure Audit Evidence` 亦留空——本 plan 头 `Audit: required`，且它触及 `ai-autonomy-policy.md` Protected Areas 的 `agenerp/apply.py` 删除路径一族，关闭审计须由执行器之外的独立 `CLOSURE_VERIFY` 步做；执行器自勾即自审，等于伪造独立性。**（与 `2026-08-22-0228-1` 的处置一致：那份的十四框也是由独立审计回填的。）
+Status Note: 四个 Phase 全部执行完毕，逐项证据写在各 Phase 项下（命令原文 + 退出码 + sha）。**verification scope limited**：本仓无全量套件（无 build、无 typecheck），本 plan 覆盖的是 `ruff` · `pytest tests/unit`（221 passed）· `pytest tests/contracts`（151 passed）· 默认判定环境判定器 · 本机 live 整目录判定（冷起全新站点 3 跑 + 多轮累积站点 1 跑，均 exit 0）· 变异验证（冷起全新站点，A/B 各一次）· CI run `32533449466`（九个 job 全绿）。交付 sha：`main` 上 `7338dca`（**未推**）、分支 `ci/0027-2-l2-full-live-gate` 上 `c6a9269`（已推）。**`## Closure Gates` 十二框本轮一个未勾，`Closure Audit Evidence` 亦留空——本 plan 头 `Audit: required`，且它触及 `ai-autonomy-policy.md` Protected Areas 的 `agenerp/apply.py` 删除路径一族，关闭审计须由执行器之外的独立 `CLOSURE_VERIFY` 步做；执行器自勾即自审，等于伪造独立性。**（与 `2026-08-22-0228-1` 的处置一致：那份的十四框也是由独立审计回填的。）
 
 **独立关闭审计已完成（2026-08-22），结论：可关闭。** 上面那段是执行器留的话，审计确认其处置正确——
 十二框确由本审计步回填，执行器未自勾。审计另**就地补齐了一处真实的文档漂移**：Phase 4 的
-`docs/logs/2026/08-22.md` 更新 那条退出判据本已勾上，但 `d27c9a2`（Phase 4 回写轮）实际**没有触碰日志文件**
-（`git show --stat d27c9a2` 五个文件里无 `docs/logs/`），日志里的 `0228-2` 条目只覆盖到 Phase 3。
+`docs/logs/2026/08-22.md` 更新 那条退出判据本已勾上，但 `58353ba`（Phase 4 回写轮）实际**没有触碰日志文件**
+（`git show --stat 58353ba` 五个文件里无 `docs/logs/`），日志里的 `0228-2` 条目只覆盖到 Phase 3。
 审计按 AGENTS.md 的 `docs/logs/` 同步要求把 Phase 4 那半（CI run 三件套 · 两处漂移就地改准 · 三处只追加不改写 ·
 停机解除且「重开条件满足 ≠ `0027-2` 可关闭」）补进该条目，使判据与文件一致。这是文档同步补齐，不是新缺陷。
 
@@ -588,19 +588,19 @@ Closure Audit Evidence:
     `ruff check agenerp tests/unit tests/contracts` → **exit 0**（`All checks passed!`）·
     `python3 -m pytest tests/contracts -q` → **exit 0**（`151 passed in 0.06s`）。
   - **CI 侧独立核实**：`gh run view 32533449466 --json status,conclusion,headSha` → 逐字
-    `{"conclusion":"success","headSha":"c2c688b7f6bc49a96d1e89a3582014334ba8fb71","status":"completed"}`；
+    `{"conclusion":"success","headSha":"c6a92697d78414d788c4178da20b859afac911e7","status":"completed"}`；
     `gh run view 32533449466 --json jobs` → 九个 job（含 `L2 全量 live 判定（19 条）` job `96929876654`
     与 `判定器未被改动` job `96929876658`）**全部 `success`**；
     `git ls-remote origin ci/0027-2-l2-full-live-gate` → head `c2c688b7f6…`（与 plan 记的 sha 一致）；
-    `git diff --name-only 7b0f585 c2c688b -- tools/gates/check_expected_red.py tools/gates/gate-verify.mjs` → **无输出**。
+    `git diff --name-only 627c7a9 c6a9269 -- tools/gates/check_expected_red.py tools/gates/gate-verify.mjs` → **无输出**。
   - **反空壳核实**（`grep` + 实读，不看签名看调用链）：`FALSY_RESULT` 定义在 `agenerp/oob.py:84`，
     产出点 `agenerp/oob.py:214`，**唯一消费点** `agenerp/snapshot.py:351` 翻译成 `()`；
     `schema_drift` 是孤儿列巡检的唯一落点，运行时由 `agenerp/apply.py` `drop_orphan_columns` 调用。
     `tests/unit/test_schema_drift.py` 新增 4 条判据（`::test_empty_stdout_means_the_callee_returned_a_falsy_value`
     等）在 221 passed 里真跑。无空函数体、无 `return None` 占位、无被吞的异常。
-  - **红线自查（审计侧独立实跑）**：`git diff --name-only 508c75b HEAD -- tests/gates tools/gates/expected-red.txt docs/masterplan/DECISIONS.md missions .github/workflows`
-    → **无输出**；`git diff 0cfd3bd HEAD -- docs/masterplan/STATE.md | grep -c '^-[^-]'` → **0**（纯追加）；
-    `git show d27c9a2 -- docs/plans/…0027-2….md | grep -c '^-[^-]'` → **0**（对 `0027-2` 只追加）。
+  - **红线自查（审计侧独立实跑）**：`git diff --name-only 3ed5f5b HEAD -- tests/gates tools/gates/expected-red.txt docs/masterplan/DECISIONS.md missions .github/workflows`
+    → **无输出**；`git diff c85db20 HEAD -- docs/masterplan/STATE.md | grep -c '^-[^-]'` → **0**（纯追加）；
+    `git show 58353ba -- docs/plans/…0027-2….md | grep -c '^-[^-]'` → **0**（对 `0027-2` 只追加）。
   - **五点一致性**：`Plan Status: completed` · 四个 Phase `Status: completed` · 四组 Exit Criteria 全 `[x]` ·
     十二框全 `[x]` · `docs/logs/2026/08-22.md` 的 `0228-2` 条目（Phase 4 那半由本审计补齐后）—— 五者一致；
     `grep -B5 '\- \[ \]' <plan> | grep 'Status: completed'` → 无输出。

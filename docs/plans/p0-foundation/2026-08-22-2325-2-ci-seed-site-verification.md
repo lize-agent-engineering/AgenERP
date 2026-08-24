@@ -18,12 +18,12 @@
 
 ## Current Baseline
 
-**这一节全部来自 2026-08-22 对 `20f5679`（`main`，工作树干净）的实读。**
+**这一节全部来自 2026-08-22 对 `d18ebe3`（`main`，工作树干净）的实读。**
 
 - `.github/workflows/gates.yml` 在 `main` 上 **308 行、9 个 job**
   （`gates-untouched` · `expected-red-ratchet` · `gates-l1` · `masterplan-links` · `roadmap-parseable` ·
   `loop-wiring` · `gates-l2` · `gates-l2-live` · `verdict-tool-untouched`）。
-- 权威运行 `32572618933`（event `push`，head `3503f2c`）**九个 job 全 `success`**。
+- 权威运行 `32572618933`（event `push`，head `a222472`）**九个 job 全 `success`**。
 - **`gates-l2-live` 的形态可直接照抄**（job 键在 `:210`，末步 `拆栈（无条件）` 收在 `:257`；
   `:258`–`:272` 已经是 `verdict-tool-untouched`（`:273`）的注释块，**不属于它**）：起栈 →（判定）→ 三段取证（服务状态 / backend 日志 /
   引导服务日志）→ `拆栈（无条件）` `if: always()` 跑 `down -v`。
@@ -190,9 +190,9 @@ Exit Criteria:
 #### Phase 1 实跑记录（2026-08-23，分支 `ci/2325-2-seed-chain-on-ci`，PR #4）
 
 **开工前实读确认（Closure Gates 第一条）**：`2026-08-22-2325-1` 的 `> Plan Status:` 实读为 `completed`
-（该文件 `:3`），其 `## Closure` 记着独立关闭审计证据（审计基线 `215e28d`，六条命令原文 + 退出码 + 独立重做的变异验证）。
+（该文件 `:3`），其 `## Closure` 记着独立关闭审计证据（审计基线 `af9a060`，六条命令原文 + 退出码 + 独立重做的变异验证）。
 
-**落地提交**：`da9d3af`（`ci(p0-foundation): plan-2026-08-22-2325-2 新增 gates-l2-seed job，把种子链搬上 CI`）。
+**落地提交**：`6fc6fc0`（`ci(p0-foundation): plan-2026-08-22-2325-2 新增 gates-l2-seed job，把种子链搬上 CI`）。
 `gates.yml` 由 **308 行 → 387 行**，job 键由 9 个 → **10 个**，新增段是 `:309`–`:387`。
 
 **红线 2 机械自查五条（命令原文 + 退出码，逐条）**：
@@ -235,7 +235,7 @@ $ python3 -m pytest tests/contracts -q        → exit 0（151 passed）
 $ ruff check agenerp tests/unit tests/contracts → exit 0（All checks passed!）
 ```
 
-**PR 上的运行（承重证据）**：PR **#4**（`ci/2325-2-seed-chain-on-ci` → `main`），head `da9d3af`，
+**PR 上的运行（承重证据）**：PR **#4**（`ci/2325-2-seed-chain-on-ci` → `main`），head `6fc6fc0`，
 run **`32584292331`**（event `pull_request`）→ **`success`，十个 job 全部 `success`**：
 `roadmap 引擎可解析` `97058222429` · `循环联动冒烟` `97058222522` · `主计划引用不断链` `97058222525` ·
 `L1 快门禁` `97058222530` · `判定器未被改动` `97058222557` · `L2 慢门禁（零依赖启动）` `97058222592` ·
@@ -379,9 +379,9 @@ $ python3 -m agenerp.seed --seed 42 --verify                       → exit 1（
 **⚠️ 实验③ 的方向必须写明**：它把断言**收紧到不可能满足**（`新建 999`），不是放宽。
 红线 2 禁的是让门禁变松；该改动只活在分支上两次推送之间，**已 `git revert` 且未进 `main`**。
 
-**收尾**：分支 `git reset --hard c603ec0`（Phase 1 的绿提交）+ `--force-with-lease` 推回。
-reset 前先做过内容核对——`git diff c603ec0 HEAD --stat` **无输出**（两次 revert 已让内容归位，
-reset 改的只是历史）。reset 后 `git diff c603ec0 HEAD -- agenerp/ tests/ .github/workflows/` **无输出，exit 0**。
+**收尾**：分支 `git reset --hard d6ed11d`（Phase 1 的绿提交）+ `--force-with-lease` 推回。
+reset 前先做过内容核对——`git diff d6ed11d HEAD --stat` **无输出**（两次 revert 已让内容归位，
+reset 改的只是历史）。reset 后 `git diff d6ed11d HEAD -- agenerp/ tests/ .github/workflows/` **无输出，exit 0**。
 四条实验提交按 sha 在 GitHub 上仍可访问（`24becbe` / `bfd3a4b` / `e1c0dc8` / `6980a1d`），**不是「抹掉」**。
 
 ### Phase 3 - 落 `main`，取权威运行
@@ -417,24 +417,24 @@ Exit Criteria:
 
 #### Phase 3 实跑记录（2026-08-23）
 
-**落地形态照抄 `1206-2`**：从 `main` @ `2505970` 新切分支 **`ci/2325-2-seed-land`**，
+**落地形态照抄 `1206-2`**：从 `main` @ `cdaf394` 新切分支 **`ci/2325-2-seed-land`**，
 其上**只有一个提交、只含 `.github/workflows/gates.yml` 的纯追加**（`79	0`，`git diff --numstat main HEAD` 实读）。
-⚠️ **照实记一处偏离处置**：首次是用 `git cherry-pick da9d3af` 做的，但那个提交里同时带着
+⚠️ **照实记一处偏离处置**：首次是用 `git cherry-pick 6fc6fc0` 做的，但那个提交里同时带着
 `docs/architecture/system-baseline.md` §14.5（`2 files changed`），**不满足「只含 `gates.yml`」**。
-已 `git reset --hard main` 后改用 `git checkout da9d3af -- .github/workflows/gates.yml` 重做，
-并逐字节核对 `diff <(git show da9d3af:.github/workflows/gates.yml) .github/workflows/gates.yml` → **无输出**。
+已 `git reset --hard main` 后改用 `git checkout 6fc6fc0 -- .github/workflows/gates.yml` 重做，
+并逐字节核对 `diff <(git show 6fc6fc0:.github/workflows/gates.yml) .github/workflows/gates.yml` → **无输出**。
 §14.5 与本 plan、日志随**后一个**提交直接落 `main`。
 
-**PR #5**（`ci/2325-2-seed-land` → `main`），head **`29726696f7ceb4a6a17cb5cf9dda8902607e11ff`**，
+**PR #5**（`ci/2325-2-seed-land` → `main`），head **`5fec32301d8f484ab39f8389cc11f622ab5b1629`**，
 run **`32585758762`**（event `pull_request`）→ **`success`，十个 job 全 `success`**。
 
 **落地**：`git checkout main && git merge --ff-only ci/2325-2-seed-land` →
-`Updating 2505970..2972669  Fast-forward  1 file changed, 79 insertions(+)`；
+`Updating cdaf394..5fec323  Fast-forward  1 file changed, 79 insertions(+)`；
 **`main` 的 tip 与 PR #5 上跑绿的 head 逐字同一个 sha**：
-`29726696f7ceb4a6a17cb5cf9dda8902607e11ff`（机械比对 `[ "$(git rev-parse HEAD)" = "2972669…" ]` → `IDENTICAL`）。
+`5fec32301d8f484ab39f8389cc11f622ab5b1629`（机械比对 `[ "$(git rev-parse HEAD)" = "5fec323…" ]` → `IDENTICAL`）。
 PR #5 状态实读 `MERGED`。
 
-**权威运行（`main` 的 `push`）：run `32585965892`，event `push`，head `2972669…` → `success`，十个 job 全部 `success`**：
+**权威运行（`main` 的 `push`）：run `32585965892`，event `push`，head `5fec323…` → `success`，十个 job 全部 `success`**：
 
 | job | job id | conclusion |
 |---|---|---|
@@ -477,7 +477,7 @@ PR #5 状态实读 `MERGED`。
   `verdict-tool-untouched` · **`gates-l2-seed`**（YAML 解析实证，不是 grep 猜的）。
 - **`gates-l2-seed` 的段落是 `:309`–`:387`**，前 308 行逐字节未动。
 
-**⚠️ 一条本 plan 判据之外的补充事实（照实记，不算进证据集）**：Phase 4 的文档提交 `347f756`
+**⚠️ 一条本 plan 判据之外的补充事实（照实记，不算进证据集）**：Phase 4 的文档提交 `89def59`
 推上 `main` 后自己也开了一次 `push` 运行 **`32586609809`** → `success`，**十个 job 全 `success`**，
 `gates-l2-seed`（job `97063814873`）再次 `success`。
 **这说明 `gates-l2-seed` 在 `main` 上连续两次 `push` 都绿，不是一次性的**。
@@ -563,7 +563,7 @@ Exit Criteria:
 - [x] no in-scope item downgraded to deferred/follow-up
 - [x] independent draft review completed and recorded
 - [x] text consistency verified: status, phases, gates, and log all agree
-- [x] closure audit was independent（2026-08-23 由独立关闭审计子代理在 `730ed6d` 上实读复核，**执行者未自证**；命令原文与退出码见 `## Closure` 的审计记录）
+- [x] closure audit was independent（2026-08-23 由独立关闭审计子代理在 `c01c0cc` 上实读复核，**执行者未自证**；命令原文与退出码见 `## Closure` 的审计记录）
 - [x] closure evidence exists in files
 
 ## Deferred But Adjudicated
@@ -632,7 +632,7 @@ Status Note: 四个 Phase 全部执行完毕。逐条自陈，**不粉饰**：
 1. **结果面成立**：`main` 上存在 job `gates-l2-seed`，`main` `push` 权威运行 **`32585965892`
    十个 job 全部 `success`**；它在**全新 runner 站点**上跑通整条种子链并对上了账
    （`站点侧对账：9 项，通过 9，失败 0`，`actual_qty = 1010.00` / `stock_value = 6450.00`，
-   与本机 `2107-2` / `2325-1` 的记录逐字相同）。**落地 sha `29726696f7ceb4a6a17cb5cf9dda8902607e11ff`
+   与本机 `2107-2` / `2325-1` 的记录逐字相同）。**落地 sha `5fec32301d8f484ab39f8389cc11f622ab5b1629`
    与 PR #5 上跑绿的 head 逐字同一个。**
 2. **它有牙齿，且三条实验的结果各不相同**（无绿→绿的空转）：`32584645969` `failure`（其余九个
    `success`——该变异对现有 19 条门禁**完全隐形**）· `32584922052` `success` ·
@@ -660,14 +660,14 @@ Status Note: 四个 Phase 全部执行完毕。逐条自陈，**不粉饰**：
    `GATE_VERIFY` 仍然复跑不到它们。`project-context.md:57` 里那句「`GATE_VERIFY` 复跑不到它」
    **本次一个字未改**（md5 前后一致，实证在 Phase 4 记录里）。
 
-**本 plan 执行期的机械自查（命令原文 + 退出码，基线 `2505970`）**：
+**本 plan 执行期的机械自查（命令原文 + 退出码，基线 `cdaf394`）**：
 
 ```
-$ git diff --numstat 2505970 -- tests/gates tools/gates docs/masterplan/DECISIONS.md missions
+$ git diff --numstat cdaf394 -- tests/gates tools/gates docs/masterplan/DECISIONS.md missions
   → 无输出，exit 0
-$ diff <(git show 2505970:docs/architecture/system-baseline.md | sed -n '131,177p') <(sed -n '131,177p' docs/architecture/system-baseline.md)
+$ diff <(git show cdaf394:docs/architecture/system-baseline.md | sed -n '131,177p') <(sed -n '131,177p' docs/architecture/system-baseline.md)
   → 无输出，exit 0                     （§14 本体一行未改）
-$ diff <(git show 2505970:.github/workflows/gates.yml) <(head -n 308 .github/workflows/gates.yml)
+$ diff <(git show cdaf394:.github/workflows/gates.yml) <(head -n 308 .github/workflows/gates.yml)
   → 无输出，exit 0                     （main 上原 308 行逐字节未动）
 $ python3 tools/gates/check_expected_red.py        → exit 0（门禁 19 项：预期红 7，绿 12，跳过 0）
 $ python3 -m pytest tests/unit -q                  → exit 0（288 passed）
@@ -682,32 +682,32 @@ Closure Audit Evidence:
 
 - Auditor / Agent: **独立关闭审计子代理**（mission-driver `2026-08-22-185331-mission-driver` 的独立审计步骤，
   与四个 Phase 的执行者不是同一次会话）。**执行者未自证**。
-- 审计基线：`730ed6d`（`main`，工作树 `git status --porcelain` 无输出）。
+- 审计基线：`c01c0cc`（`main`，工作树 `git status --porcelain` 无输出）。
 - 审计方法：**不采信 plan 内的任何自陈**，逐条把判据打回活仓库与 GitHub 实测；
   承重的机械判据全部原样复跑，run / job 结论一律由 `gh` 现拉，不读 plan 抄下来的那份。
 
 **审计实跑（命令原文 + 退出码，逐条）**：
 
 ```
-$ git rev-parse HEAD                                → 730ed6d4d417fc592c64fc72dc6260dd9e13b3ea
+$ git rev-parse HEAD                                → c01c0cc115c06815dabe045c69419e0dffae6975
 $ git status --porcelain                            → 无输出（工作树干净）
 $ wc -l .github/workflows/gates.yml                 → 387
 $ grep -nE '^  [a-z0-9-]+:$' .github/workflows/gates.yml
   → 10 个 job 键，第十个是 `gates-l2-seed`（`:332`；`:309`–`:331` 是它的注释块）
-$ diff <(git show 2505970:.github/workflows/gates.yml) <(head -n 308 .github/workflows/gates.yml)
+$ diff <(git show cdaf394:.github/workflows/gates.yml) <(head -n 308 .github/workflows/gates.yml)
   → 无输出，exit 0                （前缀性：main 上原 308 行逐字节未动）
 $ sed -n '309,387p' .github/workflows/gates.yml | grep -nE 'continue-on-error|if: false|\|\| true|set \+e'
   → 无命中，exit 1                （新增段内禁用词与失败吞噬皆 0；`timeout-minutes: 30` 实读在 `:335`）
-$ git diff --numstat 2505970 -- tests/gates tools/gates docs/masterplan/DECISIONS.md missions
+$ git diff --numstat cdaf394 -- tests/gates tools/gates docs/masterplan/DECISIONS.md missions
   → 无输出，exit 0                （红线 1 / 3 / 6：四个禁区一字节未动）
-$ diff <(git show 2505970:docs/architecture/system-baseline.md | sed -n '131,177p') <(sed -n '131,177p' docs/architecture/system-baseline.md)
+$ diff <(git show cdaf394:docs/architecture/system-baseline.md | sed -n '131,177p') <(sed -n '131,177p' docs/architecture/system-baseline.md)
   → 无输出，exit 0                （§14 本体一行未改）
-$ git diff --numstat 2505970 -- docs/masterplan/STATE.md docs/backlog/p0-foundation-roadmap.md
+$ git diff --numstat cdaf394 -- docs/masterplan/STATE.md docs/backlog/p0-foundation-roadmap.md
   → `8	0` / `2	0`               （删除列均为 0，纯追加；红线 5 成立）
 $ gh run view 32585965892 --json jobs
   → 十个 job 全部 `success`，`L2 种子链（装载 + 站点侧对账）` = job `97062261110` `success`
 $ gh run list --limit 12 --json databaseId,headSha,event,conclusion
-  → `32585965892` push/head `29726696…`/`success` · `32585758762` PR/同一 head/`success` ·
+  → `32585965892` push/head `5fec3230…`/`success` · `32585758762` PR/同一 head/`success` ·
     变异四条 `32584645969 failure` / `32584922052 success` / `32585177431 failure` / `32585384960 success`
     —— **与 plan 表格逐字一致，无一条对不上**
 ```
@@ -739,6 +739,6 @@ scoped 非 full green / CI 覆盖 ≠ 门禁形态 ≠ `GATE_VERIFY` 可复跑�
 五点一致性（Plan Status / 四个 Phase Status / 各 Phase Exit Criteria / Closure Gates / Closure 证据）全部吻合。
 
 - Evidence: 上述命令原文与退出码即证据；GitHub 侧证据为 run `32585965892`（job `97062261110`）
-  与变异四条 run，均于审计时现拉复核。**审计时点的一条补充事实**：`730ed6d`（本 plan 的补记提交）
+  与变异四条 run，均于审计时现拉复核。**审计时点的一条补充事实**：`c01c0cc`（本 plan 的补记提交）
   自己触发的 push 运行 `32586825010` 在审计时仍 `in_progress`，**它不属于本 plan 的证据集**
   （权威运行按定义是落地那一次 `32585965892`），照实记以免被误读成「审计时全绿」。

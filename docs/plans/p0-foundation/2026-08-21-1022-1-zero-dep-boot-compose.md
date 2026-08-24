@@ -11,7 +11,7 @@
 
 ## Current Baseline
 
-起草时（2026-08-21，HEAD `f47031f`）在本机实跑得出，不凭记忆：
+起草时（2026-08-21，HEAD `2992c73`）在本机实跑得出，不凭记忆：
 
 - roadmap 工作项 3 状态 `todo`，绑定门禁为 `tests/gates/test_zero_dep_boot.py::test_compose_config_valid_with_empty_env`（roadmap §对照表标为 **L1**）。
 - **今日红因（原文）**：`python3 -m pytest tests/gates/test_zero_dep_boot.py -q` → `1 failed, 2 errors`；失败断言的 stderr 逐字为
@@ -28,7 +28,7 @@
 - **实测：`docker compose config` 不需要 daemon。** 在 scratchpad 里用最小 compose 试：
   `env -i PATH=… HOME=… DOCKER_HOST=unix:///nonexistent.sock docker compose config -q` → **exit 0**；`env -i` 干净环境同样 **exit 0**。
   → CI 的 ubuntu runner 只要有 docker CLI + compose 插件即可，daemon 不必可用。本机 `docker compose version` → **v5.0.2**，daemon up。
-- **预期红名单已迁出红线。** `tests/gates/EXPECTED_RED.txt` 不存在；名单在 `tools/gates/expected-red.txt`，人于 `920ce0e`（带 `Gates-Change-Approved-By: lize`）迁移并写明裁定：
+- **预期红名单已迁出红线。** `tests/gates/EXPECTED_RED.txt` 不存在；名单在 `tools/gates/expected-red.txt`，人于 `4bbe3f5`（带 `Gates-Change-Approved-By: lize`）迁移并写明裁定：
   「**测试代码是裁判（红线保护），预期红名单只是账本**」——loop 可在同一提交里划掉已转绿的行，名单**变长**仍需人工批准（CI `expected-red-ratchet` job 把守）。
   **这是本 plan 与 plan `…-2341-2` 处境的决定性差别：本 plan 的划名单动作本身不需要人批。**
   （唯一仍会停下来等人的情形是 Phase 1 前置确认不通过——那时一步都不做、置 `deferred`，与「划名单卡在人手里」是两回事。）
@@ -201,7 +201,7 @@ Skill: `none`
       - **仓根用 `Path(__file__).resolve().parents[2]` 解析，不用 cwd**：门禁那条本来就是 cwd 相关的，这条元测试的价值恰恰在于不跟着 cwd 一起坏。
       - Skill: `none`
 - [x] `Fix` 从 `tools/gates/expected-red.txt` 划掉 `tests/gates/test_zero_dep_boot.py::test_compose_config_valid_with_empty_env` 一行，**与实现同一个提交**。
-      - **授权依据（必须逐条核对，不许凭印象）**：该文件已于 `920ce0e` 迁出 `tests/gates/`，不在红线 1 范围内；
+      - **授权依据（必须逐条核对，不许凭印象）**：该文件已于 `4bbe3f5` 迁出 `tests/gates/`，不在红线 1 范围内；
         人在 `docs/masterplan/STATE.md` §3 的 `[resolved]` 行里裁定「账本允许 loop 在同一提交里划掉已转绿的行」；
         CI 的 `expected-red-ratchet` job 只拦**变长**。名单 8 → 7 是变短，放行。
       - **不得**顺手动另外两行（工作项 8 的），它们仍红。
@@ -242,13 +242,13 @@ Skill: `none`
       - **这条不是 loop 能自己保证的**：push 与开 PR 属对外动作，本 plan 不做。它的交付物是**把这条要求写在人看得到的地方**——
         log 一次、Deferred 一次——而不是默默指望谁记得。
       - **要给出具体走法，不能只写一句禁止**（评审 nit）：当前分支就是 `main`，且 `git log --oneline origin/main..HEAD` 显示本地 `main`
-        已经积了若干**未推送**的提交（起草时至少 `f47031f` / `3d405fb` / `9ae88bf`），`build-verify.md` 的提交策略又是往当前分支提交——
+        已经积了若干**未推送**的提交（起草时至少 `2992c73` / `084c17e` / `6b52f3b`），`build-verify.md` 的提交策略又是往当前分支提交——
         所以本批也会落在本地 `main` 上。可行走法写进 log：`git push origin main:refs/heads/<分支名>` 再开 PR。
       - **并写明一个连带事实**：那个 PR 会**一并带上前几个 plan 的未推送提交**，所以 `gates-l1` 的首次实跑覆盖的不只是本批的活；
         结果无论红绿都要回写进 log，红的那部分要分清是本批引入的还是存量的。
       - Skill: `none`
 - [x] `Fix` 修 `docs/backlog/p0-foundation-roadmap.md` 里三处**确认存在的 owner-doc 漂移**：
-      `:13`、`:35`、`:78` 仍写着从 `tests/gates/EXPECTED_RED.txt` 划掉，而该文件已于 `920ce0e` 迁至 `tools/gates/expected-red.txt`（`ls tests/gates/EXPECTED_RED.txt` → 不存在）。
+      `:13`、`:35`、`:78` 仍写着从 `tests/gates/EXPECTED_RED.txt` 划掉，而该文件已于 `4bbe3f5` 迁至 `tools/gates/expected-red.txt`（`ls tests/gates/EXPECTED_RED.txt` → 不存在）。
       - **为什么是本 plan 的活**：roadmap 是本 plan 的 `Source` 与 Owner Doc，而本 plan 正是第一个真的要去划名单的 plan。
         照着 `:78` 执行的会话会去写 `tests/gates/**` 下的文件——那是红线 1 事件。确认存在的 owner-doc 漂移按计划指南规则 14 不可降级为 follow-up，故记 `Fix`。
       - 只改这三处指向，**不动 `## Work Item Status` 块的任何一行**：
@@ -286,7 +286,7 @@ Skill: `none`
       `git diff --numstat <sha>..HEAD -- docs/masterplan/STATE.md | awk '{print $2}'` → **0 或空**（STATE 的删除行数为 0）。
       - 第一条用 `| wc -l → 0` 收口，**不用「grep 无输出」**：`grep` 无命中时自身退 1，那正是本仓已修过两次的判据反转。
       - 第二条**必须用 `--numstat` 数删除行，不要拿 `git diff` 的原始输出去 grep `^-`**：
-        评审拿真提交实测过（`3d405fb` 对 `STATE.md` 是 +5/-0 的纯追加）——原始 diff 里 git 自己的文件头 `--- a/docs/masterplan/STATE.md` 会被 `^-` 命中，
+        评审拿真提交实测过（`084c17e` 对 `STATE.md` 是 +5/-0 的纯追加）——原始 diff 里 git 自己的文件头 `--- a/docs/masterplan/STATE.md` 会被 `^-` 命中，
         而 `grep -v '^---$'` 只排掉「恰好三个短横」的行，排不掉它。结果是**每一次合法的追加都会让判据报红**。`--numstat` 没有这个歧义。
       - **分两条查是有原因的**：把整个 `docs/masterplan/` 塞进「必须为空」那条，会和 Phase 1 停手分支「向 STATE §3 追加一行」直接打架——
         红线 5 的原文是「`STATE.md` **只允许追加**证据行」，追加是允许的，不是禁止的。
@@ -377,7 +377,7 @@ Exit Criteria:
 - Independent draft review iteration 5: **needs revision**（同一独立子代理）—— NEW-C/F/G 与三条 nit 中的一条已解决，但**判定那条替代约束「largely theatre」，且判得对**：
   「文件头声明键清单 + 断言正文 ⊆ 清单」由 Phase 1 从它刚写的正文里导出、同一提交落地，**按构造即成立**，对版本差是**零保护**；
   **NEW-H** 它还根本不可实现——纯文本扫描分不清顶层键 / 服务级键 / 服务名 / 卷名 / `<<` 合并键，评审在一份带 `x-*` 与 `entrypoint` 的最小 compose 上逐层列出了歧义；
-  **NEW-I** 第二条红线自查命令**现在是错的**（不只是松）：评审拿真提交 `3d405fb`（对 `STATE.md` 是 +5/-0 的纯追加）实测，
+  **NEW-I** 第二条红线自查命令**现在是错的**（不只是松）：评审拿真提交 `084c17e`（对 `STATE.md` 是 +5/-0 的纯追加）实测，
   `grep '^-' | grep -v '^---$'` 会命中 git 自己的文件头 `--- a/docs/masterplan/STATE.md`，于是**每一次合法追加都报红**。
   并指出**真正的 de-risk 从未被裁定**：`gates.yml` 的 `on:` 含 `pull_request`，经 PR 落地就能让 `gates-l1` 在真正的 2.38.2 runner 上先跑一遍再合进 `main`。
 - Revision after iteration 5: **两版缓解全部撤回**（Phase 1 的写作规则、Phase 2 的断言、Deferred 的描述一并删除/改写），
@@ -386,7 +386,7 @@ Exit Criteria:
   第二条红线自查改用 `git diff --numstat … | awk '{print $2}'` → 0；「记两个 compose 版本」补注「这不是缓解措施」。
 - Independent draft review iteration 6: **accept**（同一独立子代理，agent `aab83df862087e9ce`）—— 撤回是干净的
   （`grep '键清单\|白名单\|清单闭合\|⊆'` 只剩 Baseline 的撤回记录、Draft Review Record 的历史、Deferred 的说明，无孤儿引用）；
-  NEW-I 的新命令在**三个真实提交**上验证通过（`3d405fb` +5/-0 → 0、`b8aadbf` +3/-1 → 1、无改动 → 空）；
+  NEW-I 的新命令在**三个真实提交**上验证通过（`084c17e` +5/-0 → 0、`8d73ee5` +3/-1 → 1、无改动 → 空）；
   PR 前提复核属实（`gates.yml` 的 `on:` 里 `pull_request` 无条件）；每条判据可达且非显然的都被独立复跑过。
   评审结论原文：「六轮下来这个 plan 没有红线隐患、没有无主的状态转换、没有编造的事实（两次编造都已撤回且证据留在原地免得后继重新发明）、
   每条判据可达且都被独立复跑过，唯一那处不可逆的残余被归为 `watch-only residual` 并配齐了失败特征、恢复路径与重开事件——
@@ -448,19 +448,19 @@ Exit Criteria:
 - 重开事件：首次 push 后 `gates-l1` 的实跑结果出来时（**无论红绿都要回写进 log**）；若红，恢复需人带 `Gates-Change-Approved-By:` 把该行放回名单。
   ⚠️ 那次实跑会**一并覆盖前几个 plan 的未推送提交**（本地 `main` 已积压若干），所以回写时要分清红的是本批引入的还是存量的。
   - **执行期更正（2026-08-21，Phase 3 实测）**：这个前提已经过期。`git fetch origin` 后
-    `git log --oneline origin/main..HEAD` **只有本批的 `ba7bdae` 一条**，`origin/main` 已在 `f4fe0ce`——
+    `git log --oneline origin/main..HEAD` **只有本批的 `327bb01` 一条**，`origin/main` 已在 `fc0c823`——
     前几个 plan 的提交都推过了。所以那次 `gates-l1` 实跑**只覆盖本批**，红了就是本批引入的，不必再分辨存量。
 
 ## Closure
 
 Status Note: 独立关闭审计（CLOSURE_AUDIT 步，独立子会话）**不采信 plan 里的 `[x]`**，逐条读活代码与活文档，
 并把每条验证命令原样复跑、退出码单独取 `$?`（不经管道）。全部与 plan 声称一致，故关闭。
-审计基线 **HEAD `c98f938`**（实现提交 `ba7bdae`，文档提交 `c98f938`；开工 sha `f4fe0ce`）。
+审计基线 **HEAD `f53fe51`**（实现提交 `327bb01`，文档提交 `f53fe51`；开工 sha `fc0c823`）。
 
 Closure Audit Evidence:
 
 - Auditor / Agent: 独立关闭审计子会话（`MISSION_DRIVER:2026-08-21-113253-mission-driver`，与起草/执行会话不同），非自审。
-- 基线 sha: `c98f938`（`git rev-parse --short HEAD`）
+- 基线 sha: `f53fe51`（`git rev-parse --short HEAD`）
 - 原样复跑（命令原文 + 退出码）：
 
   | 命令 | 退出码 | 关键输出 |
@@ -474,11 +474,11 @@ Closure Audit Evidence:
   | `! grep -q 'EXPECTED_RED' docs/backlog/p0-foundation-roadmap.md` | **0** | 无输出（三处漂移确已修到 `tools/gates/expected-red.txt`） |
   | `python3 -m pytest tests/gates/test_zero_dep_boot.py -q --tb=line` | 非 0（**预期**） | `1 passed, 2 errors`；两条 error 仍逐字为 `NotImplementedError: compose_stack 尚未实现`，红因未被本 plan 改变 |
 
-- 红线自查（区间 diff，基线 `f4fe0ce..HEAD`，与 Phase 3 判据同形）：
-  - `git diff --name-only f4fe0ce..HEAD -- tests/gates/ .github/workflows/ missions/ docs/masterplan/DECISIONS.md tools/gates/check_expected_red.py tools/gates/gate-verify.mjs | wc -l` → **0**
-  - `git diff --name-only f4fe0ce..HEAD -- docs/masterplan/ | wc -l` → **0**（本轮连 `STATE.md` 都未动）
-  - `git diff --numstat f4fe0ce..HEAD -- docs/architecture/system-baseline.md` → **`28  0`**（纯追加，§14 无一行被改写）
-  - `git diff --stat f4fe0ce..HEAD` 的全部落点：`.env.example` / `docker-compose.yml` / `docs/architecture/system-baseline.md` /
+- 红线自查（区间 diff，基线 `fc0c823..HEAD`，与 Phase 3 判据同形）：
+  - `git diff --name-only fc0c823..HEAD -- tests/gates/ .github/workflows/ missions/ docs/masterplan/DECISIONS.md tools/gates/check_expected_red.py tools/gates/gate-verify.mjs | wc -l` → **0**
+  - `git diff --name-only fc0c823..HEAD -- docs/masterplan/ | wc -l` → **0**（本轮连 `STATE.md` 都未动）
+  - `git diff --numstat fc0c823..HEAD -- docs/architecture/system-baseline.md` → **`28  0`**（纯追加，§14 无一行被改写）
+  - `git diff --stat fc0c823..HEAD` 的全部落点：`.env.example` / `docker-compose.yml` / `docs/architecture/system-baseline.md` /
     `docs/context/project-context.md` / `docs/logs/2026/08-21.md` / 本 plan / `tests/unit/test_compose_zero_dep.py` /
     `tools/gates/expected-red.txt`(-1 行) —— 无一处越红线。
 - 反空壳复核（不只看签名，看运行时是否真被调用）：
@@ -497,7 +497,7 @@ Closure Audit Evidence:
     随即原样还原（`git diff --stat docker-compose.yml` → 空，`python3 -m pytest tests/unit -q` → exit 0）。
     → 判据对实现有真实约束，不是「按构造即成立」的那种假判据。
 - 五点一致性复核：`Plan Status: completed` · Phase 1/2/3 `Status: completed` 且执行项与 Exit Criteria 全 `[x]` ·
-  `## Closure Gates` 十框全 `[x]` · 本节证据落盘 · `docs/logs/2026/08-21.md` 有对应条目（含开工 sha `f4fe0ce`、
+  `## Closure Gates` 十框全 `[x]` · 本节证据落盘 · `docs/logs/2026/08-21.md` 有对应条目（含开工 sha `fc0c823`、
   各命令原文与退出码、`docker compose up -d` 的如实记录与「必须经 PR 落地」条款）——五处一致，无 `completed` 配 `draft` 的错配。
 - Deferred 诚实性复核：四条 `Deferred But Adjudicated` 全部有归属与重开事件，**无一条是在藏本 plan 范围内的活缺陷**——
   工作项 8 的两条门禁由 roadmap §对照表明确划走、`missions/**` 属角色 B 禁区、§14 规则 ③ 在本仓当前**无对象**（无 verify 脚本、无启动路径前置检查）、

@@ -4,7 +4,7 @@
 > Mission: p0-foundation
 > Work Item: 工作项 5/6 落地之后遗留的 owner-doc 面（两处确认漂移 D2/D3 + 两处具体化 D1/D4；不是新实现面）
 > Last Reviewed: 2026-08-22
-> Source: 2026-08-22 在 `main` @ `4ac3517` 上实读 + 实跑得出的四个题目（确认漂移 D2/D3 + 具体化 D1/D4），逐条见 `## Current Baseline`
+> Source: 2026-08-22 在 `main` @ `57702c5` 上实读 + 实跑得出的四个题目（确认漂移 D2/D3 + 具体化 D1/D4），逐条见 `## Current Baseline`
 > Related: `2026-08-21-1922-3-execute-plan-site-delete.md`（交付 `delete_custom_field`）·
 > `2026-08-21-2220-1-schema-drift-orphan-columns.md`（交付 `drop_columns` 这条不可逆 DDL）·
 > `2026-08-22-0228-2-orphan-column-clearance-fresh-site.md`（手工前置备份的实测先例）
@@ -12,7 +12,7 @@
 
 ## Current Baseline
 
-**开工基线 sha 钉死为 `4ac3517`**（`git rev-parse --short HEAD` 实测）。下面每一条都是在该 sha 上
+**开工基线 sha 钉死为 `57702c5`**（`git rev-parse --short HEAD` 实测）。下面每一条都是在该 sha 上
 实读文件或实跑命令得到的，不引任何旧 plan 的转述。
 
 ### 已经就位的（本 plan 不动它们）
@@ -184,7 +184,7 @@ Exit Criteria:
       ② 同一行里**新出现**效力范围表述：`sed -n '60p' docs/context/project-context.md | grep -c "apply_pack"` → **≥1**
       （此前该行零命中，执行时把改动前后的该行原文并排贴进本 plan）；
       ③ 旧行内容是新行的**前缀或逐字子串**（纯追加）——用
-      `git show 4ac3517:docs/context/project-context.md | sed -n '60p'` 取旧行比对
+      `git show 57702c5:docs/context/project-context.md | sed -n '60p'` 取旧行比对
 - [x] `python3 -m pytest tests/unit -q` → exit 0（`221 passed`，本阶段不改代码，条数不变）
 - [x] `python3 tools/gates/check_expected_red.py` → exit 0 且判定行**逐字节不变**
       （`门禁 19 项：预期红 7，绿 12，跳过 0` / `✅ 与预期红名单完全一致`）
@@ -202,7 +202,7 @@ Exit Criteria:
 | `sed -n '574,582p' docs/architecture/module-boundaries.md \| grep -n "只有读方法\|未做"` | **无输出**，exit 1 ✅ |
 | `grep -n "已实现（B 半）" docs/architecture/module-boundaries.md` | 仍命中 `:338`（另有 `:334`–`:337` 四行，§11.6 那张表未被顺手改动）✅ |
 | `sed -n '60p' docs/context/project-context.md \| grep -c "bench --site frontend backup"` | **1** ✅ |
-| `sed -n '60p' docs/context/project-context.md \| grep -c "apply_pack"` | **1**（改动前该行为 **0**，实测 `git show 4ac3517:… \| sed -n '60p' \| grep -c "apply_pack"` → `0`）✅ |
+| `sed -n '60p' docs/context/project-context.md \| grep -c "apply_pack"` | **1**（改动前该行为 **0**，实测 `git show 57702c5:… \| sed -n '60p' \| grep -c "apply_pack"` → `0`）✅ |
 | 旧行是新行的前缀（纯追加） | **True**（旧行去掉行尾 `|` 后逐字节是新行前缀；旧 804 字符 → 新 1525 字符）✅ |
 | `python3 -m pytest tests/unit -q` | **exit 0**，`221 passed in 0.54s` ✅ |
 | `python3 tools/gates/check_expected_red.py` | **exit 0**，`门禁 19 项：预期红 7，绿 12，跳过 0` / `✅ 与预期红名单完全一致`（逐字节不变）✅ |
@@ -215,12 +215,12 @@ Exit Criteria:
 **D3 —— `module-boundaries.md:581` 改动前后原文并排**：
 
 - 旧：`| `agenerp/site.py` · 写 / 删方法 | 归工作项 5 的删除段（plan `…-1922-3`） | 未做 |`
-- 新：`| `agenerp/site.py` · 写 / 删方法 | 归工作项 5 的删除段（plan [`2026-08-21-1922-3`](../plans/p0-foundation/2026-08-21-1922-3-execute-plan-site-delete.md)）。**白名单有且只有一条** `SiteClient.delete_custom_field`（模块头第 4 条，`agenerp/site.py:16-17`）；不提供「删任意 DocType 文档」的通用方法 | 已实现（判据 `tests/unit/test_site_client.py` 的 `WRITE_METHOD_ALLOWLIST`）。**⚠️ 2026-08-22 就地改准（确认的 owner-doc 漂移，Minimum Rule 14 不降级）**：本格此前是一句**否定态的状态词**（原文逐字取法：`git show 4ac3517:docs/architecture/module-boundaries.md | sed -n '581p'`；此处不复述那个词，因为本 plan 的机判判据要求本表行范围内不再出现它）。**那句话从 2026-08-21 起就是假的**——`1922-3` 已于 **2026-08-21 关闭**，方法已落地并在活站点上实测删过字段，本次是**改准一句假陈述，不是「新增一项」**，它整整假了一天。同一份文档的 §11.6 落点表（`:338` 一带）当时就写着「已实现（B 半）」，两张表在同一个文件里互相矛盾了同样长的时间。改准由 plan [`2026-08-22-1041-1`](../plans/p0-foundation/2026-08-22-1041-1-destructive-write-owner-doc-alignment.md) 做 |`
+- 新：`| `agenerp/site.py` · 写 / 删方法 | 归工作项 5 的删除段（plan [`2026-08-21-1922-3`](../plans/p0-foundation/2026-08-21-1922-3-execute-plan-site-delete.md)）。**白名单有且只有一条** `SiteClient.delete_custom_field`（模块头第 4 条，`agenerp/site.py:16-17`）；不提供「删任意 DocType 文档」的通用方法 | 已实现（判据 `tests/unit/test_site_client.py` 的 `WRITE_METHOD_ALLOWLIST`）。**⚠️ 2026-08-22 就地改准（确认的 owner-doc 漂移，Minimum Rule 14 不降级）**：本格此前是一句**否定态的状态词**（原文逐字取法：`git show 57702c5:docs/architecture/module-boundaries.md | sed -n '581p'`；此处不复述那个词，因为本 plan 的机判判据要求本表行范围内不再出现它）。**那句话从 2026-08-21 起就是假的**——`1922-3` 已于 **2026-08-21 关闭**，方法已落地并在活站点上实测删过字段，本次是**改准一句假陈述，不是「新增一项」**，它整整假了一天。同一份文档的 §11.6 落点表（`:338` 一带）当时就写着「已实现（B 半）」，两张表在同一个文件里互相矛盾了同样长的时间。改准由 plan [`2026-08-22-1041-1`](../plans/p0-foundation/2026-08-22-1041-1-destructive-write-owner-doc-alignment.md) 做 |`
 
 > ⚠️ **D3 行内为什么不复述旧状态词**：本 Phase 的第一条 Exit Criteria 要求
 > `sed -n '574,582p' … | grep -n "只有读方法\|未做"` **无输出**。若在改准说明里逐字复述那个词，
 > 该判据恒不可满足。因此文档行内改为「本格此前是一句**否定态的状态词**」并**在行内给出逐字取法**
-> （`git show 4ac3517:docs/architecture/module-boundaries.md | sed -n '581p'`），
+> （`git show 57702c5:docs/architecture/module-boundaries.md | sed -n '581p'`），
 > 同时逐字写明「从 2026-08-21 起就是假的」「是改准一句假陈述，不是新增一项」。
 > **这不是粉饰**：假陈述的性质、生效日期、真凶 plan 三样都在行内，只有那两个字挪到了可取回的位置。
 > 逐字原文见上面这张并排表的「旧」一行。
@@ -268,7 +268,7 @@ Exit Criteria:
       用「删除行里不许出现 plan-first」当判据，**正确的加严也会被判成放宽**，那种判据不可满足）。
       实际判据是三条，全部对着**改动前后的同一行**的三个单元格：
       ① **Rule 格**：改动前后逐字节相同（仍是 `plan-first`），或更严（`ask first` / `blocked`）——
-      用 `git show 4ac3517:docs/context/ai-autonomy-policy.md | sed -n '87p'` 取旧行、与新行并排贴进本 plan；
+      用 `git show 57702c5:docs/context/ai-autonomy-policy.md | sed -n '87p'` 取旧行、与新行并排贴进本 plan；
       ② **Required Evidence 格**：新值是旧值的**超集**——旧的每一条逐字仍在，只许增不许删；
       ③ **Area 格**：落点列表只增不减（旧的两处仍在，新增 `agenerp/oob.py` · `drop_columns`）。
       三条的旧值/新值原文都记进本 plan，`grep -c` 之类的计数不作为判据
@@ -281,7 +281,7 @@ Exit Criteria:
 `docs/context/ai-autonomy-policy.md` 本身**（该表下方新增的说明段
 「2026-08-22 · 「对活站点的破坏性写」那一行为什么被加严第二次」），不是只写在本 plan 里。
 
-**「只加严不放宽」的行内三格比对**（旧行取自 `git show 4ac3517:docs/context/ai-autonomy-policy.md | sed -n '87p'`）：
+**「只加严不放宽」的行内三格比对**（旧行取自 `git show 57702c5:docs/context/ai-autonomy-policy.md | sed -n '87p'`）：
 
 | 格 | 旧值 | 新值 | 判定 |
 |---|---|---|---|
@@ -334,11 +334,11 @@ Exit Criteria:
       （原因与 Phase 2 同：「5 现状」/「6 现状」各是**一整行表格行**，在行末追加一句是 in-place 改动，
       必然产出一条 `-` 行与一条 `+` 行——`grep -c "^-[^-]"` → 0 在这里**恒不可满足**，那种判据不可用）。
       实际判据三条：
-      ① `git diff --name-only 4ac3517 HEAD -- docs/backlog/p0-foundation-roadmap.md` → **只有这一个文件名**，
+      ① `git diff --name-only 57702c5 HEAD -- docs/backlog/p0-foundation-roadmap.md` → **只有这一个文件名**，
       且 `git diff --stat` 显示 **2 行变更**（就是那两行，没碰第三行）；
       ② 改动前后的两行**逐行比对**：旧行内容是新行的**前缀**（纯追加，旧文本一字节未改）——
-      用 `git show 4ac3517:docs/backlog/p0-foundation-roadmap.md | sed -n '62p;64p'` 取旧行，与新行并排贴进本 plan；
-      ③ 两行里的 `保持 \`planned\`` 逐字仍在：`git diff 4ac3517 HEAD -- docs/backlog/p0-foundation-roadmap.md | grep -c "^-.*保持 \`planned\`"` 与
+      用 `git show 57702c5:docs/backlog/p0-foundation-roadmap.md | sed -n '62p;64p'` 取旧行，与新行并排贴进本 plan；
+      ③ 两行里的 `保持 \`planned\`` 逐字仍在：`git diff 57702c5 HEAD -- docs/backlog/p0-foundation-roadmap.md | grep -c "^-.*保持 \`planned\`"` 与
       `... | grep -c "^+.*保持 \`planned\`"` **两值相等**（`-`/`+` 两侧都有，说明状态词没被动过）
 - [x] `python3 tools/gates/check_expected_red.py` → exit 0 且判定行逐字节不变
 - [x] `docs/logs/2026/08-22.md` 追加本阶段条目
@@ -350,8 +350,8 @@ Exit Criteria:
 | `ls docs/backlog/irreversible-ddl-has-no-code-level-precondition.md` | 文件存在（8865 字节）✅ |
 | `grep -c "触发条件" docs/backlog/irreversible-ddl-has-no-code-level-precondition.md` | **1**（≥1）✅ |
 | `grep -n "1041-1" docs/backlog/p0-foundation-roadmap.md` | 命中 `:62`（5 现状）与 `:64`（6 现状），**各一处** ✅ |
-| ① `git diff --name-only 4ac3517 -- docs/backlog/p0-foundation-roadmap.md` | 只有这一个文件名；`git diff --stat` → `1 file changed, 2 insertions(+), 2 deletions(-)`，**恰好那两行，没碰第三行** ✅ |
-| ② 旧行是新行的**前缀**（纯追加，旧文本一字节未改） | `5 现状` **True**（3720 → 4787 字符）· `6 现状` **True**（4110 → 5177 字符）。旧行取自 `git show 4ac3517:docs/backlog/p0-foundation-roadmap.md \| sed -n '62p;64p'` ✅ |
+| ① `git diff --name-only 57702c5 -- docs/backlog/p0-foundation-roadmap.md` | 只有这一个文件名；`git diff --stat` → `1 file changed, 2 insertions(+), 2 deletions(-)`，**恰好那两行，没碰第三行** ✅ |
+| ② 旧行是新行的**前缀**（纯追加，旧文本一字节未改） | `5 现状` **True**（3720 → 4787 字符）· `6 现状` **True**（4110 → 5177 字符）。旧行取自 `git show 57702c5:docs/backlog/p0-foundation-roadmap.md \| sed -n '62p;64p'` ✅ |
 | ③ diff 中含「保持 `planned`」的 `-` 行数与 `+` 行数 | **2 与 2，两值相等** —— `-`/`+` 两侧都有，状态词未被动过 ✅ |
 | `python3 tools/gates/check_expected_red.py` | **exit 0**，`门禁 19 项：预期红 7，绿 12，跳过 0` / `✅ 与预期红名单完全一致` ✅ |
 
@@ -380,8 +380,8 @@ Skill: `none`
       **本 plan 不改代码，因此四条的结论必须与 Baseline 逐字一致**（221 / 151 / 判定行不变）；
       任何一条不一致即说明本 plan 碰了不该碰的东西，按下面的失败分支处置。
       - Skill: `none`
-- [x] `Proof`：**红线自查，基线 sha 钉死为 `4ac3517`，不用裸 `git diff`**：
-      `git diff --name-only 4ac3517 HEAD -- tests/gates .github/workflows missions
+- [x] `Proof`：**红线自查，基线 sha 钉死为 `57702c5`，不用裸 `git diff`**：
+      `git diff --name-only 57702c5 HEAD -- tests/gates .github/workflows missions
       docs/masterplan/DECISIONS.md tools/gates/expected-red.txt tools/gates/check_expected_red.py agenerp`
       → 期望**无输出**（注意 `agenerp` 也在清单里：本 plan 明示不改一行代码）；
       再 `git status --porcelain` 确认无遗留未提交改动。输出原文记进本 plan。
@@ -390,7 +390,7 @@ Skill: `none`
 Exit Criteria:
 
 - [x] 四条基线命令全部 exit 0，且结论与 `## Current Baseline` 逐字一致
-- [x] `git diff --name-only 4ac3517 HEAD -- <上面那串 pathspec>` → **无输出**
+- [x] `git diff --name-only 57702c5 HEAD -- <上面那串 pathspec>` → **无输出**
 - [x] **本 plan 全程零 `git push`**：`git rev-list --count origin/main..main` 的值与开工时（5）相比
       只因本 plan 的提交而增加（输出记进本 plan）。
       再取一条远端证据：`git ls-remote origin main` 仍指向开工时的 `origin/main`；
@@ -411,10 +411,10 @@ Exit Criteria:
 
 四条结论与 `## Current Baseline` **逐字一致** —— 本 plan 确实一行代码未改。
 
-**红线自查（基线 sha 钉死 `4ac3517`，不用裸 `git diff`）**：
+**红线自查（基线 sha 钉死 `57702c5`，不用裸 `git diff`）**：
 
 ```
-$ git diff --name-only 4ac3517 HEAD -- tests/gates .github/workflows missions \
+$ git diff --name-only 57702c5 HEAD -- tests/gates .github/workflows missions \
     docs/masterplan/DECISIONS.md tools/gates/expected-red.txt \
     tools/gates/check_expected_red.py agenerp
 <无输出>
@@ -424,7 +424,7 @@ $ git status --porcelain
 
 **✅ 无输出，红线自查通过（`agenerp` 也在清单里，本 plan 明示不改一行代码）；工作区无遗留未提交改动。**
 
-**本 plan 全部变更文件（`git diff --name-only 4ac3517 HEAD`，8 个，全部在 `docs/**` 下）**：
+**本 plan 全部变更文件（`git diff --name-only 57702c5 HEAD`，8 个，全部在 `docs/**` 下）**：
 
 ```
 docs/architecture/module-boundaries.md
@@ -437,17 +437,17 @@ docs/logs/2026/08-22.md
 docs/plans/p0-foundation/2026-08-22-1041-1-destructive-write-owner-doc-alignment.md
 ```
 
-**三个提交**：`e91f56e`（Phase 1）· `9ed1d41`（Phase 2）· `3b9fc9b`（Phase 3）。
+**三个提交**：`266f824`（Phase 1）· `2762a6d`（Phase 2）· `b69d4e0`（Phase 3）。
 iteration 2 评审要求入库的 durable 证据
-`docs/audits/p0-foundation/2026-08-22-1041-1-draft-review-iteration-1.md` 已随 `e91f56e` 一起入库。
+`docs/audits/p0-foundation/2026-08-22-1041-1-draft-review-iteration-1.md` 已随 `266f824` 一起入库。
 
 **零 `git push` 的证据（**在线证据，不是离线替代**）**：
 
 - `git rev-list --count origin/main..main` → **8**。开工时是 **5**，增量 **3** = 本 plan 的三个提交，
   **没有任何提交被推走**（推走会让计数下降）。
-- **远端证据**：`git ls-remote origin main` → `508c75b0c8a0b2af30285d293b5ab694922d3eaa`，
+- **远端证据**：`git ls-remote origin main` → `3ed5f5bad05f3c8d05d512bc58c1115b0b2a0713`，
   与 `git rev-parse origin/main` **逐字节相同** —— `origin/main` 仍停在开工时那个 sha。
-- `git reflog show --date=iso origin/main` 最新一条是 `508c75b … @{2026-08-22 05:55:52 +0800}: update by push`，
+- `git reflog show --date=iso origin/main` 最新一条是 `3ed5f5b … @{2026-08-22 05:55:52 +0800}: update by push`，
   **本轮（2026-08-22 11:20 起）无新条目**。
 - 因此 `.github/workflows/gates.yml` 的 `push: branches: [main]` **本轮一次都没被触发，零 CI 消耗**。
 
@@ -478,7 +478,7 @@ iteration 2 评审要求入库的 durable 证据
   判据先行的排除句逐字写进 Baseline（B1）。
   其余 5 条 Blocking 随前一稿的三个 Phase 一起消失（B5 候选表不对称 / B8 取证产物落盘与 `.gitignore`
   只对取证实现成立；B2 「本仓唯一的写动作」已改述为三处落点并列；
-  **B6** 裸 `<基线>` 已钉死为 `4ac3517`；**B7** 零 CI 消耗已补上「不 `git push`（含 `main`）」并写明理由）。
+  **B6** 裸 `<基线>` 已钉死为 `57702c5`；**B7** 零 CI 消耗已补上「不 `git push`（含 `main`）」并写明理由）。
   Non-blocking 里被采纳进本稿的：NB1（`module-boundaries.md:577/:581` 两处真漂移 → 本稿的 D2/D3）、
   NB6（契约面台账那条的触发条件循环 → 本稿已改写）、NB8（Exit Criteria 无可跑命令 → 本稿**除四条 `docs/logs/` 追加项之外**每条都配了可跑命令；
   那四条沿用指南模板的默认写法，判据是「日志条目存在且覆盖该阶段」，由关闭审计肉眼核对）。
@@ -489,7 +489,7 @@ iteration 2 评审要求入库的 durable 证据
   缺口消除。该文件此刻仍是未提交状态（`git status` 显示 `?? docs/audits/p0-foundation/`），
   执行本 plan 时随第一个提交一起入库。
 - Independent draft review iteration 3: **accept**（独立评审步 MISSION_DRIVER `2026-08-22-112156-mission-driver`，
-  fresh session，2026-08-22）—— 在 `4ac3517` 上逐条复核了 Baseline 的可判事实，全部对得上：
+  fresh session，2026-08-22）—— 在 `57702c5` 上逐条复核了 Baseline 的可判事实，全部对得上：
   `sed -n '577p;581p;338p' docs/architecture/module-boundaries.md` 三格状态与 D2/D3 所述**逐字一致**；
   `ai-autonomy-policy.md:87`/`:88` 与 `project-context.md:60` 行号命中；
   `grep -n "oob\|drop_columns\|DDL\|ALTER" docs/context/ai-autonomy-policy.md` → **exit 1 零输出**；
@@ -522,7 +522,7 @@ iteration 2 评审要求入库的 durable 证据
       就是文件里的一段文本，裸 `grep` 会把它当命中。实测过，因此这里锚定行首，不是放宽判据
 - [x] closure audit was independent（执行器自勾即自审，不算）
 - [x] closure evidence exists in files
-- [x] 红线自查通过：Phase 4 那条以 `4ac3517` 为基线的 `git diff --name-only` 无输出（**含 `agenerp`**）
+- [x] 红线自查通过：Phase 4 那条以 `57702c5` 为基线的 `git diff --name-only` 无输出（**含 `agenerp`**）
 
 ## Deferred But Adjudicated
 
@@ -569,14 +569,14 @@ D4 效力范围具体化（`project-context.md:60`，纯追加，原句一字未
 `irreversible-ddl-has-no-code-level-precondition.md`（三条触发条件 + 四档可选处置，交人裁定）·
 roadmap「5 现状」/「6 现状」行内追加（`planned` 一个字未改）。
 
-**`agenerp/**` 一行未改**，红线自查（基线 `4ac3517`，含 `agenerp` 的 pathspec）**无输出**。
-提交三个：`e91f56e` · `9ed1d41` · `3b9fc9b`。
+**`agenerp/**` 一行未改**，红线自查（基线 `57702c5`，含 `agenerp` 的 pathspec）**无输出**。
+提交三个：`266f824` · `2762a6d` · `b69d4e0`。
 
 **verification scope limited（逐字写明，不得报成 full green）**：本仓**无全量套件**（无 build、无 typecheck，
 见 `docs/context/project-context.md`），且本 plan **不跑 L2 / 不起 docker 栈 / 不连活站点**。
 可跑验证只有四条本机 L1 命令，全部 exit 0 且结论与 Baseline 逐字一致（221 / 151 / 判定行不变）。
 **CI 未跑，且本 plan 明示不跑**（零 CI 消耗，全程零 `git push` 含 `main`；`git ls-remote origin main` 仍是
-`508c75b`，与开工时逐字节相同）—— **这一点不得被读成「CI 已验证」。**
+`3ed5f5b`，与开工时逐字节相同）—— **这一点不得被读成「CI 已验证」。**
 
 **上面的 Closure Gates 十一框（本节此前写「十二框」，实际是 11 条，本次按实际条数照实改准）
 由独立 `CLOSURE_VERIFY` 步回填，执行器未自勾**（`AGENTS.md` 裁判规则：执行器自勾即自审，不算）。
@@ -584,8 +584,8 @@ roadmap「5 现状」/「6 现状」行内追加（`planned` 一个字未改）�
 Closure Audit Evidence:
 
 - Auditor / Agent: 独立关闭审计步 MISSION_DRIVER `2026-08-22-112156-mission-driver`，fresh session，
-  非本 plan 的执行器会话。审计基线为**关闭时的 HEAD `70e67ad`**（执行器的三个交付提交
-  `e91f56e` · `9ed1d41` · `3b9fc9b` + 置 `completed` 的 `70e67ad`），全部命令由审计方自己复跑，
+  非本 plan 的执行器会话。审计基线为**关闭时的 HEAD `3a0a648`**（执行器的三个交付提交
+  `266f824` · `2762a6d` · `b69d4e0` + 置 `completed` 的 `3a0a648`），全部命令由审计方自己复跑，
   不采信 plan 内已记录的任何输出。
 - Evidence · 四条基线命令自行复跑（命令原文 + 退出码 + 输出尾行）：
   `ruff check agenerp tests/unit tests/contracts` → **exit 0**，`All checks passed!` ·
@@ -595,9 +595,9 @@ Closure Audit Evidence:
   `门禁 19 项：预期红 7，绿 12，跳过 0` / `✅ 与预期红名单完全一致`。
   四条与 `## Current Baseline` 逐字一致（221 / 151 / 判定行不变）。
 - Evidence · 红线自查自行复跑：
-  `git diff --name-only 4ac3517 HEAD -- tests/gates .github/workflows missions docs/masterplan/DECISIONS.md tools/gates/expected-red.txt tools/gates/check_expected_red.py agenerp`
+  `git diff --name-only 57702c5 HEAD -- tests/gates .github/workflows missions docs/masterplan/DECISIONS.md tools/gates/expected-red.txt tools/gates/check_expected_red.py agenerp`
   → **无输出**；`git status --porcelain` → **无输出**；
-  `git diff --name-only 4ac3517 HEAD` → **8 个文件，全部在 `docs/**` 下**（与 Phase 4 记录的清单逐字相同）。
+  `git diff --name-only 57702c5 HEAD` → **8 个文件，全部在 `docs/**` 下**（与 Phase 4 记录的清单逐字相同）。
 - Evidence · 交付面逐条对着**活仓**核验（不采信 `[x]`）：
   ① `sed -n '574,582p' docs/architecture/module-boundaries.md | grep -n "只有读方法\|未做"` → **exit 1，无输出**；
   ② `sed -n '577p'` 状态格实为「已实现（读方法 + **一条**写方法 `delete_custom_field`…）」（D2 已改准）；
@@ -605,11 +605,11 @@ Closure Audit Evidence:
   且行内含「从 2026-08-21 起就是假的」「改准一句假陈述，不是新增一项」（D3 已改准，未粉饰）；
   ④ `grep -n "已实现（B 半）" docs/architecture/module-boundaries.md` → 仍命中 `:334`–`:338`，§11.6 未被顺手改动；
   ⑤ `sed -n '60p' docs/context/project-context.md` 中 `bench --site frontend backup` → **1 次命中**、
-  `apply_pack` → **1 次命中**；用 `git show 4ac3517:` 取旧行程序化比对：**旧行（去行尾 `|`）逐字节是新行前缀**
+  `apply_pack` → **1 次命中**；用 `git show 57702c5:` 取旧行程序化比对：**旧行（去行尾 `|`）逐字节是新行前缀**
   （804 → 1525 字符，纯追加，D4 原句未删未弱化）；
   ⑥ `grep -n "drop_columns" docs/context/ai-autonomy-policy.md` → 命中 `:87`（落点行）与 `:93`/`:94`/`:107`/`:120`（Decision 说明段）；
   ⑦ **D1「只加严不放宽」的行内三格由审计方独立程序化比对**（旧行取自
-  `git show 4ac3517:docs/context/ai-autonomy-policy.md | sed -n '87p'`，按 `|` 切格）：
+  `git show 57702c5:docs/context/ai-autonomy-policy.md | sed -n '87p'`，按 `|` 切格）：
   **Rule 格** 旧 `plan-first` == 新 `plan-first`，逐字节相同；
   **Required Evidence 格** 旧的三条（`独立草案评审` / `独立关闭审计` / `实跑前后全量 capture 对照` +
   `差集必须只含本次探针`）与 `1922-3` 补行自述**逐字全部仍在**，只增一条——
@@ -625,9 +625,9 @@ Closure Audit Evidence:
   ⑩ `grep -n "1041-1" docs/backlog/p0-foundation-roadmap.md` → `:62`（5 现状）与 `:64`（6 现状）各一处；
   程序化比对确认**两行旧内容均为新内容前缀**（3720→4787 / 4110→5177 字符，纯追加），
   且「保持 `planned`」在新旧两侧**都在**，状态词未被动过。
-- Evidence · 零 CI 消耗自行取证：`git rev-parse origin/main` → `508c75b0c8a0b2af30285d293b5ab694922d3eaa`，
+- Evidence · 零 CI 消耗自行取证：`git rev-parse origin/main` → `3ed5f5bad05f3c8d05d512bc58c1115b0b2a0713`，
   与 Phase 4 记录的 `git ls-remote origin main` 值**逐字节相同**，`origin/main` 仍停在开工时那个 sha；
-  `git rev-list --count origin/main..main` → **9**（开工 5 + 交付 3 + 置 `completed` 的 `70e67ad` 1 个；
+  `git rev-list --count origin/main..main` → **9**（开工 5 + 交付 3 + 置 `completed` 的 `3a0a648` 1 个；
   Phase 4 当时记的是 8，差的正是其后那一个 `docs/**` 提交，**没有任何提交被推走**）。
   `.github/workflows/gates.yml` 的 `push: branches: [main]` 本轮未被触发。
 - Evidence · Anti-Hollow：本 plan 的结果面是 owner-doc 与 backlog 文本，`agenerp/**` 与 `tests/**`

@@ -4,22 +4,22 @@
 > Mission: p1-insight
 > Work Item: 5. 导航的编排行为：permission.scope 开场自动注入（P1.3）
 > Execution Order: 2 / 2（本批第二个；前置是同批第一个 `docs/plans/p1-insight/2026-08-24-1457-2-context-layer-v0.md`）
-> Last Reviewed: 2026-08-24（基线 sha `b3b2f1f`；**独立草案评审三轮至共识**，见 §11）
+> Last Reviewed: 2026-08-24（基线 sha `9e68cb9`；**独立草案评审三轮至共识**，见 §11）
 > Source: `docs/backlog/p1-insight-roadmap.md` 工作项 5 · `docs/masterplan/02-WBS.md` §4 **第 82 行**（P1.3）
 > Related: 前置 P1.2（同批第一个）· 继承 P1.0a 的执行入口 `agenerp/tools/runtime.py:316`
 > Audit: required
 
 ## 1. Current Baseline
 
-**开工基线 sha `b3b2f1f`**（`git log -1`；其上一条是 `432efd6`）。
-`b3b2f1f` 是**人**裁定「`qwen3.6-plus` 在本项目两跳题上是 1/6 不是 2/6」的那次改文档，
+**开工基线 sha `9e68cb9`**（`git log -1`；其上一条是 `5bd1e93`）。
+`9e68cb9` 是**人**裁定「`qwen3.6-plus` 在本项目两跳题上是 1/6 不是 2/6」的那次改文档，
 **与本 plan 无交集**——本 plan 不引用任何模型正确率数字。
 
 工作树非 clean，且**正在被别人改动**：`docs/evidence/p1-entry-gate-round2/` 下不断增加
 `r2-*.json`（P1.0 第二轮重测**正在进行中**），`docs/masterplan/DECISIONS.md` 与
 `docs/backlog/p1-insight-roadmap.md` 也有未提交改动（**人**的动作）。
 **这些本 plan 一个字不动**（红线 3/5）。开工时工作树的具体内容会与此处不同，
-**以 `git status` 实测为准**；关键是 HEAD 仍为 `b3b2f1f`。
+**以 `git status` 实测为准**；关键是 HEAD 仍为 `9e68cb9`。
 
 以下每条都是本轮实读，不是回忆。
 
@@ -619,7 +619,7 @@ M1–M8 是**起草期自己挑的**变异，挑不到自己没想到的地方 �
   **不可机械检测**，`FakeSite` 根本没有身份概念，对任何实现恒绿；
   ③ M3（两组各用一份策略代码）没有任何断言能打红——两份相同代码产出相同次数；
   ④ §6 的 H1–H4 **没有定义计数口径**，开场注入那次算不算进去会翻转 H1/H3 的真假，
-  执行者可以看完数字再选；⑤ 基线 sha 与工作树描述都写错（HEAD 是 `b3b2f1f`，
+  执行者可以看完数字再选；⑤ 基线 sha 与工作树描述都写错（HEAD 是 `9e68cb9`，
   evidence 那几个文件是已跟踪被修改而非未跟踪）。另有 8 条 non-blocking + 7 条 fact-check。
   **逐条处置**：①→新增 **§1.1a**，把契约面（调用方自证，不加强）与开场包面
   （从记录推导、另立名 `opening_injection_verified`）拆成两段，并补 `Decision` D4
@@ -629,7 +629,7 @@ M1–M8 是**起草期自己挑的**变异，挑不到自己没想到的地方 �
   并逐字说明首稿那条为何被删；③→度量骨架改为**策略以单个可调用对象注入**，
   断言 `on_run.strategy is off_run.strategy`（同一性），M3 相应改为「骨架接受两个策略参数」；
   ④→§6 新增**计数口径**三行（含开场注入那一次；站点请求另计；终点含「明确拒答」），
-  并把 H3 标注为「成本记账，不是判别性假设」；⑤→基线改 `b3b2f1f`、工作树照实。
+  并把 H3 标注为「成本记账，不是判别性假设」；⑤→基线改 `9e68cb9`、工作树照实。
   另处置：§1.1 的census 由「9 处」改为逐类点清的 10 处、§1.2 表的四处行号改准、
   239 那个数的**归属**改准（它量的是 `get_count` 不是 `has_permission`，本仓从未量过后者）、
   403 口径补一条 `Decision`（它今天不是可复用件）、M6 变异位改到装配路径、
@@ -687,7 +687,7 @@ M1–M8 是**起草期自己挑的**变异，挑不到自己没想到的地方 �
       —— 命令原文 + 退出码 + commit sha 同条写出
 - [x] scoped verification is not conflated with full verification —— `tests/tools` 不在 CI 与
       `commands.test` 上，收口时必须逐字写「verification scope limited」并说明残余风险
-      ⚠️ **起草期这句话的前半已失效**：`b7fc902`（**人**做的，不属本 plan）已把 `tests/tools`
+      ⚠️ **起草期这句话的前半已失效**：`b0ad632`（**人**做的，不属本 plan）已把 `tests/tools`
       接进 CI 的 `unit-and-contracts` 与 `lint`。**后半仍然成立**：它不在
       `missions/p1-insight.json` 的 `commands.test` 里，`GATE_VERIFY` 复跑不到。
       收口叙述与 §7.6a 按**实测的现状**写，不照抄起草期的措辞。
@@ -702,7 +702,7 @@ M1–M8 是**起草期自己挑的**变异，挑不到自己没想到的地方 �
       且它落在下一行 `- [ ]` 的前 5 行内）。**照实说，不改写那条 grep 让它变绿**——
       它要挡的事（Phase 标 completed 却留着未勾项）实测没有发生。
 - [x] closure audit was independent —— **首次收口时未做（留白），2026-08-24 已补做**：
-      独立关闭审计者、独立会话，基线 sha `ed63c68`，结论 `approved`，记录见 §13.7。
+      独立关闭审计者、独立会话，基线 sha `44ce646`，结论 `approved`，记录见 §13.7。
       ⚠️ 这条 gate 说的是「审计是**独立**做的」，**不是「审计穷尽了失败模式」**——
       §13.5 的首次收口记录**保留不改写**，A1–A3 三条独立探针的结果照实记在 §13.7。
 - [x] closure evidence exists in files
@@ -718,17 +718,17 @@ M1–M8 是**起草期自己挑的**变异，挑不到自己没想到的地方 �
 
 | 产物 | 首次进仓的 commit | 谁提交的 |
 |---|---|---|
-| `tests/tools/test_navigation.py` · `agenerp/orchestration/__init__.py` | `382a70b` | 本 plan（Phase 1） |
-| `agenerp/orchestration/opening.py` | **`90ccb4b`** | **人**的 CI 提交 |
-| `agenerp/orchestration/navigation.py` · `circuit.py` | **`d3b9213`** | **人**的 CI 提交 |
-| owner doc §7.4 / §7.6 / §7.6a · STATE §3 追加 | `b765de5` | 本 plan（Phase 2 + 3） |
-| plan 收口 · roadmap · 日志 | `e55d985` | 本 plan |
+| `tests/tools/test_navigation.py` · `agenerp/orchestration/__init__.py` | `20d5adc` | 本 plan（Phase 1） |
+| `agenerp/orchestration/opening.py` | **`659b41f`** | **人**的 CI 提交 |
+| `agenerp/orchestration/navigation.py` · `circuit.py` | **`1c61089`** | **人**的 CI 提交 |
+| owner doc §7.4 / §7.6 / §7.6a · STATE §3 追加 | `f4f686b` | 本 plan（Phase 2 + 3） |
+| plan 收口 · roadmap · 日志 | `e3764fc` | 本 plan |
 
-⚠️ **`90ccb4b` / `d3b9213` 是人在同一工作树上做 CI 修复时 `git add` 扫进去的**，
+⚠️ **`659b41f` / `1c61089` 是人在同一工作树上做 CI 修复时 `git add` 扫进去的**，
 那两个 commit 的信息里没有一个字提到编排层。**本 plan 不把它们算成自己的提交**，
-但也不假装代码是在 `382a70b` / `b765de5` 里落地的 —— 那样写就与 `git log` 对不上。
-**「全部产物同时为绿」的权威 sha 是 `e55d985`**（HEAD），下面的验证全部在它之前的
-`b765de5` 上跑过，`e55d985` 只改文档、复跑结果相同。
+但也不假装代码是在 `20d5adc` / `f4f686b` 里落地的 —— 那样写就与 `git log` 对不上。
+**「全部产物同时为绿」的权威 sha 是 `e3764fc`**（HEAD），下面的验证全部在它之前的
+`f4f686b` 上跑过，`e3764fc` 只改文档、复跑结果相同。
 
 ### 13.1 交付了什么
 
@@ -744,7 +744,7 @@ M1–M8 是**起草期自己挑的**变异，挑不到自己没想到的地方 �
 
 ### 13.2 验证（命令原文 + 退出码 + sha）
 
-全部在 sha `b765de5` 上跑：
+全部在 sha `f4f686b` 上跑：
 
 | 命令 | 退出码 | 输出 |
 |---|---|---|
@@ -760,7 +760,7 @@ M1–M8 是**起草期自己挑的**变异，挑不到自己没想到的地方 �
 其中 `test_opening_injection_really_happens_on_the_site` 是「**有一条断言开场注入真的发生**」那一条。
 
 **verification scope limited.** `tests/tools` **已在 CI** 的 `unit-and-contracts`（第 ③ 步）
-与 `lint` 的 ruff 作用域里 —— 那是 `b7fc902` 的功劳，**人**做的，**不属本 plan**。
+与 `lint` 的 ruff 作用域里 —— 那是 `b0ad632` 的功劳，**人**做的，**不属本 plan**。
 但它**仍不在** `missions/p1-insight.json` 的 `commands.test` 里
 （那条是 `check_expected_red.py && pytest tests/unit -q`），
 因此 **`GATE_VERIFY` 子进程复跑不到本层的 32 条判据**。`missions/**` loop 无权自己补，
@@ -820,11 +820,11 @@ P1.2 的先例说明这件事有实际后果：那轮独立审计另出的 A5 �
 
 Closure Audit Evidence:
 
-- Auditor / Agent: **独立关闭审计者（独立子代理、独立会话，未参与本 plan 的起草与执行）**；审计基线 sha `ed63c68`（HEAD），审计时 `git status --porcelain` 为空。
+- Auditor / Agent: **独立关闭审计者（独立子代理、独立会话，未参与本 plan 的起草与执行）**；审计基线 sha `44ce646`（HEAD），审计时 `git status --porcelain` 为空。
 - Evidence · 验证命令**逐条原样复跑**，退出码与 §13.2 记的**逐条相同**：`python3 -m pytest tests/tools/test_navigation.py -q` → **0**（`32 passed`）· `python3 -m pytest tests/tools -q` → **0**（`81 passed, 12 skipped`）· `python3 tools/gates/check_expected_red.py && python3 -m pytest tests/unit -q` → **0**（`门禁 11 项：预期红 0，绿 11` / `373 passed`）· `python3 -m pytest tests/contracts -q` → **0**（`151 passed`）· `python3 -m pytest tests/context -q` → **0**（`53 passed`）· `python3 -m pytest tests/routing -q` → **0**（`151 passed, 1 skipped`）· `ruff check agenerp tests/unit tests/contracts tests/tools tests/routing tests/context tests/experiments` → **0**（`All checks passed!`）。
 - Evidence · **反空壳**：`agenerp/orchestration/` 三个模块逐行实读，无空函数体、无 `return None` 占位、无吞异常；`opening.open_session` / `navigation.run_metric` / `circuit.DenialBreaker` 均被 `tests/tools/test_navigation.py` 的 **32** 条判据在运行时真正驱动（`grep "def test_"` 计数 = 32，与 §13.1 一致），`__init__.py` 的 `__all__` 逐名可导入。
-- Evidence · **sha 归属复核**：`git log --diff-filter=A` 实查确认 §13 表**属实** —— `opening.py` 首次进仓于 `90ccb4b`（人的 CI 提交，同 commit 改了 `.github/workflows/gates.yml`），`navigation.py` / `circuit.py` 首次进仓于 `d3b9213`（人的 CI 提交，该 commit 里**一个 workflow 文件都没有**，与其 commit message 不符）。**本 plan 没有把这两个 commit 算成自己的，写法与 `git log` 对得上。**
-- Evidence · **红线复核**：`git diff --numstat 382a70b~1 ed63c68 -- tests/gates .github/workflows missions docs/masterplan/DECISIONS.md` **输出为空**；同区间 `docs/masterplan/STATE.md` 为 `7	0`（**删除列为 0**，与 Phase 3 Exit Criteria 一致）。`90ccb4b` 里那处 workflow 改动是**人**做的且是**收紧**（补 seed 前置、补 `AGENTS`/pytest 依赖、把「19 条」改成「全部门禁，零 skip」），不是放松，**不属本 plan**。
+- Evidence · **sha 归属复核**：`git log --diff-filter=A` 实查确认 §13 表**属实** —— `opening.py` 首次进仓于 `659b41f`（人的 CI 提交，同 commit 改了 `.github/workflows/gates.yml`），`navigation.py` / `circuit.py` 首次进仓于 `1c61089`（人的 CI 提交，该 commit 里**一个 workflow 文件都没有**，与其 commit message 不符）。**本 plan 没有把这两个 commit 算成自己的，写法与 `git log` 对得上。**
+- Evidence · **红线复核**：`git diff --numstat 20d5adc~1 44ce646 -- tests/gates .github/workflows missions docs/masterplan/DECISIONS.md` **输出为空**；同区间 `docs/masterplan/STATE.md` 为 `7	0`（**删除列为 0**，与 Phase 3 Exit Criteria 一致）。`659b41f` 里那处 workflow 改动是**人**做的且是**收紧**（补 seed 前置、补 `AGENTS`/pytest 依赖、把「19 条」改成「全部门禁，零 skip」），不是放松，**不属本 plan**。
 - Evidence · **owner doc 与日志同步**：`docs/architecture/module-boundaries.md` §7.4 末尾落点、§7.6 那句失效归属的改准（第 205 行）、**§7.6a 新节**（第 232 行起，含三文件职责、D1/D2/D3、H1–H4 数字表并逐字标注「本仓夹具（`tests/tools/conftest.py` 的 `FakeSite`）上的实测，不是站点实测」、判据缺口与 `GATE_VERIFY` 复跑不到的照实记）均实读确认；`docs/masterplan/STATE.md` §3 第 421 行的 needs-human 含 (a)(b)(c) 三项；`docs/logs/2026/08-24.md` 有 P1.3 收口条目。
 - Evidence · **独立探针 A1–A3**（审计者自出，**不复用 M1–M8**；逐个植入 → 跑 `python3 -m pytest tests/tools -q` → 按字节还原，还原后 `git status --porcelain agenerp/ tests/` 无输出）：**A1** `circuit.DENIAL_THRESHOLD` 5 → 6 → **红**（2 条，含 `test_the_breaker_names_the_doctypes_it_needs_permission_for`）；**A3** `run_metric` 把开场注入那一次从计数里去掉（`calls = opening_pack.execute_calls` → `calls = 0`）→ **红**（`test_the_metric_counts_the_opening_injection_itself`）；**A2** `opening._verified` 的 `all("can_read" in row …)` → `any(…)` → **绿（照实记）**。
 - Evidence · **A2 的裁定：不是缺陷，是「代码比 plan 承诺的更严」**。Phase 1 写死的第五条推导判据逐字是「产物里含 `can_read` 行」，`any` 正是这句话的字面实现；`all` 是实现方向上的加严，判据钉住的是 plan 的口径而非这层加严。**残余**：这处加严今天没有反测，日后有人把它改回 `any` 不会被打红。**不构成本 plan 的在范围缺陷，也不降级为 follow-up ——它不是缺陷。**

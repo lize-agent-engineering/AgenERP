@@ -10,7 +10,7 @@
 
 ## Current Baseline
 
-以下每条都在 `07d684c` 上实测读出，不是转述。
+以下每条都在 `5d8022e` 上实测读出，不是转述。
 
 **已就位：**
 
@@ -25,11 +25,11 @@
   它的 `codeExtensions` 只含 `.js/.jsx/.ts/.tsx/.mjs/.cjs`（无 `.py`），`rootPrefixes` 默认也不含 `agenerp/`。
   实跑 `node tools/check-oversized-code-files.mjs` 只报 `tools/mission-driver/**` 的 JS 文件。
   所以 500/700 行**不是本 plan 头上的既有闸**；本 plan 自愿沿用这个尺度，并在 Phase 2 用 `wc -l` 自带一条可执行检查。
-- ⚠️ `node tools/check-doc-references.mjs` 在 `07d684c` 上**已经是 exit 1**（不是本 plan 引入的）：
+- ⚠️ `node tools/check-doc-references.mjs` 在 `5d8022e` 上**已经是 exit 1**（不是本 plan 引入的）：
   `ERROR: line-number citations found in active docs` → `docs/architecture/module-boundaries.md:172 [line-ref] -> docs/analysis/2026-08-19-pre-build-validation.md:143`。
   该检查器**不在 CI 的任何 job 里**（`gates.yml` 六个 job：`gates-untouched` / `expected-red-ratchet` / `gates-l1` / `masterplan-links` / `roadmap-parseable` / `loop-wiring`）。
   两个后果，Phase 1/4 都有对应条目：① 本 plan 往 `docs/architecture/**` 写字时**不得使用 `文件:行号` 形式的引用**，只按小节名引；
-  ② Exit Criteria 不能写「该命令退 0」，只能写「违规集合与 `07d684c` 相同」。
+  ② Exit Criteria 不能写「该命令退 0」，只能写「违规集合与 `5d8022e` 相同」。
 
 **缺口：**
 
@@ -224,7 +224,7 @@ Exit Criteria:
 - [x] 单价对账结果落纸：证据仓里「有更早的含单价记录」还是「查不到」——二选一，不许含糊
 - [x] `docs/backlog/gate-proposal-seed-dataset.md` 存在
 - [x] `STATE.md` §3 新增一行，且 `git diff --numstat docs/masterplan/STATE.md` 第二列为 **0**（只增不删）
-- [x] `node tools/check-doc-references.mjs` 的违规集合与 `07d684c` 相同（逐行对照，**本阶段不得引入新的 line-ref 违规**）
+- [x] `node tools/check-doc-references.mjs` 的违规集合与 `5d8022e` 相同（逐行对照，**本阶段不得引入新的 line-ref 违规**）
 - [x] `docs/logs/2026/08-21.md`（或执行当日文件）追加本阶段条目
 
 ### Phase 2 - 生成器与 CLI
@@ -354,7 +354,7 @@ Exit Criteria:
       且 Optional Layers 漂移已改正
 - [x] `docs/logs/` 已更新
 - [x] `bash tools/check-masterplan-links.sh` → exit 0
-- [x] `node tools/check-doc-references.mjs` 的**违规集合与 `07d684c` 相同**（该命令在起草时已是 exit 1，见 Baseline；
+- [x] `node tools/check-doc-references.mjs` 的**违规集合与 `5d8022e` 相同**（该命令在起草时已是 exit 1，见 Baseline；
       本 plan 不负责修那处存量违规，但**一条新的都不许加**）
 
 ## Draft Review Record
@@ -442,7 +442,7 @@ Exit Criteria:
 
 Status Note: 四个阶段全部执行完毕并逐条打勾，独立关闭审计已跑并接受关闭，`Plan Status: completed`。
 
-**收尾 sha**：`3024a3d`（18 个文件）。
+**收尾 sha**：`7755172`（18 个文件）。
 
 **交付物**：`agenerp/seed/`（10 个模块，最大 300 行）· `tests/unit/test_seed_deterministic.py`（31 条）·
 `docs/architecture/module-boundaries.md` §12 · `docs/backlog/gate-proposal-seed-dataset.md` ·
@@ -480,7 +480,7 @@ Status Note: 四个阶段全部执行完毕并逐条打勾，独立关闭审计�
 Closure Audit Evidence:
 
 - Auditor / Agent: mission-driver `2026-08-21-171157` 的 `CLOSURE_VERIFY` 步 —— 独立关闭审计代理，fresh session，不带实现上下文，未参与本 plan 的起草与执行。
-- 审计基线：`8401ad9`（`docs(p0-foundation): plan-2026-08-21-1634-1 补收尾 sha`）；工作树除一份不相关的未跟踪 plan 文件外干净。
+- 审计基线：`daa41ec`（`docs(p0-foundation): plan-2026-08-21-1634-1 补收尾 sha`）；工作树除一份不相关的未跟踪 plan 文件外干净。
 - **复跑证据（命令原文 + 退出码，审计当场跑，非转抄执行会话）**：
 
   | 命令 | 退出码 |
@@ -491,7 +491,7 @@ Closure Audit Evidence:
   | `python3 tools/gates/check_expected_red.py` | **0** |
   | `ruff check agenerp tests/unit tests/contracts` | **0** |
   | `bash tools/check-masterplan-links.sh` | **0** |
-  | `node tools/check-doc-references.mjs` | **1**，违规集合仍是**唯一那条** `docs/architecture/module-boundaries.md:172 -> docs/analysis/2026-08-19-pre-build-validation.md:143`，与 `07d684c` 基线逐行相同 —— 本 plan 一条新的都没加 |
+  | `node tools/check-doc-references.mjs` | **1**，违规集合仍是**唯一那条** `docs/architecture/module-boundaries.md:172 -> docs/analysis/2026-08-19-pre-build-validation.md:143`，与 `5d8022e` 基线逐行相同 —— 本 plan 一条新的都没加 |
   | `git diff --name-only -- tests/gates/ .github/workflows/ missions/ tools/gates/ docs/masterplan/DECISIONS.md` | 输出为空（红线零命中） |
 
 - **独立变异复验（审计自己做的，不采信执行会话的记录）**：`agenerp/seed/model.py` 的 `DELIVERY_QTY 990→980` →
@@ -504,7 +504,7 @@ Closure Audit Evidence:
   `tests/unit/test_seed_deterministic.py` 存在且 31 条通过；
   `docs/backlog/gate-proposal-seed-dataset.md` 存在；
   `docs/architecture/module-boundaries.md` §12（含 §12.1–§12.6）已落地；
-  `docs/masterplan/STATE.md` needs-human 新增行在 `3024a3d` 内，`git diff --numstat` 只增不删；
+  `docs/masterplan/STATE.md` needs-human 新增行在 `7755172` 内，`git diff --numstat` 只增不删；
   `docs/context/project-context.md` 验证命令表已含 `python3 -m agenerp.seed --seed 42 --verify`（含「不在 `commands.test` 里」的注），Optional Layers 七格已全部勾上并附实测文件数；
   `docs/backlog/p0-foundation-roadmap.md` 工作项 7 = `planned`，对照表第 7 行仍逐字写着「**仍然没有门禁**」；
   `docs/logs/2026/08-21.md` 四个阶段条目齐全，命令原文与退出码均在。

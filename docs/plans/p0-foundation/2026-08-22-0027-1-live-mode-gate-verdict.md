@@ -44,7 +44,7 @@
   `python -m pytest tests/gates -q --tb=no --junitxml=.pytest-gates.xml` → 解析 junit →
   三态分类 `red` / `green` / `skipped` → 四条判据（名单外红 = 失败、名单内绿 = 失败、出现 skip = 失败、其余通过）
   → 退出码 `0` / `1` / `2`（`2` = 跑不起来）。
-- `healed_env()` 只**追加** `/usr/local/bin`、`/usr/local/sbin`，不前置；注释里记着一次踩坑的 sha（`0f2c59a`），
+- `healed_env()` 只**追加** `/usr/local/bin`、`/usr/local/sbin`，不前置；注释里记着一次踩坑的 sha（`6f3f476`），
   另一次只有日期没有 sha。本 plan 不动它。
 - 分类逻辑此刻**内联在 `run_pytest()` 与 `main()` 里**，没有可从 `tests/unit` 直接喂输入的纯函数接缝。
 - `run_pytest(sys.argv[1:])`：命令行参数原样透传给 pytest。
@@ -58,7 +58,7 @@
 默认判定环境最近一次实跑（`docs/logs/2026/08-22.md`，`HEAD` = `8b1e95c`，干净树）：
 `python3 tools/gates/check_expected_red.py && python3 -m pytest tests/unit -q` → **exit 0**，
 前半输出逐字 `门禁 19 项：预期红 7，绿 12，跳过 0` / `✅ 与预期红名单完全一致`，后半 `193 passed`。
-起草时 `HEAD` = `084c9c4`，**工作树除本批两个未跟踪的 plan 文件外干净**。
+起草时 `HEAD` = `d6c9900`，**工作树除本批两个未跟踪的 plan 文件外干净**。
 
 ### 两个判定环境给出相反判定 —— 这是本 plan 要处理的那个矛盾
 
@@ -106,7 +106,7 @@
 **没有在 live 环境下跑过**。而判定器只会整目录跑 `pytest tests/gates`。
 已知干扰面真实存在：两个文件都在同一个 `Item` 上建/删探针 Custom Field，
 且 `docs/backlog/gate-fixtures-pollute-the-live-site.md` 实测记着删 Custom Field 不删物理列。
-唯一一次整目录 live 跑的留痕在 STATE §3（sha `826cdf8`，`预期红 5，绿 14，跳过 0`），
+唯一一次整目录 live 跑的留痕在 STATE §3（sha `832a2b0`，`预期红 5，绿 14，跳过 0`），
 但那是删除路径与首页文案都还没实现之前的快照，对今天没有证明力。
 
 ### 三处 live 跑法口径（缺一条就跑不出绿，出处 `project-context.md:56`）
@@ -301,7 +301,7 @@ Skill: `none`
 
 ```
 $ git rev-parse HEAD
-084c9c443cd7db6c3f9189addcad59edf0c191ff
+d6c99007b34a3e97ae4c507fa721741549874c9b
 
 $ git status --porcelain
 ?? docs/plans/p0-foundation/2026-08-22-0027-1-live-mode-gate-verdict.md
@@ -491,7 +491,7 @@ live 四态（全绿 → 0 / 任意一条红 → 1 / **任意一条 skip → 1**
 
 **默认判定环境前后逐字对照**（判定行）：
 
-| | 开工前（`084c9c4`，`docs/logs/2026/08-22.md` 与 Phase 1 收尾复跑） | 本阶段实现之后 |
+| | 开工前（`d6c9900`，`docs/logs/2026/08-22.md` 与 Phase 1 收尾复跑） | 本阶段实现之后 |
 |---|---|---|
 | 判定行 1 | `门禁 19 项：预期红 7，绿 12，跳过 0` | `门禁 19 项：预期红 7，绿 12，跳过 0` |
 | 判定行 2 | `✅ 与预期红名单完全一致` | `✅ 与预期红名单完全一致` |
@@ -556,7 +556,7 @@ $ python3 tools/gates/check_expected_red.py && python3 -m pytest tests/unit -q
 $ echo $?
 0
 
-$ git diff --stat 084c9c4..HEAD -- agenerp/pack.py     # 输出为空
+$ git diff --stat d6c9900..HEAD -- agenerp/pack.py     # 输出为空
 $ git status --porcelain -- agenerp/pack.py            # 输出为空
 ```
 
@@ -700,7 +700,7 @@ Skill: `none`
       五条命令原文、退出码与 commit sha 一并写进 log 与 STATE §2（**只追加**）。
       **⚠️ 执行顺序**：这五条要在**写完 STATE §2 并提交之后**跑——本 plan 合法地会改 `docs/masterplan/STATE.md`，
       在提交之前跑第二条会拿到一个**伪失败**，那时千万别去放松判据，先提交再跑。
-      **这条 append-only 判据不是仪式**：实测本仓真实历史 `git diff --numstat bd32959^..bd32959 -- docs/masterplan/STATE.md`
+      **这条 append-only 判据不是仪式**：实测本仓真实历史 `git diff --numstat d21dcfe^..d21dcfe -- docs/masterplan/STATE.md`
       → **`1	1`**——那次提交确实就地改写了 STATE 的一行。这条判据当时会咬。
       - Skill: `none`
 
@@ -921,7 +921,7 @@ live 整目录实测的六次退出码与那次不可复现的红、以及仍未
 见本节末尾「收尾自查（STATE §2 提交之后跑）」小节——按 plan 自己定的执行顺序，
 这五条必须在写完 STATE §2 并提交**之后**才跑，否则第二条会拿到一个伪失败。
 
-##### 收尾自查（STATE §2 提交之后跑，`HEAD` = `ef01d12`）
+##### 收尾自查（STATE §2 提交之后跑，`HEAD` = `c35b70f`）
 
 **执行顺序说明**：这五条必须在写完 STATE §2 **并提交之后**才跑——本 plan 合法地会往
 `docs/masterplan/STATE.md` 追加证据行，提交之前跑第二条会拿到一个**伪失败**，
@@ -936,7 +936,7 @@ live 整目录实测的六次退出码与那次不可复现的红、以及仍未
 $ echo $?
 0
 
-② $ git diff --stat 084c9c4..HEAD -- tests/gates .github/workflows docs/masterplan missions tools/gates/expected-red.txt
+② $ git diff --stat d6c9900..HEAD -- tests/gates .github/workflows docs/masterplan missions tools/gates/expected-red.txt
  docs/masterplan/STATE.md | 18 ++++++++++++++++++
  1 file changed, 18 insertions(+)
    → 只列出 docs/masterplan/STATE.md 一行，其余四条路径零命中 ✅
@@ -944,25 +944,25 @@ $ echo $?
 ③ $ git status --porcelain -- tests/gates .github/workflows docs/masterplan missions tools/gates/expected-red.txt
    （无输出）✅  —— 与 ② 一起才覆盖「已提交」与「未提交」两种情形
 
-④ $ git diff --numstat 084c9c4..HEAD -- docs/masterplan/STATE.md
+④ $ git diff --numstat d6c9900..HEAD -- docs/masterplan/STATE.md
 18	0
    → deletions = 0 ⇒ **只追加** ✅
    为什么 deletions=0 就等于只追加：git 把「就地改一行」记成 1 增 1 删、把「移动一行」也记成 1 增 1 删，
    所以 deletions 只要为 0，就没有任何既有行被改写或删除。
-   **这条判据不是仪式**：`git diff --numstat bd32959^..bd32959 -- docs/masterplan/STATE.md` → `1	1`，
+   **这条判据不是仪式**：`git diff --numstat d21dcfe^..d21dcfe -- docs/masterplan/STATE.md` → `1	1`，
    本仓真实历史上那次提交确实就地改写了 STATE 的一行，这条判据当时会咬。
 
-⑤ $ git diff --numstat 084c9c4..HEAD -- tools/gates/expected-red.txt
+⑤ $ git diff --numstat d6c9900..HEAD -- tools/gates/expected-red.txt
    （无输出）✅  —— 名单一行未动
 ```
 
 **三处变异窗口的复原判据（按路径分开写，一律用开工 sha，不用裸 `git diff`）**：
 
 ```
-$ git diff --stat 084c9c4..HEAD -- agenerp      # 无输出 ✅（Non-Goals 禁止任何净改动）
+$ git diff --stat d6c9900..HEAD -- agenerp      # 无输出 ✅（Non-Goals 禁止任何净改动）
 $ git status --porcelain -- agenerp             # 无输出 ✅
 $ git status --porcelain -- tools/gates/check_expected_red.py   # 无输出 ✅
-$ git diff 084c9c4..HEAD -- tools/gates/check_expected_red.py | grep -n skipped
+$ git diff d6c9900..HEAD -- tools/gates/check_expected_red.py | grep -n skipped
 51:             outcomes[nodeid] = "skipped"
 69:     skipped = sorted(n for n, o in outcomes.items() if o == "skipped")
 79:     if skipped:
@@ -1093,7 +1093,7 @@ Exit Criteria:
   ① `capture("doctypes")` 是真作用域（`agenerp/snapshot.py:46` `SITE_SCOPE_DOCTYPES = {"doctypes": "Custom Field"}`，
   未知作用域会抛），所以那条差集**能**装进探针以外的东西，判据可失败；
   ② `--numstat` 的 append-only 语义按本仓真实历史验过——纯追加是 `15 0` / `9 0` / `8 0`，
-  而就地改一行是 `1 1`（`bd32959` 对 STATE.md 正是如此），**这条判据在真实历史上会咬**。
+  而就地改一行是 `1 1`（`d21dcfe` 对 STATE.md 正是如此），**这条判据在真实历史上会咬**。
   新增 2 条 blocking，都是一行级的机械错：
   · **BLOCKING-A**：用来核对 successor 是否接了守卫的那条 grep **没有区分度**——
     `grep 'check_expected_red.py'` 在 successor 里有 10 处命中，其中三处是与守卫无关的普通验证步骤，
@@ -1103,7 +1103,7 @@ Exit Criteria:
   另有 6 条 nit（Closure Gates 实为 **14** 框而文中写十二、Exit 写「四条」而命令有五条、
   `git status -- docs/masterplan` 必须在 STATE 提交之后跑否则伪失败、
   `--numstat` 在文件未触碰时不打印任何东西所以「deletions 列为 0」措辞不严、
-  「两轮」未定义单位、以及建议把 `bd32959` 那个真实历史反例写进 plan）。
+  「两轮」未定义单位、以及建议把 `d21dcfe` 那个真实历史反例写进 plan）。
   评审同时复核了本轮改动的全部计数与交叉引用（Protected Areas 10 行 / Goals 已改「判定行」/
   变异 ① 确为 Phase 3 第三项）——**全部确认**；并明写「把这两行改掉，本 plan 即为可执行合同」。
 - Revision after iteration 3（本次修订，逐条对应）：
@@ -1113,7 +1113,7 @@ Exit Criteria:
   并按路径分开写——`agenerp/` 断言为空、判定器断言「`skipped` 分支没有被删」而不是「文件为空」（BLOCKING-B）；
   六条 nit 全部就地采纳（14 框、五条、STATE 提交后再跑的执行顺序、`--numstat` 措辞与
   「为什么 deletions=0 等于只追加」的解释、「两个 mission 循环」明确单位、
-  以及把 `bd32959` → `1	1` 这个真实历史反例写进判据旁边作为「这条判据不是仪式」的证据）。
+  以及把 `d21dcfe` → `1	1` 这个真实历史反例写进判据旁边作为「这条判据不是仪式」的证据）。
 - Independent draft review iteration 4: **acceptable as-is** —— **共识达成**（同一独立评审者，2026-08-22）。
   逐条复验了本轮六处改动，全部确认，并把 BLOCKING-A 的新 grep **端到端跑了一遍**：
   `grep -n 'verdict-tool-untouched' docs/plans/p0-foundation/2026-08-22-0027-2-*.md` → 3 处命中，
@@ -1123,7 +1123,7 @@ Exit Criteria:
   BLOCKING-B 处逐个扫过全文的 `git diff` 出现位置：剩下的裸 `git diff` 只出现在
   「引用 CI 自己的命令」「陈述那条规矩本身」「评审记录叙述」三类地方，**没有任何一条判据在用它**。
   另复核：Closure Gates 实测 14 框与文中「十四框」一致、五条自查与命令数一致、
-  STATE 提交后再跑的执行顺序在位、`--numstat` 措辞与 `bd32959` → `1	1` 的实证一致、
+  STATE 提交后再跑的执行顺序在位、`--numstat` 措辞与 `d21dcfe` → `1	1` 的实证一致、
   「两个 mission 循环」单位明确。回归检查：Anti-Slacking 零违规、
   `grep -B5 '^- \[ \]' | grep -c 'Status: completed'` → **0**、三个 Phase 均 `planned`、6 条 Deferred 全带重开事件。
   评审结论逐字：「The plan crosses no red line; it does not loosen any gate and closes one pre-existing unprotected surface.」
@@ -1258,18 +1258,18 @@ Closure Audit Evidence:
 
 - Auditor / Agent: 独立关闭审计子代理（fresh session，与起草/执行会话分离，2026-08-22）。
   四轮独立草案评审记录在 `## Draft Review Record`，第四轮 `acceptable as-is`。
-- 审计基线：`HEAD` = `488df9e`（`git status --porcelain` 输出为空，干净树），开工 sha = `084c9c4`。
+- 审计基线：`HEAD` = `b15a674`（`git status --porcelain` 输出为空，干净树），开工 sha = `d6c9900`。
 - **实跑复核（审计会话现场跑的，不是抄执行记录）**：
 
   | 命令 | 结果 |
   |---|---|
   | `python3 tools/gates/check_expected_red.py && python3 -m pytest tests/unit -q` | `判定模式：default …` / `门禁 19 项：预期红 7，绿 12，跳过 0` / `✅ 与预期红名单完全一致` / `205 passed` → **exit 0** |
   | `ruff check agenerp tests/unit tests/contracts` | `All checks passed!` → **exit 0** |
-  | `git diff --stat 084c9c4..HEAD -- tests/gates .github/workflows docs/masterplan missions tools/gates/expected-red.txt` | 只列出 `docs/masterplan/STATE.md` 一行（18 insertions），其余四条路径零命中 |
+  | `git diff --stat d6c9900..HEAD -- tests/gates .github/workflows docs/masterplan missions tools/gates/expected-red.txt` | 只列出 `docs/masterplan/STATE.md` 一行（18 insertions），其余四条路径零命中 |
   | `git status --porcelain -- tests/gates .github/workflows docs/masterplan missions tools/gates/expected-red.txt` | 无输出 |
-  | `git diff --numstat 084c9c4..HEAD -- docs/masterplan/STATE.md` | `18	0` → deletions = 0 ⇒ **只追加** |
-  | `git diff --numstat 084c9c4..HEAD -- tools/gates/expected-red.txt` | 无输出 ⇒ 名单一行未动 |
-  | `git diff --stat 084c9c4..HEAD -- agenerp` / `git status --porcelain -- agenerp` | 两条均无输出 ⇒ 变异 ① 与 Phase 2 负向对照均已复原，零产品行为发布 |
+  | `git diff --numstat d6c9900..HEAD -- docs/masterplan/STATE.md` | `18	0` → deletions = 0 ⇒ **只追加** |
+  | `git diff --numstat d6c9900..HEAD -- tools/gates/expected-red.txt` | 无输出 ⇒ 名单一行未动 |
+  | `git diff --stat d6c9900..HEAD -- agenerp` / `git status --porcelain -- agenerp` | 两条均无输出 ⇒ 变异 ① 与 Phase 2 负向对照均已复原，零产品行为发布 |
   | `git status --porcelain -- tools/gates/check_expected_red.py` | 无输出；活文件第 105 / 115 / 134 行 `if skipped:`、live 侧 `if reds or skipped:`、default 侧 `unexpected_red or unexpected_green or skipped` **三处俱在** ⇒ 变异 ② 已复原 |
   | `grep -n 'verdict-tool-untouched' docs/plans/p0-foundation/2026-08-22-0027-2-*.md` | 7 处命中，**只有第 278 行**以 `- [ ] \`Add\`` 开头（守卫执行项本身），其第 281–285 行逐字写着「**硬边界（前驱定的）：路径清单里不得出现 `tools/gates/expected-red.txt`**」并引 `AGENTS.md` 红线 1 边界句 + Protected Areas 第 2 行 ⇒ 空窗期已被 successor 承接，本 plan 无须升级进 STATE §3 |
 

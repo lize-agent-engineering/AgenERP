@@ -14,9 +14,9 @@
 ## Current Baseline
 
 以下每一条都是 2026-08-21 起草时在**活站点上实测**得来的，不是从旧 plan 抄的。
-起草基线 sha **`3fed439`**。⚠️ 起草过程中 HEAD 动过：`29b52f4` 之后人在 22:21:59 提交了 `3fed439`
+起草基线 sha **`873c97f`**。⚠️ 起草过程中 HEAD 动过：`5dd22a8` 之后人在 22:21:59 提交了 `873c97f`
 （「关闭三条 fixture 阻塞的 needs-human；更正记账」），**把 `STATE.md` §3 里最后三条 `[open]` 全部转成了 `resolved`**。
-本 plan 起草时先写了旧基线，草案评审逐字指出这处过期，已按 `3fed439` 重写——
+本 plan 起草时先写了旧基线，草案评审逐字指出这处过期，已按 `873c97f` 重写——
 **`STATE.md` §3 现在一条 `[open]` 都没有**（`grep -c "^- \[open\]" docs/masterplan/STATE.md` → `0`）。
 栈以 `AGENERP_HTTP_PORT=18080 docker compose up -d --wait --wait-timeout 300` 冷起，exit 0。
 
@@ -27,7 +27,7 @@
   `orphans = schema_drift(doctype="Item")`，断言 `PROBE_FIELD not in orphans`。
 - 该条目前**仍在** `tools/gates/expected-red.txt` 名单内（7 行里的第 3 行）。
 - 同文件另外三条（导出两条 + 删除一条）在 live 环境下已实测转绿（roadmap「5 现状」「6 现状」两行）。
-- **红因由本 plan 起草时在 `3fed439` 上亲自复跑坐实**（不引自任何旧 plan）：
+- **红因由本 plan 起草时在 `873c97f` 上亲自复跑坐实**（不引自任何旧 plan）：
 
 ```
 AGENERP_HTTP_PORT=18080 AGENERP_LIVE=1 AGENERP_SITE=frontend \
@@ -119,7 +119,7 @@ docker compose exec -T backend bench --site frontend execute \
 - **不划 `tools/gates/expected-red.txt`。** 依据是人在 `STATE.md` §2（2026-08-21T11:20Z）的裁定，
   逐字：**「名单必须反映判定器实际看到的，不是我知道的」**——默认判定环境无 `AGENERP_LIVE`，L2 恒红，
   所以本条即使在 live 下转绿也不构成划名单的理由。
-  **这条依据与 §3 无关**：§3 的三条 `[open]` 已由人在 `3fed439`（2026-08-21T14:21Z）全部关闭，
+  **这条依据与 §3 无关**：§3 的三条 `[open]` 已由人在 `873c97f`（2026-08-21T14:21Z）全部关闭，
   本 plan 不声称任何 needs-human 项仍开着。
   因此工作项 6 收尾仍置 `planned` 不置 `done`，与工作项 4/5/7 同一情形。
 - **不碰 `tests/gates/**`**（红线 1）、不碰 `.github/workflows/**`（红线 2）、不碰 `missions/**`、
@@ -420,13 +420,13 @@ Exit Criteria:
 ## Draft Review Record
 
 - **Independent draft review iteration 1: needs revision**（独立子代理，fresh session）。
-  7 条 blocking：① 引用了 `STATE.md` §3 一条**已不存在**的 `[open]`（起草期间 HEAD 从 `29b52f4` 动到
-  `3fed439`，人把最后三条 `[open]` 全转成 `resolved`）；② Phase 2 的 `drop_columns` 没有传输，
+  7 条 blocking：① 引用了 `STATE.md` §3 一条**已不存在**的 `[open]`（起草期间 HEAD 从 `5dd22a8` 动到
+  `873c97f`，人把最后三条 `[open]` 全转成 `resolved`）；② Phase 2 的 `drop_columns` 没有传输，
   且与 Phase 1 的白名单自相矛盾；③ Phase 3 变异验证一的因果结论写错了；
   ④ Phase 3 有三条 exit criteria 没有对应的执行项；⑤ 证据行写去了 §3（needs-human 队列）而不是 §2，
   且漏了同期 plan 都做过的授权链披露；⑥ `Current Baseline` 的承重红因引自旧 plan 而非现场复跑
   （违反 Minimum Rule 1）；⑦ Phase 1 拿 `schema_drift` 和它自己的后端 `trim_table` 对账，什么也证明不了。
-- **Revision after iteration 1**：基线 sha 改成 `3fed439` 并写明 HEAD 动过；红因改成起草时亲自复跑的原文
+- **Revision after iteration 1**：基线 sha 改成 `873c97f` 并写明 HEAD 动过；红因改成起草时亲自复跑的原文
   （exit 1 / `1 failed, 3 passed in 5.61s` / `agenerp/snapshot.py:328`）；Phase 2 新增 DDL 执行机制的
   `Decision`（三候选，选 db 容器直发 DDL）；变异验证一改写成「这是假绿，门禁对巡检坏掉零覆盖」；
   Phase 3 补齐三条执行项；证据行改投 §2 并补披露；交叉验证改用 `information_schema` SQL。
@@ -513,7 +513,7 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: **三个 Phase 全部执行完毕，判据面四条在 live 环境全绿。** 交付基线 sha `e1c9104`。
+Status Note: **三个 Phase 全部执行完毕，判据面四条在 live 环境全绿。** 交付基线 sha `09d652d`。
 
 - **结果面**：`AGENERP_HTTP_PORT=18080 AGENERP_LIVE=1 AGENERP_SITE=frontend AGENERP_SITE_URL=http://127.0.0.1:18080 AGENERP_ADMIN_PASSWORD=admin python3 -m pytest tests/gates/test_customization_roundtrip_delete.py -q`
   → **exit 0**，`4 passed in 10.29s`（含此前唯一仍红的 `::test_no_orphan_column_left_behind`）。
@@ -534,7 +534,7 @@ Closure Audit Evidence:
 
 - Auditor / Agent: **独立关闭审计已完成** —— mission-driver `CLOSURE_VERIFY` 步骤，
   会话 `2026-08-21-191514-mission-driver`，**不是执行步骤自审**（执行侧留的「待填」由本轮填掉）。
-  审计基线 sha **`4c4133c`**（`docs/plans` 之外的树与执行收尾时一致）。
+  审计基线 sha **`66064d9`**（`docs/plans` 之外的树与执行收尾时一致）。
 - Evidence: 审计**没有采信 plan 里已抄的退出码，而是把承重命令逐条原样复跑了一遍**，
   下列每条都是本轮审计现场的输出：
   - `AGENERP_HTTP_PORT=18080 AGENERP_LIVE=1 AGENERP_SITE=frontend AGENERP_SITE_URL=http://127.0.0.1:18080 AGENERP_ADMIN_PASSWORD=admin python3 -m pytest tests/gates/test_customization_roundtrip_delete.py -q`
@@ -545,8 +545,8 @@ Closure Audit Evidence:
     `ruff check agenerp tests/unit tests/contracts` → **exit 0** `All checks passed!`。
   - 默认环境（不带 `AGENERP_LIVE`）`python3 tools/gates/check_expected_red.py` → **exit 0**，
     「门禁 19 项：预期红 7，绿 12，跳过 0 / ✅ 与预期红名单完全一致」。
-  - **红线核对**（`git diff --stat 3fed439..HEAD -- tests/gates .github/workflows docs/masterplan/DECISIONS.md tools/gates/expected-red.txt missions`）
-    → **无输出**；`git diff --numstat 3fed439..HEAD -- docs/masterplan/STATE.md` → **`9 0`**（只追加，零删除）。
+  - **红线核对**（`git diff --stat 873c97f..HEAD -- tests/gates .github/workflows docs/masterplan/DECISIONS.md tools/gates/expected-red.txt missions`）
+    → **无输出**；`git diff --numstat 873c97f..HEAD -- docs/masterplan/STATE.md` → **`9 0`**（只追加，零删除）。
   - **Anti-Hollow 现场核对**：`agenerp/snapshot.py:325-353` 的 `schema_drift` 已是实现、返回
     `tuple[str, ...]`，原 `raise NotImplementedError` 整条不在了；
     `agenerp/apply.py:251` 的 `execute_plan` 在删完 Custom Field 后**真的调**
@@ -584,7 +584,7 @@ Closure Audit Evidence:
   `agenerp/site.py:1-5` 已改成「唯一经 HTTP/REST」并点名 `oob.py` 是第二条传输；
   `module-boundaries.md:577` 改成「唯一 HTTP 传输落点（物理层那条在 §11.8）」；
   `:339` 新增「站点侧**物理列**删除的唯一出口」与 `:338` 的字段出口并列；§11.8 已落地（`:630-696`）。
-- **落盘前第三次独立复跑（CLOSURE 落盘步，2026-08-21，基线 sha `4c4133c` + 未提交的本文件改动）**：
+- **落盘前第三次独立复跑（CLOSURE 落盘步，2026-08-21，基线 sha `66064d9` + 未提交的本文件改动）**：
   把上面每条承重命令**又原样跑了一遍**，退出码单独取 `$?`，不引用上一段的数字：
   `python3 tools/gates/check_expected_red.py` → **0**（门禁 19 项：预期红 7，绿 12，跳过 0 · ✅ 与预期红名单完全一致）·
   `python3 -m pytest tests/unit -q` → **0**（189 passed in 0.61s）·

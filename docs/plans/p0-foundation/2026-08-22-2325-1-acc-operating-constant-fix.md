@@ -11,7 +11,7 @@
 
 ## Current Baseline
 
-**这一节全部来自 2026-08-22 对 `20f5679` 的实读，不是回忆。**
+**这一节全部来自 2026-08-22 对 `d18ebe3` 的实读，不是回忆。**
 
 - `agenerp/seed/model.py:60` 逐字 `ACC_OPERATING = "生产费用（计入估值）- XM"` —— `- XM` 前**少一个空格**。
   同文件另外 10 个 `ACC_*`（`:55`–`:65`）与 4 个 `WH_*`（`:26`–`:29`）全部是 ` - XM`。
@@ -556,7 +556,7 @@ Closure Audit Evidence:
 
 - Auditor / Agent: **独立关闭审计**（`MISSION_DRIVER:2026-08-22-185331-mission-driver` 的独立审计步骤，
   与四个 Phase 的执行者不是同一会话；执行者未自证）。
-- 审计日期：2026-08-23，审计基线 `215e28d`（工作树 `git status --short` 无输出）。
+- 审计日期：2026-08-23，审计基线 `af9a060`（工作树 `git status --short` 无输出）。
 - **审计不是读 plan，是原样复跑**。命令原文与退出码逐字：
 
 ```
@@ -565,7 +565,7 @@ $ python3 -m pytest tests/contracts -q                   → exit 0（151 passed
 $ ruff check agenerp tests/unit tests/contracts          → exit 0（All checks passed!）
 $ python3 tools/gates/check_expected_red.py              → exit 0（门禁 19 项：预期红 7，绿 12，跳过 0）
 $ python3 -m agenerp.seed --seed 42 --verify             → exit 0（✅ 种子 42：两次生成 diff 为空，场景断言全过）
-$ git diff --numstat 20f5679..HEAD -- tests/gates .github/workflows docs/masterplan/DECISIONS.md → 无输出
+$ git diff --numstat d18ebe3..HEAD -- tests/gates .github/workflows docs/masterplan/DECISIONS.md → 无输出
 ```
 
 - **变异验证由审计方独立重做了一次**（不采信 plan 的记录）：
@@ -587,10 +587,10 @@ $ git diff --numstat 20f5679..HEAD -- tests/gates .github/workflows docs/masterp
   ⑤ `LoadReport.mismatches` 机制仍在（`agenerp/seedsite.py` 的 `record` / `lines` / 比对分支未删）；
   ⑥ `docs/architecture/module-boundaries.md` §12.9 原段一行未删、其后改准块把三句**分开**判
   （①为假 / ②仍为真 / ③历史陈述只加前向指引），新增 §12.11 含三候选表、26 处调用点枚举与残余风险；
-  ⑦ `docs/bugs/01-...md` `> Status:` 为 `fixed（2026-08-23）` 且点名本 plan id 与 sha `dcefafa`；
+  ⑦ `docs/bugs/01-...md` `> Status:` 为 `fixed（2026-08-23）` 且点名本 plan id 与 sha `bbd25ae`；
   ⑧ `283 → 288` 两处已改准（`module-boundaries.md:1142` · `project-context.md:57`），表结构未动；
   ⑨ roadmap 新增 `| 7 现状 |` 一行、工作项 7 状态值仍 `planned`，
-  `git diff --numstat 20f5679..HEAD` 对 roadmap 为 `1 0`、对 `STATE.md` 为 `14 0`（**删除列均为 0**）;
+  `git diff --numstat d18ebe3..HEAD` 对 roadmap 为 `1 0`、对 `STATE.md` 为 `14 0`（**删除列均为 0**）;
   ⑩ `docs/logs/2026/08-22.md`（`30 0`）与 `docs/logs/2026/08-23.md`（`47 0`）均已更新。
 - **红线自查（审计方独立跑）**：本 plan 落地的全部改动文件共 13 个，
   `tests/gates/**` · `.github/workflows/**` · `docs/masterplan/DECISIONS.md` **一个字节未改**；
@@ -599,4 +599,4 @@ $ git diff --numstat 20f5679..HEAD -- tests/gates .github/workflows docs/masterp
   —— **验证范围限于本机，不含 CI，这不是 full green**；CI 覆盖面归本批第二个 plan
   `2026-08-22-2325-2`。
 - 可复跑的完整清单另见 Phase 1–4 的四个「实跑记录」小节与
-  `docs/logs/2026/08-22.md` / `docs/logs/2026/08-23.md`；落地 sha `dcefafa`。
+  `docs/logs/2026/08-22.md` / `docs/logs/2026/08-23.md`；落地 sha `bbd25ae`。

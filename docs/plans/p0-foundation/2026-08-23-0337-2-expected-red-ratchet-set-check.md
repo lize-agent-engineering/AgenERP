@@ -14,7 +14,7 @@
 
 ## Current Baseline
 
-全部为 2026-08-23 在 `main`（`7a09ef7`）上的实读，行号逐条核对过。
+全部为 2026-08-23 在 `main`（`622bc4e`）上的实读，行号逐条核对过。
 ⚠️ **工作树此刻不干净**（4 个 `M` + 2 个 `??`，全是文档与 plan 文件），与本 plan 的改动面零交集；
 提交时 `git add` 只列本 plan 自己动的路径，**不用 `git add -A`**。
 
@@ -186,7 +186,7 @@ Skill: `none`
       逐对比对**归一化后的条目集合**（口径按 D2①，对齐 `load_allowlist()`）。
       ⚠️ **方法的两条限定必须一并写下，不许让它看起来比实际更一般**（第 4 轮抓出）：
       ① 这样取到的是「本次提交 vs **上一个改过该文件的**提交」，**不是 vs 父提交**；
-      ② `--follow` 是为了跨过 2026-08-21 `920ce0e` 那次从 `tests/gates/` 的搬迁。
+      ② `--follow` 是为了跨过 2026-08-21 `4bbe3f5` 那次从 `tests/gates/` 的搬迁。
       **今天触及该文件的提交数是个位数**（开工时实读并记下确切数字），
       因此这两条限定不改变结论，**但结论必须按这个范围来写，不得写成「全历史已穷尽」**。
       ⚠️ **实现上一律用命令替换把两侧读进变量再比，不得用 `comm -13 <(…) <(…)`**（Baseline 14）——
@@ -246,9 +246,9 @@ Skill: `none`
 - ⚠️ **本 plan 后续一切前缀性 `diff` 的基线行数以 `441` 为准，不是 404。**
 - 工作树开工时**干净**（`git status --porcelain` **无输出**）—— 与起草时记的「4 个 `M` + 2 个 `??`」不同，**按实测记**。
 - `git rev-list --left-right --count main...origin/main` → `1	0`：本地 `main` 领先 `origin/main` 一条
-  **纯文档提交** `53e88db`（`git diff --stat origin/main..main` → `1 file changed, 14 insertions(+), 2 deletions(-)`，
+  **纯文档提交** `1314a33`（`git diff --stat origin/main..main` → `1 file changed, 14 insertions(+), 2 deletions(-)`，
   只动 `0337-1` 的 plan 文件），与本 plan 改动面零交集。
-  **`origin/main` = `115f12d721041ae6c85b3494bd1d5e92657f74c2`**，本 plan 全文的分支比较一律以它为基线（D6）。
+  **`origin/main` = `5c7dd87b7804e00ce4f332c823274a2ea7129fbb`**，本 plan 全文的分支比较一律以它为基线（D6）。
 
 **归一化函数原文**（D2① 钉死的那一个；Proof A 与 Phase 3 的本机十二条输入共用同一份 `/tmp/0337-2/norm.sh`）：
 
@@ -263,24 +263,24 @@ norm(){ awk '{l=$0; sub(/^[[:space:]]+/,"",l); sub(/[[:space:]]+$/,"",l);
 
 | # | sha | 提交时间 | 该 sha 上的路径 | 标题 |
 |---|---|---|---|---|
-| 1（最老） | `bbbffc59ac156d171f4b5f1f2dce4b9731f3e733` | 2026-08-20T22:57:09+08:00 | `tests/gates/EXPECTED_RED.txt` | ci(gates): CI 门禁 + 预期红名单棘轮（W0.7 本地部分） |
-| 2 | `e145e43cb503d9be3ef09bdb236d47ab64c65b0f` | 2026-08-21T09:56:19+08:00 | `tools/gates/expected-red.txt` | feat(p0-foundation): plan-2026-08-20-2341-3 快照与结构化 diff 实现 |
-| 3 | `920ce0ecc410ad4fb17cfdeae8a2cfc55a6542e7` | 2026-08-21T09:56:56+08:00 | `tools/gates/expected-red.txt` | fix(gates): 预期红名单迁出红线；判定面补单测；写回区分两种退出码 2 |
-| 4（最新） | `ba7bdae30bdd9a141a4b880c48b261342c81befc` | 2026-08-21T11:38:21+08:00 | `tools/gates/expected-red.txt` | feat(p0-foundation): 零依赖启动 compose + §14 规则判据（工作项 3 L1） |
+| 1（最老） | `f844f8459101344adb8e41011fc4d570571ba2da` | 2026-08-20T22:57:09+08:00 | `tests/gates/EXPECTED_RED.txt` | ci(gates): CI 门禁 + 预期红名单棘轮（W0.7 本地部分） |
+| 2 | `9292b5be3028a786e94c5dd4d0d88e5e43563980` | 2026-08-21T09:56:19+08:00 | `tools/gates/expected-red.txt` | feat(p0-foundation): plan-2026-08-20-2341-3 快照与结构化 diff 实现 |
+| 3 | `4bbe3f5fe37e74bac65009e9221fe7d8fc395c2a` | 2026-08-21T09:56:56+08:00 | `tools/gates/expected-red.txt` | fix(gates): 预期红名单迁出红线；判定面补单测；写回区分两种退出码 2 |
+| 4（最新） | `327bb017083eccad380a2edd3a713eb857815e2a` | 2026-08-21T11:38:21+08:00 | `tools/gates/expected-red.txt` | feat(p0-foundation): 零依赖启动 compose + §14 规则判据（工作项 3 L1） |
 
 逐对比对**归一化后的条目集合**。⚠️ **两侧一律用命令替换读进变量再写临时文件 `comm`，
 全程没有用 `comm -13 <(…) <(…)`**（Baseline 14：进程替换里的读失败不被 `set -euo pipefail` 捕获）：
 
 | 提交对 | **新增条目** | 删除条目 | 判定 |
 |---|---|---|---|
-| `bbbffc5` → `e145e43` | **（无）** | （无） | 只是搬迁，集合逐条相同（各 13 条） |
-| `e145e43` → `920ce0e` | **（无）** | 5 条（`test_normalizer_idempotent.py` 的 3 条 + `test_snapshot_diff_structured.py` 的 2 条） | 纯变短，合规 |
-| `920ce0e` → `ba7bdae` | **（无）** | 1 条（`test_zero_dep_boot.py::test_compose_config_valid_with_empty_env`） | 纯变短，合规 |
+| `f844f84` → `9292b5b` | **（无）** | （无） | 只是搬迁，集合逐条相同（各 13 条） |
+| `9292b5b` → `4bbe3f5` | **（无）** | 5 条（`test_normalizer_idempotent.py` 的 3 条 + `test_snapshot_diff_structured.py` 的 2 条） | 纯变短，合规 |
+| `4bbe3f5` → `327bb01` | **（无）** | 1 条（`test_zero_dep_boot.py::test_compose_config_valid_with_empty_env`） | 纯变短，合规 |
 
 **结论：3 个提交对，新增条目一律为空 —— 本仓至今没有出现过一次「增行」或「等长交换」。**
 因此本 plan 是**预防性加严**，**不得**被写成「修了一个已发生的漏洞」（Task Route 逐字要求）。
 **无 sha 需要点名**，**无需升级进 `STATE.md` §3**。
-`ba7bdae` 的集合与当前 `HEAD` 的集合逐条相同（`comm` 两侧均空），当前 **7 条条目**。
+`327bb01` 的集合与当前 `HEAD` 的集合逐条相同（`comm` 两侧均空），当前 **7 条条目**。
 
 **方法的两条限定照实写下，不让它看起来比实际更一般**：
 ① 这样取到的是「本次提交 vs **上一个改过该文件的**提交」，**不是 vs 父提交**；
@@ -302,15 +302,15 @@ git worktree add ../agenerp-0337-2-exp ci/0337-2-experiments
 `git worktree list` 实测输出：
 
 ```
-/Users/lize/Claude/Projects/AgenERP                             53e88db [main]
-/Users/lize/Claude/Projects/agenerp-0337-2-exp                  115f12d [ci/0337-2-experiments]
+/Users/lize/Claude/Projects/AgenERP                             1314a33 [main]
+/Users/lize/Claude/Projects/agenerp-0337-2-exp                  5c7dd87 [ci/0337-2-experiments]
 /Users/lize/Claude/Projects/AgenERP/_tmp/ab/codex-sol/worktree  96773d0 [ab/codex-sol]
 ```
 
 主检出 `git branch --show-current` → **`main`**；
 `git status --porcelain -- docs/` → **无输出** —— 这一行是 D6 的机械判据**基线**，Phase 4 每次推送前后与它逐字比对。
 
-**等长交换的构造**（实验分支上的提交 `ce9539e4994a5a3b23e42924e3cc803a1f16bd05`）：
+**等长交换的构造**（实验分支上的提交 `3517b5a9d3fff7742c3b1f8b6a09d44ac531b2bc`）：
 
 - **删** `X = tests/gates/test_snapshot_diff_structured.py::test_field_addition_shows_up_as_structured_change`（当前**红**）
 - **加** `Y = tests/gates/test_normalizer_idempotent.py::test_normalize_orders_deterministically`（当前**绿**）
@@ -322,7 +322,7 @@ git worktree add ../agenerp-0337-2-exp ci/0337-2-experiments
 （`gates.yml:6-10` 是 `on: push: branches:[main]` + `pull_request` + `workflow_dispatch`，
 **不开 PR 这一跑按构造不存在**。）
 
-**run id `32604019998`**（event `pull_request`，head `ce9539e4994a5a3b23e42924e3cc803a1f16bd05`，
+**run id `32604019998`**（event `pull_request`，head `3517b5a9d3fff7742c3b1f8b6a09d44ac531b2bc`，
 merge ref `0c12155b8d1101d5fdc54fe31fec289ff5974220`）—— **整跑 `failure`**，13 个 job 中 **12 绿 1 红**：
 
 | job | 结论 |
@@ -391,10 +391,10 @@ verdict() 退出码 = 0
 
 #### 分支侧状态的约束（D6，本 Phase 必须落纸的那一条）
 
-B① 的等长交换**此刻仍留在实验分支 `ci/0337-2-experiments` 的 head（`ce9539e`）上**。
+B① 的等长交换**此刻仍留在实验分支 `ci/0337-2-experiments` 的 head（`3517b5a`）上**。
 ⚠️ **它必须在下一次推送（＝ Phase 4 首跑）里用 `git checkout origin/main -- tools/gates/expected-red.txt` 复原，
 否则预测 ⓪「首跑全部 job `success`」按构造不可达** —— 两个棘轮在 `pull_request` 上取的 `BASE` 都是
-`github.event.pull_request.base.sha` ＝ `origin/main` 的 tip（本跑日志逐字印证：`BASE="115f12d7…"`），
+`github.event.pull_request.base.sha` ＝ `origin/main` 的 tip（本跑日志逐字印证：`BASE="5c7dd87b…"`），
 判的是**整条分支相对 `main` 的累计状态**，不是本次提交的增量。
 ⚠️ **本 Phase 不要求分支已复原**（复原动作属于 Phase 4 首跑那一次提交）；要求的是**这条约束已落纸**，
 且已被 **Phase 4 的首项逐字引用**（该项标题内即含 `git checkout origin/main -- tools/gates/expected-red.txt`）。
@@ -902,7 +902,7 @@ N=$(grep -c '\${{' /tmp/0337-2/from-yaml.sh || true); echo "占位符计数=$N";
 ⚠️ **⑧b 是「绝不许为了让 ⑧ 变绿而加『`OLD` 为空 → exit 0』特例」那条禁令的实证**：基线空 + 新名单非空**必须红**。
 ⚠️ **⑨ 证明 fail-closed**（Baseline 14）。⚠️ **⑩⑪ 是 D2③④ 的唯一落点，本机级，不占 CI 轮次。**
 
-**红线 2 机械自查五条**（基线为 worktree 的 `HEAD` ＝ `ce9539e`，`gates.yml` **441 行**，**不是 404**）：
+**红线 2 机械自查五条**（基线为 worktree 的 `HEAD` ＝ `3517b5a`，`gates.yml` **441 行**，**不是 404**）：
 
 | # | 命令原文 | 实测输出 | 判定 |
 |---|---|---|---|
@@ -1059,11 +1059,11 @@ Skill: `none`
 **Phase 4 实测证据（2026-08-23；七次推送全部落在 PR #10 / 分支 `ci/0337-2-experiments` 上）**
 
 ⚠️ **取证与记录的时间差，照实写明**：七次推送与它们的 CI run 在**上一轮执行**里已经跑完
-（提交 `88f9a3e`–`49dce8f`，run 时间 2026-08-22T23:18Z–23:52Z），该轮在把结论写回本 plan 之前中断。
+（提交 `a48d8f2`–`e62aafa`，run 时间 2026-08-22T23:18Z–23:52Z），该轮在把结论写回本 plan 之前中断。
 本节的**全部 job 结论与日志行**取自 `gh run view <run id> --json jobs` 与 `gh run view <run id> --log`
 的**实跑输出**（即 CI 服务端记录本身，不是复述）；
 **D6 机械前置那一列**是本轮按分支上已固化的 sha **逐条原样重跑**
-（`git diff origin/main..<sha> -- tools/gates/expected-red.txt`，`origin/main` 此刻 = `115f12d7`
+（`git diff origin/main..<sha> -- tools/gates/expected-red.txt`，`origin/main` 此刻 = `5c7dd87b`
 = 这七次 run 的 PR base，**与 CI 当时用的 `$BASE` 逐字同一个 sha**，因此两侧比对的是同一对树）。
 **不主张这一列是「推送前跑的」**，只主张它与推送前那条命令**输入相同、因此输出相同**。
 
@@ -1071,14 +1071,14 @@ Skill: `none`
 
 | 序 | 推送 | head sha | run id | `expected-red-superset` | `expected-red-ratchet` | `gates-l1` | 整跑 | 预测 | 判定 |
 |---|---|---|---|---|---|---|---|---|---|
-| — | **Phase 1 B①**（不占本组编号，计入裁判规则 4） | `ce9539e4` | `32604019998` | **该 job 尚不存在**（13 job） | **`success`** | **`failure`** | **红** | Phase 1（整跑红） | ✅ |
-| 1 | 首跑（复原 B① + 追加新 job） | `88f9a3ee` | `32604844351` | **`success`** | `success` | `success` | **绿**（14 job 全绿） | **⓪** | ✅ |
-| 2 | **实验 ①（等长交换，无 trailer）** | `05f844ca` | `32605108419` | **`failure`** | **`success`** | `failure` | **红** | **①** | ✅ |
-| 3 | 实验 ③（改注释 + 调行序） | `cb5b1275` | `32605351055` | `success` | `success` | `success` | **绿**（14 job 全绿） | **③** | ✅ |
-| 4 | 实验 ②（纯删除一条） | `1645ada9` | `32605573715` | **`success`** | **`success`** | `failure` | **红** | **②** | ✅ |
-| 5 | clean 绿跑（名单复原到基线） | `bb9d9e06` | `32605776060` | `success` | `success` | `success` | **绿**（14 job 全绿） | **⑤** | ✅ |
-| 6 | 实验 ④（增行 + 批准 trailer） | `a94a9731` | `32605983516` | **`success`** | `success` | `failure` | **红** | **④** | ✅ |
-| 7 | 最终 revert 全绿跑 | `49dce8fb` | `32606391200` | `success` | `success` | `success` | **绿**（14 job 全绿） | **⑥** | ✅ |
+| — | **Phase 1 B①**（不占本组编号，计入裁判规则 4） | `3517b5a9` | `32604019998` | **该 job 尚不存在**（13 job） | **`success`** | **`failure`** | **红** | Phase 1（整跑红） | ✅ |
+| 1 | 首跑（复原 B① + 追加新 job） | `a48d8f26` | `32604844351` | **`success`** | `success` | `success` | **绿**（14 job 全绿） | **⓪** | ✅ |
+| 2 | **实验 ①（等长交换，无 trailer）** | `0520412e` | `32605108419` | **`failure`** | **`success`** | `failure` | **红** | **①** | ✅ |
+| 3 | 实验 ③（改注释 + 调行序） | `b9dad752` | `32605351055` | `success` | `success` | `success` | **绿**（14 job 全绿） | **③** | ✅ |
+| 4 | 实验 ②（纯删除一条） | `0d98bf68` | `32605573715` | **`success`** | **`success`** | `failure` | **红** | **②** | ✅ |
+| 5 | clean 绿跑（名单复原到基线） | `073562a0` | `32605776060` | `success` | `success` | `success` | **绿**（14 job 全绿） | **⑤** | ✅ |
+| 6 | 实验 ④（增行 + 批准 trailer） | `3bf1160e` | `32605983516` | **`success`** | `success` | `failure` | **红** | **④** | ✅ |
+| 7 | 最终 revert 全绿跑 | `e62aafae` | `32606391200` | `success` | `success` | `success` | **绿**（14 job 全绿） | **⑥** | ✅ |
 
 **七条预测 ⓪–⑥ 全部命中，零条未预测的红**，因此 `## Deferred But Adjudicated` 的固定处置**未被触发**。
 ⚠️ **四条绿预测（⓪③⑤⑥）上没有用到任何一次豁免**：`gates-l1` 的间歇性豁免与
@@ -1132,18 +1132,18 @@ Skill: `none`
 即三次红**没有一次**是那条已登记的间歇性造成的 —— 间歇性豁免因此从未被援引（见上）。
 
 **D6 机械前置逐跑输出（命令原文：`git diff origin/main..<sha> -- tools/gates/expected-red.txt`，
-`origin/main` = `115f12d7`；下表只列 `+`/`-` 行）**
+`origin/main` = `5c7dd87b`；下表只列 `+`/`-` 行）**
 
 | 序 | sha | 输出 | 期望 | 判定 |
 |---|---|---|---|---|
-| — | `ce9539e` | `-…test_snapshot_diff_structured.py::test_field_addition_shows_up_as_structured_change` / `+…test_normalizer_idempotent.py::test_normalize_orders_deterministically` | B① 的等长交换，恰好一处 | ✅ |
-| 1 | `88f9a3e` | **无输出** | **无输出** | ✅ |
-| 2 | `05f844c` | 同 B① 的那一对 `-`/`+`（等长交换，恰好一处） | 恰好只含实验 ① 那一处 | ✅ |
-| 3 | `cb5b127` | 1 条注释行改动（`-#` → `+#  （本行注释由 plan 0337-2 实验 ③ 改动：反误伤取证，条目集合不变）`，**第 0 列注释行**）+ 6 条条目的**行序倒置**（6 `-` / 6 `+`，集合逐字相同） | 恰好只含实验 ③ 那一处（改注释 + 调行序，集合不变） | ✅ |
-| 4 | `1645ada` | 单条 `-…test_snapshot_diff_structured.py::test_field_addition_shows_up_as_structured_change`，**零 `+` 行** | 恰好只含实验 ② 那一处（纯删除） | ✅ |
-| 5 | `bb9d9e0` | **无输出** | **无输出** | ✅ |
-| 6 | `a94a973` | 单条 `+…test_normalizer_idempotent.py::test_normalize_orders_deterministically`，**零 `-` 行** | 恰好只含实验 ④ 那一处（纯增行） | ✅ |
-| 7 | `49dce8f` | **无输出** | **无输出** | ✅ |
+| — | `3517b5a` | `-…test_snapshot_diff_structured.py::test_field_addition_shows_up_as_structured_change` / `+…test_normalizer_idempotent.py::test_normalize_orders_deterministically` | B① 的等长交换，恰好一处 | ✅ |
+| 1 | `a48d8f2` | **无输出** | **无输出** | ✅ |
+| 2 | `0520412` | 同 B① 的那一对 `-`/`+`（等长交换，恰好一处） | 恰好只含实验 ① 那一处 | ✅ |
+| 3 | `b9dad75` | 1 条注释行改动（`-#` → `+#  （本行注释由 plan 0337-2 实验 ③ 改动：反误伤取证，条目集合不变）`，**第 0 列注释行**）+ 6 条条目的**行序倒置**（6 `-` / 6 `+`，集合逐字相同） | 恰好只含实验 ③ 那一处（改注释 + 调行序，集合不变） | ✅ |
+| 4 | `0d98bf6` | 单条 `-…test_snapshot_diff_structured.py::test_field_addition_shows_up_as_structured_change`，**零 `+` 行** | 恰好只含实验 ② 那一处（纯删除） | ✅ |
+| 5 | `073562a` | **无输出** | **无输出** | ✅ |
+| 6 | `3bf1160` | 单条 `+…test_normalizer_idempotent.py::test_normalize_orders_deterministically`，**零 `-` 行** | 恰好只含实验 ④ 那一处（纯增行） | ✅ |
+| 7 | `e62aafa` | **无输出** | **无输出** | ✅ |
 
 ⚠️ **实验 ③ 的注释改动确实落在第 0 列**（`-#` 起头），没有踩预测 ③ 里写死的那个坑
 （缩进注释会被两侧口径都收成条目 → 假红 → 三连红）—— 这一跑 **14 job 全绿**即是它的实证。
@@ -1159,7 +1159,7 @@ B①(红) → 首跑(绿) → ①(红) → ③(绿) → ②(红) → clean(绿) 
 **CI 预算实填**：本 Phase **7** 次 run，加 Phase 1 B① 的 **1** 次，**本 plan 合计 8 次**
 （与 Phase 4 开头写下的预算逐字相符；落地 PR 与 `main` 权威运行另计，见 Phase 5）。
 
-**实验 ④ 落在「一次通过」**：`expected-red-superset` 在 `a94a9731` 上**首次 attempt 即 `success`**，
+**实验 ④ 落在「一次通过」**：`expected-red-superset` 在 `3bf1160e` 上**首次 attempt 即 `success`**，
 **没有跑过 `gh run rerun --failed`**，因此**不触发**「两次 attempt 结论不同 → 记为不可复现」那一支。
 ⚠️ **但这不推翻 Baseline 11 那条 `[open]`**：一次通过只是**一个成功样本**，
 `STATE.md` §3 那条不可复现风险**仍然 `[open]`**，本 plan **不修它、不关它**
@@ -1173,7 +1173,7 @@ git diff --numstat origin/main..ci/0337-2-experiments -- .github/workflows/gates
 ```
 
 ⚠️ **必须原样记下的限定（不得省略）**：这次 revert 全绿是在**实验分支**上取得的，
-而该分支历史里含着实验 ④ 那条假 trailer 提交（`a94a973`，trailer 值逐字
+而该分支历史里含着实验 ④ 那条假 trailer 提交（`3bf1160`，trailer 值逐字
 `Gates-Change-Approved-By: EXPERIMENT-NOT-A-REAL-APPROVAL`）。
 此刻它**不构成实际绕过** —— 净 diff 为零 → 两个棘轮都在「无新增 / 无变长」处提前 `exit 0`，
 根本没有走到批准出口（第 7 跑的两条日志行逐字为 `✅ 名单未新增条目` / `✅ 名单没有变长`，
@@ -1364,17 +1364,17 @@ Skill: `none`
 取权威运行 `32607062968`）→ 文档面**后落**（`ci/0337-2-docs` → PR #12，正文引用那次 run id）。
 **反过来会让 §14.8 引用一个还不存在的 run。**
 
-⚠️ **一条必须先记下的前置事实**：开工时**本地 `main` 领先 `origin/main` 一条提交**（`53e88db`，
+⚠️ **一条必须先记下的前置事实**：开工时**本地 `main` 领先 `origin/main` 一条提交**（`1314a33`，
 前驱 plan `0337-1` 的关闭审计打勾提交，纯文档）。落地分支的机械前置 ① 判的是
 `origin/main..ci/0337-2-land` **只有 1 条提交**，若不先把它推上去，该前置按构造为假。
-**处置**：先 `git push origin main`（`115f12d..53e88db`），再从 `main` 切落地分支。
+**处置**：先 `git push origin main`（`5c7dd87..1314a33`），再从 `main` 切落地分支。
 该提交属于前驱 plan、与本 plan 改动面零交集。
 
 **落地分支 `ci/0337-2-land` 的四条机械前置（命令原文 + 实测输出）**
 
 | # | 命令原文 | 实测输出 | 判定 |
 |---|---|---|---|
-| ① | `git log --oneline origin/main..ci/0337-2-land` | 一行：`fe89fa5 feat(ci): plan-2026-08-23-0337-2 —— gates.yml 纯追加 expected-red-superset 一个 job`；`git rev-list --count` → **1** | 只有 1 条提交 ✅ |
+| ① | `git log --oneline origin/main..ci/0337-2-land` | 一行：`f756f50 feat(ci): plan-2026-08-23-0337-2 —— gates.yml 纯追加 expected-red-superset 一个 job`；`git rev-list --count` → **1** | 只有 1 条提交 ✅ |
 | ② | `git diff origin/main..ci/0337-2-land -- tools/gates/` | **无输出**，退 **0** | 账本零改动 ✅ |
 | ③ | `! git log --format=%B origin/main..ci/0337-2-land \| grep -q '^Gates-Change-Approved-By:'` | 退 **0** | 假 trailer 未进 `main` 历史 ✅ |
 | ④ | `git diff ci/0337-2-experiments ci/0337-2-land -- .github/workflows/gates.yml` | **无输出**，退 **0** | **落地的 job 体与被实证过的那一份逐字节相同** ✅ |
@@ -1389,16 +1389,16 @@ Skill: `none`
 **落地记录**
 
 - PR **#11** `ci(0337-2): 落地 expected-red-superset —— 账本棘轮补上集合判据`，
-  PR 上的 run **`32606876626`**（event `pull_request`，head `fe89fa5423525536c35fecab2462957c579a222f`）
+  PR 上的 run **`32606876626`**（event `pull_request`，head `f756f504fa0ed09390bf43e27ca35a4feaa2fb08`）
   → **`success`，14 个 job 全部 `success`**。
-- `git merge --ff-only ci/0337-2-land` → 逐字 `Updating 53e88db..fe89fa5` / `Fast-forward` /
-  `1 file changed, 44 insertions(+)`；`git push origin main` → `53e88db..fe89fa5  main -> main`。
+- `git merge --ff-only ci/0337-2-land` → 逐字 `Updating 1314a33..f756f50` / `Fast-forward` /
+  `1 file changed, 44 insertions(+)`；`git push origin main` → `1314a33..f756f50  main -> main`。
   `gh pr view 11 --json state -q .state` → **`MERGED`**。
-- **落地 sha（全长）`fe89fa5423525536c35fecab2462957c579a222f`。**
+- **落地 sha（全长）`f756f504fa0ed09390bf43e27ca35a4feaa2fb08`。**
   **该 sha 与 PR #11 上跑绿的 head 逐字同一个 sha** —— `gh run view 32606876626 --json headSha` 的
-  `headSha` 逐字为 `fe89fa5423525536c35fecab2462957c579a222f`，`git rev-parse HEAD`（merge 之后）逐字相同。
+  `headSha` 逐字为 `f756f504fa0ed09390bf43e27ca35a4feaa2fb08`，`git rev-parse HEAD`（merge 之后）逐字相同。
   **这个等式在此明写。**
-- `main` 的 `push` **权威运行 `32607062968`**（event `push`，head `fe89fa5423525536c35fecab2462957c579a222f`，
+- `main` 的 `push` **权威运行 `32607062968`**（event `push`，head `f756f504fa0ed09390bf43e27ca35a4feaa2fb08`，
   `createdAt` `2026-08-23T00:08:00Z`）→ **`success`**。**14 个 job 的 job id 与结论**：
 
 | job id | 结论 | name |
@@ -1468,12 +1468,12 @@ grep -rn "expected-red-ratchet\|只能变短" AGENTS.md docs/context/ docs/archi
 | ② | `! git log --format=%B origin/main..ci/0337-2-docs \| grep -q '^Gates-Change-Approved-By:'` | 退 **0** | 无假 trailer ✅ |
 
 PR **#12** `docs(0337-2): owner doc 回填 —— §14.8 · ai-autonomy-policy 两处改准 · roadmap/STATE 追加`，
-PR 上的 run **`32607680682`**（head `21db58fb19c7d3a40c1d6a6e426cf810941af430`）→ **`success`，14 个 job 全部 `success`**；
-`git merge --ff-only ci/0337-2-docs` → `fe89fa5..21db58f`，`gh pr view 12 --json state -q .state` → **`MERGED`**。
-**文档面合并 sha（全长）`21db58fb19c7d3a40c1d6a6e426cf810941af430`。**
+PR 上的 run **`32607680682`**（head `07a26ba36b7d2f423fe63157bb6e132b7defb8c1`）→ **`success`，14 个 job 全部 `success`**；
+`git merge --ff-only ci/0337-2-docs` → `f756f50..07a26ba`，`gh pr view 12 --json state -q .state` → **`MERGED`**。
+**文档面合并 sha（全长）`07a26ba36b7d2f423fe63157bb6e132b7defb8c1`。**
 ⚠️ **本行这三个值是在文档面落地之后由一次「回填提交」补上的**（提交自身的 CI 结论见本节末）——
 按构造它们不可能写在被引用的那次提交里，**照实记，不假装是同一次写下的**；
-做法与前驱 plan `0337-1` 的回填提交（`115f12d`）一致。
+做法与前驱 plan `0337-1` 的回填提交（`5c7dd87`）一致。
 
 **收尾实验 PR**
 
@@ -1481,7 +1481,7 @@ PR 上的 run **`32607680682`**（head `21db58fb19c7d3a40c1d6a6e426cf810941af430
 gh pr comment 10 --body …    # 逐字写明「本 PR 仅用于取证，其中一条提交带伪造的批准 trailer，永不合并」
 gh pr close 10               # → ✓ Closed pull request lize-agent-engineering/AgenERP#10
 gh pr view 10 --json state -q .state      # → CLOSED
-git ls-remote --heads origin ci/0337-2-experiments   # → 49dce8fbe1a92a7329f0c77f70b74dc8e850bc35  refs/heads/ci/0337-2-experiments
+git ls-remote --heads origin ci/0337-2-experiments   # → e62aafae024073cfff41ee00b261241a31ddcdca  refs/heads/ci/0337-2-experiments
 ```
 
 **实验分支未删除**（历史 run 与提交按 sha 仍可访问）。
@@ -1490,7 +1490,7 @@ git ls-remote --heads origin ci/0337-2-experiments   # → 49dce8fbe1a92a7329f0c
 
 - Phase 1–4 全程：主检出 `git branch --show-current` → `main`，全部实验推送在 worktree
   `../agenerp-0337-2-exp` 里做（`git worktree list` 逐字含
-  `/Users/lize/Claude/Projects/agenerp-0337-2-exp  49dce8f [ci/0337-2-experiments]`）。
+  `/Users/lize/Claude/Projects/agenerp-0337-2-exp  e62aafa [ci/0337-2-experiments]`）。
 - Phase 5 **例外且必须例外**：`ci/0337-2-land` 与 `ci/0337-2-docs` 两条分支都在**主检出**上
   `git switch -c` 开出（Phase 2–4 的文档面改动正躺在主检出的工作树里未提交，只有它带得走），
   两次 `--ff-only` 之后主检出切回 `main`。
@@ -1506,10 +1506,10 @@ git ls-remote --heads origin ci/0337-2-experiments   # → 49dce8fbe1a92a7329f0c
 `git diff -- tools/gates/expected-red.txt`（在 `main` 上）→ **无输出**。
 
 **文档面两次 `push` 的 `main` 运行（含回填提交自身，与上表那句「提交自身的 CI 结论见本节末」对应）**：
-`21db58f`（文档面落地）→ run **`32607866670`** → **`success`**；
-`3b32a0c`（回填提交）→ run **`32607887044`** → **`success`**。
+`07a26ba`（文档面落地）→ run **`32607866670`** → **`success`**；
+`d7e0edb`（回填提交）→ run **`32607887044`** → **`success`**。
 ⚠️ **这两次都不是本 plan 的「权威运行」** —— 权威运行是 `gates.yml` 落地那一次（`32607062968`，
-head `fe89fa5423525536c35fecab2462957c579a222f`），两者不得混为一谈。
+head `f756f504fa0ed09390bf43e27ca35a4feaa2fb08`），两者不得混为一谈。
 ⚠️ **本段同样是回填**（第二次回填提交写下），照实记。
 
 Exit Criteria:
@@ -1682,7 +1682,7 @@ Exit Criteria:
   （⑥ 的提交范围多一条假 trailer 提交，且 `gates-l1` 重跑的 19 条里有已登记的间歇性）
   → 收窄为「**两个棘轮 job** 的输入相同」，`gates-l1` 的分歧明确指向那条已登记的间歇性、**不得归因到本 job**。
   **3 条 low 亦已吸收**：Phase 4 `Targets` 的「全部必须 revert 并实测复原」是累积语义遗留措辞，已改准 ·
-  Proof A 的 `git log` 是「vs 上一个改过该文件的提交」而非 vs 父提交、且缺 `--follow` 跨不过 `920ce0e` 那次搬迁
+  Proof A 的 `git log` 是「vs 上一个改过该文件的提交」而非 vs 父提交、且缺 `--follow` 跨不过 `4bbe3f5` 那次搬迁
   → 已加 `--follow` 并写死两条方法限定与「不得写成全历史已穷尽」·
   四条绿预测里的「全部 job `success`」覆盖了三个起 docker/活站点、本 plan 零控制的 job
   → 判据收窄为「三个受控 job `success` + 其余与 `main` 最近一次权威运行同结论」，并写死抖动时的处置。
@@ -1895,7 +1895,7 @@ Exit Criteria:
 
 Status Note: **五个 Phase 全部执行完毕，plan 关闭。** 交付物是 `gates.yml` 上纯追加的一个 job
 `expected-red-superset`（判「新名单必须是旧名单的子集」），补上契约「只能变短」与实现「行数不得变大」
-之间那处**确认的漂移**。落地 sha `fe89fa5423525536c35fecab2462957c579a222f`（PR #11），
+之间那处**确认的漂移**。落地 sha `f756f504fa0ed09390bf43e27ca35a4feaa2fb08`（PR #11），
 `main` `push` 权威运行 `32607062968` **14 job 全绿**。
 既有 `expected-red-ratchet` **一个字未改**，两者并存、合取。
 ⚠️ **`tools/gates/expected-red.txt` 表头三行（`:8` `:9` `:19`）刻意不改**（授权面，不代人批），
@@ -1910,10 +1910,10 @@ Closure Audit Evidence:
   - `python3 tools/gates/check_expected_red.py` → **exit 0**（判定器在关闭时点仍绿）
   - `python3 -m pytest tests/unit -q` → **exit 0**，逐字 `293 passed`（与执行者所记同一个数）
   - `python3 -m pytest tests/contracts -q` → **exit 0**，逐字 `151 passed`（同上）
-  - `git diff --numstat fe89fa5^ fe89fa5` → 逐字 `44	0	.github/workflows/gates.yml`，**单文件、删除列为 0**
+  - `git diff --numstat f756f50^ f756f50` → 逐字 `44	0	.github/workflows/gates.yml`，**单文件、删除列为 0**
     —— 纯追加成立，且 `tests/gates/**` / `tools/gates/**` / `missions/**` / `DECISIONS.md` **不在改动面内**（红线 1/3/4 复核通过）
   - `gh run view 32607062968 --json conclusion,headSha,event,jobs` → `conclusion` `success` · `event` `push` ·
-    `headSha` `fe89fa5423525536c35fecab2462957c579a222f`（与落地 sha **逐字同一个**）· **jobs 计数 14 · 非 success 的 job 集合为空**
+    `headSha` `f756f504fa0ed09390bf43e27ca35a4feaa2fb08`（与落地 sha **逐字同一个**）· **jobs 计数 14 · 非 success 的 job 集合为空**
   - **承重的一对被独立复核**：`gh run view 32605108419 --json jobs` → 逐字
     `预期红名单只能变短` = `success` **且** `预期红名单不得新增条目` = `failure`
     —— 等长交换对既有棘轮隐形、被新 job 拦下，**这是判据本身有牙齿的机械证据，不是推理**
@@ -1932,7 +1932,7 @@ Closure Audit Evidence:
   - `python3 -m pytest tests/contracts -q` → **exit 0**（`151 passed`）
   - `git diff ci/0337-2-experiments ci/0337-2-land -- .github/workflows/gates.yml` → **无输出，exit 0**
   - `! git log --format=%B origin/main..ci/0337-2-land | grep -q '^Gates-Change-Approved-By:'` → **exit 0**
-  - 落地 sha `fe89fa5423525536c35fecab2462957c579a222f`（＝ PR #11 上跑绿的 head，逐字同一个）
+  - 落地 sha `f756f504fa0ed09390bf43e27ca35a4feaa2fb08`（＝ PR #11 上跑绿的 head，逐字同一个）
   - CI run id：`main` 权威运行 **`32607062968`**（14 job 全绿）· PR #11 **`32606876626`**（14 绿）·
     承重实验 **`32605108419`**（新 job 红 + 既有棘轮绿）· 其余六次实验/基线跑见 Phase 4 的对照表
   - `gh pr view 10 --json state -q .state` → **`CLOSED`**；

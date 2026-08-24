@@ -445,7 +445,7 @@ roadmap 工作项 3（plan `docs/plans/p0-foundation/2026-08-21-1022-1-zero-dep-
 （把 diff 范围扩到 `tools/gates/check_expected_red.py` 的 `verdict-tool-untouched` job），
 它由 plan `2026-08-22-0027-2-ci-l2-full-live-gate-coverage.md` 承接。
 **空窗期的两个端点照实记**：起点是本节被写下的那一刻（守卫还没上线），
-终点是 `verdict-tool-untouched` 合并进 `main` 的那一刻——**该终点已于 2026-08-22 到达**：plan `2026-08-22-1206-2` 把两个 job 经 PR #3 `--ff-only` 落进 `main`，**落地 sha `3503f2c`**，`main` push 权威运行 `32572618933` 九个 job 全绿（守卫 job `97030229697`）。**空窗期到此闭合。**
+终点是 `verdict-tool-untouched` 合并进 `main` 的那一刻——**该终点已于 2026-08-22 到达**：plan `2026-08-22-1206-2` 把两个 job 经 PR #3 `--ff-only` 落进 `main`，**落地 sha `a222472`**，`main` push 权威运行 `32572618933` 九个 job 全绿（守卫 job `97030229697`）。**空窗期到此闭合。**
 ⚠️ **起草时那句「该终点尚未到达（PR #1 未合并）」的原文保留在本行历史里，是当时的实测状态，不是错误陈述**；改准的是它的**现时效力**。⚠️ **闭合不等于守卫在 `push` 上已有牙齿**：那次运行走的是 `✅ 未触及判定器` 出口，只证明 `push` 路径能跑通；`push` 上的正向变异实验未做（代价是让 `main` 红一次），已登记为残余。
 空窗期内唯一带牙齿的控制是**自愿**在改判定器的提交上带一行 `Gates-Change-Approved-By:` trailer——
 它当时不是本仓要求的（判定器不在 `gates-untouched` 的路径里，没有任何 job 会检查它），
@@ -467,9 +467,9 @@ roadmap 工作项 3（plan `docs/plans/p0-foundation/2026-08-21-1022-1-zero-dep-
 > ⚠️ **2026-08-22 四次补记，就地改准（确认的 owner-doc 漂移，Minimum Rule 14 不降级）**——
 > **上面这整段「上线状态」已经全部过时，读下面这几行为准**：
 > · **两个 job 已在 `main` 上**：plan `2026-08-22-1206-2` 经新 PR #3 `--ff-only` 落地，
->   **落地 sha `3503f2c89d78f44f94e0e0ff9f6061ca72e90b89`**（与 PR #3 上跑绿的 head 逐字同一个 sha）。
+>   **落地 sha `a22247225220297ed38efd3fd6d1a61c43553ea4`**（与 PR #3 上跑绿的 head 逐字同一个 sha）。
 >   `main` 上 `gates.yml` 现有 **9 个 job 键**，新增两个在末尾，前 190 行逐字节未动。
-> · **`main` push 权威运行 `32572618933`（event `push`，head `3503f2c`）九个 job 全部 `success`**，
+> · **`main` push 权威运行 `32572618933`（event `push`，head `a222472`）九个 job 全部 `success`**，
 >   其中 `gates-l2-live`（job `97030229667`）日志逐字 `门禁 19 项：红 0，绿 19，跳过 0` /
 >   `✅ live 判定：全部门禁绿，零 red、零 skip`。**工作项 9 的关闭判据第一次在 `main` 上成立。**
 > · **上面那句「原因：`gates-l2-live` 在 CI 上第一次跑就红，且原样复跑复现」不再是当前状态**：
@@ -482,7 +482,7 @@ roadmap 工作项 3（plan `docs/plans/p0-foundation/2026-08-21-1022-1-zero-dep-
 > · **`AGENTS.md` 裁判规则 4 那次停机已解除**：`0027-2` 的 `Plan Status` **仍是 `deferred`**，
 >   **由人裁定**，loop 不代翻（本 plan 只在它的 `Closure Audit Log` 追加一行）。
 > · ⚠️ **守卫 `verdict-tool-untouched` 的 `push` 路径**：权威运行里它走的是
->   `BASE="bb83b20…"（github.event.before）; HEAD="3503f2c…"（github.sha）` → `✅ 未触及判定器`。
+>   `BASE="8f5a054…"（github.event.before）; HEAD="a222472…"（github.sha）` → `✅ 未触及判定器`。
 >   **这只证明 `push` 路径能跑通并走到「未触及」分支，不证明它在 `push` 上有牙齿。**
 
 `.github/workflows/gates.yml` 末尾的 **`gates-l2-live`** job 是 live 判定模式在服务端的唯一消费者：
@@ -540,7 +540,7 @@ env 为 `AGENERP_LIVE=1` · `AGENERP_ADMIN_PASSWORD=admin` · `AGENERP_SITE=fron
 `gates-l2` job 的那几条门禁在 CI 上不受预期红名单棘轮保护：有人把它们改绿而不改实现，棘轮不会响。
 **代偿控制**：`gates-untouched` job 仍然拦着对 `tests/gates/**` 的无批准改动，
 而那几条断言就在 `tests/gates/**` 内。
-**这条风险的收口方案是上面的 `gates-l2-live`，它已于 2026-08-22 在 `main` 上生效**（plan `2026-08-22-1206-2`，落地 sha `3503f2c`，`main` push 权威运行 `32572618933` 的 job `97030229667` `success`；⚠️ 起草时那句「尚未在 `main` 上生效（PR #1 未合并）」是当时的实测状态，此处只改准其现时效力）（它走判定器，live 契约比棘轮更紧，且覆盖面是 `gates-l2` 的超集）；
+**这条风险的收口方案是上面的 `gates-l2-live`，它已于 2026-08-22 在 `main` 上生效**（plan `2026-08-22-1206-2`，落地 sha `a222472`，`main` push 权威运行 `32572618933` 的 job `97030229667` `success`；⚠️ 起草时那句「尚未在 `main` 上生效（PR #1 未合并）」是当时的实测状态，此处只改准其现时效力）（它走判定器，live 契约比棘轮更紧，且覆盖面是 `gates-l2` 的超集）；
 本小节原样保留，是因为 `gates-l2` 那条绕开判定器的路径**仍然存在**——
 它只是不再是本仓对 L2 的唯一服务端判定。
 
@@ -586,8 +586,8 @@ env 为 `AGENERP_LIVE=1` · `AGENERP_ADMIN_PASSWORD=admin` · `AGENERP_SITE=fron
 plan `2026-08-22-0027-2` 自己逐字写着「拿不到这三条，守卫不算交付：绿的 CI 证明不了一个从不触发的守卫」。
 本小节还上这笔账，并把**实际拿到的证据强度**如实写下来（**多做了一条实验，但其中一条只证到一半**）。
 
-实验载体是 plan `2026-08-22-1206-1` 从 `main` @ `f689d0e` 新切的分支
-`ci/1206-1-verdict-guard-proof` 与 **PR #2**（`baseRefOid` 逐字等于 `f689d0e`）；
+实验载体是 plan `2026-08-22-1206-1` 从 `main` @ `940935c` 新切的分支
+`ci/1206-1-verdict-guard-proof` 与 **PR #2**（`baseRefOid` 逐字等于 `940935c`）；
 四条实验的临时提交在收尾时已从分支上 reset 掉，**不进 `main`、不留在 PR 最终形态里**
 （措辞准确性：那些提交按 sha 在 GitHub 上仍可访问，不是「抹掉」）。
 
@@ -632,7 +632,7 @@ plan `2026-08-22-0027-2` 自己逐字写着「拿不到这三条，守卫不算�
 
 **同一批实测顺带钉死一条此前本仓明写「没实测过」的 CI 行为**：
 **force-push 回一个已经跑过绿的 sha，每一次都会触发一次完整运行**——
-三次 `git reset --hard b7348bf` + `--force-with-lease` 各自开出 `32570657720` / `32570916073` / `32571266013`。
+三次 `git reset --hard 050eedf` + `--force-with-lease` 各自开出 `32570657720` / `32570916073` / `32571266013`。
 估 CI 预算时不得假设「reset 到已跑过的 sha 不另计」。
 
 ## 14.5 种子链的 CI 覆盖（`gates-l2-seed` job，plan `2026-08-22-2325-2` 交付）
@@ -862,10 +862,10 @@ or remove blockers **without explicit human confirmation or owner-doc evidence m
 **这只是观察，不得反推成「`diff()` 不在活站点链上」这类更强的结论**。
 
 **落地形态（纯追加，机械证据）**：`gates.yml` **387 → 404 行**（`git diff --numstat` → `17	0`，删除列 `0`），
-新增段 `:388`–`:404`；`diff <(git show 577e401:.github/workflows/gates.yml) <(head -n 387 .github/workflows/gates.yml)`
+新增段 `:388`–`:404`；`diff <(git show 97e4652:.github/workflows/gates.yml) <(head -n 387 .github/workflows/gates.yml)`
 → **无输出**；锚定 `grep -cE '^  [a-z0-9-]+:$'` → **12**（`push:` + 11 个 job 键）。
 落地走 PR **#7**（从 `main` 新切 `ci/0120-1-unit-contracts-land`，只含一个提交、只含 `gates.yml`），
-run `32591433667` 十一绿后 `--ff-only` 落 `main`，**落地 sha `7a09ef7` 与 PR #7 跑绿 head 逐字同一个**。
+run `32591433667` 十一绿后 `--ff-only` 落 `main`，**落地 sha `622bc4e` 与 PR #7 跑绿 head 逐字同一个**。
 **`main` `push` 权威运行 `32591647735` → `success`，11 个 job 全部 `success`**，新 job `97076326917`。
 
 ### 它**不**覆盖什么（这一段不许省，也不许读成更强的说法）
@@ -1057,11 +1057,11 @@ with `python-version: "3.11"`。**两个 job 都不带任何 `if:`**（`gates.ym
 **不构成「CI 连续 2 轮红」**；本 Phase 未出现任何一次未被预测的红，固定处置分支未触发。CI 实耗 5 次 run。
 
 **落地形态（纯追加，机械证据）**：`gates.yml` **404 → 441 行**（`git diff --numstat` → `37	0`，删除列 `0`），
-新增段 `:405`–`:441`；`head -404 .github/workflows/gates.yml | diff - <(git show d45163c:.github/workflows/gates.yml)`
+新增段 `:405`–`:441`；`head -404 .github/workflows/gates.yml | diff - <(git show b9de282:.github/workflows/gates.yml)`
 → **无输出**；job 键 **11 → 13**，集合只增不减（`diff` 的唯一差异逐字为 `12a13,14` / `>   seed-selfverify:` / `>   lint:`）。
 落地走 PR **#9**（从 `main` 新切 `ci/0337-1-seed-lint-coverage-land`，**只含一个提交、只含 `gates.yml`**，
 实验提交全部留在 PR #8、不进 `main` 历史），run `32602725539` 十三绿后 `--ff-only` 落 `main`，
-**落地 sha `4476c470fb65e53d81faa1ee0cd84ea674330689` 与 PR #9 跑绿 head 逐字同一个**。
+**落地 sha `ae01f6e227a280eedf2beefdb3788bc851c6d673` 与 PR #9 跑绿 head 逐字同一个**。
 **`main` `push` 权威运行 `32602915798` → `success`，13 个 job 全部 `success`**，
 新 job 分别为 `97103765758`（`seed-selfverify`）与 `97103765753`（`lint`）。
 
@@ -1285,7 +1285,7 @@ Required Evidence 逐字「名单**变长**仍需 `Gates-Change-Approved-By:`」
 
 **为什么这是一条必须裁定的**：两个棘轮 job 在 `pull_request` 上取的 `BASE` 都是
 `github.event.pull_request.base.sha` ＝ **`main` 的 tip**（Phase 1 B① 的日志逐字印证：
-`BASE="115f12d721041ae6c85b3494bd1d5e92657f74c2"`），**因此每一次推送判的都是
+`BASE="5c7dd87b7804e00ce4f332c823274a2ea7129fbb"`），**因此每一次推送判的都是
 「整条分支相对 `main` 的累计状态」，不是「本次提交的增量」**。
 
 | 候选 | 内容 | 取舍 |
@@ -1370,8 +1370,8 @@ ADDED=$(comm -13 "$T/old.set" "$T/new.set")
 —— 即**落地的 job 体与被实证过的那一份逐字节相同**（这条前置防的是「落地时重打一遍 `run:` 块并写漏了，
 而落地 PR 上名单没变、坏 job 体照样在『✅ 名单未新增条目』处退 0」这一路假绿）。
 
-PR **#11** 上 run `32606876626` **14 job 全绿** → `git merge --ff-only` → `Updating 53e88db..fe89fa5`。
-**落地 sha `fe89fa5423525536c35fecab2462957c579a222f` 与 PR #11 上跑绿的 head 逐字同一个 sha。**
+PR **#11** 上 run `32606876626` **14 job 全绿** → `git merge --ff-only` → `Updating 1314a33..f756f50`。
+**落地 sha `f756f504fa0ed09390bf43e27ca35a4feaa2fb08` 与 PR #11 上跑绿的 head 逐字同一个 sha。**
 `main` 的 `push` **权威运行 `32607062968` → `success`，14 个 job 全部 `success`**；
 新 job（job id `97113594198`）逐字打 `✅ 名单未新增条目`。
 
@@ -1551,7 +1551,7 @@ grep -rn "expected-red-ratchet\|只能变短" AGENTS.md docs/context/ docs/archi
 1. **`argparse` 的用法错误退 `2`，而闸 2 把 `2` 当放行。** 实测 `check_budget.py --nope` → **exit 2**、
    `--budget-tokens notanint` → **exit 2**；`parse_args()` 坐在 `main()` 的 `try` **之外**，
    所以这是一条「判定器自身失败却不退 3」的路径。审计已实测确认它是**既有行为**
-   （同样的探针在 `6001ea0` 上也是 exit 2）且**从监督器不可达**（闸 2 不带任何参数调它）。
+   （同样的探针在 `2cfe03a` 上也是 exit 2）且**从监督器不可达**（闸 2 不带任何参数调它）。
    处置：**登记不改** —— 把 `parse_args()` 挪进 `try` 会改掉 `--help` 与用法错误的既有出口语义，
    那是另一个结果面。**重开事件**：第一次出现某个调用方带参数调它、且把用法错误读成「放行」时。
 2. **`usage_since` 的 `except (ValueError, KeyError): continue` 仍然静默丢弃畸形行**，即**少算用量**，
@@ -1560,8 +1560,8 @@ grep -rn "expected-red-ratchet\|只能变短" AGENTS.md docs/context/ docs/archi
    上面的残余清单只点了后者，这里补齐。**重开事件**：第一次出现「台账某几行长期畸形、用量被系统性少算」时。
 
 ⚠️ **本节 D0 那条机械判据的措辞纠正**（同一次审计的非阻断项 4）：
-「`git diff -U0` 中属于那两个 `xfail` 函数的 hunk」这句话若对着 `6001ea0..HEAD` 读是**空的** ——
-测试文件在该区间内是**新增**的，按构造零删除行。它真正咬得住的区间是 **`0eff5eb..1d0ce60`**
+「`git diff -U0` 中属于那两个 `xfail` 函数的 hunk」这句话若对着 `2cfe03a..HEAD` 读是**空的** ——
+测试文件在该区间内是**新增**的，按构造零删除行。它真正咬得住的区间是 **`b1e73f0..4d4856c`**
 （Phase 1 提交 → Phase 2 提交），审计在那个区间上实跑并确认成立。
 
 ## 14.10 `tests/gates/**` 对 ruff 的排除在所有调用形态下成立（`force-exclude = true`，plan `2026-08-23-0859-2` 交付）
@@ -1572,7 +1572,7 @@ grep -rn "expected-red-ratchet\|只能变短" AGENTS.md docs/context/ docs/archi
 ### 为什么摆这一节
 
 `pyproject.toml` 的 `[tool.ruff]` 原注释逐字说「把它排除在 lint 作用域外，免得 lint 逼着去改裁判」，
-而这句话**在字面上不成立**：`exclude` 只在**目录遍历**时生效。2026-08-23 在 `03ffaec` 上实测：
+而这句话**在字面上不成立**：`exclude` 只在**目录遍历**时生效。2026-08-23 在 `702893a` 上实测：
 
 | 调用形态 | 落地前 | 落地后 |
 |---|---|---|

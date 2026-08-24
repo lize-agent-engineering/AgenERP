@@ -15,19 +15,19 @@
 
 ## Current Baseline
 
-以下每一条都是 2026-08-22 实跑得出的。⚠️ **第 4 轮评审刷新基线（Minimum Rule 1）**：起草时锚在 `main` @ `aba9a5f`，
-评审当日 `main` 已前进到 `4d7b311`（两个提交：`6288666` 预算阈值单一真相源、`4d7b311` plist 不再注入预算变量），
-且 `origin/main` 已追平。**关键：`.github/workflows/gates.yml` 在 `aba9a5f..4d7b311` 之间逐字节未变**
-（`git diff --numstat aba9a5f 4d7b311 -- .github/workflows/gates.yml` → 无输出），
-因此 B / C / D / F 各条结论**不受影响**；下面凡涉及 `main` sha 的读数一律以 `4d7b311` 为准。
+以下每一条都是 2026-08-22 实跑得出的。⚠️ **第 4 轮评审刷新基线（Minimum Rule 1）**：起草时锚在 `main` @ `e480048`，
+评审当日 `main` 已前进到 `c2c9205`（两个提交：`752d6d5` 预算阈值单一真相源、`c2c9205` plist 不再注入预算变量），
+且 `origin/main` 已追平。**关键：`.github/workflows/gates.yml` 在 `e480048..c2c9205` 之间逐字节未变**
+（`git diff --numstat e480048 c2c9205 -- .github/workflows/gates.yml` → 无输出），
+因此 B / C / D / F 各条结论**不受影响**；下面凡涉及 `main` sha 的读数一律以 `c2c9205` 为准。
 
 **A. 前置状态**
 
-- 起草时（2026-08-22 12:06）：`git log --oneline -1` → `aba9a5f`；`git status --porcelain` → **两行**，
-  均为本批两个 draft plan 文件（未跟踪）。**第 4 轮评审当日复测**：`git log --oneline -1` → `4d7b311`；
+- 起草时（2026-08-22 12:06）：`git log --oneline -1` → `e480048`；`git status --porcelain` → **两行**，
+  均为本批两个 draft plan 文件（未跟踪）。**第 4 轮评审当日复测**：`git log --oneline -1` → `c2c9205`；
   `git status --porcelain` → **一行**（前驱 plan 文件正在被改写），本批两个 plan 文件均已入库。
 - **A3 · 本地 `main` 与 `origin/main` 必须分开说**：起草时 `git rev-parse main origin/main`
-  → `aba9a5f` / `508c75b`，本地领先 **10** 个提交。**第 4 轮评审当日复测：两者已相等（均为 `4d7b311`，
+  → `e480048` / `3ed5f5b`，本地领先 **10** 个提交。**第 4 轮评审当日复测：两者已相等（均为 `c2c9205`，
   `git rev-list --left-right --count origin/main...main` → `0` / `0`）**——前驱那两次 `main` push 里的第一次已经发生。
   本 plan 的结果面是**远程 push 运行**，因此凡说「`main`」的地方都要指明是本地还是远程。
   前驱的收尾判据**不是**「两者相等」而是「`origin/main` 是 `main` 的祖先，且差集只含文档路径」
@@ -45,7 +45,7 @@
 
 **C. 已有的绿证据与它的限定**
 
-- run `32533449466`（PR #1，head `c2c688b`）：`gates-l2-live` job `96929876654` **`success`**，
+- run `32533449466`（PR #1，head `c6a9269`）：`gates-l2-live` job `96929876654` **`success`**，
   日志逐字 `门禁 19 项：红 0，绿 19，跳过 0` / `✅ live 判定：全部门禁绿，零 red、零 skip`；
   `verdict-tool-untouched` job `96929876658` `success`。
 - **限定一**：那次跑在 `pull_request` 事件上，不是 `main` 的 `push` 上。
@@ -64,13 +64,13 @@
   `git diff --numstat main <该树>` → **只有一行** `118	0	.github/workflows/gates.yml`。**合并删不掉任何东西。**
   **真正需要第一个 plan 先跑的理由是另外两条，都成立**：
   · ① **`--ff-only` 要求 `main` 是分支的祖先**，而现在不是：
-    `git merge-base --is-ancestor main ci/0027-2-l2-full-live-gate` → **否**（merge-base 停在 `77addbb`）；
+    `git merge-base --is-ancestor main ci/0027-2-l2-full-live-gate` → **否**（merge-base 停在 `06561fa`）；
   · ② **限定二**：PR 上那次绿跑的判定器与 `main` 上的不是同一份
     （`git diff --numstat main origin/ci/… -- tools/gates/check_expected_red.py` → `7	42`）。
   · ③ **⚠️ 第 3 轮评审新增，且它把「必须走前驱」从两条加强到三条**：`pull_request` 的 `BASE`
-    在 **PR 创建时钉死**（前驱 Baseline C5，实测 `gh pr view 1 --json baseRefOid` → `7b0f585`，
-    而彼时 `origin/main` 已是 `508c75b`；`STATE.md:81` 早有此记录）。
-    **后果对本 plan 是直接的**：PR #1 **不能**用作落地载体——在它上面守卫恒红（`7b0f585..main` 命中判定器且无 trailer——起草时锚 `aba9a5f`，第 4 轮当日锚 `4d7b311`，两者同解），
+    在 **PR 创建时钉死**（前驱 Baseline C5，实测 `gh pr view 1 --json baseRefOid` → `627c7a9`，
+    而彼时 `origin/main` 已是 `3ed5f5b`；`STATE.md:81` 早有此记录）。
+    **后果对本 plan 是直接的**：PR #1 **不能**用作落地载体——在它上面守卫恒红（`627c7a9..main` 命中判定器且无 trailer——起草时锚 `e480048`，第 4 轮当日锚 `c2c9205`，两者同解），
     且它的 `changedFiles/additions/deletions` 恒为 `6 / 417 / 17` 而非 `1 / 118 / 0`。
     因此本 plan 落地的是**前驱新建的分支与 PR**，PR #1 改为在 Phase 1 的专门 `Decision` 里关闭并留证。
 - D3 · 本 plan Phase 3 要写的「把前驱两条 Deferred 记为了结」，在守卫未交付时写就是
@@ -209,7 +209,7 @@ Skill: `none`
       · ⑦ **`baseRefOid` 那颗钉子仍在**：`gh pr view <前驱新建的 PR 号> --json baseRefOid` → 逐字等于 `$CUT`。
         **这一条不能省**（前驱 Baseline C5）：`pull_request` 的 `BASE` 在 PR 创建时钉死，
         它一旦不是 `$CUT`，前驱那四条实验证明的就不是「这 118 行」，本 plan 的 go/no-go 闸就建立在错的东西上。
-      · ⑧ **PR #1 仍原封未动**：`gh pr view 1 --json state,headRefOid,baseRefOid` → `OPEN` / `c2c688b…` / `7b0f585…`
+      · ⑧ **PR #1 仍原封未动**：`gh pr view 1 --json state,headRefOid,baseRefOid` → `OPEN` / `c6a9269…` / `627c7a9…`
         （前驱的 Non-Goals 承诺不碰它；本 plan 的 Phase 3 才处置它）。
       - Skill: `none`
 - [x] `Proof` **落地那一推的守卫预测（必须在推之前算出来，不能等 CI 告诉你）**。守卫在 `push` 上取
@@ -232,7 +232,7 @@ Skill: `none`
       ② 有输出且 trailer 计数 ≥1 → 期望 `✅ 找到人工批准 trailer，放行`、`success`；
       ③ 有输出且 trailer 计数 `0` → 期望**红**，且这是**真红**（说明落地区间里混进了判定器改动），
         按停机纪律处置，**不得**推。
-      ⚠️ **这条预检是硬闸**：`origin/main` 若未追平（A3），区间里会混进 `57ad6d5`
+      ⚠️ **这条预检是硬闸**：`origin/main` 若未追平（A3），区间里会混进 `e27994e`
       （改了判定器、无 trailer）→ 落到情形 ③，守卫必然红。第一个 plan 的两次 `main` push 就是为了消灭这个情形。
       ⚠️ **前置核对 ⑥ 只保证 Phase 1 开工那一刻的收敛，本阶段自己的日志/plan 提交会立刻让本地 `main` 领先 `origin/main`。
       ⚠️ 第 4 轮评审改准：这件事对守卫谓词无害（本阶段只碰文档），但对 Phase 2 的 PR 判据有害**——
@@ -254,7 +254,7 @@ Skill: `none`
       - Skill: `none`
 - [x] `Decision` **落地方式：`--ff-only` 合并本 plan 新开的那条分支，不用 squash，也不在 `main` 上另起提交**。
       ⚠️ **本项在第 3 轮评审随载体改换重写，第 4 轮再随分支改名改准**：落地对象**不是 PR #1**
-      （前驱 Baseline C5：`pull_request` 的 `BASE` 在 PR 创建时钉死，PR #1 的 `baseRefOid` 永远停在 `7b0f585`，
+      （前驱 Baseline C5：`pull_request` 的 `BASE` 在 PR 创建时钉死，PR #1 的 `baseRefOid` 永远停在 `627c7a9`，
       守卫在它上面恒红，前驱那四条实验根本做不成），**也不是前驱那条分支**
       （force-push 它会打漂前驱已关闭的证据判据，理由见下面那条前置），
       而是本 plan 在 Phase 2 新建的 `ci/1206-2-l2-live-land` 与它的新 PR。
@@ -296,7 +296,7 @@ Skill: `none`
         新分支即不再可 ff，必须回到第 0 步重来；判据是落地时 `git rev-parse main` 仍等于 `$RECUT`。
       - Skill: `none`
 - [x] `Decision` **PR #1 与前驱 PR 的终局处置（本 plan 独有，第 3 轮评审新增；第 4 轮随分支改名改准）**。
-      落地之后仓库里会同时存在**三个** PR：PR #1（`OPEN`，`baseRefOid=7b0f585`，承载 run `32509351108` 红与 `32533449466` 绿）、
+      落地之后仓库里会同时存在**三个** PR：PR #1（`OPEN`，`baseRefOid=627c7a9`，承载 run `32509351108` 红与 `32533449466` 绿）、
       前驱那个 PR（`ci/1206-1-verdict-guard-proof`，`OPEN`，承载四条实验证据，**本次不合并它**）、
       以及本 plan 新开的那个 PR（`ci/1206-2-l2-live-land`，被 ff-merge → `MERGED`）。
       - **选定**：**把 PR #1 与前驱那个 PR 都 `gh pr close`，各留一条说明评论**，评论逐字点名两件事：
@@ -337,13 +337,13 @@ Exit Criteria:
 
 **开工基线（本 plan 自己的锚）**
 
-- `git log --oneline -1` → `79184e5`（= 本 plan 的**开工 sha**，Phase 3 红线自查一律锚它）；
+- `git log --oneline -1` → `7fa2896`（= 本 plan 的**开工 sha**，Phase 3 红线自查一律锚它）；
   `git status --porcelain` → **无输出**（工作区干净）。
-- `git rev-parse main origin/main` → `79184e56024c786f717b43e983752b39fcf9c342` / `10da9e7506ead7d1121130343649dc7728613bf5`
-  —— 本地领先 **2** 个提交（`d1d30c5` 收尾推送结果回填、`79184e5` 文档/日志/roadmap 更新），
+- `git rev-parse main origin/main` → `7fa2896418f748e56ad4d4f4b2ae4b09d18e17c9` / `d259e428cd777b65f1a742f15f6358f35f409238`
+  —— 本地领先 **2** 个提交（`261e0ba` 收尾推送结果回填、`7fa2896` 文档/日志/roadmap 更新），
   **正是前置核对 ⑥ 预料的形态**，不是「两值相等」。
 - `$CUT`（前驱切分支那一刻的 `main` sha，取自前驱 plan 第 5 轮实测行）
-  = **`f689d0e7cde3f2733b044b004f7a314f14958973`**。前驱新建的 PR 号 = **#2**。
+  = **`940935c84395a3671dafd5b12e4bdf979262982c`**。前驱新建的 PR 号 = **#2**。
 
 **① 前驱 plan 已 `completed`，四条实验证据在文件里**
 
@@ -359,10 +359,10 @@ Exit Criteria:
 
 **② 判据锚 `$CUT`，非两点式**
 
-- `git diff --numstat f689d0e7cde3f2733b044b004f7a314f14958973 ci/1206-1-verdict-guard-proof`
+- `git diff --numstat 940935c84395a3671dafd5b12e4bdf979262982c ci/1206-1-verdict-guard-proof`
   → **恰好一行** `118	0	.github/workflows/gates.yml` ✅
 - 附带核对本地与远程该分支同 sha：`git rev-parse ci/1206-1-verdict-guard-proof origin/ci/1206-1-verdict-guard-proof`
-  → 两值均 `b7348bf3a1eb1eccbe1c032af8bd73ed808ed4af` ✅
+  → 两值均 `050eedf01bd309b5f57c23a00e0a2c8d6ea4a113` ✅
 
 **③ 前驱 PR #2 的读数**
 
@@ -371,7 +371,7 @@ Exit Criteria:
 
 **④ 该 PR head 上最近一次运行全绿**
 
-- `gh run view 32571266013` → run **`32571266013`**（event `pull_request`，head `b7348bf`）→ **`success`**，
+- `gh run view 32571266013` → run **`32571266013`**（event `pull_request`，head `050eedf`）→ **`success`**，
   **九个 job 全部 `success`**：`L1 快门禁` `97026942644` · `roadmap 引擎可解析` `97026942696` ·
   `预期红名单只能变短` `97026942704` · `L2 慢门禁（零依赖启动）` `97026942716` · `循环联动冒烟` `97026942728` ·
   **`L2 全量 live 判定（19 条）` `97026942737`** · `主计划引用不断链` `97026942741` ·
@@ -391,14 +391,14 @@ Exit Criteria:
 
 **⑦ `baseRefOid` 那颗钉子仍在**
 
-- `gh pr view 2 --json baseRefOid` → `{"baseRefOid":"f689d0e7cde3f2733b044b004f7a314f14958973"}`
+- `gh pr view 2 --json baseRefOid` → `{"baseRefOid":"940935c84395a3671dafd5b12e4bdf979262982c"}`
   —— **逐字等于 `$CUT`** ✅
 
 **⑧ PR #1 仍原封未动**
 
 - `gh pr view 1 --json state,headRefOid,baseRefOid` →
-  `{"baseRefOid":"7b0f585f7c8082a64902da65e6e3314cb239dc9f","headRefOid":"c2c688b7f6bc49a96d1e89a3582014334ba8fb71","state":"OPEN"}`
-  —— `OPEN` / `c2c688b…` / `7b0f585…`，与 Baseline 逐字一致 ✅
+  `{"baseRefOid":"627c7a94e4580e74a778cd8cb6e66391f3ea4633","headRefOid":"c6a92697d78414d788c4178da20b859afac911e7","state":"OPEN"}`
+  —— `OPEN` / `c6a9269…` / `627c7a9…`，与 Baseline 逐字一致 ✅
 
 **八条全部成立，闸门放行。**
 
@@ -483,8 +483,8 @@ Skill: `none`
       - Skill: `none`
 - [x] `Proof` **红线 2 自查五条（机械可核，输出逐字抄进 plan）**：
       · **(a) 前缀性**：`diff <(git show "$RECUT":.github/workflows/gates.yml) <(head -n 190 .github/workflows/gates.yml)`
-        （⚠️ **第 4 轮评审：锚点从写死的 `aba9a5f` 换成 `$RECUT`**——与前驱第 5 轮「一律锚开工 sha」同口径。
-        实测 `gates.yml` 在 `aba9a5f..4d7b311` 之间**逐字节未变**，两个锚今天同解，但浮动锚才不会随 `main` 前进而失效）
+        （⚠️ **第 4 轮评审：锚点从写死的 `e480048` 换成 `$RECUT`**——与前驱第 5 轮「一律锚开工 sha」同口径。
+        实测 `gates.yml` 在 `e480048..c2c9205` 之间**逐字节未变**，两个锚今天同解，但浮动锚才不会随 `main` 前进而失效）
         → 期望**无输出**。这一条同时证明「既有 7 个 job 一行未改」「`on:` / `permissions:` 未动」「零删除」，
         比 `deletions=0` 严——往既有 job 里**插**一行也是纯新增，`deletions=0` 抓不到它；
       · **(b) job 键集合**：落地后 `sed -n '/^jobs:/,$p' .github/workflows/gates.yml | grep -E '^  [a-z0-9-]+:'`
@@ -553,11 +553,11 @@ Exit Criteria:
 - `git fetch origin main` → exit 0。
 - **推前守卫预检**：`git diff --name-only origin/main main -- tools/gates/check_expected_red.py tools/gates/gate-verify.mjs`
   → **无输出** ⇒ 情形 ①；`git log --format=%B origin/main..main | grep -c '^Gates-Change-Approved-By:'` → `0`。
-  区间三个提交（`d1d30c5` / `79184e5` / `bb83b20`）改动的文件只有 `docs/logs/**` 与 `docs/plans/p0-foundation/**`。
-- `git push origin main` → exit 0，`10da9e7..bb83b20`。
+  区间三个提交（`261e0ba` / `7fa2896` / `8f5a054`）改动的文件只有 `docs/logs/**` 与 `docs/plans/p0-foundation/**`。
+- `git push origin main` → exit 0，`d259e42..8f5a054`。
 - **实测两值相等**：`git rev-parse main origin/main` →
-  `bb83b2039efd9c733ff9c9aa0bba85b4bbb11edf` / `bb83b2039efd9c733ff9c9aa0bba85b4bbb11edf` ✅
-- **该次 `main` push 运行**：run **`32572388207`**（event `push`，head `bb83b20`）→ **`success`**，
+  `8f5a05475887a2425502e58f693145ec1641103e` / `8f5a05475887a2425502e58f693145ec1641103e` ✅
+- **该次 `main` push 运行**：run **`32572388207`**（event `push`，head `8f5a054`）→ **`success`**，
   **七个 job**（此刻 `gates.yml` 仍是 7 个 job，这本身是一条证据）全部 `success`：
   `L1 快门禁` `97029653922` · `循环联动冒烟` `97029654056` · `roadmap 引擎可解析` `97029654071` ·
   `L2 慢门禁（零依赖启动）` `97029654077` · `预期红名单只能变短` `97029654115` ·
@@ -565,7 +565,7 @@ Exit Criteria:
 
 **第一步：新分支 `ci/1206-2-l2-live-land` 与新 PR #3**
 
-- **`$RECUT` = `bb83b2039efd9c733ff9c9aa0bba85b4bbb11edf`**（切分支那一刻的 `main` sha，当场记下）。
+- **`$RECUT` = `8f5a05475887a2425502e58f693145ec1641103e`**（切分支那一刻的 `main` sha，当场记下）。
 - **那 118 行的来源**：`/tmp/two-jobs.yml` 跨会话已失，走**再生路径**
   `git show origin/ci/0027-2-l2-full-live-gate:.github/workflows/gates.yml | tail -n 118 > /tmp/two-jobs.yml`；
   再生自检 `grep -E '^  [a-z0-9-]+:' /tmp/two-jobs.yml` → **恰为两行** `gates-l2-live:` / `verdict-tool-untouched:` ✅；
@@ -574,13 +574,13 @@ Exit Criteria:
 - `git switch -c ci/1206-2-l2-live-land main` → 追加后 `.github/workflows/gates.yml` 由 **190 → 308** 行；
   `diff <(tail -n 118 .github/workflows/gates.yml) /tmp/two-jobs.yml` → **无输出**；
   `python3 -c "import yaml; yaml.safe_load(...)"` → exit 0。
-- 单提交 **`3503f2c`**（message **不含** `Gates-Change-Approved-By:`）→ `git push -u origin ci/1206-2-l2-live-land`
+- 单提交 **`a222472`**（message **不含** `Gates-Change-Approved-By:`）→ `git push -u origin ci/1206-2-l2-live-land`
   （**新分支，普通 push，无 force**）→ `gh pr create --base main --head ci/1206-2-l2-live-land` → **PR #3**。
 - **六条判据全部为期望值**：
   · `git merge-base --is-ancestor main ci/1206-2-l2-live-land` → 退出码 **`0`** ✅
   · `git diff --numstat "$RECUT" ci/1206-2-l2-live-land` → **恰好一行** `118	0	.github/workflows/gates.yml` ✅
   · `git log --oneline "$RECUT"..ci/1206-2-l2-live-land | wc -l` → **`1`** ✅
-  · `gh pr view 3 --json baseRefOid` → `bb83b2039efd9c733ff9c9aa0bba85b4bbb11edf`，**逐字等于 `$RECUT`** ✅
+  · `gh pr view 3 --json baseRefOid` → `8f5a05475887a2425502e58f693145ec1641103e`，**逐字等于 `$RECUT`** ✅
     （第 0 步推平的直接收益：这条判据在没有第 0 步时必然为假）
   · `gh pr view 3 --json changedFiles,additions,deletions` → `1 / 118 / 0` ✅
   · trailer 洁净度 `git log --format=%B "$RECUT"..ci/1206-2-l2-live-land | grep -c '^Gates-Change-Approved-By:'` → `0` ✅
@@ -588,27 +588,27 @@ Exit Criteria:
 
 **新 PR 上的一次全绿（预算第 2 次）**
 
-- run **`32572416547`**（event `pull_request`，head `3503f2c`）→ **`success`**，**九个 job 全部 `success`**：
+- run **`32572416547`**（event `pull_request`，head `a222472`）→ **`success`**，**九个 job 全部 `success`**：
   `预期红名单只能变短` `97029725274` · `门禁未被改动` `97029725416` · `roadmap 引擎可解析` `97029725419` ·
   `主计划引用不断链` `97029725439` · `循环联动冒烟` `97029725444` · `L1 快门禁` `97029725454` ·
   **`判定器未被改动` `97029725459`** · **`L2 全量 live 判定（19 条）` `97029725467`** ·
   `L2 慢门禁（零依赖启动）` `97029725572`。
 - `gates-l2-live` 日志逐字：`门禁 19 项：红 0，绿 19，跳过 0` / `✅ live 判定：全部门禁绿，零 red、零 skip`。
-- 守卫日志逐字：`BASE="bb83b2039efd9c733ff9c9aa0bba85b4bbb11edf"; HEAD="3503f2c89d78f44f94e0e0ff9f6061ca72e90b89"`
+- 守卫日志逐字：`BASE="8f5a05475887a2425502e58f693145ec1641103e"; HEAD="a22247225220297ed38efd3fd6d1a61c43553ea4"`
   → **`✅ 未触及判定器`** —— 与 Phase 1 预检算定的**情形 ①** **一致** ✅
   （同时实测确认 `BASE` 就是 `baseRefOid` = `$RECUT`，`pull_request` 与 `push` 两路同解那条推导成立）。
-- **「落地的 sha 就是跑绿的 sha」**：这次跑的 head `3503f2c` 就是下一步 ff 到 `main` 的那个 sha。
+- **「落地的 sha 就是跑绿的 sha」**：这次跑的 head `a222472` 就是下一步 ff 到 `main` 的那个 sha。
 
 **`--ff-only` 落地（预算第 3 次）**
 
 - **推之前重跑守卫预检**（`main` 可能被别的东西推进过）：`git fetch origin main` → exit 0；
   `git diff --name-only origin/main ci/1206-2-l2-live-land -- tools/gates/check_expected_red.py tools/gates/gate-verify.mjs`
   → **无输出** ⇒ 仍是**情形 ①**；trailer 计数 `0`。
-- **切分支到 ff-merge 之间 `main` 零新提交**：落地前 `git rev-parse main` → `bb83b20…`，**逐字等于 `$RECUT`** ✅
+- **切分支到 ff-merge 之间 `main` 零新提交**：落地前 `git rev-parse main` → `8f5a054…`，**逐字等于 `$RECUT`** ✅
   （Phase 2 自己的收尾提交排在 ff-merge 之后，phase 中途未提交）。
-- `git switch main && git merge --ff-only ci/1206-2-l2-live-land` → `Updating bb83b20..3503f2c` / `Fast-forward` /
-  `1 file changed, 118 insertions(+)`；`git push origin main` → exit 0，`bb83b20..3503f2c`。
-- **落地 sha = `3503f2c89d78f44f94e0e0ff9f6061ca72e90b89`**，与 PR #3 的 head **逐字相同**。
+- `git switch main && git merge --ff-only ci/1206-2-l2-live-land` → `Updating 8f5a054..a222472` / `Fast-forward` /
+  `1 file changed, 118 insertions(+)`；`git push origin main` → exit 0，`8f5a054..a222472`。
+- **落地 sha = `a22247225220297ed38efd3fd6d1a61c43553ea4`**，与 PR #3 的 head **逐字相同**。
 
 **红线 2 自查五条（落地后实跑）**
 
@@ -622,7 +622,7 @@ Exit Criteria:
 
 **NB2 的权威运行（`main` push，预算第 4 次）**
 
-- run **`32572618933`**（event **`push`**，head **`3503f2c`**）→ **`success`**，**九个 job 全部 `success`**：
+- run **`32572618933`**（event **`push`**，head **`a222472`**）→ **`success`**，**九个 job 全部 `success`**：
   `门禁未被改动` `97030229573` · `循环联动冒烟` `97030229628` · `L1 快门禁` `97030229662` ·
   **`L2 全量 live 判定（19 条）` `97030229667`** · `roadmap 引擎可解析` `97030229671` ·
   `主计划引用不断链` `97030229672` · `L2 慢门禁（零依赖启动）` `97030229696` ·
@@ -632,7 +632,7 @@ Exit Criteria:
 - **⇒ 工作项 9 的关闭判据第一次在 `main` 上成立**（「`gates.yml` 上存在一个 job，在 live 判定环境下用
   `tools/gates/check_expected_red.py` 对 `tests/gates` 全部 19 条判定并 `success`」）。
 - **守卫 `push` 路径首次实测**：日志逐字
-  `BASE="bb83b2039efd9c733ff9c9aa0bba85b4bbb11edf"; HEAD="3503f2c89d78f44f94e0e0ff9f6061ca72e90b89"`
+  `BASE="8f5a05475887a2425502e58f693145ec1641103e"; HEAD="a22247225220297ed38efd3fd6d1a61c43553ea4"`
   （即 `github.event.before` / `github.sha`）→ **`✅ 未触及判定器`**，
   **与 Phase 1 预检在推之前算定的情形 ① 一致** ✅
   ⚠️ **照实记的边界**：它只证明 `push` 路径**能跑通并走到「未触及」分支**，
@@ -644,12 +644,12 @@ Exit Criteria:
 **三个 PR 的终局状态**
 
 - **PR #3**（`ci/1206-2-l2-live-land`，本 plan 新开）→ `gh pr view 3 --json state,mergeCommit,headRefOid`
-  → `state: **MERGED**`，`mergeCommit.oid` = `3503f2c…`（本次它非 `null`，但**判据不靠它**）。
-  **不变式**：`git merge-base --is-ancestor 3503f2c89d78f44f94e0e0ff9f6061ca72e90b89 origin/main`
+  → `state: **MERGED**`，`mergeCommit.oid` = `a222472…`（本次它非 `null`，但**判据不靠它**）。
+  **不变式**：`git merge-base --is-ancestor a22247225220297ed38efd3fd6d1a61c43553ea4 origin/main`
   → 退出码 **`0`** ✅
 - **PR #2**（前驱 `ci/1206-1-verdict-guard-proof`）→ 已 `gh pr comment` 留说明评论
   （`#issuecomment-5380403008`，逐字点名落地 sha 与四条实验各自的 run id）+ `gh pr close`
-  → `state: **CLOSED**`；`headRefOid` 仍为 `b7348bf3a1eb1eccbe1c032af8bd73ed808ed4af`，
+  → `state: **CLOSED**`；`headRefOid` 仍为 `050eedf01bd309b5f57c23a00e0a2c8d6ea4a113`，
   与前驱 Phase 4 记下的 sha **逐字相同**（**一个字节未动**）✅
 - **PR #1** → 已 `gh pr comment` 留说明评论（`#issuecomment-5380401581`）+ `gh pr close`
   → `state: **CLOSED**`；两条历史 run 实测仍可查：
@@ -686,7 +686,7 @@ Skill: `none`
       此前把它列在这里，会让执行者拿本条的 grep 输出去对，发现只有一条非漂移而误以为基线漂了）。**两处补正，别用起草时那条更窄的 grep**：
       · 加上 `红在实现` 这个词——`docs/architecture/system-baseline.md` 里那句
         「**红在实现，不是红在判据**：`apply_pack` 的物理列清除面在 runner 的全新站点上不成立」
-        **今天就已经是确认漂移**（被 `0228-2` 的「清除面从来没坏过」推翻，且 `d27c9a2` 那次回写没碰过这个文件），
+        **今天就已经是确认漂移**（被 `0228-2` 的「清除面从来没坏过」推翻，且 `58353ba` 那次回写没碰过这个文件），
         而起草时那条 grep **匹配不到它**——靠挑 pattern 把一条确认漂移挡在外面，就是 Minimum Rule 14 的绕行；
       · 目录范围放宽到三个目录，别只点三个文件。
       **写法约束**：写成什么由 Phase 2 的实测结论决定（`success` / 「首轮红、复跑绿、不可复现」/ 「可复现红」三选一），
@@ -801,7 +801,7 @@ Exit Criteria:
 
 | # | 命中位置 | 裁定 | 处置 |
 |---|---|---|---|
-| 1 | `docs/context/project-context.md:58` | **确认漂移**（「PR 未合并，`main` 上没有这个 job」「在 `main` 上仍是本机独证」） | **就地改准**：追加「四次补记」，写明落地 sha `3503f2c`、权威运行 `32572618933` 九个 job 全绿、`gates-l2-live` job `97030229667` 日志逐字；并写明 run `32509351108` 那次可复现的红是**永久证据、未被抹掉**，只是不再是当前状态 |
+| 1 | `docs/context/project-context.md:58` | **确认漂移**（「PR 未合并，`main` 上没有这个 job」「在 `main` 上仍是本机独证」） | **就地改准**：追加「四次补记」，写明落地 sha `a222472`、权威运行 `32572618933` 九个 job 全绿、`gates-l2-live` job `97030229667` 日志逐字；并写明 run `32509351108` 那次可复现的红是**永久证据、未被抹掉**，只是不再是当前状态 |
 | 2 | `docs/context/project-context.md:59` | **确认漂移**（「PR #1 仍未合并，`main` 上仍没有这个 job……仍是本机独证」） | **就地改准**：整句改准为「此刻在 `main` 上由 CI 服务端复跑，不再是本机独证」，并保留两条照实读的限定（不在 `commands.test` 里、`GATE_VERIFY` 复跑不到；PR #1/#2 已 `CLOSED` 但历史 run 仍可查） |
 | 3 | `docs/architecture/system-baseline.md:448` | **确认漂移**（「空窗期终点尚未到达（PR #1 未合并）」「空窗期此刻仍开着」） | **就地改准**：改成「该终点已于 2026-08-22 到达」+ 落地 sha + 权威运行 + 守卫 job id，并写明**闭合不等于守卫在 `push` 上已有牙齿** |
 | 4 | `docs/architecture/system-baseline.md:457` | **确认漂移，且落地之前就已确认**（「原因：`gates-l2-live` 在 CI 上第一次跑就红，且原样复跑复现」——被 run `32533449466` 推翻） | **就地改准**：在「上线状态」段末追加「四次补记」整块，逐条改准；⚠️ **那条可复现的红（`32509351108`）逐字保留，不得抹掉** |
@@ -851,7 +851,7 @@ Exit Criteria:
 
 **四、roadmap「9 现状」行改准**
 
-- 行内追加「四次补记」，写明：① 两个新 job 已在 `main` 上，落地 sha `3503f2c89d78f44f94e0e0ff9f6061ca72e90b89`，
+- 行内追加「四次补记」，写明：① 两个新 job 已在 `main` 上，落地 sha `a22247225220297ed38efd3fd6d1a61c43553ea4`，
   `main` 上 `gates.yml` 有 **9 个 job 键**、前 190 行逐字节未动；② **权威运行 `32572618933` 九个 job 的 id 与结论逐字**，
   `gates-l2-live` 日志逐字；③ 守卫**四条**变异实验的 run id 与结论，**含第四条「同一 sha 上不可复现」的限定**，
   以及 `push` 路径「只证明能跑通、不证明有牙齿」的收窄说法；
@@ -876,17 +876,17 @@ Exit Criteria:
 ⚠️ **验证范围照实说**：本仓无全量套件（无 build、无 typecheck）。本 plan 的证据面是
 **「CI 上九个 job 的结论 + 本机这五条命令」**，**不得报成「全量验证通过」**。
 
-**六、红线自查（锚开工 sha `79184e5`，不用裸 `git diff`）**
+**六、红线自查（锚开工 sha `7fa2896`，不用裸 `git diff`）**
 
 | # | 命令 | 输出 | 期望 | 结论 |
 |---|---|---|---|---|
-| 1 | `git diff --stat 79184e5..HEAD -- tests/gates agenerp docs/masterplan/DECISIONS.md missions tools/gates` | **无输出** | 空 | ✅ 红线 1/3 与 `agenerp/**` 零触碰 |
+| 1 | `git diff --stat 7fa2896..HEAD -- tests/gates agenerp docs/masterplan/DECISIONS.md missions tools/gates` | **无输出** | 空 | ✅ 红线 1/3 与 `agenerp/**` 零触碰 |
 | 2 | `git status --porcelain -- tests/gates agenerp docs/masterplan/DECISIONS.md missions tools/gates` | **无输出** | 空 | ✅ 工作区亦无未提交触碰 |
-| 3 | `git diff --numstat 79184e5..HEAD -- tools/gates/expected-red.txt` | **无输出** | 空 | ✅ **账本一行未动** |
-| 4 | `git diff 79184e5..HEAD -- docs/masterplan/STATE.md \| grep '^-' \| grep -v '^---'` | **无输出** | 空 | ✅ **只追加**（`--numstat` 为 `19	0`） |
-| 5 | `git diff --numstat 79184e5..HEAD -- docs/plans/p0-foundation/2026-08-21-2220-2-homepage-ai-not-configured.md` | `2	0` | **删除列为 `0`** | ✅ 未改写他人关闭证据 |
+| 3 | `git diff --numstat 7fa2896..HEAD -- tools/gates/expected-red.txt` | **无输出** | 空 | ✅ **账本一行未动** |
+| 4 | `git diff 7fa2896..HEAD -- docs/masterplan/STATE.md \| grep '^-' \| grep -v '^---'` | **无输出** | 空 | ✅ **只追加**（`--numstat` 为 `19	0`） |
+| 5 | `git diff --numstat 7fa2896..HEAD -- docs/plans/p0-foundation/2026-08-21-2220-2-homepage-ai-not-configured.md` | `2	0` | **删除列为 `0`** | ✅ 未改写他人关闭证据 |
 
-**另记两条常设禁令的实测**：`git diff --numstat 79184e5..HEAD -- .github/workflows/gates.yml` → **`118	0`**
+**另记两条常设禁令的实测**：`git diff --numstat 7fa2896..HEAD -- .github/workflows/gates.yml` → **`118	0`**
 （纯追加、零删除）；**证据仓 `${XM_PATH}` 全程未写入**（本 plan 无任何写它的命令）。
 
 **七、收尾推送（三步终止规则，照做未增删）**
@@ -897,12 +897,12 @@ Exit Criteria:
     → **无输出** ⇒ **情形 ①**（Phase 3 只改文档）；
   · `git log --format=%B origin/main..main | grep -c '^Gates-Change-Approved-By:'` → **`0`**（与情形 ① 自洽）；
   · `git diff --name-only origin/main main` → 八个文件，**全部在 `docs/**` 下**。
-- **第一推**（Phase 2 收尾提交 `452c63d` + Phase 3 文档提交 `2b151fb`）：
-  `git push origin main` → **exit 0**，`3503f2c..2b151fb`。
+- **第一推**（Phase 2 收尾提交 `01e99dd` + Phase 3 文档提交 `a7fd892`）：
+  `git push origin main` → **exit 0**，`a222472..a7fd892`。
   **当场实测并抄在这里**：`git rev-parse main origin/main` →
-  `2b151fb55bd488b6ab571cc373c45c4088b0d43c` / `2b151fb55bd488b6ab571cc373c45c4088b0d43c`
+  `a7fd892e1e09cdb7954936b4f2598b3216cbf15d` / `a7fd892e1e09cdb7954936b4f2598b3216cbf15d`
   —— **两值相等（这一刻它是真的）** ✅
-  该次 `main` push 运行 **`32573304204`**（event `push`，head `2b151fb`）→ **`success`**，
+  该次 `main` push 运行 **`32573304204`**（event `push`，head `a7fd892`）→ **`success`**，
   **九个 job 全部 `success`**：`循环联动冒烟` `97031875185` · `roadmap 引擎可解析` `97031875245` ·
   `预期红名单只能变短` `97031875249` · **`L2 全量 live 判定（19 条）` `97031875254`** ·
   `门禁未被改动` `97031875269` · `主计划引用不断链` `97031875274` · `L1 快门禁` `97031875281` ·
@@ -912,10 +912,10 @@ Exit Criteria:
 - **第二推**（把上面那条记录本身——log + 本 plan 文件——提交并推出去）：
   推前守卫预检同样跑过：判定器谓词**无输出**（情形 ①）、trailer 计数 `0`、区间只含
   `docs/logs/**` 与 `docs/plans/p0-foundation/**` 两个文件。
-  `git push origin main` → **exit 0**，`2b151fb..92cae80`。
+  `git push origin main` → **exit 0**，`a7fd892..a80a9d9`。
   **按终止规则，这一推只记 run id 与 `conclusion` 一行，不再回写 9 个 job 的明细**
   （它跑的是与第一推逐字相同的 workflow，明细无新信息量）：
-  run **`32573555156`**（event `push`，head `92cae80`）→ **`success`**。**预算第 6 次。**
+  run **`32573555156`**（event `push`，head `a80a9d9`）→ **`success`**。**预算第 6 次。**
 - **终点判据（此后不再推、不再记）**——实测：
   · `git merge-base --is-ancestor origin/main main` → 退出码 **`0`**（成立）；
   · `git rev-list --count origin/main..main` → **`1`**（≤ 1）；
@@ -927,8 +927,8 @@ Exit Criteria:
 
 - **Independent draft review iteration 1: `needs revision`**（独立子代理，fresh session，2026-08-22）。
   七条 blocking 全部落地：
-  ① **落地那一推在原设计下必然红** —— 本地 `main` 领先 `origin/main` 10 个提交，`57ad6d5` 改了判定器且无 trailer，
-  守卫在 `push` 上取 `BASE=github.event.before=508c75b` → 必然 `exit 1`。**已改成分两次推**：
+  ① **落地那一推在原设计下必然红** —— 本地 `main` 领先 `origin/main` 10 个提交，`e27994e` 改了判定器且无 trailer，
+  守卫在 `push` 上取 `BASE=github.event.before=3ed5f5b` → 必然 `exit 1`。**已改成分两次推**：
   第一个 plan 趁 `main` 上还没有守卫先把 `origin/main` 追平，本 plan 只推落地那一个提交；
   并新增「推之前本地把守卫谓词算一遍」的硬闸（三种情形的处置写死）。
   ② **`--ff-only` 在原设计下跑不动** —— `git merge-base --is-ancestor main <分支>` 实测**不成立**，
@@ -996,7 +996,7 @@ Exit Criteria:
   「工作项 9 卡在名单」那条 Deferred 补上 roadmap 给的**第二条独立理由**（它没有属于自己的门禁测试）。
 - **姊妹 plan 第 4 轮评审的回灌（同日，结构性）**：前驱 `2026-08-22-1206-1` 的第 4 轮独立评审证伪了
   「`pull_request` 的 `BASE` 取 base 分支 tip」这条**两个 plan 共用的中心事实**——它在 **PR 创建时钉死**
-  （实测 `baseRefOid` → `7b0f585`）。本 plan 因此同步改动四处：
+  （实测 `baseRefOid` → `627c7a9`）。本 plan 因此同步改动四处：
   Baseline D 新增第 ③ 条限定；前置核对 ②③ 改锚 `$CUT` 与前驱新建的 PR、新增 ⑦（`baseRefOid == $CUT`）与 ⑧（PR #1 原封未动）、
   ⑥ 改成两条收敛判据以解开与前驱的**跨 plan 死锁**；落地方式 `Decision` 整条重写（落地对象是前驱新建的分支与 PR，
   不是 PR #1），并加硬约束「每重刷一次分支就开一个新 PR，使 `baseRefOid == 重刷时的 `main` sha`」；
@@ -1005,17 +1005,17 @@ Exit Criteria:
   它把 `Current Baseline` A / B / C / D / E / F 与 Infra 逐条重跑，**未证伪任何一条技术论断**：
   `git merge-tree --write-tree main origin/ci/0027-2-l2-full-live-gate` 得到的树对 `main` 做 `git diff --numstat`
   → **只有一行** `118	0	.github/workflows/gates.yml`；`git merge-base --is-ancestor main origin/ci/0027-2-l2-full-live-gate`
-  → 退出码 `1`，merge-base 停在 `77addbb`；分支上 `gates.yml` 共 **308** 行，**前 190 行与 `main` 逐字节相同**（`diff` 无输出），
+  → 退出码 `1`，merge-base 停在 `06561fa`；分支上 `gates.yml` 共 **308** 行，**前 190 行与 `main` 逐字节相同**（`diff` 无输出），
   `tail -n 118` 的 job 键恰为 `gates-l2-live:` / `verdict-tool-untouched:`；`main` 上 7 个 job 键、
   `grep -cE 'gates-l2-live|verdict-tool-untouched'` → `0`；Goal 4 那条 grep 在三个目录上 **10 行 / 4 个文件**，
   行号 `system-baseline.md:448,457,461,521` · `project-context.md:58,59` · `p0-foundation-roadmap.md:62,64,69` ·
   `module-boundaries.md:305` **与 plan 逐字一致**；同一 pattern 在 `docs/masterplan/` 上 **7 条**；
   `0027-2` 的四个计数 **19 / 24 / 36 / 1** 全中；`2026-08-21-2220-2` 里 `2026-08-22-1206` 命中 **0**（欠账确实还欠着）；
-  `gh pr list --state all` → 只有 PR #1，`OPEN` / `baseRefOid=7b0f585` / `headRefOid=c2c688b` / `6 / 417 / 17`；
+  `gh pr list --state all` → 只有 PR #1，`OPEN` / `baseRefOid=627c7a9` / `headRefOid=c6a9269` / `6 / 417 / 17`；
   `gh api …/branches/main/protection` → `403`，报文逐字与 plan 一致。
   抓出 **2 条 blocking + 4 条 major**，全部就地改准：
   ① **blocking：Phase 2 那组「`baseRefOid == $RECUT` + 读数 `1 / 118 / 0`」判据在本 plan 自己的节奏下不可满足。**
-  `baseRefOid` 钉的是**建 PR 那一刻 `origin/main` 的 tip**（前驱 C5 的实测正是这个含义：PR #1 的 `baseRefOid` = `7b0f585`
+  `baseRefOid` 钉的是**建 PR 那一刻 `origin/main` 的 tip**（前驱 C5 的实测正是这个含义：PR #1 的 `baseRefOid` = `627c7a9`
   = 建 PR 时 `origin/main` 的值），而 Phase 1 的日志/plan 提交按本 plan 自己的说法「只落在本地 `main` 上」
   （旧 Phase 1 预检里那句「让 `main` 再次领先——这是无害的」）。于是建 PR 时 `origin/main` ≠ 本地 `main` = `$RECUT`，
   两条判据**必然为假**，且 PR 读数会把 Phase 1 的文档提交一并算进去——**与本 plan 自己诊断「不能沿用旧 PR」的失败模式一模一样**。
@@ -1027,10 +1027,10 @@ Exit Criteria:
   已改成**另起新分支 `ci/1206-2-l2-live-land`（`switch -c`，普通 push，无 force）**，**前驱分支与 PR 一个字节不碰**；
   前驱 PR 的终局因此从「待观察」变成**确定的**——它不参与 ff-merge，由本 plan 一并 `gh pr close` 并留证，
   旧写法里「同一条分支名，GitHub 自动关闭行为本仓未实测过，不强求某个值」那段不确定性随之消失。
-  ③ **major：`Current Baseline` 陈旧**（锚在 `main` @ `aba9a5f`、本地领先 10 个提交），而评审当日 `main` 已是 `4d7b311`
-  且 `origin/main` 已追平——违反 Minimum Rule 1。已刷新，并实测记明 `gates.yml` 在 `aba9a5f..4d7b311` 之间**逐字节未变**，
+  ③ **major：`Current Baseline` 陈旧**（锚在 `main` @ `e480048`、本地领先 10 个提交），而评审当日 `main` 已是 `c2c9205`
+  且 `origin/main` 已追平——违反 Minimum Rule 1。已刷新，并实测记明 `gates.yml` 在 `e480048..c2c9205` 之间**逐字节未变**，
   B / C / D / F 各条结论不受影响。
-  ④ **major：Phase 2 红线 2 自查 (a)(d) 锚死 `aba9a5f`**，与前驱第 5 轮「锚点一律改成开工 sha」不同口径。已改锚 `$RECUT`。
+  ④ **major：Phase 2 红线 2 自查 (a)(d) 锚死 `e480048`**，与前驱第 5 轮「锚点一律改成开工 sha」不同口径。已改锚 `$RECUT`。
   ⑤ **major：`/tmp/two-jobs.yml` 是跨 plan、跨会话的临时文件，本 plan 没有给再生路径**——`/tmp` 被清一次，
   Phase 2 第一步那条逐字比对判据就跑不了。已写明再生命令
   （`git show origin/ci/0027-2-l2-full-live-gate:.github/workflows/gates.yml | tail -n 118 > /tmp/two-jobs.yml`）、
@@ -1123,16 +1123,16 @@ Exit Criteria:
 Status Note: **三个 Phase 全部执行完毕，逐项证据写在各 Phase 的「执行记录」小节下（命令原文 + 退出码 + run id + sha）。**
 
 **主交付**：`gates-l2-live` 与 `verdict-tool-untouched` 两个 job 已在 `main` 上——
-落地 sha **`3503f2c89d78f44f94e0e0ff9f6061ca72e90b89`**（经新分支 `ci/1206-2-l2-live-land` + 新 PR #3 `--ff-only`，
+落地 sha **`a22247225220297ed38efd3fd6d1a61c43553ea4`**（经新分支 `ci/1206-2-l2-live-land` + 新 PR #3 `--ff-only`，
 与 PR #3 上跑绿的 head **逐字同一个 sha**）；`main` 上 `gates.yml` 由 190 → 308 行、job 键由 7 → 9，
 **前 190 行逐字节未动**（前缀性 `diff` 无输出）。
-**NB2 的权威运行**：run **`32572618933`**（event `push`，head `3503f2c`）→ **九个 job 全部 `success`**，
+**NB2 的权威运行**：run **`32572618933`**（event `push`，head `a222472`）→ **九个 job 全部 `success`**，
 `gates-l2-live`（job `97030229667`）日志逐字 `门禁 19 项：红 0，绿 19，跳过 0` /
 `✅ live 判定：全部门禁绿，零 red、零 skip`。
 **⇒ 工作项 9 那格写死的关闭判据第一次在 `main` 上成立。**
 
-提交五个：`bb83b20`（Phase 1）· `3503f2c`（Phase 2 的落地提交，来自 PR #3）· `452c63d`（Phase 2 留痕）·
-`2b151fb`（Phase 3）· 本回填提交。
+提交五个：`8f5a054`（Phase 1）· `a222472`（Phase 2 的落地提交，来自 PR #3）· `01e99dd`（Phase 2 留痕）·
+`a7fd892`（Phase 3）· 本回填提交。
 
 **⚠️ 交付强度必须照实读，以下四条一条都不得被读强**：
 ① **守卫 `push` 路径**：权威运行里它取 `BASE=github.event.before` / `HEAD=github.sha` 并走
@@ -1165,15 +1165,15 @@ Closure Audit Evidence:
   未参与本 plan 三个 Phase 的任何实现），2026-08-22。
 - Verdict: **approved** —— 逐条复跑下列锚点，读数与 plan 逐字相符；`plan-check --strict` 通过。
 - 审计实跑（命令原文 → 读数）：
-  · `git diff --numstat 79184e5..HEAD -- .github/workflows/gates.yml` → `118	0`（纯追加、零删除）
-  · `diff <(git show 79184e5:.github/workflows/gates.yml) <(head -190 .github/workflows/gates.yml)` → 无输出，退出码 `0`（前 190 行逐字节未动）
+  · `git diff --numstat 7fa2896..HEAD -- .github/workflows/gates.yml` → `118	0`（纯追加、零删除）
+  · `diff <(git show 7fa2896:.github/workflows/gates.yml) <(head -190 .github/workflows/gates.yml)` → 无输出，退出码 `0`（前 190 行逐字节未动）
   · `wc -l .github/workflows/gates.yml` → `308`；`jobs:` 下 job 键 **9 个**，新增两个在末尾
   · `gh run view 32572618933 --json ...` → `conclusion=success`、`event=push`、`headSha=3503f2c89…`，
     **九个 job 全部 `success`**（含 `L2 全量 live 判定（19 条）` `97030229667` 与 `判定器未被改动` `97030229697`）
   · `gh pr list --state all` → PR #3 `MERGED`（mergeCommit `3503f2c89…`）· PR #2 `CLOSED` · PR #1 `CLOSED`；
     `gh run view 32509351108/32533449466` 仍可查（`failure` / `success`）；`git ls-remote --heads origin` → 五个分支，**一个未删**
-  · 红线复核：`git diff --numstat 79184e5..HEAD -- tests/gates docs/masterplan/DECISIONS.md tools/gates/expected-red.txt agenerp` → **无输出**；
-    `git diff 79184e5..HEAD -- docs/masterplan/STATE.md | grep "^-" | grep -v "^---"` → 无输出（`19	0`，只追加）；
+  · 红线复核：`git diff --numstat 7fa2896..HEAD -- tests/gates docs/masterplan/DECISIONS.md tools/gates/expected-red.txt agenerp` → **无输出**；
+    `git diff 7fa2896..HEAD -- docs/masterplan/STATE.md | grep "^-" | grep -v "^---"` → 无输出（`19	0`，只追加）；
     `2026-08-21-2220-2` → `2	0`；`0027-2` → `11	0`，四条计数实测 `19` / `26` / `36` / `1`
   · owner-doc 处置复核：`docs/architecture/module-boundaries.md` **numstat 无输出**（裁定为非漂移的那一处确实未被照改）；
     roadmap `## Work Item Status` 的工作项 9 仍 `planned`（未自行置 `done`）
@@ -1182,6 +1182,6 @@ Closure Audit Evidence:
   · `node tools/mission-driver/src/plan-check.mjs <本文件> --strict` → `passed: true`
 - 审计发现（已就地改准，非阻断）：Closure 的 CI 计数由 `6 / 7` 改准为 `5 / 7`，理由写在上面那条 ⚠️。
 - Evidence: 审计员可直接复跑的锚点：
-  开工 sha `79184e5` · 落地 sha `3503f2c` · 权威运行 `32572618933`（九个 job） ·
-  PR #3 `MERGED` / PR #1 与 PR #2 `CLOSED` · `git diff --numstat 79184e5..HEAD -- .github/workflows/gates.yml` → `118	0` ·
+  开工 sha `7fa2896` · 落地 sha `a222472` · 权威运行 `32572618933`（九个 job） ·
+  PR #3 `MERGED` / PR #1 与 PR #2 `CLOSED` · `git diff --numstat 7fa2896..HEAD -- .github/workflows/gates.yml` → `118	0` ·
   `docs/masterplan/STATE.md` → `19	0`（只追加）· `2026-08-21-2220-2` → `2	0` · `0027-2` → `11	0`。

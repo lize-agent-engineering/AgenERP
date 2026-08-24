@@ -35,7 +35,7 @@
 >     `docs/plans/p0-foundation/` 下无承接该面的 successor。
 >   - 2026-08-22 · 第二次独立关闭审计（fresh session，收到同一份 `SCRIPT_CHECK_RESULT: FAIL`）·
 >     结论**与上一条一致：不可关闭，维持 `deferred`**，且**本轮不改一个勾**。
->     复核命令与输出：`git log --oneline -1` → `c5c4538`；`git status --porcelain` → 空；
+>     复核命令与输出：`git log --oneline -1` → `4d73eac`；`git status --porcelain` → 空；
 >     `git show main:.github/workflows/gates.yml | grep '^  [a-z0-9-]*:'` → 仍是 7 个 job 键，
 >     `gates-l2-live` / `verdict-tool-untouched` **零命中**；`git branch -a` → 两个新 job 仍只在
 >     `ci/0027-2-l2-full-live-gate` / `origin/ci/0027-2-l2-full-live-gate` 上，PR #1 未合。
@@ -47,12 +47,12 @@
 >   - 2026-08-22 · 第三次独立关闭审计（fresh session，同一份 `SCRIPT_CHECK_RESULT: FAIL`，
 >     同一条 `19 unchecked items remain after EXECUTE`）· 结论**与前两条完全一致：不可关闭，维持 `deferred`**，
 >     **本轮同样一个勾未改**。复核命令与输出（本轮实跑）：
->     `git log --oneline -1` → `1d812cc`；`git status --porcelain` → 空（工作区干净）；
+>     `git log --oneline -1` → `acaa910`；`git status --porcelain` → 空（工作区干净）；
 >     `git show main:.github/workflows/gates.yml | grep -nE '^  [a-z0-9-]+:'` → 仍是同样 7 个 job 键
 >     （`gates-untouched` / `expected-red-ratchet` / `gates-l1` / `masterplan-links` / `roadmap-parseable` /
 >     `loop-wiring` / `gates-l2`）；同一文件上 `grep -cE 'gates-l2-live|verdict-tool-untouched'` → `0`（退出码 1，零命中）；
 >     `git branch -a` → `ci/0027-2-l2-full-live-gate` 与 `origin/ci/0027-2-l2-full-live-gate` 仍在，PR #1 仍未合。
->     即：自 `c5c4538` 以来**仓库状态仍一字未变**。plan 内 `grep -c '^\s*-\s\[ \]'` → `19`，
+>     即：自 `4d73eac` 以来**仓库状态仍一字未变**。plan 内 `grep -c '^\s*-\s\[ \]'` → `19`，
 >     且 Phase 2 `Status:` 逐字仍是「**停机中断，未完成**」、Phase 3 逐字仍是「**部分完成，随 Phase 2 一起停机**」——
 >     19 个 `[ ]` 与两个 Phase 的 `Status` 自洽，**是真未做，不是漏勾**。
 >     再次**拒绝**驱动脚本「把每个 `[ ]` 改成 `[x]`」的要求：守卫三次变异实验没有任何 run id，
@@ -60,7 +60,7 @@
 >     阻塞方仍是**人 / successor plan**（`agenerp` 侧清除面未修，`docs/plans/p0-foundation/` 下仍无 successor）。
 >   - 2026-08-22 · 第四次 `EXECUTE` 派发（停机后第 4 次）· 结论**与前三条一致：不可关闭，维持 `deferred`**，
 >     **一个勾未改**。本轮不再重复前三条已经抄过的实测流水账，只记两件事：
->     ① 复核仍为真：`git log --oneline -1` → `79cd1f2`，`git status --porcelain` → 空；
+>     ① 复核仍为真：`git log --oneline -1` → `f4c12ff`，`git status --porcelain` → 空；
 >     `git show main:.github/workflows/gates.yml | grep -nE '^  [a-z0-9-]+:'` → 仍 7 个 job 键；
 >     同文件 `grep -cE 'gates-l2-live|verdict-tool-untouched'` → `0`（退出码 1）；
 >     `python3 tools/gates/check_expected_red.py` → exit 0，`python3 -m pytest tests/unit -q` → exit 0（`205 passed`）；
@@ -75,10 +75,10 @@
 >     本条记的是那个条件本身发生了变化）。**只追加事实，不改本 plan 的 `Plan Status`**——
 >     Reopen 之后续跑是它自己的事，successor 不代它改。
 >     successor plan [`2026-08-22-0228-2`](2026-08-22-0228-2-orphan-column-clearance-fresh-site.md)
->     已把 `agenerp` 侧修好并推上同一分支：`main` 上 `578eb8f`、分支上 `c2c688b`
+>     已把 `agenerp` 侧修好并推上同一分支：`main` 上 `7338dca`、分支上 `c6a9269`
 >     （**只 cherry-pick `agenerp/**` 两个文件，不合 `main` 进分支**；
->     `git diff --name-only 7b0f585 c2c688b -- tools/gates/check_expected_red.py tools/gates/gate-verify.mjs` → **无输出**）。
->     **CI run `32533449466`（PR #1 的 `pull_request` synchronize，head `c2c688b`）结论 `success`**，
+>     `git diff --name-only 627c7a9 c6a9269 -- tools/gates/check_expected_red.py tools/gates/gate-verify.mjs` → **无输出**）。
+>     **CI run `32533449466`（PR #1 的 `pull_request` synchronize，head `c6a9269`）结论 `success`**，
 >     九个 job 全绿，其中 `gates-l2-live`（job `96929876654`）日志逐字
 >     `门禁 19 项：红 0，绿 19，跳过 0` / `✅ live 判定：全部门禁绿，零 red、零 skip`；
 >     `verdict-tool-untouched`（job `96929876658`）仍 `success`。
@@ -105,7 +105,7 @@
 >     `## Deferred But Adjudicated` 里，「L2 门禁在 CI 上不受 `expected-red.txt` 棘轮保护」与
 >     「判定器没有「live 名单」这个概念」两条各**追加**了一行了结记录（`git diff --numstat` → `2	0`，
 >     **删除列为 0，一个字未改写已有行**），逐字点名本批两个 plan 的完整 id 与 `main` 上的权威运行
->     run `32572618933`（event `push`，head `3503f2c89d78f44f94e0e0ff9f6061ca72e90b89`，**九个 job 全部 `success`**，
+>     run `32572618933`（event `push`，head `a22247225220297ed38efd3fd6d1a61c43553ea4`，**九个 job 全部 `success`**，
 >     `gates-l2-live` job `97030229667` 日志逐字 `门禁 19 项：红 0，绿 19，跳过 0`）。
 >     **本 plan Phase 2 那项欠账（守卫的变异实证）由 `2026-08-22-1206-1` 自己追加过一行，本条只引用、不复述。**
 >     ⚠️ **本条不动本 plan 的 `Plan Status`（仍 `deferred`）、不勾任何一个未勾框**：
@@ -210,7 +210,7 @@ Required Evidence 列写「人工批准（`AGENTS.md` 红线 2：不得让门禁
 **但两处措辞确实不一致，这件事必须有落点**——本 plan 把它登记为 Deferred（人动作），不留在散文里。
 
 **先例复核（不作为授权依据，只作为纪律来源）**：plan `2026-08-21-2220-2` 在同一张表下往 `gates.yml`
-只增了一个 job，自查证据是 `git diff 3fed439..HEAD -- .github/workflows/` → **唯一 hunk**
+只增了一个 job，自查证据是 `git diff 873c97f..HEAD -- .github/workflows/` → **唯一 hunk**
 `50 insertions / 0 deletions`，`on:` / `permissions:` 一行未动，无 trailer，通过了独立关闭审计。
 ⚠️ **本 plan 的自查比它更严**（见 Phase 2）——独立评审指出「deletions=0」本身**证明不了**
 「现有 7 个 job 一行不改」：往既有 job 块里**插**一行也是纯新增。
@@ -316,7 +316,7 @@ Skill: `none`
       登记为 Deferred（人动作，因为那是删除）。
       - Skill: `none`
 - [x] `Decision` **定 CI 实跑的落地路径：PR vs 直推 `main`**（独立评审 B7，本项为新增）。
-      **候选 (a) 直推 `main`** —— 先例是 plan `2026-08-21-2220-2`（run `32499273158`，sha `6ac1005`）。
+      **候选 (a) 直推 `main`** —— 先例是 plan `2026-08-21-2220-2`（run `32499273158`，sha `ad42e91`）。
       **候选 (b) 开 PR**，`gates.yml` 的 `on:` **已经含 `pull_request`**，且 `gates-untouched` /
       `expected-red-ratchet` 两个 job 都显式处理了 PR 路径（用 `base.sha` / `head.sha`）。
       **推荐 (b)**：覆盖面完全相同（八个 job 全跑），但把工作流改动**挡在 `main` 之外**直到证据到手；
@@ -370,12 +370,12 @@ Exit Criteria:
 
 ```
 $ git rev-parse HEAD
-7b0f585f7c8082a64902da65e6e3314cb239dc9f
+627c7a94e4580e74a778cd8cb6e66391f3ea4633
 $ git status --porcelain
 （无输出）
 ```
 
-**开工 sha 逐字：`7b0f585f7c8082a64902da65e6e3314cb239dc9f`**，工作区干净。
+**开工 sha 逐字：`627c7a94e4580e74a778cd8cb6e66391f3ea4633`**，工作区干净。
 本 plan 后文所有「用开工 sha 作基线」的自查都指这一条。
 
 **② 前驱 plan 的 `Plan Status`**
@@ -470,11 +470,11 @@ runner 的站点是全新的（没有本机那 6 条 `agenerp%` 历史孤儿列�
 若不先把 `main` 推上去，PR 的 base 就是陈旧的 `8b1e95c`，
 `verdict-tool-untouched` 在 `base.sha..head.sha` 上会看见前驱对判定器的改动而报红——
 **那是 base 陈旧造成的假阳，不是路径清单写错**。
-处置：**先 `git push origin main` 把已关闭的前驱工作推上去**，再从 `7b0f585` 开分支。
+处置：**先 `git push origin main` 把已关闭的前驱工作推上去**，再从 `627c7a9` 开分支。
 
 ```
 $ git push origin main
-   8b1e95c..7b0f585  main -> main
+   8b1e95c..627c7a9  main -> main
 ```
 
 ##### `Decision` 三 —— 主判定 job 的命令与 env
@@ -655,7 +655,7 @@ Exit Criteria:
 ##### 两个新 job 已落地
 
 `.github/workflows/gates.yml` 末尾追加 **`gates-l2-live`**（19 条全量 live 判定）与
-**`verdict-tool-untouched`**（判定器守卫），提交 **`9a8832f`**。文件 190 行 → 308 行，新增块 118 行。
+**`verdict-tool-untouched`**（判定器守卫），提交 **`2ef7cdc`**。文件 190 行 → 308 行，新增块 118 行。
 
 守卫的三处易错点与 `gates-untouched` **逐字同构，无差异**：
 ① `BASE`/`HEAD` 推导 —— `pull_request` 走 `base.sha`/`head.sha`，`push` 走 `github.event.before`/`github.sha`；
@@ -664,13 +664,13 @@ Exit Criteria:
 **唯一差别是 diff 路径**：`'tools/gates/check_expected_red.py' 'tools/gates/gate-verify.mjs'`，
 **清单里没有 `tools/gates/expected-red.txt`**（硬边界）。
 
-##### 红线 2 自查五条 —— 全部为期望值（开工 sha `7b0f585`）
+##### 红线 2 自查五条 —— 全部为期望值（开工 sha `627c7a9`）
 
 **(a) 行前缀**
 
 ```
-$ diff <(git show 7b0f585:.github/workflows/gates.yml) \
-       <(head -n $(git show 7b0f585:.github/workflows/gates.yml | wc -l) .github/workflows/gates.yml)
+$ diff <(git show 627c7a9:.github/workflows/gates.yml) \
+       <(head -n $(git show 627c7a9:.github/workflows/gates.yml | wc -l) .github/workflows/gates.yml)
 （无输出）
 diff-exit=0
 ```
@@ -681,7 +681,7 @@ diff-exit=0
 $ python3 -c "import yaml;print(sorted(yaml.safe_load(open('.github/workflows/gates.yml'))['jobs']))"
 ['expected-red-ratchet', 'gates-l1', 'gates-l2', 'gates-l2-live', 'gates-untouched', 'loop-wiring', 'masterplan-links', 'roadmap-parseable', 'verdict-tool-untouched']
 
-$ git show 7b0f585:.github/workflows/gates.yml > /tmp/old-gates.yml && python3 -c "import yaml;print(sorted(yaml.safe_load(open('/tmp/old-gates.yml'))['jobs']))"
+$ git show 627c7a9:.github/workflows/gates.yml > /tmp/old-gates.yml && python3 -c "import yaml;print(sorted(yaml.safe_load(open('/tmp/old-gates.yml'))['jobs']))"
 ['expected-red-ratchet', 'gates-l1', 'gates-l2', 'gates-untouched', 'loop-wiring', 'masterplan-links', 'roadmap-parseable']
 ```
 
@@ -735,13 +735,13 @@ $ docker compose -f docker-compose.yml config -q ; echo $?
 ##### CI 实跑 —— **`gates-l2-live` 连续两轮红，同一条 nodeid，可复现**
 
 落地路径按 `Decision` 二走 PR：**PR #1**（`https://github.com/lize-agent-engineering/AgenERP/pull/1`），
-base `main`（`7b0f585`），head `9a8832f`。
+base `main`（`627c7a9`），head `2ef7cdc`。
 
 **⚠️ 先记一条 PR 路径自己的首测结果**：往 `ci/0027-2-l2-full-live-gate` 分支推送
 **没有触发任何运行**——`on: push` 限定 `branches: [main]`，只有开 PR 时的 `pull_request` 事件触发。
 这与读代码读出来的一致，但此前从未观测过（本仓 0 个 merge commit），现在有实测了。
 
-**run `32509351108`**（`pull_request`，head `9a8832f`），两次 attempt：
+**run `32509351108`**（`pull_request`，head `2ef7cdc`），两次 attempt：
 
 | attempt | `gates-l2-live` | 其余 8 个 job |
 |---|---|---|
@@ -805,7 +805,7 @@ Required Evidence 含「实跑前后全量 `capture` 对照」，在一个 CI �
 - **`agenerp/**` 一行未改**，实测（基线用开工 sha）：
 
 ```
-$ git diff --stat 7b0f585..HEAD -- agenerp tests/gates docs/masterplan/DECISIONS.md missions tools/gates/check_expected_red.py tools/gates/expected-red.txt
+$ git diff --stat 627c7a9..HEAD -- agenerp tests/gates docs/masterplan/DECISIONS.md missions tools/gates/check_expected_red.py tools/gates/expected-red.txt
 （无输出）
 $ git status --porcelain -- agenerp tests/gates docs/masterplan/DECISIONS.md missions tools/gates/check_expected_red.py tools/gates/expected-red.txt
 （无输出）
@@ -916,7 +916,7 @@ plan 事先钉死三种写法：`success` / 「首轮红、复跑绿、不可复
 **⚠️ `2026-08-21-2220-1` 的 Closure Gates 一个字未改**，实测：
 
 ```
-$ git diff --stat 7b0f585..HEAD -- 'docs/plans/p0-foundation/2026-08-21-2220-1*'
+$ git diff --stat 627c7a9..HEAD -- 'docs/plans/p0-foundation/2026-08-21-2220-1*'
 （无输出）
 $ git status --porcelain -- 'docs/plans/p0-foundation/2026-08-21-2220-1*'
 （无输出）
@@ -957,16 +957,16 @@ plan 要求在 `2026-08-21-2220-2` 的 `Deferred But Adjudicated` 下追加一�
 在别人的 plan 里追加一行说它「了结」，正是本 plan 反复批评的「比证据更强的说法」。
 **该项保持未打勾，reopen 后与守卫变异实证一起做。**
 
-##### 收尾复跑与红线自查（基线用开工 sha `7b0f585`）
+##### 收尾复跑与红线自查（基线用开工 sha `627c7a9`）
 
 | 命令 | 结果 |
 |---|---|
 | `python3 tools/gates/check_expected_red.py && python3 -m pytest tests/unit -q` | **exit 0**（`门禁 19 项：预期红 7，绿 12，跳过 0` / `✅ 与预期红名单完全一致` / `205 passed in 0.51s`） |
 | `python3 -m pytest tests/contracts -q` | **exit 0**（`151 passed in 0.08s`） |
 | `ruff check agenerp tests/unit tests/contracts` | **exit 0**（`All checks passed!`） |
-| `git diff --stat 7b0f585..HEAD -- tests/gates agenerp docs/masterplan/DECISIONS.md missions tools/gates/check_expected_red.py` | **无输出** |
+| `git diff --stat 627c7a9..HEAD -- tests/gates agenerp docs/masterplan/DECISIONS.md missions tools/gates/check_expected_red.py` | **无输出** |
 | `git status --porcelain -- tests/gates agenerp docs/masterplan/DECISIONS.md missions tools/gates/check_expected_red.py` | **无输出** |
-| `git diff --numstat 7b0f585..HEAD -- tools/gates/expected-red.txt` | **无输出** |
+| `git diff --numstat 627c7a9..HEAD -- tools/gates/expected-red.txt` | **无输出** |
 | `git diff --numstat -- docs/masterplan/STATE.md` | **`8	0`** —— 8 增 0 删，**只追加**成立 |
 
 判定器那条被放进前两条 pathspec，是给「实验提交已清理干净」配的机械判据。

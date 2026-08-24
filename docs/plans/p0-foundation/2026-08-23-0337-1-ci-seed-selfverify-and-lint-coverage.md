@@ -23,7 +23,7 @@
 
 ## Current Baseline
 
-全部为 2026-08-23 在 `main`（`7a09ef7`）上的实跑/实读，不是回忆。
+全部为 2026-08-23 在 `main`（`622bc4e`）上的实跑/实读，不是回忆。
 ⚠️ **工作树此刻不干净，且这件事对本 plan 是有牙齿的**：`git status --porcelain` 有 4 个 `M`
 （`docs/architecture/system-baseline.md` · `docs/backlog/p0-foundation-roadmap.md` ·
 `docs/context/project-context.md` · `docs/plans/p0-foundation/2026-08-23-0120-1-…md`）与 1 个 `??`
@@ -115,7 +115,7 @@ docs/backlog/p0-foundation-roadmap.md` **无输出**。
     测试是 `import main` 直接调，**从不经过这两行**；而 `python3 -m agenerp.seed` **只经过这两行**。
 
 14. **§14.6 与它的 `### 它**不**覆盖什么` 小节此刻只在工作树里，不在 `main` 上**
-    （评审第 2 轮抓出的、与本节开头「全部在 `main`（`7a09ef7`）上实读」冲突的一条）：
+    （评审第 2 轮抓出的、与本节开头「全部在 `main`（`622bc4e`）上实读」冲突的一条）：
     `git show HEAD:docs/architecture/system-baseline.md | wc -l` → **785 行**，
     该小节在 HEAD 上**只有 `:715` 一处**（§14.5）；工作树版本有两处（`:715` / `:838`），
     第二处落在 `0120-1` 未入库的 +69 行里。
@@ -258,7 +258,7 @@ Skill: `none`
 
 - 工作树前置：`git status --porcelain -- docs/architecture/system-baseline.md docs/context/project-context.md docs/backlog/p0-foundation-roadmap.md`
   → **无输出**（`0120-1` 与 `0120-2` 的回填均已入库）。`git status --porcelain` 全仓亦**无输出**，工作树全干净。
-  开工 HEAD = `d45163c73a0b35fda848cd810d9a9f1200d18a28`（**不是**起草时的 `7a09ef7`）。
+  开工 HEAD = `b9de2824c25b9e4fdb9234b120affa4c487468ea`（**不是**起草时的 `622bc4e`）。
 - `docs/architecture/system-baseline.md` 现时 **887 行**（起草时 `main` 785 / 工作树 854，**两个数都已过期**）；
   `### 它**不**覆盖什么` 两处现时行号为 **`:748`（§14.5）** 与 **`:871`（§14.6）**
   （起草时写的 `:715` / `:838` 已过期，未照抄）。§14.5 起于 `:638`，§14.6 起于 `:760`。
@@ -352,7 +352,7 @@ Skill: `none`
 
 **Phase 2 实测证据（2026-08-23，全部为实跑，不是回忆）：**
 
-**红线 2 机械自查五条**（基线为开工 HEAD `d45163c`）：
+**红线 2 机械自查五条**（基线为开工 HEAD `b9de282`）：
 
 | # | 命令原文 | 实测输出 | 判定 |
 |---|---|---|---|
@@ -472,11 +472,11 @@ Skill: `none`
 
 | # | run id | head sha | 内容 | 结论 |
 |---|---|---|---|---|
-| 1 | `32601490564` | `1debf1a` | 首跑（无变异） | **13 个 job 全 `success`** —— 与**预测 ①②** 逐条吻合 |
-| 2 | `32601754671` | `eeaac53` | 变异 A：`agenerp/snapshot.py` 与 `tests/unit/test_seed_deterministic.py` 各加一处 `F401` | **`lint` `failure`（job `97100973890`），其余 12 个 job 全 `success`** —— 与**预测 ③** 逐条吻合 |
-| 3 | `32601993786` | `17a9532` | `git revert` A | **13 个 job 全 `success`** |
-| 4 | `32602225121` | `a4c2cbf` | 变异 B：`agenerp/seed/__main__.py:70` `raise SystemExit(main())` → `raise SystemExit(0)` | **`seed-selfverify` `failure`（job `97102151649`），其余 12 个 job 全 `success`**（含 `unit-and-contracts` `97102151664` `success`） —— 与**预测 ④** 逐条吻合 |
-| 5 | `32602435912` | `9835019` | `git revert` B | **13 个 job 全 `success`** |
+| 1 | `32601490564` | `b79f9c8` | 首跑（无变异） | **13 个 job 全 `success`** —— 与**预测 ①②** 逐条吻合 |
+| 2 | `32601754671` | `e537075` | 变异 A：`agenerp/snapshot.py` 与 `tests/unit/test_seed_deterministic.py` 各加一处 `F401` | **`lint` `failure`（job `97100973890`），其余 12 个 job 全 `success`** —— 与**预测 ③** 逐条吻合 |
+| 3 | `32601993786` | `f95b1cc` | `git revert` A | **13 个 job 全 `success`** |
+| 4 | `32602225121` | `9d8398b` | 变异 B：`agenerp/seed/__main__.py:70` `raise SystemExit(main())` → `raise SystemExit(0)` | **`seed-selfverify` `failure`（job `97102151649`），其余 12 个 job 全 `success`**（含 `unit-and-contracts` `97102151664` `success`） —— 与**预测 ④** 逐条吻合 |
+| 5 | `32602435912` | `b089fb5` | `git revert` B | **13 个 job 全 `success`** |
 
 **首跑两个新 job 的日志逐字行**（run `32601490564`）：
 
@@ -529,11 +529,11 @@ Found 2 errors.
 分支最终形态（`git log --oneline main..HEAD`）：
 
 ```
-9835019 Revert "MUTATION-B: __main__ 卫句改成 raise SystemExit(0) …"
-a4c2cbf MUTATION-B: __main__ 卫句改成 raise SystemExit(0) …
-17a9532 Revert "MUTATION-A: 故意的 F401（两处，agenerp/ 与 tests/unit/ 各一）…"
-eeaac53 MUTATION-A: 故意的 F401（两处，agenerp/ 与 tests/unit/ 各一）…
-1debf1a feat(ci): plan-2026-08-23-0337-1 Phase 1-2 —— gates.yml 纯追加 seed-selfverify / lint 两个 job
+b089fb5 Revert "MUTATION-B: __main__ 卫句改成 raise SystemExit(0) …"
+9d8398b MUTATION-B: __main__ 卫句改成 raise SystemExit(0) …
+f95b1cc Revert "MUTATION-A: 故意的 F401（两处，agenerp/ 与 tests/unit/ 各一）…"
+e537075 MUTATION-A: 故意的 F401（两处，agenerp/ 与 tests/unit/ 各一）…
+b79f9c8 feat(ci): plan-2026-08-23-0337-1 Phase 1-2 —— gates.yml 纯追加 seed-selfverify / lint 两个 job
 ```
 
 ⚠️ **实验提交要从落 `main` 的历史上收尾干净**：本分支带 4 个实验/revert 提交，
@@ -641,13 +641,13 @@ Skill: `none`
 | 项 | 值 |
 |---|---|
 | PR 号 | **#9**（实证用的是 **#8**，未合并） |
-| PR #9 上跑绿的 run | `32602725539`（event `pull_request`，head `4476c470fb65e53d81faa1ee0cd84ea674330689`），**13 个 job 全 `success`** |
-| 落地 sha（全长） | **`4476c470fb65e53d81faa1ee0cd84ea674330689`** |
-| 落地方式 | `git merge --ff-only ci/0337-1-seed-lint-coverage-land` → `Updating d45163c..4476c47 / Fast-forward` |
+| PR #9 上跑绿的 run | `32602725539`（event `pull_request`，head `ae01f6e227a280eedf2beefdb3788bc851c6d673`），**13 个 job 全 `success`** |
+| 落地 sha（全长） | **`ae01f6e227a280eedf2beefdb3788bc851c6d673`** |
+| 落地方式 | `git merge --ff-only ci/0337-1-seed-lint-coverage-land` → `Updating b9de282..ae01f6e / Fast-forward` |
 | `main` `push` 权威运行 | **`32602915798`**（event `push`，head `4476c470f…`）→ **`success`** |
 
 ⚠️ **落地 sha 与 PR #9 上跑绿的 head 逐字同一个**：
-`4476c470fb65e53d81faa1ee0cd84ea674330689` **=** `4476c470fb65e53d81faa1ee0cd84ea674330689`。
+`ae01f6e227a280eedf2beefdb3788bc851c6d673` **=** `ae01f6e227a280eedf2beefdb3788bc851c6d673`。
 （`--ff-only` 快进，没有产生 merge commit，因此两者按构造相等，并已实测核对。）
 
 **`main` `push` 权威运行 `32602915798` 的 13 个 job（job id + `name:` + 结论，逐条）**：
@@ -675,7 +675,7 @@ Skill: `none`
 
 | 文件 | `git diff --numstat` | 判定 |
 |---|---|---|
-| `docs/architecture/system-baseline.md` | `113	0` | **删除列 `0`**；`head -887 … \| diff - <(git show d45163c:…)` → **无输出**，即 **§14 本体（`:131`–`:177`）与 §14.1–§14.6 逐字节未动**；§14.7 起于 `:889` |
+| `docs/architecture/system-baseline.md` | `113	0` | **删除列 `0`**；`head -887 … \| diff - <(git show b9de282:…)` → **无输出**，即 **§14 本体（`:131`–`:177`）与 §14.1–§14.6 逐字节未动**；§14.7 起于 `:889` |
 | `docs/context/project-context.md` | `2	2` | **两行都是句末追加**（同一行改写，`2` 增 `2` 删）；**文件行数 108 → 108 未变**，即**未新增行、未重构表结构** |
 | `docs/backlog/p0-foundation-roadmap.md` | `1	0` | **纯追加**（删除列 `0`）；新行 `\| 9 现状 · 生成器自验与 lint 的 CI 覆盖 \| … \| L2 \|`，**3 个单元格 + 「层」列 `L2`**，与既有 `\| 9 现状 · … \|` 行（`:89` / `:90`）形态一致 |
 | `docs/masterplan/STATE.md` | `7	0` | **纯追加**（删除列 `0`，红线 5）；§2 末尾一条证据行 + 6 条 `  · ` 子项，**既有行一个字未改** |
@@ -718,7 +718,7 @@ Skill: `none`
 **结论：grep ② 零处需要改准**；job 计数类陈述**要么是带日期的历史证据、要么是仍然成立的序数**。
 
 
-**owner doc 回填提交本身也过了一次 CI**（本行是回填之后补记的最后一条证据）：文档提交 `be68398cd310eb835b1215cd7357f0ea4c2052e4` 推 `main` 触发 run **`32603477342`** → **`success`，13 个 job 全 `success`**。**这一跑的意义是窄的、但要紧**：它证明 roadmap 新增的那一行**没有把表写坏**（`roadmap-parseable` `success`）、两处新加的 markdown 链接**没有断链**（`masterplan-links` `success`）——而 plan 起草时逐字提醒过「`roadmap-parseable` 校验的是 `Work Item Status` 块，**它不会替你挡这个错**」。
+**owner doc 回填提交本身也过了一次 CI**（本行是回填之后补记的最后一条证据）：文档提交 `a581ba48d174f2718e7f0e0f1000338058edd10d` 推 `main` 触发 run **`32603477342`** → **`success`，13 个 job 全 `success`**。**这一跑的意义是窄的、但要紧**：它证明 roadmap 新增的那一行**没有把表写坏**（`roadmap-parseable` `success`）、两处新加的 markdown 链接**没有断链**（`masterplan-links` `success`）——而 plan 起草时逐字提醒过「`roadmap-parseable` 校验的是 `Work Item Status` 块，**它不会替你挡这个错**」。
 Exit Criteria:
 
 - [x] PR 号 / 落地 sha（全长）/ `main` `push` 权威运行 run id / 13 个 job 的 job id 与结论全部记在本 plan 内
@@ -932,24 +932,24 @@ Closure Audit Evidence:
 
 - Auditor / Agent: **independent closure auditor（loop `CLOSURE_VERIFY` 步骤的独立子代理，fresh session）** —— 执行者不自证。
   独立复核结论：**approved**（2026-08-23）。**逐条实读/实跑核准，不采信 `[x]`**：
-  · `.github/workflows/gates.yml` 现为 **441 行 = 404 + 37**，`git diff --numstat d45163c^..HEAD -- .github/workflows/gates.yml` 删除行数 **0**（前 404 行逐字节未动，纯追加成立）
+  · `.github/workflows/gates.yml` 现为 **441 行 = 404 + 37**，`git diff --numstat b9de282^..HEAD -- .github/workflows/gates.yml` 删除行数 **0**（前 404 行逐字节未动，纯追加成立）
   · job 键实数 **13**，末两个逐字为 `seed-selfverify`（`name: 种子生成器自验（agenerp.seed --verify）`）与 `lint`（`name: 静态检查（ruff）`），两者各有 `name:`，与 Phase 4 记录逐条对上
   · 两个新 job 均为 `gates.yml` 顶层 `jobs:` 成员，触发面为 `on: push[main] / pull_request / workflow_dispatch` —— **在 CI 上真实可达，非空壳**；`seed-selfverify` 的判据确为「退出码 + stdout 断言」两条（`set -euo pipefail` + `tee` + `grep -qE`），`lint` 钉 `ruff==0.14.1`
-  · `gh run view 32602915798` 独立复核：`conclusion: success` · `event: push` · `headSha: 4476c470fb65e53d81faa1ee0cd84ea674330689` · **13 个 job 全 `success`**（含「静态检查（ruff）」与「种子生成器自验（agenerp.seed --verify）」）—— 与 Closure 记录的 run id / sha **逐字同一个**
-  · 落地 sha 独立核对：`git rev-parse 4476c47` → `4476c470fb65e53d81faa1ee0cd84ea674330689`，该提交 `--numstat` 只含 `37	0	.github/workflows/gates.yml`
+  · `gh run view 32602915798` 独立复核：`conclusion: success` · `event: push` · `headSha: ae01f6e227a280eedf2beefdb3788bc851c6d673` · **13 个 job 全 `success`**（含「静态检查（ruff）」与「种子生成器自验（agenerp.seed --verify）」）—— 与 Closure 记录的 run id / sha **逐字同一个**
+  · 落地 sha 独立核对：`git rev-parse ae01f6e` → `ae01f6e227a280eedf2beefdb3788bc851c6d673`，该提交 `--numstat` 只含 `37	0	.github/workflows/gates.yml`
   · 本机命令**审计侧原样复跑**：`python3 -m agenerp.seed --seed 42 --verify` → **exit 0**（`✅ 种子 42：两次生成 diff 为空，场景断言全过`）· `ruff check agenerp tests/unit tests/contracts` → **exit 0**（`All checks passed!`）
-  · 红线五条独立复核（`git diff --stat d45163c^..HEAD -- docs/masterplan/DECISIONS.md tests/gates missions agenerp pyproject.toml` **无输出**）：`tests/gates/**` / `missions/**` / `DECISIONS.md`（无新增 `R-x`）/ `agenerp/**` / `pyproject.toml` **全部零改动**；`STATE.md` `7	0` 纯追加
+  · 红线五条独立复核（`git diff --stat b9de282^..HEAD -- docs/masterplan/DECISIONS.md tests/gates missions agenerp pyproject.toml` **无输出**）：`tests/gates/**` / `missions/**` / `DECISIONS.md`（无新增 `R-x`）/ `agenerp/**` / `pyproject.toml` **全部零改动**；`STATE.md` `7	0` 纯追加
   · owner doc 回填已实读落地：`system-baseline.md:889` §14.7 已建 · `project-context.md:52` / `:55` 为**句末追加**（`--numstat` `2	2`，行数未增、表结构未动）· roadmap `:92` 纯追加一行（`1	0`）· `docs/logs/2026/08-23.md` 已更新（`128	0`）
   · 工作项 7 / 9 的状态值实读仍为 `planned`（roadmap Work Item Status 块），未被本 plan 改动
   · Deferred 六条逐条读过：**均为 `watch-only residual` / `out-of-scope improvement` 且各带重开事件**，未见被降级藏匿的在范围内活缺陷；`missions/**` 覆盖缺口、`lint` 只跑默认规则集、授权面欠人追认三条，Closure 正文已逐字自陈，未粉饰
   · 五点一致性（Plan Status `completed` / 四个 Phase 均 `Status: completed` 且 Exit Criteria 全 `[x]` / Closure Gates / Closure 证据）**互相吻合，无冲突**
 - Evidence（执行者侧已落盘的可复核证据）：
-  - **本机命令原文 + 退出码**（落地后在 `main` `4476c47` 上复跑）：
+  - **本机命令原文 + 退出码**（落地后在 `main` `ae01f6e` 上复跑）：
     `python3 -m agenerp.seed --seed 42 --verify` → **0**（`✅ 种子 42：两次生成 diff 为空，场景断言全过`）·
     `ruff check agenerp tests/unit tests/contracts` → **0**（`All checks passed!`）·
     `python3 tools/gates/check_expected_red.py` → **0**（`门禁 19 项：预期红 7，绿 12，跳过 0` / `✅ 与预期红名单完全一致`）·
     `python3 -m pytest tests/unit -q` → **0**（`293 passed`）· `python3 -m pytest tests/contracts -q` → **0**（`151 passed`）
-  - **commit sha**：落地 sha **`4476c470fb65e53d81faa1ee0cd84ea674330689`**（= PR #9 跑绿 head，逐字同一个）
+  - **commit sha**：落地 sha **`ae01f6e227a280eedf2beefdb3788bc851c6d673`**（= PR #9 跑绿 head，逐字同一个）
   - **CI run id**：PR #8 实证五跑 `32601490564` / `32601754671` / `32601993786` / `32602225121` / `32602435912` ·
     PR #9 落地跑 `32602725539` · **`main` `push` 权威运行 `32602915798`（13 个 job 全 `success`）**
   - **红线自查五条**：① `tests/gates/**` 零改动 ② `.github/workflows/**` 纯追加（`37	0`，前 **404** 行逐字节未动）

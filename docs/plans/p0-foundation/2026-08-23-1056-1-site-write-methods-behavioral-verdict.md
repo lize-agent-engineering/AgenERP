@@ -7,13 +7,13 @@
 > Mission: p0-foundation
 > Work Item: 工作项 9 · 判据设施的加严（`agenerp/site.py` 侧）
 > Last Reviewed: 2026-08-23
-> Source: 本轮 mission-driver 起草时在 `main` @ `499fe24` 上实跑覆盖率 + 七次变异实验（证据见 `## Current Baseline`）
+> Source: 本轮 mission-driver 起草时在 `main` @ `ffc1be4` 上实跑覆盖率 + 七次变异实验（证据见 `## Current Baseline`）
 > Related: `2026-08-23-0859-1-budget-halt-gate-verdict-coverage.md`（同一形态的前驱：给零判据模块补行为判据）
 > Audit: required
 
 ## Current Baseline
 
-**全部为 2026-08-23 在 `main` @ `499fe24a039f11ee191f036bd7a3a642d30d5024` 上实跑/实读，不是推理。**
+**全部为 2026-08-23 在 `main` @ `ffc1be4ce1440746f589ebf45f6ef7504d556fee` 上实跑/实读，不是推理。**
 
 | # | 事实 | 取证命令 → 结果 |
 |---|---|---|
@@ -78,7 +78,7 @@
 - **独立草案评审 + 独立关闭审计**：本 plan 走完整流程，见 `## Draft Review Record` 与 `## Closure`。
 - **实跑前后全量 `capture` 对照（差集必须只含本次探针）**：**不适用，且不伪造**。本 plan
   零 docker、零网络、零活站点（见 `## Non-Goals`），**不存在「前后」两个站点快照可对照**；
-  `agenerp/site.py` 一行未改，删除路径的行为面与 `main` @ `499fe24` 逐字相同。
+  `agenerp/site.py` 一行未改，删除路径的行为面与 `main` @ `ffc1be4` 逐字相同。
   该条以「本 plan 的作用域内无对照对象」记，**不以「已做」记**；机械替代证据是
   `git diff --numstat agenerp/site.py` 无输出。
 - **对不可逆性说话的 Required Evidence**：本 plan **零代码级前置/取证交付**。逐字声明——

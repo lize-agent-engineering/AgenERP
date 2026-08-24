@@ -12,7 +12,7 @@
 
 ## Current Baseline
 
-全部为 2026-08-23 在 `main`（`577e401`；`git status --porcelain` **无跟踪文件改动**，只有本批两个 plan
+全部为 2026-08-23 在 `main`（`97e4652`；`git status --porcelain` **无跟踪文件改动**，只有本批两个 plan
 文件是未跟踪新文件）上的实跑，不是回忆。本机解释器 **Python 3.12.9**（后面的 `passed` 计数由它测得）。
 
 1. **`tests/contracts` 在本仓没有任何自动复跑面。** `grep -rn "tests/unit\|tests/contracts" .github/` →
@@ -155,7 +155,7 @@ Exit Criteria:
 - **D2 落进的要件**：候选表 (i)/(ii) ✔ · 选定项 **(ii)** ✔ ·
   fail-fast 残余风险 + 「刻意不加 `if: always()`」✔（**实测依据**：
   `grep -c 'if: always()' .github/workflows/gates.yml` → **`10`**，且逐条读过，10 处全在取证步骤上）。
-- **本机基线复跑（`577e401`，Python 3.12.9）**：
+- **本机基线复跑（`97e4652`，Python 3.12.9）**：
   `python3 -m pytest tests/unit -q` → exit 0，`288 passed` ·
   `python3 -m pytest tests/contracts -q` → exit 0，`151 passed` ·
   `python3 tools/gates/check_expected_red.py` → exit 0，判定三行与 Baseline 8 **逐字节相同**。
@@ -198,14 +198,14 @@ Phase 1 时那一段还不存在 —— 届时 ② 会回 `11` 而不是 `12`、
       ⚠️ **本组刻意不用 markdown 表格排版**：表格里 `|` 必须写成 `\|`，而 `\|` 在 ERE 里是**字面竖线**，
       会把 `grep -cE 'a\|b'` 变成一个永不匹配的字面串 —— 那样它在**违规文件上也输出 `0`**，
       即整条红线 2 的机械判据静默假通过。**下面每条都是可直接粘的 shell 原文，不含表格转义。**
-      - ① **前缀性**：`diff <(git show 577e401:.github/workflows/gates.yml) <(head -n 387 .github/workflows/gates.yml)`
-        → **无输出**。（基线 sha 写死为 `577e401`，不写 `main` —— Phase 4 合并之后 `main` 指向新文件，
+      - ① **前缀性**：`diff <(git show 97e4652:.github/workflows/gates.yml) <(head -n 387 .github/workflows/gates.yml)`
+        → **无输出**。（基线 sha 写死为 `97e4652`，不写 `main` —— Phase 4 合并之后 `main` 指向新文件，
         用 `main` 会让同一条命令在 Phase 4 变得不可满足。）
       - ② **job 键只增不减**：`grep -nE '^  [a-z0-9-]+:$' .github/workflows/gates.yml`
-        → **12 行**（`:7` 的 `push:` + 11 个 job 键），前 11 行与 `577e401` 逐字相同、顺序不变。
+        → **12 行**（`:7` 的 `push:` + 11 个 job 键），前 11 行与 `97e4652` 逐字相同、顺序不变。
       - ③ **禁用词**：`sed -n '388,$p' .github/workflows/gates.yml | grep -cE 'continue-on-error|if: false'`
         → 输出 **`0`**。⚠️ `grep -c` 计数为 0 时**退 1**，**退 1 即通过**，不得误读成失败。
-      - ④ **既有 `if:` 未改**：`diff <(git show 577e401:.github/workflows/gates.yml | grep -n 'if:') <(head -n 387 .github/workflows/gates.yml | grep -n 'if:')`
+      - ④ **既有 `if:` 未改**：`diff <(git show 97e4652:.github/workflows/gates.yml | grep -n 'if:') <(head -n 387 .github/workflows/gates.yml | grep -n 'if:')`
         → **无输出**。（照实说：本条由 ① 蕴含，留着是为了红因可归属，**不是独立证据**。）
       - ⑤ **无失败吞噬**：`sed -n '388,$p' .github/workflows/gates.yml | grep -cE '\|\| true|set \+e'`
         → 输出 **`0`**（同 ③ 的退码口径）。⚠️ 此处的 `\|\|` 是**转义后的字面 `||`**，`set \+e` 的 `\+` 是字面加号，
@@ -258,15 +258,15 @@ YAML 解析实证：`yaml.safe_load` 出 **11 个 job 键**，顺序为原 10 �
 
 **保命闸七条（命令原文 · 期望值 · 实测值，全部为期望值）**：
 
-- ① 前缀性 —— `diff <(git show 577e401:.github/workflows/gates.yml) <(head -n 387 .github/workflows/gates.yml)`
+- ① 前缀性 —— `diff <(git show 97e4652:.github/workflows/gates.yml) <(head -n 387 .github/workflows/gates.yml)`
   · 期望 **无输出** · 实测 **无输出，exit 0**
 - ② job 键只增不减 —— `grep -nE '^  [a-z0-9-]+:$' .github/workflows/gates.yml`
   · 期望 **12 行** · 实测 **12 行**（`7: push:` + 11 个 job 键，末行 `389:  unit-and-contracts:`）；
-  前 11 行与 `577e401` 逐字相同、顺序不变，机械核对
-  `diff <(git show 577e401:… | grep -nE '^  [a-z0-9-]+:$') <(head -n 11 …)` → **无输出，exit 0**
+  前 11 行与 `97e4652` 逐字相同、顺序不变，机械核对
+  `diff <(git show 97e4652:… | grep -nE '^  [a-z0-9-]+:$') <(head -n 11 …)` → **无输出，exit 0**
 - ③ 禁用词 —— `sed -n '388,$p' .github/workflows/gates.yml | grep -cE 'continue-on-error|if: false'`
   · 期望 **`0`** · 实测 **`0`（退 1，退 1 即通过）**
-- ④ 既有 `if:` 未改 —— `diff <(git show 577e401:.github/workflows/gates.yml | grep -n 'if:') <(head -n 387 .github/workflows/gates.yml | grep -n 'if:')`
+- ④ 既有 `if:` 未改 —— `diff <(git show 97e4652:.github/workflows/gates.yml | grep -n 'if:') <(head -n 387 .github/workflows/gates.yml | grep -n 'if:')`
   · 期望 **无输出** · 实测 **无输出，exit 0**（照实说：本条由 ① 蕴含，不是独立证据）
 - ⑤ 无失败吞噬 —— `sed -n '388,$p' .github/workflows/gates.yml | grep -cE '\|\| true|set \+e'`
   · 期望 **`0`** · 实测 **`0`（退 1）**
@@ -289,9 +289,9 @@ YAML 解析实证：`yaml.safe_load` 出 **11 个 job 键**，顺序为原 10 �
 `git diff --stat -- 'agenerp/**' 'tests/**' 'tools/gates/**' 'missions/**' docs/masterplan/DECISIONS.md`
 → **无输出，exit 0**（受保护 pathspec 零改动）。
 
-**PR 首跑（第一次绿）**：分支 `ci/0120-1-unit-contracts`（从 `main` @ `a877b38` 切出），
-其上只有一个提交 **`2848387`**、只含 `gates.yml`（`1 file changed, 17 insertions(+)`）。
-**PR #6**，head `28483876fe8aa9ebf8df67135db11ad7fbc236a8`，
+**PR 首跑（第一次绿）**：分支 `ci/0120-1-unit-contracts`（从 `main` @ `a852456` 切出），
+其上只有一个提交 **`1701750`**、只含 `gates.yml`（`1 file changed, 17 insertions(+)`）。
+**PR #6**，head `1701750bd335822861b570f72d3f5c183d8dfa4c`，
 run **`32590196838`**（`pull_request`）→ **`success`，11 个 job 全部 `success`**：
 
 `L2 慢门禁（零依赖启动）` `97072710424` · `预期红名单只能变短` `97072710441` ·
@@ -371,7 +371,7 @@ Skill: `none`
       「Phase 3 全部 Exit Criteria」—— 那是一个自锁**，与初稿把保命闸放进 Phase 1 是同一类错误。已拆开。
       - Skill: `none`
 
-#### Phase 3 本机前置自查与四条预测（**本块在推任何变异之前写死并单独提交**，commit `66736cf` 之后、变异 push 之前）
+#### Phase 3 本机前置自查与四条预测（**本块在推任何变异之前写死并单独提交**，commit `864f3f5` 之后、变异 push 之前）
 
 **实验 ① 的确切变异点（不留「某一处」）**：`agenerp/contracts.py:225` 的
 `def _validate_returns(contract: ToolContract) -> list[str]:` 函数体**第一行插入 `return []`**，
@@ -428,10 +428,10 @@ Exit Criteria:
 
 #### Phase 3 实测（**四条预测全部命中，一条都没改写**）
 
-分支 `ci/0120-1-unit-contracts`，实验前 sha **`2848387`**（只含 `gates.yml` 追加的那一个提交）。
+分支 `ci/0120-1-unit-contracts`，实验前 sha **`1701750`**（只含 `gates.yml` 追加的那一个提交）。
 
-**实验 ①（变异 `agenerp/contracts.py::_validate_returns` → no-op），commit `3ea2767`，run `32590487279`
-（head `3ea276756c2e909ecd41063eb75bb3727f07b26d`）→ `failure`：**
+**实验 ①（变异 `agenerp/contracts.py::_validate_returns` → no-op），commit `2b35bc2`，run `32590487279`
+（head `2b35bc29910fe9998e7d63dc5da4c315320400d0`）→ `failure`：**
 
 - 新 job `单测与契约测试（439 条）` `97073436302` → **`failure`**，
   步骤级逐字：`① 单测（tests/unit）` **`success`** · `② 契约测试（tests/contracts）` **`failure`**
@@ -443,8 +443,8 @@ Exit Criteria:
 - **这是本 plan 存在理由的直接证据**：该变异对 `main` 上原有的 10 个 job **完全隐形**，
   只有新 job 抓到了它。**结论只写到这么窄**：这一次、这一处变异如此。
 
-**实验 ②（`git revert 3ea2767`），commit `397bb17`，run `32590701768`
-（head `397bb17c0890baec965124835b1e8cce565e8da3`）→ `success`，11 个 job 全 `success`：**
+**实验 ②（`git revert 2b35bc2`），commit `55fa3c8`，run `32590701768`
+（head `55fa3c8db0e5275228f5cd5a87942311f70d4f8a`）→ `success`，11 个 job 全 `success`：**
 `门禁未被改动` `97073967255` · `主计划引用不断链` `97073967321` · `判定器未被改动` `97073967327` ·
 `循环联动冒烟` `97073967343` · **`单测与契约测试（439 条）` `97073967345`** ·
 `L2 全量 live 判定（19 条）` `97073967346` · `roadmap 引擎可解析` `97073967355` ·
@@ -452,8 +452,8 @@ Exit Criteria:
 `L2 慢门禁（零依赖启动）` `97073967402` · `L1 快门禁` `97073967423`。
 **它不是空转**：它证明实验 ① 的红出自那一处改动，不是别的东西在同时红。
 
-**实验 ③（变异 `agenerp/snapshot.py::diff()` → `changed = ()`），commit `7e32871`，run `32590923810`
-（head `7e328713ffc50a54aad54572e90e0c0af5fe5b3d`）→ `failure`：**
+**实验 ③（变异 `agenerp/snapshot.py::diff()` → `changed = ()`），commit `72091ca`，run `32590923810`
+（head `72091cab99b6358a4aff121cf47f6301430839a7`）→ `failure`：**
 
 - 新 job `97074525545` → **`failure`**，步骤级逐字：`① 单测（tests/unit）` **`failure`** ·
   `② 契约测试（tests/contracts）` **`skipped`** —— **红在步骤 ①，与预测逐字一致**；
@@ -467,15 +467,15 @@ Exit Criteria:
   `判定器未被改动` `97074525466` · `循环联动冒烟` `97074525468` · `roadmap 引擎可解析` `97074525472` ·
   `主计划引用不断链` `97074525511` · `门禁未被改动` `97074525519` · `L2 慢门禁（零依赖启动）` `97074525552`。
 
-**实验 ④（`git revert 7e32871`），commit `5d8ce23`，run `32591113070`
-（head `5d8ce2351e65db446284c2b429338cb4368a80d8`）→ `success`，11 个 job 全 `success`：**
+**实验 ④（`git revert 72091ca`），commit `17c7dff`，run `32591113070`
+（head `17c7dff52c37d60fceee8a1f2c3eb5c6f5523d3d`）→ `success`，11 个 job 全 `success`：**
 `循环联动冒烟` `97074998555` · `roadmap 引擎可解析` `97074998641` ·
 `L2 种子链（装载 + 站点侧对账）` `97074998734` · `L2 慢门禁（零依赖启动）` `97074998745` ·
 `L2 全量 live 判定（19 条）` `97074998747` · `L1 快门禁` `97074998754` · `门禁未被改动` `97074998782` ·
 `预期红名单只能变短` `97074998783` · **`单测与契约测试（439 条）` `97074998789`** ·
 `判定器未被改动` `97074998817` · `主计划引用不断链` `97074998830`。
 
-**树复原的机械证据**：`git diff 2848387..HEAD -- agenerp/` → **无输出，exit 0**。
+**树复原的机械证据**：`git diff 1701750..HEAD -- agenerp/` → **无输出，exit 0**。
 
 **停机线未触发**：红的两轮（实验 ①③）之间隔着必绿的实验 ②，且两次红都是本 plan 事先逐字写死的预测，
 **不构成「CI 连续 2 轮红」**；两次变异各自立即 revert，`GATE_VERIFY` 连续失败上限是 1，
@@ -518,8 +518,8 @@ Skill: `none`
       ⚠️ **文档提交为什么必须分开走，理由是机械的、不是风格偏好**：本 Phase 的三条文档项都要引用
       **落地 sha 与权威运行 run id**，而那两样在落地提交本身存在之前不存在 —— 把文档塞进落地分支会让
       「落地 sha == 落地 PR 跑绿的 head」这条判据**按构造不可满足**。
-      **前驱正是这么做的**（实测：`2972669` 只动 `gates.yml` 一个文件，文档在 `347f756` 随后单独进 `main`；
-      `1206-2` 的 `3503f2c` 同样只含 `gates.yml`）。
+      **前驱正是这么做的**（实测：`5fec323` 只动 `gates.yml` 一个文件，文档在 `89def59` 随后单独进 `main`；
+      `1206-2` 的 `a222472` 同样只含 `gates.yml`）。
       **落点因此写死为三段**：① Phase 1 的 §14.6 前两段**先直接进 `main`**，然后才从 `main` 切落地分支
       （这样它天然被带上）；② 落地分支只含 `gates.yml`；③ Phase 4 的文档提交在**权威运行拿到之后**进 `main`。
       - Skill: `none`
@@ -555,13 +555,13 @@ Skill: `none`
 Exit Criteria:
 
 - [x] `main` 上 `gates.yml` 为 11 个 job 键（锚定 `grep` 回 12 行），前 387 行逐字节未动 ——
-      判据命令**必须钉死基线 sha**：`diff <(git show 577e401:.github/workflows/gates.yml) <(head -n 387 .github/workflows/gates.yml)`
+      判据命令**必须钉死基线 sha**：`diff <(git show 97e4652:.github/workflows/gates.yml) <(head -n 387 .github/workflows/gates.yml)`
       → 无输出。⚠️ **此处不得写 `git show main:`**：合并之后 `main` 已指向新文件，那样写这条判据恒不可满足
 - [x] 权威运行 run id + 11 个 job id + 新 job 日志逐字片段记在本 plan 内
 - [x] **总成本记账**：`5（Phase 3）+ 1（落地 PR）+ 1（`main` push 权威运行）+ N（文档 push）` 次完整 11-job 运行。
       ⚠️ **N 不许当成零**：`gates.yml:6-10` 的 `on: push` **没有 `paths:` 过滤**，
       所以**每一次纯文档 push 到 `main` 都会触发一次完整 11-job 运行**（含三个各约 3 分钟的 docker job）。
-      前驱实测有 **3 次**这样的 push（`347f756` / `730ed6d` / `577e401`）。
+      前驱实测有 **3 次**这样的 push（`89def59` / `c01c0cc` / `97e4652`）。
       **N 在关闭时按实际发生数填，不在起草时猜**；合计 CI 分钟数对照 `AGENTS.md` 裁判规则 4 的累计成本条款。
       ⚠️ **不得把这几次一律写成「11-job 运行」**：Phase 1 的 §14.6 文档 push 发生在**落地之前**，
       那时 `main` 上还只有 10 个 job —— 它是一次 **10-job 运行**。照实分开计，别为了句子整齐制造一处假陈述
@@ -574,24 +574,24 @@ Exit Criteria:
 #### Phase 4 执行记录（2026-08-23 实跑）
 
 **落地分支与三段落点（按写死的形态执行，无偏离）**：
-① Phase 1 的 §14.6 前两段先直接进 `main`（`a877b38`），Phase 2/3 的 plan 回填随后进 `main`（`1886d9d`）；
-② 从 `main` @ `1886d9d` **新切** `ci/0120-1-unit-contracts-land`，
-用 `git checkout 2848387 -- .github/workflows/gates.yml` 取回实验分支上跑绿的那一份
-（`diff <(git show 2848387:.github/workflows/gates.yml) .github/workflows/gates.yml` → **无输出，IDENTICAL**），
-**只提交这一个文件**（`git show --stat` → `1 file changed, 17 insertions(+)`），commit `7a09ef7`；
+① Phase 1 的 §14.6 前两段先直接进 `main`（`a852456`），Phase 2/3 的 plan 回填随后进 `main`（`1538bf0`）；
+② 从 `main` @ `1538bf0` **新切** `ci/0120-1-unit-contracts-land`，
+用 `git checkout 1701750 -- .github/workflows/gates.yml` 取回实验分支上跑绿的那一份
+（`diff <(git show 1701750:.github/workflows/gates.yml) .github/workflows/gates.yml` → **无输出，IDENTICAL**），
+**只提交这一个文件**（`git show --stat` → `1 file changed, 17 insertions(+)`），commit `622bc4e`；
 ③ Phase 4 的三条文档改动在拿到权威运行之后单独进 `main`。
 ⚠️ **实验分支 PR #6 未合并**（其历史里有实验 ①–④ 的四个故意破坏 + revert 提交），
 已 `gh pr close 6` 关闭并留言说明；落地走 **PR #7**。
 
-**落地 PR #7**：run **`32591433667`**（head `7a09ef780bba7ff6fe76d7dd401f9c84d8ebf3f5`）→ **`success`，11 个 job 全绿**：
+**落地 PR #7**：run **`32591433667`**（head `622bc4e16410ec131f8f927ac2e35f98410ecb0a`）→ **`success`，11 个 job 全绿**：
 `L1 快门禁` `97075788956` · `L2 种子链（装载 + 站点侧对账）` `97075788974` · `L2 慢门禁（零依赖启动）` `97075788991` ·
 `循环联动冒烟` `97075788994` · `门禁未被改动` `97075789035` · `L2 全量 live 判定（19 条）` `97075789049` ·
 `主计划引用不断链` `97075789056` · `roadmap 引擎可解析` `97075789067` · `预期红名单只能变短` `97075789094` ·
 **`单测与契约测试（439 条）` `97075789119`** · `判定器未被改动` `97075789129`。
 `git merge --ff-only ci/0120-1-unit-contracts-land` → `Fast-forward  1 file changed, 17 insertions(+)`。
-**落地 sha 与落地 PR 跑绿 head 逐字同一个**：`git rev-parse HEAD` = `7a09ef780bba7ff6fe76d7dd401f9c84d8ebf3f5` → `IDENTICAL`。PR #7 状态 `MERGED`。
+**落地 sha 与落地 PR 跑绿 head 逐字同一个**：`git rev-parse HEAD` = `622bc4e16410ec131f8f927ac2e35f98410ecb0a` → `IDENTICAL`。PR #7 状态 `MERGED`。
 
-**`main` `push` 权威运行 `32591647735`（head `7a09ef7`）→ `success`，11 个 job 全部 `success`**：
+**`main` `push` 权威运行 `32591647735`（head `622bc4e`）→ `success`，11 个 job 全部 `success`**：
 `主计划引用不断链` `97076326846` · **`单测与契约测试（439 条）` `97076326917`** ·
 `L2 种子链（装载 + 站点侧对账）` `97076326937` · `判定器未被改动` `97076326944` ·
 `预期红名单只能变短` `97076326962` · `L2 全量 live 判定（19 条）` `97076326966` ·
@@ -601,15 +601,15 @@ Exit Criteria:
 跨版本预测再次成立），步骤级 `① 单测（tests/unit）` `success` · `② 契约测试（tests/contracts）` `success`，
 墙钟 **13 秒**（`18:44:57Z` → `18:45:10Z`）。
 
-**`main` 上的机械核对（`7a09ef7`）**：
+**`main` 上的机械核对（`622bc4e`）**：
 
-- `diff <(git show 577e401:.github/workflows/gates.yml) <(head -n 387 .github/workflows/gates.yml)` → **无输出，exit 0**
+- `diff <(git show 97e4652:.github/workflows/gates.yml) <(head -n 387 .github/workflows/gates.yml)` → **无输出，exit 0**
 - `grep -cE '^  [a-z0-9-]+:$' .github/workflows/gates.yml` → **`12`**（`push:` + 11 个 job 键）
-- `git diff 577e401..HEAD -- tools/gates/expected-red.txt` → **无输出**（账本一行未动）
-- `git diff 577e401..HEAD -- tests/gates/` → **无输出**（红线 1）
-- `git diff 577e401..HEAD -- docs/masterplan/` → **无输出**（红线 3 / 5，本 plan 未写 STATE）
-- `git diff 577e401..HEAD -- missions/` → **无输出**（红线 4 的邻接禁区）
-- `git diff 577e401..HEAD -- agenerp/ tests/` → **无输出**（变异全部 revert 且未落 `main`）
+- `git diff 97e4652..HEAD -- tools/gates/expected-red.txt` → **无输出**（账本一行未动）
+- `git diff 97e4652..HEAD -- tests/gates/` → **无输出**（红线 1）
+- `git diff 97e4652..HEAD -- docs/masterplan/` → **无输出**（红线 3 / 5，本 plan 未写 STATE）
+- `git diff 97e4652..HEAD -- missions/` → **无输出**（红线 4 的邻接禁区）
+- `git diff 97e4652..HEAD -- agenerp/ tests/` → **无输出**（变异全部 revert 且未落 `main`）
 - 工作项 **7 / 8 / 9 的状态值一个字未改**，三者仍 `planned`（roadmap `:20`–`:28` 的 `Work Item Status` 块未被触碰）
 
 **owner doc 三处落点**：
@@ -630,15 +630,15 @@ Exit Criteria:
 
 | 次 | run | 触发 | job 数 | 墙钟 |
 |---|---|---|---|---|
-| 1 | `32590153751` | Phase 1 文档 push（`a877b38`） | **10** | 3 分 35 秒 |
+| 1 | `32590153751` | Phase 1 文档 push（`a852456`） | **10** | 3 分 35 秒 |
 | 2 | `32590196838` | Phase 2 PR #6 首绿 | 11 | 3 分 28 秒 |
 | 3 | `32590487279` | 实验 ① | 11 | 3 分 34 秒 |
 | 4 | `32590701768` | 实验 ② | 11 | 4 分 00 秒 |
 | 5 | `32590923810` | 实验 ③ | 11 | 3 分 18 秒 |
 | 6 | `32591113070` | 实验 ④ | 11 | 3 分 28 秒 |
-| 7 | `32591408907` | Phase 2/3 回填 push（`1886d9d`） | **10** | 3 分 24 秒 |
+| 7 | `32591408907` | Phase 2/3 回填 push（`1538bf0`） | **10** | 3 分 24 秒 |
 | 8 | `32591433667` | 落地 PR #7 | 11 | 4 分 07 秒 |
-| 9 | `32591647735` | **`main` push 权威运行**（`7a09ef7`） | 11 | 3 分 53 秒 |
+| 9 | `32591647735` | **`main` push 权威运行**（`622bc4e`） | 11 | 3 分 53 秒 |
 | 10 | 本 Phase 的文档 push | Phase 4 owner doc | 11 | 见 `docs/logs/2026/08-23.md` |
 
 ⚠️ **`N` 不是零，实际是 3 次纯文档 push**（第 1 / 7 / 10 次）：`gates.yml:6-10` 的 `on: push` **没有 `paths:` 过滤**。
@@ -700,7 +700,7 @@ Exit Criteria:
   ⑤ **落地分支未指定，按当时写法会把四个故意破坏提交 ff 进 `main`**。已改为「从 `main` 新切落地分支」，
   并据此把运行次数从 6 改准为 **7**（初稿漏了落地 PR 那一次）。
   ⑥ **Phase 4 的「前 387 行未动」判据在合并后不可满足**（`git show main:` 已指向新文件）。
-  已把全部相关命令的基线 sha **钉死为 `577e401`**。
+  已把全部相关命令的基线 sha **钉死为 `97e4652`**。
   非阻塞项亦已吸收：Baseline 新增第 7 条（`system-baseline.md` 当前最后一节是 §14.5，故 §14.6 是真追加）；
   `:53` 补上与 `:54` 对称的补记措辞；roadmap 落点写明是「表末行之后、`## 框架/平台复用` 之前插入」而非文件尾；
   「880 倍」改准为「760–880 倍，随机器波动」；§14.6 补记「本 job 刻意不设 `if: always()`」这处偏离房内惯例；
@@ -713,8 +713,8 @@ Exit Criteria:
   判定器 exit 0 且三行逐字节不变，已复原），确认前置自查可满足。两条阻塞项：
   ① **落地分支不该带文档提交**：Phase 4 的三条文档项都要引用**落地 sha 与权威运行 run id**，
   而那两样在落地提交本身存在之前不存在 —— 把文档塞进落地分支会让「落地 sha == 落地 PR 跑绿的 head」
-  **按构造不可满足**。评审实测前驱正是分开走的（`2972669` 只动 `gates.yml` 一个文件，文档在 `347f756` 随后单独进 `main`；
-  `1206-2` 的 `3503f2c` 同样只含 `gates.yml`）。已把落点写死成三段。
+  **按构造不可满足**。评审实测前驱正是分开走的（`5fec323` 只动 `gates.yml` 一个文件，文档在 `89def59` 随后单独进 `main`；
+  `1206-2` 的 `a222472` 同样只含 `gates.yml`）。已把落点写死成三段。
   ② **运行次数被低估**：`gates.yml:6-10` 的 `on: push` **没有 `paths:` 过滤**，
   **每一次纯文档 push 到 `main` 都会触发一次完整 11-job 运行**；前驱实测有 3 次这样的 push。
   已把合计改成 `5 + 1 + 1 + N`，并写明 N 在关闭时按实际数填、不许当成零。
@@ -726,8 +726,8 @@ Exit Criteria:
   Closure Gate 的评审轮次改为「以实际轮次为准」；轮次 2 记录里把「初稿」改准为「轮次 1 重写后的文本」。
 - Independent draft review iteration 4: **`accept`**（独立子代理，fresh session）—— **零阻塞项，达成共识**。
   评审独立复跑核实了轮次 3 的四条修法：① 落地形态与前驱**实测一致**
-  （`git show --stat` 确认 `2972669` 只动 `gates.yml` 一个文件 79 行、文档在 `347f756` 单独进 `main`；
-  `3503f2c` 同样只含 `gates.yml`），且「落地 sha == 落地 PR 跑绿 head」在 `--ff-only` 下的机械理由成立；
+  （`git show --stat` 确认 `5fec323` 只动 `gates.yml` 一个文件 79 行、文档在 `89def59` 单独进 `main`；
+  `a222472` 同样只含 `gates.yml`），且「落地 sha == 落地 PR 跑绿 head」在 `--ff-only` 下的机械理由成立；
   ② 成本算式 `5 + 1 + 1 + N` **非循环**（`on: push` 限 `main`，分支推送只触发 `pull_request` 运行：
   开 PR 1 次 + 四次实验 synchronize 4 次 = 5），Phase 3 只对它观测得到的 5 次收口，自锁已消除；
   ③ **新增的第 ⑦ 条保命闸经实测有牙齿** —— 评审按 Add 项的形态在 `/tmp` 造出追加段：⑦ 回 `0`（通过），

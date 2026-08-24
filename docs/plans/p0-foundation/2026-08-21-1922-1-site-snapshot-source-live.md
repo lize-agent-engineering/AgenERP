@@ -10,12 +10,12 @@
 
 ## Current Baseline
 
-起草时（2026-08-21，HEAD `a9de1bb`）逐条读活代码与活门禁得出，不靠记忆、不抄旧 plan。
+起草时（2026-08-21，HEAD `e528bce`）逐条读活代码与活门禁得出，不靠记忆、不抄旧 plan。
 
 ### 前置已经解开：三个 fixture 由人写完了
 
-- 2026-08-21T11:13Z，人在 `ede5440` 里**实现了** `compose_stack` / `live_site` / `pack_repo` 三个 fixture
-  （`tests/gates/conftest.py`，随后 `9dff054` 补端口预检、`1bfd626` 补 URL 编码）。
+- 2026-08-21T11:13Z，人在 `9abeb89` 里**实现了** `compose_stack` / `live_site` / `pack_repo` 三个 fixture
+  （`tests/gates/conftest.py`，随后 `994e3a3` 补端口预检、`6cb1f90` 补 URL 编码）。
   这正是 `docs/masterplan/STATE.md` §3 那条 `[open]` 的处置项 **(a)**，也正是本 plan 两个前驱
   （`…-1022-2` 与 `…-1553-1`）在 `Deferred But Adjudicated` 里写下的**重开事件**。
 - 三个 fixture 的行为（读活代码确认，不是读注释）：
@@ -194,7 +194,7 @@ roadmap 的 `Work Item Status` 块写「顺序即执行顺序」，列的是 4�
 - `Host` 头必须等于站点名：`docker-compose.yml` 的 `backend` 探针注释逐字写着「gunicorn 按 Host 解析站点，
   打 127.0.0.1 会被当成一个叫 127.0.0.1 的站点而 404」。这条不是猜的，是仓里已实测的结论。
 - 路径必须 URL 编码：DocType 名带空格（`Custom Field`），不编码时 `http.client` 直接以
-  `URL can't contain control characters` 拒掉（`tests/gates/conftest.py:183` 的注释，`1bfd626` 那次修复）。
+  `URL can't contain control characters` 拒掉（`tests/gates/conftest.py:183` 的注释，`6cb1f90` 那次修复）。
 - 回滚策略：一个新模块 + `SiteSnapshotSource.read` 一处实现 + 文档追加。`git revert` 即回到今天的状态；
   无数据迁移。**站点侧无副作用**——本 plan 只发 GET。
 
@@ -378,7 +378,7 @@ Exit Criteria:
   7. **[次要]** 四处行号/引用漂移（判定器 `:59-60`、名单「第 5 条」、conftest `:183`、68 秒不在 §14.2）。→ 全部更正。
   8. **[次要]** 执行顺序 4→6→5 与 roadmap「顺序即执行顺序」表面冲突。→ 新增一节说明。
   评审独立复核并确认的事实：判定器不带 `-m 'not live'`、默认环境 exit 0「19 项 / 7 预期红」、
-  三个 fixture 由人在 `ede5440` 写完、8080 被占、`SiteSnapshotSource(site)` 正好两处调用点、无红线风险。
+  三个 fixture 由人在 `9abeb89` 写完、8080 被占、`SiteSnapshotSource(site)` 正好两处调用点、无红线风险。
 - 独立草案评审第 3 轮（确认轮）：**needs revision（一行）→ 已改 → accept**。评审指出第 7 条（白名单）
   只改了不变量表、没改真正落断言的 Phase 1 `Proof` 项——与第 2 轮 [阻断-1]「散文改了清单没改」同一个失败模式。
   → Phase 1 的 Proof 已改为白名单断言并要求白名单是可见字面量。评审对白名单改法的裁定：
@@ -467,13 +467,13 @@ Closure Audit Evidence:
   阈值不可判、实际换用了 `775 vs 20` 这条更直接的判据 —— 打勾项的字面与落盘事实相反。
   已把两处改写为「判据替换 + 理由 + 全部数字」，与「实测回填」节一致。**没有隐藏缺陷**：换判据的事实
   执行会话本就写在 plan 与 `docs/logs/2026/08-21.md` 里，只是没同步到 checklist 文字。
-- 审计复跑（独立会话，本机，命令原文 + 退出码；HEAD `cd813eb`）：
+- 审计复跑（独立会话，本机，命令原文 + 退出码；HEAD `9898986`）：
   - `python3 -m pytest tests/unit -q` → **0**（130 passed）
   - `python3 tools/gates/check_expected_red.py` → **0**（门禁 19 项：预期红 7，绿 12，跳过 0；「与预期红名单完全一致」）
   - `ruff check agenerp tests/unit tests/contracts` → **0**
   - `python3 -m pytest tests/contracts -q` → **0**（151 passed）
-  - `git diff --name-only 826cdf8..HEAD -- tests/gates/ .github/workflows/ missions/ docs/masterplan/DECISIONS.md tools/gates/expected-red.txt`
-    → **输出为空**（红线 1/2/3 与名单均未动）；`git diff --numstat 826cdf8..HEAD -- docs/masterplan/STATE.md` → **`8	0`**（只增不改，红线 5 守住）
+  - `git diff --name-only 832a2b0..HEAD -- tests/gates/ .github/workflows/ missions/ docs/masterplan/DECISIONS.md tools/gates/expected-red.txt`
+    → **输出为空**（红线 1/2/3 与名单均未动）；`git diff --numstat 832a2b0..HEAD -- docs/masterplan/STATE.md` → **`8	0`**（只增不改，红线 5 守住）
   - 反空壳复核（读活代码，非读注释）：`agenerp/site.py` 的 `SiteClient._request` 真发 `urllib` 请求、
     非 2xx 与连不上均抛 `SiteError`（无吞异常、无 `return None` 占位）；`list_resource` 逐字带
     `limit_page_length=0` 与 `fields=["*"]`；`SiteSnapshotSource.read`（`agenerp/snapshot.py:171`）
@@ -493,7 +493,7 @@ Closure Audit Evidence:
   - `python3 -m pytest tests/contracts -q` → **0**（151 passed）
   - `bash tools/check-masterplan-links.sh` → **0**（35 条引用，断链 0）· `node tools/check-doc-references.mjs` → **0**（24 篇活文档）
   - live 七条命令与退出码见「实测回填」一节的表，逐条抄了原文
-  - 开工基线 sha `826cdf8`
+  - 开工基线 sha `832a2b0`
 
 Follow-up:
 
