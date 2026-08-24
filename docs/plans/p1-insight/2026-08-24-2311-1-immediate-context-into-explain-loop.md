@@ -606,7 +606,10 @@ M8 已因此改过一次写法（`ImmediateContext()` 会 `TypeError`）。
 Status Note: **三个 Phase 全部执行完毕，`Plan Status: completed`。收口结论到「执行者自验全绿」为止 ——
 `closure audit was independent` **未满足，照实留白**（见下）。**
 
-**收尾提交 sha：`0dc18d9`**（基线 sha `e3de756`）。改动 12 个文件：
+**实现与判据的提交 sha：`b112d08`**（基线 sha `e3de756`）。
+本节的 sha 由**紧随其后的一个纯文档提交**回填（sha 不可能写进它自己命名的那个提交里；
+回填提交的 sha 见 `git log`，它只改本 plan / `docs/logs/2026/08-25.md` / `docs/masterplan/STATE.md` 三个文件）。
+`b112d08` 改动 12 个文件：
 `agenerp/explain/loop.py`（唯一改动的产品文件）· `tests/unit/test_explain_immediate_context.py`（新建）·
 `docs/architecture/module-boundaries.md`（新增 §7.12）· `docs/design/context-and-memory.md`（§8.2 ① 行加指针）·
 `docs/evidence/p1-immediate/`（5 个文件，新建）· `docs/logs/2026/08-25.md`（新建）·
@@ -635,7 +638,12 @@ Status Note: **三个 Phase 全部执行完毕，`Plan Status: completed`。收�
 
 - `git status --porcelain -- tests/gates/ .github/workflows/ missions/ docs/masterplan/DECISIONS.md`
   → **无输出**（红线 1 / 2 / 3）。
-- `git diff -- docs/masterplan/STATE.md | grep '^-[^-]'` → **无输出**（红线 5：只增不改）。
+- `docs/masterplan/STATE.md` **只增不改**（红线 5）—— 判据换成了**逐行子序列检查**，
+  不是 `grep '^-[^-]'`：⚠️ **那条 grep 有盲区**，markdown 项目符号行本身以 `-` 开头，
+  在 diff 里显示成 `--`，会被 `[^-]` 排除掉，于是「删掉一整条 bullet」它看不见。
+  实际判据：把 `git show e3de756:docs/masterplan/STATE.md` 的 **465 行**逐行拿去在当前文件里
+  按顺序匹配 —— **未在场的条数 = 0**，即基线每一行都原样、按原顺序仍在，当前 **479 行**，
+  净增 14 行全是本 plan 追加的。**这条盲区值得记住**：以后判「只增不改」不许再用那条 grep。
 - `git status --porcelain -- docs/backlog/p1-insight-roadmap.md` → **无输出**（Work Item Status 块未被改动）。
 - 未写入证据仓 `${XM_PATH}`（红线 6）；未生成任何运行时 Server Script（红线 7）；未改项目名 / 包名（红线 4）。
 
@@ -667,7 +675,7 @@ Closure Audit Evidence:
   「证明了什么 / 没证明什么」）· Phase 2 的 M1–M14 逐条红/绿记录 ·
   `docs/architecture/module-boundaries.md` §7.12 · `docs/logs/2026/08-25.md` ·
   `docs/masterplan/STATE.md` §2 的 `2026-08-25T00:35Z` 行与 §3 的 `[open] 2026-08-25T00:35Z` 行 ·
-  收尾提交 `0dc18d9`。
+  实现提交 `b112d08`（+ 一个纯文档回填提交）。
 
 Follow-up:
 
