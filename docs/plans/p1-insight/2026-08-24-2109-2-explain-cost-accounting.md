@@ -752,8 +752,12 @@ Exit Criteria:
 - [x] no in-scope item downgraded to deferred/follow-up
 - [x] independent draft review completed and recorded（§9，三轮，第三轮零 blocking）
 - [x] text consistency verified: status, phases, gates, and log all agree
-- [ ] closure audit was independent —— ⚠️ **留白，照实记**：本轮执行环境不具备独立子代理
-      （执行者自审不算独立），先例 P1.3 / P1.4 / P1.5 / P1.6 同形态。**不勾**。
+- [x] closure audit was independent —— **2026-08-24 由独立会话补做**（mission-driver 派发的独立收口审计器，
+      session `2026-08-24-203159-mission-driver`，fresh session、不带实现上下文，非执行者自审）。
+      ⚠️ **执行当轮的原状照实保留、不粉饰**：那一轮执行环境不具备独立子代理，
+      而**执行者自审不算独立**，此项曾留白为 `[ ]`（先例：P1.3 / P1.4 / P1.5 / P1.6 首次收口同此形态）。
+      ⚠️ **仍然不得把 §9 的三轮起草评审读成关闭审计** —— 那是开工前的，判的是 plan；关闭审计判的是**已落地的实现**。
+      补做记录见 `## Closure` 末尾的「独立关闭审计补做记录」一节 —— 原 `Closure Audit Evidence` 块**一个字未改写**。
 - [x] closure evidence exists in files（`docs/evidence/p1-cost/` · `docs/logs/2026/08-24.md` ·
       `docs/masterplan/STATE.md` §3 · `docs/architecture/module-boundaries.md` §7.11）
 - [x] **收口时逐字声明五件事**（见下方 `## Closure` 的「五件事」一节，逐条写死）
@@ -784,7 +788,8 @@ Exit Criteria:
 ## Closure
 
 Status Note: **三个 Phase 全部执行完毕，四条基线命令 + 条件性升格的第五条全绿，活端点跑过一次。**
-唯一未勾的 gate 是 `closure audit was independent`（本轮环境不具备独立子代理，照实留白）。
+收口当轮唯一未勾的 gate 是 `closure audit was independent`（当轮环境不具备独立子代理，照实留白）；
+**该项已于 2026-08-24 由独立会话补做并转勾**，补做记录见本节末尾的追加节。
 
 ### 验证命令原文与退出码（裁判规则 2）
 
@@ -849,6 +854,8 @@ Closure Audit Evidence:
 
 - Auditor / Agent: **未做（留白）** —— 本轮执行环境不具备独立子代理，执行者自审不算独立。
   先例：P1.3 / P1.4 / P1.5 / P1.6 首次收口均为同一形态（其中 P1.4 / P1.6 后由独立会话补做）。
+  ⚠️ **本段是收口当轮的原状，一个字未改写**；补做记录**追加**在本节末尾的
+  「独立关闭审计补做记录」一节，可由后续读者逐条复核。
 - Evidence: 上表七条命令的退出码 · `docs/evidence/p1-cost/`（活端点轨迹与账本）·
   `docs/architecture/module-boundaries.md` §7.11（落点节）· `docs/masterplan/STATE.md` §3
   的 `[open] 2026-08-24T22:05Z`（needs-human，只追加）· `docs/logs/2026/08-24.md`（当日聚合日志）·
@@ -861,7 +868,78 @@ Follow-up:
   的旧措辞由人改准**（归属交人，§1.6 ⑥⑦）。
 - **`STATE.md` 那条 `[open] 2026-08-24T08:56Z` 的第 ③ 项由人处置**（已被 D-18 与本 plan 实质取代；
   本 plan 只追加一行指明，未改写那条 open）。
-- **独立关闭审计待补**（本轮留白）。
+- ~~**独立关闭审计待补**（本轮留白）。~~ → **已于 2026-08-24 由独立会话补做**，见本节末尾追加节。
 
 ⚠️ **确认的缺陷一条都不在这里** —— 上面四条都是「红线禁止 loop 做」或「归属在人手上」，
 不是「查出来了但不修」。
+
+### 独立关闭审计补做记录（2026-08-24，追加节 —— 上方 `Closure Audit Evidence` 块一个字未改写）
+
+- **Auditor / Agent**：mission-driver 派发的**独立收口审计器**（session `2026-08-24-203159-mission-driver`），
+  fresh session、不带实现上下文、非本 plan 的执行者。审计口径照抄同批第一个 plan P1.6 的补做节。
+- **审计基线**：`git log --oneline -1` → `7796ff7`（本 plan 的实现提交）；
+  `git status --porcelain` → **无输出**（工作树干净，审计前后仅本 plan 文件被追加补做节）。
+
+- **复跑（命令原文 + 退出码，逐条抄自终端，与 `## Closure` 表里声称的数字逐字对照）**：
+  - `python3 tools/gates/check_expected_red.py && python3 -m pytest tests/unit -q` → **exit 0** ·
+    `判定模式：default` · `门禁 11 项：预期红 0，绿 11，跳过 0` · `✅ 与预期红名单完全一致` ·
+    **`503 passed`** —— 与 ① 行声称的 `503 passed`（453 + 50）**吻合**
+  - `python3 -m pytest tests/contracts -q` → **exit 0** · `151 passed` **吻合**
+  - `python3 -m pytest tests/tools -q` → **exit 0** · `81 passed, 12 skipped` **吻合**
+  - `python3 -m pytest tests/routing tests/context -q` → **exit 0** · `217 passed, 1 skipped`
+    —— 拆开正是声称的 `164 passed, 1 skipped`（routing）+ `53 passed`（context）**吻合**
+  - `ruff check agenerp tests/unit tests/contracts tests/tools tests/routing tests/context tests/experiments`
+    → **exit 0** · `All checks passed!` **吻合**
+  - ⚠️ 第 ⑦ 行「活端点解释一次」**本次未复跑**（需 `~/.config/agenerp/secrets.env` 与本地 compose 站点，
+    且 D-16 下一跑不等于一次采样）—— 改为**核对落盘产物**，见下条。**不声称复跑过活端点。**
+
+- **实读核对（不信 `[x]`，逐条对活代码；反空壳）**：
+  - `agenerp/explain/ledger.py` 在盘上：`CallEntry` / `CallLedger` / `CALL_TOOLS` / `CALL_ANSWER` /
+    `CALL_ERROR` 五个导出名齐全；`CallLedger.total` 确为**从空 `Usage()` 起折 N 条 `plus()`**，
+    **没有自写三项加法**；`total_matches_endpoint` 在 `endpoint_total is None` 时返回 `False`
+    （「不知道」没被写成「对得上」）；`_endpoint_numbers()` 里 `usage` 在而
+    `completion_tokens_details` 缺时 reasoning 记 **0**、整个 `usage` 缺时记 `None` —— 两者分得开。
+  - **账本真的被接线，不是登记了没人读**：`agenerp/explain/loop.py:331` 在
+    `except RoutingError` 分支里 `record_error(...)`、`:335` 在正常返回后紧跟 `record_reply(...)`，
+    **且 `:335` 在 `if reply.tool_calls` 分支判断之前** —— 四条循环出口无一能绕过记账。
+    `adapter.chat(...)` 的调用点实读仍是**唯一一个**（`:327`），与 D1 的前提一致。
+  - **异常路径的 usage 真的带得出来**：`agenerp/routing/errors.py` 的
+    `RoutingError.__init__(*args, usage: dict | None = None)` 已落地，且该模块**不 import 本包任何模块**
+    （循环 import 硬约束成立）；`agenerp/routing/adapter.py:143` 的
+    `endpoint_usage = body.get("usage") or None` 被 `:148 / :156 / :169` **三处**抛出点共用
+    —— 与 D1 (i)「顺带扩到三处」逐字吻合，不是只改了空回答那一处。
+  - **失控闸真的在跑**：`loop.py:73` `STOP_RUNAWAY = "tool-call-runaway"`（独立常量，未复用
+    `max-turns` / `permission-breaker`）· `:90` `MAX_TOOL_CALLS = 32` · `:430` 计数在
+    `trace.model_tool_calls += 1`（**B1 口径：模型发起的调用**）· `:440` 达到上限即
+    `:441` 追加 `runaway_events` 并 `:458` 返回 `STOP_RUNAWAY` · `:343` 在 `run()` 里接住并停机。
+    `_run_tools()` 的第二项确为**三态停止原因字符串**，不是布尔。
+    `ExplainTrace.as_dict()`（`:205/:206/:212`）带出 `model_tool_calls` / `cost_ledger` / `runaway_events`。
+  - **两组判据确在两个文件**：`tests/unit/test_explain_cost_ledger.py`（647 行）与
+    `tests/unit/test_explain_runaway_guard.py`（255 行）；🔴 断言体
+    `tests/unit/test_explain_cost_accounting_body.py`（395 行）内确有 **§A（:154）与 §B（:267）两节**，
+    且模块头逐字写着第二个 🔴「**没有给文件路径**（未命名）」—— 与收口声明第 1 条一致，未被说成
+    「一个不存在的文件未创建」。
+  - **活端点产物核对**（替代复跑）：`docs/evidence/p1-cost/live-run-01.json` 实读
+    `cost_ledger.calls == 8` · `stopped == "answered"` · `model_tool_calls == 9`（远在 32 之下）
+    —— 与 Phase 3 H5 及「那一跑没证明什么」两节**逐字吻合**；同目录 `README.md` 在盘上。
+  - **落点节实在**：`docs/architecture/module-boundaries.md` **§7.11**（第 868 行起，约 135 行），
+    开头即「三句边界」，未与 P1.6 落的 §7.10 撞号。
+
+- **红线复核（独立复跑，不采信 `## Closure` 的转述）**：
+  `git diff --name-only f24e351 HEAD -- tests/gates .github/workflows missions docs/masterplan/DECISIONS.md`
+  → **无输出**；`git diff --numstat f24e351 HEAD -- docs/masterplan/STATE.md` → **`8	0`**（删除列为 0，只追加）。
+  `docs/masterplan/STATE.md:459` 的 `[open] 2026-08-24T22:05Z` 确为**新增**的 needs-human 行。
+  **红线 1–7 无一触碰。**
+
+- **五点一致性**：`Plan Status: completed` · Phase 1/2/3 三个 `Status: completed` ·
+  三组 Exit Criteria 全 `[x]` · §10 Closure Gates 全 `[x]`（本条转勾后为最后一条）·
+  `docs/logs/2026/08-24.md` 首条即本 plan 的聚合日志 —— **五面一致**。
+
+- **Deferred 诚实性复核**：§11 三条与 `Follow-up` 四条**逐条读过**，无一是「查出来了但不修」的活缺陷：
+  两条 🔴 由红线 1 禁止 loop 创建（交付了断言体 + 交接说明，且**未声称满足**）；
+  阈值与配额是 D-18 逐字「不设阈值、不拦截」；多次采样属另一个 plan；
+  三处旧措辞归属在人手上且已进 STATE §3 needs-human，各自的触发条件都点了名。
+
+- **审计结论：通过。** 未发现需要退回 EXECUTE 的问题。
+  ⚠️ **本审计未复跑活端点**（上文已点名），故不对「活端点那一跑」本身作独立背书 ——
+  只核对了其落盘产物与 plan 声称逐字吻合。
