@@ -1261,6 +1261,127 @@ D-10 逐字把**构建期**定义为「代码进 git、走 PR 人审、`bench in
 
 ---
 
+### 7.14 `sid` 认证模式在本仓的落点，与承载面落地的停机（P1.8 下半 · 2026-08-25）
+
+来源 plan：[`docs/plans/p1-insight/2026-08-25-0119-1-desk-sidebar-carrier-and-explain-request-surface.md`](../plans/p1-insight/2026-08-25-0119-1-desk-sidebar-carrier-and-explain-request-surface.md)
+实测记录：[`docs/analysis/2026-08-25-0119-desk-sid-identity-probe.md`](../analysis/2026-08-25-0119-desk-sid-identity-probe.md)
+输入契约：本文件 **§7.13** 的 D1 / D2 / D3（**只读，本节一个字未改它**）
+
+> ⚠️ **本节记的是一次被实测中止的落地，不是一次完成的落地。** 照实读，别当成 P1.8 已交付。
+
+#### 这一节交付的是什么、不是什么
+
+**是**：① 一条 `sid` 认证模式落在 `agenerp/site.py`（互斥的第三条路）；
+② 一份把 D3⑦ 那条接缝判死的实测记录；③ 一次**分阶段停机**的定界。
+
+**不是**：承载面。**本节没有任何承载面** —— 没有 `apps/agenerp_desk/`、没有 ⌘K、
+没有侧边栏 UI、没有 `agenerp/serve/` HTTP 服务面、没有 `tests/ui/test_sidebar.py`。
+对活站点**零写**（读回证据见探测记录 §Proof）。
+
+#### 为什么停：`sid` 是 `HttpOnly`，D3⑦ 预设的接缝按构造走不通
+
+plan §6 的 **H1** 预测「`POST /api/method/login` 回的 `Set-Cookie: sid=…` **不带** `HttpOnly`
+⇒ Desk 里的 JS 用 `frappe.get_cookie("sid")` 读得到它」。**实测不吻合**：
+
+```
+Set-Cookie: sid=<REDACTED>; Expires=…; Max-Age=612000; HttpOnly; Path=/; SameSite=Lax
+```
+
+同批五个 cookie 里**只有 `sid` 带 `HttpOnly`**（`system_user` / `full_name` / `user_id` /
+`user_image` 四个都不带）—— 这不是「Frappe 不设 `HttpOnly`」，是**它专门只对 `sid` 设**。
+⇒ 承载面 JS **拿不到 `sid`**，D3⑦ 那条「浏览器读 `sid` → 放进自定义头 → 转发给本机服务」的
+接缝**按构造不成立**，不是「还没写」。
+
+plan Phase 1 的 Exit Criteria 第 4 条对这一格**起草期就写死了处置**（不是执行期现编）：
+**Phase 2 跑完就停，Phase 3 / 4 / 5 整体转 `Deferred But Adjudicated`**。
+⚠️ 那一条同时逐字禁止「只停 Phase 3 而让 Phase 4 继续」——
+那会产出「一条没有调用方的认证模式 + 一段取不到 `sid` 的 JS」两个各自关不掉 D3 的残件，还都进了 git。
+**本轮照此执行。**
+
+**重开事件（逐字）**：**`sid` 接缝被重新裁定（由人或一个新 plan）。**
+已记进 `docs/masterplan/STATE.md` §3（只追加）。
+
+⚠️ **本节不替那次重新裁定预选方案。** 探测记录里那句「`sid` 只对自己设 `HttpOnly`」
+是**事实**，不是「所以应该改用 X」的论据 —— 本仓今天没有对任何替代接缝做过实测。
+
+#### 落点表
+
+| 落点 | 职责 | 状态 |
+|---|---|---|
+| `agenerp/site.py` · `SiteClient(sid=…)` | **互斥的第三条认证模式**：给了 `sid` 就只发 `Cookie: sid=…`，不发 `Authorization`、**不打** `/api/method/login`，`_ensure_authenticated()` 直接返回 | 已实现（判据 `tests/unit/test_site_client_sid.py` **20 条**） |
+| `agenerp/site.py` · `client_from_sid(site, sid, *, transport=None)` | 一个浏览器会话的 `sid` → 客户端。**函数体里零凭据零件**（不读任何 `*_ENV`、不调 `credential_from_env` / `client_from_env` / `os.environ`） | 已实现（判据⑧，AST + 字面量双扫，带变异自查） |
+| `agenerp/serve/**` · 解释请求面 | — | **未实现（Deferred）**，见上一段 |
+| `apps/agenerp_desk/**` · 承载面 app + ⌘K | — | **未实现（Deferred）** |
+| `tests/ui/test_sidebar.py` · WBS §4 P1.8 验收件 | — | **未创建**，本 plan **未声称**满足那条验收命令 |
+
+**与 §11.7 的关系**：`agenerp/site.py` 的边界节是 **§11.7**，本节**不改写它的任何一行** ——
+这里只留一条指针：§11.7 记的两条认证路径（token 优先 / 会话登录回退）**本次一个字未改**，
+本节新增的是**与那两条互斥的第三条**。要读传输层的整体边界仍去 §11.7。
+
+#### `Decision D-下-1` · `sid` 做成互斥模式，不做回退链
+
+- **选中**：构造参数 `sid=`，给了就只发 `Cookie`。三条模式各自独立，不排优先级、不互相兜底。
+- **备选①「在既有 `_ensure_authenticated` 末尾加一条 `sid` 分支」→ 否决**：那是回退链，
+  `sid` 失效时会**静默降级成管理员** —— 正是 §7.13 D2 逐字判为「一次已知的信息越权」的形态。
+- **备选②「让调用方自己传 `transport` 塞 cookie」→ 否决**：把认证语义推给调用方，
+  判据只能判到假 transport 上，产品路径无判据。
+- **残余风险**：`sid` 是**明文**的短期凭据，在进程内传递。缓解三条且都可判：
+  不落盘、不进日志、**不进任何异常消息**（`SiteError` 的消息里带 URL 与响应体，
+  **不带请求头** —— 判据⑥ 两条钉住，含「一个请求头名都不出现」那条更宽的）。
+
+#### ⚠️ 执行期的一次定界（照实记，不是起草期原文）
+
+plan 的 Phase 2 判据④ 起草期写的是「**三种**凭据两两同给即报错」。
+执行期实读发现第三对（`api_key/api_secret` + `admin_password`）是**模块原有**的
+「token 优先、会话登录回退」，`tests/unit/test_site_client.py` 的 `_client()` 助手正是这么构造的
+（`admin_password` 默认给上，用例再补 token）。按起草期原文实现会**打红 21 条既有判据**，
+而同一个 plan 的 Exit Criteria 逐字要求 `git diff -- tests/unit/test_site_client.py` **无输出**，
+R5 也逐字写着「改动只加一条互斥模式、**不碰既有两条路径**」。
+
+→ **取窄：`sid` ⊥ 另两者（两对），既有那一对一个字不改。**
+这不是把判据放松，是**同一个 plan 内部两条要求相撞时取那条更保守的** ——
+「不碰既有路径」比「把互斥写满三对」更贴 D2 要挡的东西（D2 挡的是 `sid` 失效后降级成管理员，
+不是 token 与口令并存）。定界本身也是**可判的**：
+`test_the_pre_existing_token_plus_password_pair_is_untouched` 钉住那一对仍然合法。
+
+#### 判据面：两类都要，缺一类就有假绿
+
+这一组判据的共同敌人只有一个：**「`sid` 失效时静默降级成管理员」**。它有两种藏法：
+
+- **行为反测**（判据①②③）：这一次没有降级 —— 请求里既没有 `Authorization`，也没有 `login`。
+- **构造判据**（判据⑧）：压根降级不了 —— `client_from_sid` 的函数体里一个凭据零件都没有。
+
+**只做行为反测会假绿**：一条 `if sid_invalid: fall back` 的分支在「`sid` 有效」的用例里
+永远走不到，判据全绿而回退真的存在。
+
+**变异自查实测**（本 phase 名下六条，逐条施加→复跑→还原，逐条记红在哪条断言上）：
+
+| # | 变异 | 实测红在 |
+|---|---|---|
+| M1 | `_headers()` 不发 `Cookie` | `test_sid_mode_sends_the_cookie_header` · `test_client_from_sid_builds_a_client_that_only_sends_the_cookie`（2 red） |
+| M2 | `sid` 模式下仍打 `/api/method/login` | `test_sid_mode_issues_zero_login_requests` · `…_even_across_many_calls`（2 red） |
+| M20 | `client_from_sid` 也读一次 `AGENERP_ADMIN_PASSWORD` 当兜底 | `test_client_from_sid_body_contains_zero_credential_parts`（1 red） |
+| M21 | `SiteError` 的消息里带上请求头 | `test_site_error_message_never_carries_the_sid_value` · `…_carries_no_request_headers_at_all`（2 red） |
+| M23 | `sid` 为空串时静默当成「没给」 | `test_blank_sid_raises_instead_of_being_treated_as_absent`（4 red，四种空白各一） |
+| M24 | 给 `SiteClient` 加一个未登记的公开写方法 | `test_the_write_registration_surface_is_unchanged_by_the_sid_mode`（1 red） |
+
+**M3–M19 · M22 · M25–M29 未施加** —— 它们全部指向 Phase 3 / Phase 4 的判据，
+而那两个 phase 已整体 Deferred，**判据不存在，变异无处施加**。
+⚠️ **不记成「绿」也不记成「红」，记成「按构造不适用」**：把它们记成绿会把
+「没有判据」伪装成「判据够强」。
+
+#### 这一节没有证明什么
+
+- **没有证明** `sid` 模式在**活站点**上认得出人。全部 20 条判据走的都是假传输。
+  活端点侧的证据（plan Phase 5 的「活跑三」）随 Phase 5 一起 Deferred。
+  ⚠️ 探测记录里那条 worker 的 403 是**用 `curl` 直接打站点**得到的，
+  **不是经 `SiteClient(sid=…)` 得到的** —— 两者别混读。
+- **没有证明**「① 层已被证明拿不到越权字段」。`STATE.md` §3 `[open] 2026-08-25T00:35Z` 第 ① 项
+  （① 层不查权限，谁调 `explain(immediate=…)` 谁就能把任意字段表送进模型）
+  的承接处置写在 plan 的 `Decision D-下-2` 里，而 D-下-2 随 Phase 3 一起 Deferred。
+  **那条 `open` 因此仍然完全敞着，本节不代人关它。**
+- **没有证明** ⌘K、承载面、跨源预检里的任何一件事。它们一行代码都没写。
+
 ## 11. 定制包与 GitOps
 
 ### 11.1 核心流程

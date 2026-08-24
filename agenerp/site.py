@@ -34,6 +34,17 @@
    提交过的单据在站点侧回不去，只能由人手工 cancel/amend 或 `docker compose down -v` 冷起丢掉整站数据。
    代价逐字写在 §12.10，不粉饰。
 
+5. **`sid` 模式是互斥的第三条路，不是回退链。** 给了 `sid` 就只发 `Cookie: sid=…`：
+   不发 `Authorization`、**不打** `/api/method/login`、`_ensure_authenticated()` 直接返回。
+   **`sid` 与另两者两两互斥**：`sid` + `api_key/api_secret` 或 `sid` + `admin_password`
+   同给即报错并**指名冲突的是哪两个**。
+   ⚠️ **既有的 `api_key/api_secret` + `admin_password` 那一对不在此列，本次一个字未改** ——
+   它是模块原有的「token 优先、会话登录回退」，动它就是动既有两条路径（§7.14 记了这次定界）。
+   做成回退链会让 `sid` 失效时**静默降级成管理员** —— 那正是 §7.13 D2 逐字判为
+   「一次已知的信息越权」的形态。落点见 §7.14。
+   ⚠️ **`sid` 是明文的短期凭据**：不落盘、不进日志、不进任何异常消息
+   （`SiteError` 的消息里带 URL 与响应体，**不带请求头** —— 由判据钉住）。
+
 两条实测得来的硬约束（不是猜的）：
 
 - **`Host` 头必须等于站点名**：gunicorn 按 Host 解析站点，打 `127.0.0.1` 会被当成
@@ -168,6 +179,10 @@ class SiteClient:
     认证取「token 优先、会话登录回退」：token 贴生产且不把口令带进每次运行，
     但零依赖栈上没有现成的 key，只做 token 会让 L2 门禁跑不起来。取舍与残余风险
     见 `docs/architecture/module-boundaries.md` §11.7。
+
+    **2026-08-25 起有第三条模式 `sid`**（P1.8 下半，§7.14）：它与前两条**互斥**，
+    不是回退链的一环 —— 给了 `sid` 就只发 `Cookie: sid=…`，不发 `Authorization`、
+    不打 `/api/method/login`。见模块头第 5 条。
     """
 
     def __init__(
@@ -179,19 +194,36 @@ class SiteClient:
         api_secret: str | None = None,
         admin_user: str = DEFAULT_ADMIN_USER,
         admin_password: str | None = None,
+        sid: str | None = None,
         transport: Transport | None = None,
         timeout: int = DEFAULT_TIMEOUT,
     ) -> None:
         if not site:
             raise SiteError(f"站点名为空：设置 {SITE_ENV}")
+        if sid is not None and not sid.strip():
+            raise SiteError(
+                "sid 为空或全空白 —— 不静默当成「没给」。"
+                "空 sid 会让客户端悄悄退回到别的凭据，那正是「已知信息越权」的形状"
+            )
+        if sid:
+            other = "api_key/api_secret" if (api_key or api_secret) else (
+                "admin_password" if admin_password else ""
+            )
+            if other:
+                raise SiteError(
+                    f"凭据模式互斥，同时给了 sid 与 {other} —— "
+                    "sid 模式不做回退链（模块头第 5 条）：留着另一份凭据，"
+                    "sid 失效时就会静默降级成那个身份"
+                )
         self.site = site
         self.base_url = (base_url or default_base_url()).rstrip("/")
         self._api_key = api_key
         self._api_secret = api_secret
         self._admin_user = admin_user
         self._admin_password = admin_password
+        self._sid = sid
         self._transport: Transport = transport or UrllibTransport(timeout)
-        self._authenticated = bool(api_key and api_secret)
+        self._authenticated = bool(api_key and api_secret) or bool(sid)
 
     @property
     def identity(self) -> str:
@@ -350,6 +382,8 @@ class SiteClient:
         self._request("DELETE", f"{RESOURCE_PATH}/{CUSTOM_FIELD_DOCTYPE}/{name}")
 
     def _ensure_authenticated(self) -> None:
+        if self._sid:
+            return
         if self._authenticated:
             return
         if not self._admin_password:
@@ -368,6 +402,9 @@ class SiteClient:
         headers = {"Host": self.site, "Accept": "application/json"}
         if has_body:
             headers["Content-Type"] = "application/json"
+        if self._sid:
+            headers["Cookie"] = f"sid={self._sid}"
+            return headers
         if self._api_key and self._api_secret:
             headers["Authorization"] = f"token {self._api_key}:{self._api_secret}"
         return headers
@@ -437,3 +474,16 @@ def client_from_env(site: str, transport: Transport | None = None) -> SiteClient
         admin_password=admin_password or None,
         transport=transport,
     )
+
+
+def client_from_sid(site: str, sid: str, *, transport: Transport | None = None) -> SiteClient:
+    """一个浏览器会话的 `sid` → 客户端。**不读任何凭据环境变量。**
+
+    这个函数体里**一个凭据零件都不许出现**（`credential_from_env` / `os.environ` /
+    三个 `*_ENV` 常量 / `client_from_env`）—— 凭据回退最省事的藏法就是藏在工厂函数里，
+    因此 `tests/unit/test_site_client_sid.py` 判据⑧ 用 AST 扫这个函数体，
+    `tests/unit/test_explain_service.py` 判据⑩ 再扫一次。落点见 §7.14。
+
+    `base_url` 走 `default_base_url()`（站点基址不是凭据），站点名由调用方给。
+    """
+    return SiteClient(site, base_url=default_base_url(), sid=sid, transport=transport)
