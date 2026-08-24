@@ -542,10 +542,12 @@ Phase 3 执行记录：
 - [x] no in-scope item downgraded to deferred/follow-up
 - [x] independent draft review completed and recorded（§9 四轮，第四轮 `acceptable as-is`）
 - [x] text consistency verified: status, phases, gates, and log all agree
-- [ ] closure audit was independent —— **本轮未做**，照实留白（先例：工作项 5 / 6 首次收口同此）。
-      理由：本轮执行环境不具备独立子代理（会话级约束禁止执行器自行派子代理），
-      而**执行者自审不算独立**。⚠️ **不得把 §9 的四轮起草评审读成关闭审计** —— 那是开工前的，判的是 plan；
-      关闭审计判的是**已落地的实现**。重开条件：由独立会话（fresh session，不带实现上下文）在本 sha 上补做。
+- [x] closure audit was independent —— **2026-08-24 由独立会话补做**（mission-driver 派发的独立收口审计器，
+      session `2026-08-24-203159-mission-driver`，fresh session、不带实现上下文，非执行者自审）。
+      ⚠️ **执行当轮的原状照实保留、不粉饰**：那一轮执行环境不具备独立子代理（会话级约束禁止执行器自行派子代理），
+      而**执行者自审不算独立**，此项曾留白为 `[ ]`（先例：工作项 5 / 6 / P1.4 首次收口同此）。
+      ⚠️ **仍然不得把 §9 的四轮起草评审读成关闭审计** —— 那是开工前的，判的是 plan；关闭审计判的是**已落地的实现**。
+      补做记录见 `## Closure` 末尾的「独立关闭审计补做记录」一节 —— 原 `Closure Audit Evidence` 块**一个字未改写**。
 - [x] closure evidence exists in files
 - [x] **红线自查**：`git diff --name-only` 对 `tests/gates/**` · `.github/workflows/**` · `missions/**` · `docs/masterplan/DECISIONS.md` 均无输出；`STATE.md` 只有追加行
 
@@ -630,3 +632,60 @@ Follow-up:
 - 由**人**创建 WBS §4 P1.5 的两条 🔴 门禁文件（§11 第一条）。
 - 由**独立会话**补做关闭审计（上一行）。
 - 两条都**不是本 plan 确认的缺陷**，是本 plan 无权自己做的动作。
+
+### 独立关闭审计补做记录（2026-08-24，追加节 —— 上方 `Closure Audit Evidence` 块一个字未改写）
+
+- **Auditor / Agent**：mission-driver 派发的**独立收口审计器**（session `2026-08-24-203159-mission-driver`），
+  fresh session、不带实现上下文、非本 plan 的执行者。这正是上方那一节写死的「补做条件」。
+- **审计基线**：`git log -1` → `090700a`（`feat(p1.5): 巡检器…`，即本 plan 的落地提交）；
+  本 plan 的执行 diff 基线仍是 `04aa9ea`。审计开始与结束时 `git status --porcelain` 均**无输出**（工作树干净）。
+- **复跑（命令原文 + 退出码，逐条抄自终端，与 `## Closure` 证据表声称的数字逐字对照）**：
+  - `python3 tools/gates/check_expected_red.py` → **exit 0** · `门禁 11 项：预期红 0，绿 11，跳过 0` **吻合**
+  - `python3 -m pytest tests/unit -q` → **exit 0** · `414 passed` **吻合**（基线 389 → +25，与交付的 16 + 9 条判据数一致）
+  - `python3 -m pytest tests/contracts -q` → **exit 0** · `151 passed` **吻合**
+  - `python3 -m pytest tests/tools -q` → **exit 0** · `81 passed, 12 skipped` **吻合**
+  - `ruff check agenerp tests/unit tests/contracts tests/tools tests/routing tests/context tests/experiments`
+    → **exit 0** · `All checks passed!` **吻合**
+  - 另加跑一条全量（证据表未列）：`python3 -m pytest tests -q -m "not live"` → **exit 0** ·
+    `880 passed, 12 skipped, 21 deselected`（P1.4 收口时是 `849 passed`，+31 与本 plan 的 +25 及其间提交吻合）
+  - ⚠️ **证据表第 ⑤ 行（活站点巡检）审计侧未复跑** —— 它依赖本地 compose 站点与凭据，审计环境不具备。
+    因此这一条**采信执行者的记录但不加盖审计印**；`## Closure` 第 4 条「归因那一半没有在活端点上跑过」的
+    诚实限制**继续有效**，本次补做**不扩大**任何活站点声称。
+- **红线复核（审计侧独立跑，不采信执行者的自述）**：
+  `git diff --name-only 04aa9ea HEAD -- tests/gates .github/workflows missions docs/masterplan/DECISIONS.md`
+  → **无输出**；`git status --porcelain -- <同四个 pathspec>` → **无输出**；
+  `git diff --numstat 04aa9ea HEAD -- docs/masterplan/` → `8	0	docs/masterplan/STATE.md`（**删除列为 0**，只追加）。
+  全量 `git diff --numstat 04aa9ea HEAD` 复核：**删除列非 0 的只有** `docs/backlog/p1-insight-roadmap.md` 的 `1	1`
+  （动态状态块那一行，本就是唯一可改的状态落点），其余全是纯新增。**红线 1–7 无一触碰。**
+- **空壳自查（Anti-Hollow）**：`agenerp/inspection/{rules,engine,minimal}.py` 与 `agenerp/insight/attribution.py`
+  逐行读过 —— 无空函数体、无 `return null` 占位、无吞异常、无「注册了但走不到」的组件：
+  ① 装载器的每一条 `_require` / `_reject_unknown` 都在 `load_rule` 的主路径上被真调用，
+  失败路径是 `raise RuleLoadError`（**不是过滤后静默继续**，M4 的杀手落在实处）；
+  ② 引擎的 `_evaluate` 真读 `rule.measures` / `rule.trigger` 求值，`run()` 的 `rule_ids` 逐条记录，
+  产品入口 `inspect_site` → `run(rules, SiteRows(client))`，`SiteRows.rows` 只走 `client.get`（**一条写路径都没有**）；
+  ③ `check_test_cases` 把每条规则自带的 `test_case` 在 `MappingRows` 上**真跑**，不是形状校验；
+  ④ 洞察侧 `attribute()` 逐字消费 `agenerp.explain.explain`（D3 重绑的真实符号），**没有第二条循环**，
+  返回前调 `ensure_unchanged(before, attribution.hit)`，越界抛 `InsightBoundaryError`。
+  判据侧复核：`tests/unit/test_inspection_rules.py`（16 条）与 `test_insight_attribution.py`（9 条）的
+  函数名与 Exit Criteria 逐条对得上（H1 消融两条 + 数随数据集变、H2 探针 + **阳性对照** + 探针默认关 + 导入图、
+  H3 不误报、结构判据、未知键拒载、缺 `test_case` 拒载、只读、可 diff；洞察侧 D3 两条、H4 拒/放行两条、
+  「模型改不动结论」两条、报告不变一条）。
+- **审计侧独立变异复算（不只读断言，真改一次源码）**：把 `rules.py` 的 `_reject_unknown` 改成 `return`
+  （即执行期登记的 **M12** 变异）→ `python3 -m pytest tests/unit/test_inspection_rules.py -q` →
+  **`1 failed, 15 passed`**，红在 `test_the_loader_refuses_keys_it_does_not_know`。**变异确实打红，不是纸面声称。**
+  复原后 `git status --porcelain` **无输出**（源码一个字节未留下）。
+- **五点一致性**：`Plan Status: completed` · 三个 Phase 全 `Status: completed` 且 Exit Criteria 全 `[x]` ·
+  §10 Closure Gates 全 `[x]`（本次补做后不再有留白项）· `## Closure` 证据齐 —— **一致**。
+  全文 `- [ ]` 项在本次补做后为 **0**。
+- **Deferred 诚实性**：§11 两条均非本 plan 确认的活体缺陷 —— 一条是红线 1 禁止 loop 创建 `tests/gates/**`
+  （已交付断言体 + 加载注意事项 + STATE §3 交接行，重开条件写死给人），一条是 v0 有限算子集的
+  `watch-only residual`（重开事件写死为 P1.6 起草）。**未发现被藏进 Deferred 的在范围缺陷或契约漂移。**
+  执行期查出的唯一真缺口（M7 静默丢弃未知键）**没有被降级成 follow-up**，是就地补断言 + 补装载器行为后
+  登记为 M12 —— 符合 authoring guide 第 14 条。
+- **文档同步**：`docs/architecture/module-boundaries.md` §7.9 落点节在（`:576`），
+  且逐字含「**巡检规则 ≠ 行业包制品**」（`:582`）· `docs/design/agents-and-roles.md` §5.1 指针在（`:145`–`:150`），
+  `anomaly.scan` / `benchmark.compare` **仍未实现**照实写着，§5.0 ② 的实测结论未被改动 ·
+  `docs/masterplan/STATE.md` §3 的 `[open]` needs-human 交接行在（只追加）·
+  `docs/logs/2026/08-24.md` 收口条目在（含命令原文 + 退出码 + sha）。**与 AGENTS.md 的归属要求吻合。**
+- **结论**：**接受收口**。审计器**不代人**处置 §11 的两条后继（一条归人创建门禁文件，一条归 P1.6 的 plan），
+  也**不扩大**活站点验证声称（见上方 ⚠️）。
