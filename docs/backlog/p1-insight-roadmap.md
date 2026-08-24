@@ -32,7 +32,7 @@ P1 的目标一句话：**让 Agent 能看懂这套 ERP，并且能证明它真�
 > **这是唯一的动态状态块。** 状态只在这里改。
 > 顺序即执行顺序，引擎取第一个 `todo`。
 
-- 1. 工具执行层：10 个只读契约的执行体（P1.0a）: `done`（2026-08-24，sha `5a712a7`；⚠️ WBS §4 第 78 行的 🔴 门禁判据**那一半仍未满足**——提升进 `tests/gates/` 与 CI 接线在红线内，已挂 STATE §3 needs-human）
+- 1. 工具执行层：10 个只读契约的执行体（P1.0a）: `done`（2026-08-24，sha `5a712a7`；独立收口审计 2026-08-24 通过，见 plan `## Closure`。WBS §4 第 78 行的 🔴 门禁那一半**已由人补齐**——`tests/gates/test_tool_execution_live.py`，commit `f76b07c`，`Gates-Change-Approved-By: lize`，STATE §3 `[resolved] 2026-08-24T05:49Z`。⚠️ 仍待人做：`tests/tools` 本身未进 `gates.yml` 的 `unit-and-contracts` / `lint` 两个 job）
 - 2. 入口关口实验：门禁能否补偿模型能力（P1.0 🚪）: `done`（2026-08-24；结论 **`被削弱`** —— 弱模型 `qwen-plus` 门禁 off 0/3 → on 2/3，但强模型 `qwen3.6-plus` **无门禁** 3/3，门禁没让弱模型追上强模型。判定见 `docs/audits/p1-insight/2026-08-24-P1.0-entry-gate.md`，14 份轨迹与判定表见 `docs/evidence/p1-entry-gate/`。⚠️ 结论只覆盖这一道题、两个模型、每格 3 次有效运行，不得外推）
 - 3. 模型路由 v0：OpenAI 兼容 adapter + 能力声明按任务分档（P1.1）: `todo`
 - 4. 上下文层 v0：即时上下文注入 + 会话落 DocType（P1.2）: `todo`
