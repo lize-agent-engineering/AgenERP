@@ -37,6 +37,9 @@ LOOPX="${LOOPX_BIN:-$(command -v loopx || echo "$HOME/Library/Python/3.12/bin/lo
 # 0. 配额闸：撞限流窗口是常态不是故障，该等就等，别硬冲
 DECISION=$("$LOOPX" --format json quota should-run --goal-id "$GOAL_ID" --agent-id "${LOOPX_AGENT_ID:-supervisor-a}" 2>/dev/null \
   | python3 -c 'import json,sys;d=json.load(sys.stdin);print(d.get("decision","unknown") if d.get("ok") else "loopx-unavailable")' 2>/dev/null || echo unknown)
+# ⚠️ 与 loop-supervisor.sh 同族：`|| echo unknown` 在管道已输出后再追加一行，
+#    DECISION 变成 "loopx-unavailable\nunknown"，任何 = 比较都不成立。只取第一行。
+DECISION=$(printf '%s' "$DECISION" | head -1 | tr -d "[:space:]")
 echo "[writeback] quota decision = $DECISION"
 # ⚠️ **CP9 已判 LoopX「停用」**。此时 quota should-run 回 ok:false，decision 取不到，
 # 本闸会走进下面那个 `exit 0` —— **看起来成功、实际一趟都没跑**。

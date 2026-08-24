@@ -77,6 +77,11 @@ while true; do
   # ---- 闸 3：LoopX 配额 ----
   DEC=$("$LOOPX" --format json quota should-run --goal-id "$GOAL_ID" --agent-id "$AGENT_ID" 2>/dev/null \
         | python3 -c 'import json,sys;d=json.load(sys.stdin);print(d.get("decision","unknown") if d.get("ok") else "loopx-unavailable")' 2>/dev/null || echo unknown)
+  # ⚠️ `|| echo unknown` 会在管道**已经输出**后再追加一行 —— 2026-08-24 实测：
+  #    loopx 自身退非零，但 python 那段已打印 loopx-unavailable，于是 DEC 变成
+  #    "loopx-unavailable\nunknown"（长度 25），任何 = 比较都不成立，旁路永不触发。
+  #    **只取第一行**。同族 bug 今天还出现在监控脚本的 `grep -c` 上。
+  DEC=$(printf '%s' "$DEC" | head -1 | tr -d "[:space:]")
   # ⚠️ **CP9 已判 LoopX「停用」**（2026-08-23：判据「跨会话恢复实际生效 ≥3 次」
   # 实测 runs=1，且它自报 state_file_missing）。此时 quota should-run 回 ok:false，
   # 本闸会**永远不放行** —— 监督器一趟都跑不了，而且是**静默地睡**，
