@@ -284,4 +284,9 @@ Spike 02 实测（`claude:sonnet`，四道探针的通过态）：
 本层用惰性 import 与两道反测把它挡在"被 CI import 到"的路径之外，
 **这不等于依赖问题解决了** —— 真正解决要和"把 `tests/routing` 接进 CI"一起做，同属人的活。
 
+**落点指针（2026-08-25，纯新增，本节其余结论一个字未改）**：**答案判定任务走 `explain` 档 +
+`requested` 点名**（`requested="qwen3.7-plus-2026-05-26"`），出处与全部裁定理由在
+`module-boundaries.md` **§7.15**。⚠️ 那里逐字记着「`explain` 档的最低能力只有 `tool_calling`，
+等于没分档 —— 实际约束由 `requested` 承担」，**不得读成「分档已覆盖判定任务」**。
+
 ---

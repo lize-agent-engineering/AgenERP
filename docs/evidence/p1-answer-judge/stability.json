@@ -1,0 +1,833 @@
+{
+  "kind": "stability",
+  "at": "2026-08-24T19:38:20Z",
+  "judge_model": "qwen3.7-plus-2026-05-26",
+  "repeats": 3,
+  "records": [
+    {
+      "run_id": "run-02",
+      "human_label": "incomplete",
+      "labels": [
+        "incomplete",
+        "incomplete",
+        "incomplete"
+      ],
+      "consistent": true,
+      "attempts": [
+        {
+          "ok": true,
+          "judged_label": "incomplete",
+          "judge_model": "qwen3.7-plus-2026-05-26",
+          "usage": {
+            "prompt": 922,
+            "completion": 669,
+            "reasoning": 659,
+            "total": 1591
+          },
+          "endpoint_usage": {
+            "completion_tokens": 669,
+            "completion_tokens_details": {
+              "reasoning_tokens": 659,
+              "text_tokens": 669
+            },
+            "prompt_tokens": 922,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "text_tokens": 922
+            },
+            "total_tokens": 1591
+          },
+          "raw_text": "{\"label\": \"incomplete\"}"
+        },
+        {
+          "ok": true,
+          "judged_label": "incomplete",
+          "judge_model": "qwen3.7-plus-2026-05-26",
+          "usage": {
+            "prompt": 922,
+            "completion": 1088,
+            "reasoning": 1076,
+            "total": 2010
+          },
+          "endpoint_usage": {
+            "completion_tokens": 1088,
+            "completion_tokens_details": {
+              "reasoning_tokens": 1076,
+              "text_tokens": 1088
+            },
+            "prompt_tokens": 922,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "text_tokens": 922
+            },
+            "total_tokens": 2010
+          },
+          "raw_text": "{\"label\": \"incomplete\"}"
+        },
+        {
+          "ok": true,
+          "judged_label": "incomplete",
+          "judge_model": "qwen3.7-plus-2026-05-26",
+          "usage": {
+            "prompt": 922,
+            "completion": 526,
+            "reasoning": 509,
+            "total": 1448
+          },
+          "endpoint_usage": {
+            "completion_tokens": 526,
+            "completion_tokens_details": {
+              "reasoning_tokens": 509,
+              "text_tokens": 526
+            },
+            "prompt_tokens": 922,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "text_tokens": 922
+            },
+            "total_tokens": 1448
+          },
+          "raw_text": "```json\n{\"label\": \"incomplete\"}\n```"
+        }
+      ]
+    },
+    {
+      "run_id": "run-05",
+      "human_label": "incomplete",
+      "labels": [
+        "incomplete",
+        "incomplete",
+        "incomplete"
+      ],
+      "consistent": true,
+      "attempts": [
+        {
+          "ok": true,
+          "judged_label": "incomplete",
+          "judge_model": "qwen3.7-plus-2026-05-26",
+          "usage": {
+            "prompt": 930,
+            "completion": 743,
+            "reasoning": 731,
+            "total": 1673
+          },
+          "endpoint_usage": {
+            "completion_tokens": 743,
+            "completion_tokens_details": {
+              "reasoning_tokens": 731,
+              "text_tokens": 743
+            },
+            "prompt_tokens": 930,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "text_tokens": 930
+            },
+            "total_tokens": 1673
+          },
+          "raw_text": "{\"label\": \"incomplete\"}"
+        },
+        {
+          "ok": true,
+          "judged_label": "incomplete",
+          "judge_model": "qwen3.7-plus-2026-05-26",
+          "usage": {
+            "prompt": 930,
+            "completion": 662,
+            "reasoning": 650,
+            "total": 1592
+          },
+          "endpoint_usage": {
+            "completion_tokens": 662,
+            "completion_tokens_details": {
+              "reasoning_tokens": 650,
+              "text_tokens": 662
+            },
+            "prompt_tokens": 930,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "text_tokens": 930
+            },
+            "total_tokens": 1592
+          },
+          "raw_text": "{\"label\": \"incomplete\"}"
+        },
+        {
+          "ok": true,
+          "judged_label": "incomplete",
+          "judge_model": "qwen3.7-plus-2026-05-26",
+          "usage": {
+            "prompt": 930,
+            "completion": 868,
+            "reasoning": 856,
+            "total": 1798
+          },
+          "endpoint_usage": {
+            "completion_tokens": 868,
+            "completion_tokens_details": {
+              "reasoning_tokens": 856,
+              "text_tokens": 868
+            },
+            "prompt_tokens": 930,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "text_tokens": 930
+            },
+            "total_tokens": 1798
+          },
+          "raw_text": "{\"label\": \"incomplete\"}"
+        }
+      ]
+    },
+    {
+      "run_id": "run-07",
+      "human_label": "truncated",
+      "labels": [
+        "truncated",
+        "truncated",
+        "truncated"
+      ],
+      "consistent": true,
+      "attempts": [
+        {
+          "ok": true,
+          "judged_label": "truncated",
+          "judge_model": "qwen3.7-plus-2026-05-26",
+          "usage": {
+            "prompt": 704,
+            "completion": 611,
+            "reasoning": 599,
+            "total": 1315
+          },
+          "endpoint_usage": {
+            "completion_tokens": 611,
+            "completion_tokens_details": {
+              "reasoning_tokens": 599,
+              "text_tokens": 611
+            },
+            "prompt_tokens": 704,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "text_tokens": 704
+            },
+            "total_tokens": 1315
+          },
+          "raw_text": "{\"label\": \"truncated\"}"
+        },
+        {
+          "ok": true,
+          "judged_label": "truncated",
+          "judge_model": "qwen3.7-plus-2026-05-26",
+          "usage": {
+            "prompt": 704,
+            "completion": 551,
+            "reasoning": 539,
+            "total": 1255
+          },
+          "endpoint_usage": {
+            "completion_tokens": 551,
+            "completion_tokens_details": {
+              "reasoning_tokens": 539,
+              "text_tokens": 551
+            },
+            "prompt_tokens": 704,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "text_tokens": 704
+            },
+            "total_tokens": 1255
+          },
+          "raw_text": "{\"label\": \"truncated\"}"
+        },
+        {
+          "ok": true,
+          "judged_label": "truncated",
+          "judge_model": "qwen3.7-plus-2026-05-26",
+          "usage": {
+            "prompt": 704,
+            "completion": 626,
+            "reasoning": 614,
+            "total": 1330
+          },
+          "endpoint_usage": {
+            "completion_tokens": 626,
+            "completion_tokens_details": {
+              "reasoning_tokens": 614,
+              "text_tokens": 626
+            },
+            "prompt_tokens": 704,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "text_tokens": 704
+            },
+            "total_tokens": 1330
+          },
+          "raw_text": "{\"label\": \"truncated\"}"
+        }
+      ]
+    },
+    {
+      "run_id": "run-13",
+      "human_label": "incomplete",
+      "labels": [
+        "incomplete",
+        "incomplete",
+        "incomplete"
+      ],
+      "consistent": true,
+      "attempts": [
+        {
+          "ok": true,
+          "judged_label": "incomplete",
+          "judge_model": "qwen3.7-plus-2026-05-26",
+          "usage": {
+            "prompt": 954,
+            "completion": 986,
+            "reasoning": 974,
+            "total": 1940
+          },
+          "endpoint_usage": {
+            "completion_tokens": 986,
+            "completion_tokens_details": {
+              "reasoning_tokens": 974,
+              "text_tokens": 986
+            },
+            "prompt_tokens": 954,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "text_tokens": 954
+            },
+            "total_tokens": 1940
+          },
+          "raw_text": "{\"label\": \"incomplete\"}"
+        },
+        {
+          "ok": true,
+          "judged_label": "incomplete",
+          "judge_model": "qwen3.7-plus-2026-05-26",
+          "usage": {
+            "prompt": 954,
+            "completion": 619,
+            "reasoning": 607,
+            "total": 1573
+          },
+          "endpoint_usage": {
+            "completion_tokens": 619,
+            "completion_tokens_details": {
+              "reasoning_tokens": 607,
+              "text_tokens": 619
+            },
+            "prompt_tokens": 954,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "text_tokens": 954
+            },
+            "total_tokens": 1573
+          },
+          "raw_text": "{\"label\": \"incomplete\"}"
+        },
+        {
+          "ok": true,
+          "judged_label": "incomplete",
+          "judge_model": "qwen3.7-plus-2026-05-26",
+          "usage": {
+            "prompt": 954,
+            "completion": 891,
+            "reasoning": 879,
+            "total": 1845
+          },
+          "endpoint_usage": {
+            "completion_tokens": 891,
+            "completion_tokens_details": {
+              "reasoning_tokens": 879,
+              "text_tokens": 891
+            },
+            "prompt_tokens": 954,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "text_tokens": 954
+            },
+            "total_tokens": 1845
+          },
+          "raw_text": "{\"label\": \"incomplete\"}"
+        }
+      ]
+    },
+    {
+      "run_id": "r2-07",
+      "human_label": "incomplete",
+      "labels": [
+        "incomplete",
+        "incomplete",
+        "incomplete"
+      ],
+      "consistent": true,
+      "attempts": [
+        {
+          "ok": true,
+          "judged_label": "incomplete",
+          "judge_model": "qwen3.7-plus-2026-05-26",
+          "usage": {
+            "prompt": 1434,
+            "completion": 1021,
+            "reasoning": 1009,
+            "total": 2455
+          },
+          "endpoint_usage": {
+            "completion_tokens": 1021,
+            "completion_tokens_details": {
+              "reasoning_tokens": 1009,
+              "text_tokens": 1021
+            },
+            "prompt_tokens": 1434,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "text_tokens": 1434
+            },
+            "total_tokens": 2455
+          },
+          "raw_text": "{\"label\": \"incomplete\"}"
+        },
+        {
+          "ok": true,
+          "judged_label": "incomplete",
+          "judge_model": "qwen3.7-plus-2026-05-26",
+          "usage": {
+            "prompt": 1434,
+            "completion": 989,
+            "reasoning": 977,
+            "total": 2423
+          },
+          "endpoint_usage": {
+            "completion_tokens": 989,
+            "completion_tokens_details": {
+              "reasoning_tokens": 977,
+              "text_tokens": 989
+            },
+            "prompt_tokens": 1434,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "text_tokens": 1434
+            },
+            "total_tokens": 2423
+          },
+          "raw_text": "{\"label\": \"incomplete\"}"
+        },
+        {
+          "ok": true,
+          "judged_label": "incomplete",
+          "judge_model": "qwen3.7-plus-2026-05-26",
+          "usage": {
+            "prompt": 1434,
+            "completion": 988,
+            "reasoning": 976,
+            "total": 2422
+          },
+          "endpoint_usage": {
+            "completion_tokens": 988,
+            "completion_tokens_details": {
+              "reasoning_tokens": 976,
+              "text_tokens": 988
+            },
+            "prompt_tokens": 1434,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "text_tokens": 1434
+            },
+            "total_tokens": 2422
+          },
+          "raw_text": "{\"label\": \"incomplete\"}"
+        }
+      ]
+    },
+    {
+      "run_id": "run-01",
+      "human_label": "correct",
+      "labels": [
+        "correct",
+        "correct",
+        "correct"
+      ],
+      "consistent": true,
+      "attempts": [
+        {
+          "ok": true,
+          "judged_label": "correct",
+          "judge_model": "qwen3.7-plus-2026-05-26",
+          "usage": {
+            "prompt": 1334,
+            "completion": 552,
+            "reasoning": 541,
+            "total": 1886
+          },
+          "endpoint_usage": {
+            "completion_tokens": 552,
+            "completion_tokens_details": {
+              "reasoning_tokens": 541,
+              "text_tokens": 552
+            },
+            "prompt_tokens": 1334,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "text_tokens": 1334
+            },
+            "total_tokens": 1886
+          },
+          "raw_text": "{\"label\": \"correct\"}"
+        },
+        {
+          "ok": true,
+          "judged_label": "correct",
+          "judge_model": "qwen3.7-plus-2026-05-26",
+          "usage": {
+            "prompt": 1334,
+            "completion": 627,
+            "reasoning": 616,
+            "total": 1961
+          },
+          "endpoint_usage": {
+            "completion_tokens": 627,
+            "completion_tokens_details": {
+              "reasoning_tokens": 616,
+              "text_tokens": 627
+            },
+            "prompt_tokens": 1334,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "text_tokens": 1334
+            },
+            "total_tokens": 1961
+          },
+          "raw_text": "{\"label\": \"correct\"}"
+        },
+        {
+          "ok": true,
+          "judged_label": "correct",
+          "judge_model": "qwen3.7-plus-2026-05-26",
+          "usage": {
+            "prompt": 1334,
+            "completion": 421,
+            "reasoning": 410,
+            "total": 1755
+          },
+          "endpoint_usage": {
+            "completion_tokens": 421,
+            "completion_tokens_details": {
+              "reasoning_tokens": 410,
+              "text_tokens": 421
+            },
+            "prompt_tokens": 1334,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "text_tokens": 1334
+            },
+            "total_tokens": 1755
+          },
+          "raw_text": "{\"label\": \"correct\"}"
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "rows": 6,
+    "consistent_rows": 6
+  },
+  "ledger": {
+    "calls": 18,
+    "total": {
+      "prompt": 18834,
+      "completion": 13438,
+      "reasoning": 13222,
+      "total": 32272
+    },
+    "entries": [
+      {
+        "index": 0,
+        "model": "qwen3.7-plus-2026-05-26",
+        "outcome": "answer",
+        "usage": {
+          "prompt": 922,
+          "completion": 669,
+          "reasoning": 659,
+          "total": 1591
+        },
+        "endpoint_total_tokens": 1591,
+        "endpoint_reasoning_tokens": 659,
+        "total_matches_endpoint": true,
+        "reasoning_matches_endpoint": true,
+        "detail": ""
+      },
+      {
+        "index": 1,
+        "model": "qwen3.7-plus-2026-05-26",
+        "outcome": "answer",
+        "usage": {
+          "prompt": 922,
+          "completion": 1088,
+          "reasoning": 1076,
+          "total": 2010
+        },
+        "endpoint_total_tokens": 2010,
+        "endpoint_reasoning_tokens": 1076,
+        "total_matches_endpoint": true,
+        "reasoning_matches_endpoint": true,
+        "detail": ""
+      },
+      {
+        "index": 2,
+        "model": "qwen3.7-plus-2026-05-26",
+        "outcome": "answer",
+        "usage": {
+          "prompt": 922,
+          "completion": 526,
+          "reasoning": 509,
+          "total": 1448
+        },
+        "endpoint_total_tokens": 1448,
+        "endpoint_reasoning_tokens": 509,
+        "total_matches_endpoint": true,
+        "reasoning_matches_endpoint": true,
+        "detail": ""
+      },
+      {
+        "index": 3,
+        "model": "qwen3.7-plus-2026-05-26",
+        "outcome": "answer",
+        "usage": {
+          "prompt": 930,
+          "completion": 743,
+          "reasoning": 731,
+          "total": 1673
+        },
+        "endpoint_total_tokens": 1673,
+        "endpoint_reasoning_tokens": 731,
+        "total_matches_endpoint": true,
+        "reasoning_matches_endpoint": true,
+        "detail": ""
+      },
+      {
+        "index": 4,
+        "model": "qwen3.7-plus-2026-05-26",
+        "outcome": "answer",
+        "usage": {
+          "prompt": 930,
+          "completion": 662,
+          "reasoning": 650,
+          "total": 1592
+        },
+        "endpoint_total_tokens": 1592,
+        "endpoint_reasoning_tokens": 650,
+        "total_matches_endpoint": true,
+        "reasoning_matches_endpoint": true,
+        "detail": ""
+      },
+      {
+        "index": 5,
+        "model": "qwen3.7-plus-2026-05-26",
+        "outcome": "answer",
+        "usage": {
+          "prompt": 930,
+          "completion": 868,
+          "reasoning": 856,
+          "total": 1798
+        },
+        "endpoint_total_tokens": 1798,
+        "endpoint_reasoning_tokens": 856,
+        "total_matches_endpoint": true,
+        "reasoning_matches_endpoint": true,
+        "detail": ""
+      },
+      {
+        "index": 6,
+        "model": "qwen3.7-plus-2026-05-26",
+        "outcome": "answer",
+        "usage": {
+          "prompt": 704,
+          "completion": 611,
+          "reasoning": 599,
+          "total": 1315
+        },
+        "endpoint_total_tokens": 1315,
+        "endpoint_reasoning_tokens": 599,
+        "total_matches_endpoint": true,
+        "reasoning_matches_endpoint": true,
+        "detail": ""
+      },
+      {
+        "index": 7,
+        "model": "qwen3.7-plus-2026-05-26",
+        "outcome": "answer",
+        "usage": {
+          "prompt": 704,
+          "completion": 551,
+          "reasoning": 539,
+          "total": 1255
+        },
+        "endpoint_total_tokens": 1255,
+        "endpoint_reasoning_tokens": 539,
+        "total_matches_endpoint": true,
+        "reasoning_matches_endpoint": true,
+        "detail": ""
+      },
+      {
+        "index": 8,
+        "model": "qwen3.7-plus-2026-05-26",
+        "outcome": "answer",
+        "usage": {
+          "prompt": 704,
+          "completion": 626,
+          "reasoning": 614,
+          "total": 1330
+        },
+        "endpoint_total_tokens": 1330,
+        "endpoint_reasoning_tokens": 614,
+        "total_matches_endpoint": true,
+        "reasoning_matches_endpoint": true,
+        "detail": ""
+      },
+      {
+        "index": 9,
+        "model": "qwen3.7-plus-2026-05-26",
+        "outcome": "answer",
+        "usage": {
+          "prompt": 954,
+          "completion": 986,
+          "reasoning": 974,
+          "total": 1940
+        },
+        "endpoint_total_tokens": 1940,
+        "endpoint_reasoning_tokens": 974,
+        "total_matches_endpoint": true,
+        "reasoning_matches_endpoint": true,
+        "detail": ""
+      },
+      {
+        "index": 10,
+        "model": "qwen3.7-plus-2026-05-26",
+        "outcome": "answer",
+        "usage": {
+          "prompt": 954,
+          "completion": 619,
+          "reasoning": 607,
+          "total": 1573
+        },
+        "endpoint_total_tokens": 1573,
+        "endpoint_reasoning_tokens": 607,
+        "total_matches_endpoint": true,
+        "reasoning_matches_endpoint": true,
+        "detail": ""
+      },
+      {
+        "index": 11,
+        "model": "qwen3.7-plus-2026-05-26",
+        "outcome": "answer",
+        "usage": {
+          "prompt": 954,
+          "completion": 891,
+          "reasoning": 879,
+          "total": 1845
+        },
+        "endpoint_total_tokens": 1845,
+        "endpoint_reasoning_tokens": 879,
+        "total_matches_endpoint": true,
+        "reasoning_matches_endpoint": true,
+        "detail": ""
+      },
+      {
+        "index": 12,
+        "model": "qwen3.7-plus-2026-05-26",
+        "outcome": "answer",
+        "usage": {
+          "prompt": 1434,
+          "completion": 1021,
+          "reasoning": 1009,
+          "total": 2455
+        },
+        "endpoint_total_tokens": 2455,
+        "endpoint_reasoning_tokens": 1009,
+        "total_matches_endpoint": true,
+        "reasoning_matches_endpoint": true,
+        "detail": ""
+      },
+      {
+        "index": 13,
+        "model": "qwen3.7-plus-2026-05-26",
+        "outcome": "answer",
+        "usage": {
+          "prompt": 1434,
+          "completion": 989,
+          "reasoning": 977,
+          "total": 2423
+        },
+        "endpoint_total_tokens": 2423,
+        "endpoint_reasoning_tokens": 977,
+        "total_matches_endpoint": true,
+        "reasoning_matches_endpoint": true,
+        "detail": ""
+      },
+      {
+        "index": 14,
+        "model": "qwen3.7-plus-2026-05-26",
+        "outcome": "answer",
+        "usage": {
+          "prompt": 1434,
+          "completion": 988,
+          "reasoning": 976,
+          "total": 2422
+        },
+        "endpoint_total_tokens": 2422,
+        "endpoint_reasoning_tokens": 976,
+        "total_matches_endpoint": true,
+        "reasoning_matches_endpoint": true,
+        "detail": ""
+      },
+      {
+        "index": 15,
+        "model": "qwen3.7-plus-2026-05-26",
+        "outcome": "answer",
+        "usage": {
+          "prompt": 1334,
+          "completion": 552,
+          "reasoning": 541,
+          "total": 1886
+        },
+        "endpoint_total_tokens": 1886,
+        "endpoint_reasoning_tokens": 541,
+        "total_matches_endpoint": true,
+        "reasoning_matches_endpoint": true,
+        "detail": ""
+      },
+      {
+        "index": 16,
+        "model": "qwen3.7-plus-2026-05-26",
+        "outcome": "answer",
+        "usage": {
+          "prompt": 1334,
+          "completion": 627,
+          "reasoning": 616,
+          "total": 1961
+        },
+        "endpoint_total_tokens": 1961,
+        "endpoint_reasoning_tokens": 616,
+        "total_matches_endpoint": true,
+        "reasoning_matches_endpoint": true,
+        "detail": ""
+      },
+      {
+        "index": 17,
+        "model": "qwen3.7-plus-2026-05-26",
+        "outcome": "answer",
+        "usage": {
+          "prompt": 1334,
+          "completion": 421,
+          "reasoning": 410,
+          "total": 1755
+        },
+        "endpoint_total_tokens": 1755,
+        "endpoint_reasoning_tokens": 410,
+        "total_matches_endpoint": true,
+        "reasoning_matches_endpoint": true,
+        "detail": ""
+      }
+    ]
+  }
+}

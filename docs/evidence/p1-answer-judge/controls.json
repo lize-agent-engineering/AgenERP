@@ -1,0 +1,295 @@
+{
+  "kind": "controls",
+  "at": "2026-08-24T19:39:21Z",
+  "judge_model": "qwen3.7-plus-2026-05-26",
+  "repeats": 3,
+  "blocks": [
+    {
+      "control": "H5-truncated",
+      "note": "判据。机械截断，无内容判断。⚠️ 证据强度低：一个长度阈值规则同样能通过它。",
+      "source_run_id": "run-01",
+      "source_human_label": "correct",
+      "transformed_input": "根据系统数据，情况如下：\n\n## 成品仓现状\n\n成品仓（成品仓 - HRD）当前实际库存为 **1010 台** `HRD-PACK-5K`（户用储能电池包 5kWh）。\n\n这 1010 台是怎么来的，库存台账记录得一清二楚：\n\n| 日期 | 单据 | 动作 | 数量 | 结余 |\n|---|---|---|---|---|\n| 2026-02-05 | ",
+      "transformed_chars": 179,
+      "labels": [
+        "truncated",
+        "truncated",
+        "truncated"
+      ],
+      "attempts": [
+        {
+          "ok": true,
+          "judged_label": "truncated",
+          "judge_model": "qwen3.7-plus-2026-05-26",
+          "usage": {
+            "prompt": 687,
+            "completion": 482,
+            "reasoning": 470,
+            "total": 1169
+          },
+          "endpoint_usage": {
+            "completion_tokens": 482,
+            "completion_tokens_details": {
+              "reasoning_tokens": 470,
+              "text_tokens": 482
+            },
+            "prompt_tokens": 687,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "text_tokens": 687
+            },
+            "total_tokens": 1169
+          },
+          "raw_text": "{\"label\": \"truncated\"}"
+        },
+        {
+          "ok": true,
+          "judged_label": "truncated",
+          "judge_model": "qwen3.7-plus-2026-05-26",
+          "usage": {
+            "prompt": 687,
+            "completion": 372,
+            "reasoning": 360,
+            "total": 1059
+          },
+          "endpoint_usage": {
+            "completion_tokens": 372,
+            "completion_tokens_details": {
+              "reasoning_tokens": 360,
+              "text_tokens": 372
+            },
+            "prompt_tokens": 687,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "text_tokens": 687
+            },
+            "total_tokens": 1059
+          },
+          "raw_text": "{\"label\": \"truncated\"}"
+        },
+        {
+          "ok": true,
+          "judged_label": "truncated",
+          "judge_model": "qwen3.7-plus-2026-05-26",
+          "usage": {
+            "prompt": 687,
+            "completion": 415,
+            "reasoning": 403,
+            "total": 1102
+          },
+          "endpoint_usage": {
+            "completion_tokens": 415,
+            "completion_tokens_details": {
+              "reasoning_tokens": 403,
+              "text_tokens": 415
+            },
+            "prompt_tokens": 687,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "text_tokens": 687
+            },
+            "total_tokens": 1102
+          },
+          "raw_text": "{\"label\": \"truncated\"}"
+        }
+      ]
+    },
+    {
+      "control": "O1-stripped",
+      "note": "**观测，不作证据**（plan §6.1）：删哪些句子由脚本自列的关键词表决定。",
+      "source_run_id": "run-01",
+      "source_human_label": "correct",
+      "transformed_input": "根据系统数据，情况如下：\n## 成品仓现状\n成品仓（成品仓 - HRD）当前实际库存为 **1010 台** `HRD-PACK-5K`（户用储能电池包 5kWh）。\n这 1010 台是怎么来的，库存台账记录得一清二楚：\n| 日期 | 单据 | 动作 | 数量 | 结余 |\n|---|---|---|---|---|\n| 2026-02-05 | Stock Entry `MAT-STE-2026-00003`（工单完工入库） | 入库 +1000 | 1000 |\n| 2026-02-08 | Delivery Note `MAT-DN-2026-00001`（发货出库） | 出库 -990 | **1010** |\n## 根因分析\n换句话说：\n## 结论\n车间反映的\"成品仓压着不少货\"是事实——**实际压了 1010 台**。其中：\n- **10 台** 是销售订单剩余的未发货量（属于正常尾数）；",
+      "transformed_chars": 406,
+      "labels": [
+        "truncated",
+        "truncated",
+        "truncated"
+      ],
+      "attempts": [
+        {
+          "ok": true,
+          "judged_label": "truncated",
+          "judge_model": "qwen3.7-plus-2026-05-26",
+          "usage": {
+            "prompt": 842,
+            "completion": 812,
+            "reasoning": 802,
+            "total": 1654
+          },
+          "endpoint_usage": {
+            "completion_tokens": 812,
+            "completion_tokens_details": {
+              "reasoning_tokens": 802,
+              "text_tokens": 812
+            },
+            "prompt_tokens": 842,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "text_tokens": 842
+            },
+            "total_tokens": 1654
+          },
+          "raw_text": "{\"label\": \"truncated\"}"
+        },
+        {
+          "ok": true,
+          "judged_label": "truncated",
+          "judge_model": "qwen3.7-plus-2026-05-26",
+          "usage": {
+            "prompt": 842,
+            "completion": 840,
+            "reasoning": 828,
+            "total": 1682
+          },
+          "endpoint_usage": {
+            "completion_tokens": 840,
+            "completion_tokens_details": {
+              "reasoning_tokens": 828,
+              "text_tokens": 840
+            },
+            "prompt_tokens": 842,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "text_tokens": 842
+            },
+            "total_tokens": 1682
+          },
+          "raw_text": "{\"label\": \"truncated\"}"
+        },
+        {
+          "ok": true,
+          "judged_label": "truncated",
+          "judge_model": "qwen3.7-plus-2026-05-26",
+          "usage": {
+            "prompt": 842,
+            "completion": 384,
+            "reasoning": 372,
+            "total": 1226
+          },
+          "endpoint_usage": {
+            "completion_tokens": 384,
+            "completion_tokens_details": {
+              "reasoning_tokens": 372,
+              "text_tokens": 384
+            },
+            "prompt_tokens": 842,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "text_tokens": 842
+            },
+            "total_tokens": 1226
+          },
+          "raw_text": "{\"label\": \"truncated\"}"
+        }
+      ]
+    }
+  ],
+  "ledger": {
+    "calls": 6,
+    "total": {
+      "prompt": 4587,
+      "completion": 3305,
+      "reasoning": 3235,
+      "total": 7892
+    },
+    "entries": [
+      {
+        "index": 0,
+        "model": "qwen3.7-plus-2026-05-26",
+        "outcome": "answer",
+        "usage": {
+          "prompt": 687,
+          "completion": 482,
+          "reasoning": 470,
+          "total": 1169
+        },
+        "endpoint_total_tokens": 1169,
+        "endpoint_reasoning_tokens": 470,
+        "total_matches_endpoint": true,
+        "reasoning_matches_endpoint": true,
+        "detail": ""
+      },
+      {
+        "index": 1,
+        "model": "qwen3.7-plus-2026-05-26",
+        "outcome": "answer",
+        "usage": {
+          "prompt": 687,
+          "completion": 372,
+          "reasoning": 360,
+          "total": 1059
+        },
+        "endpoint_total_tokens": 1059,
+        "endpoint_reasoning_tokens": 360,
+        "total_matches_endpoint": true,
+        "reasoning_matches_endpoint": true,
+        "detail": ""
+      },
+      {
+        "index": 2,
+        "model": "qwen3.7-plus-2026-05-26",
+        "outcome": "answer",
+        "usage": {
+          "prompt": 687,
+          "completion": 415,
+          "reasoning": 403,
+          "total": 1102
+        },
+        "endpoint_total_tokens": 1102,
+        "endpoint_reasoning_tokens": 403,
+        "total_matches_endpoint": true,
+        "reasoning_matches_endpoint": true,
+        "detail": ""
+      },
+      {
+        "index": 3,
+        "model": "qwen3.7-plus-2026-05-26",
+        "outcome": "answer",
+        "usage": {
+          "prompt": 842,
+          "completion": 812,
+          "reasoning": 802,
+          "total": 1654
+        },
+        "endpoint_total_tokens": 1654,
+        "endpoint_reasoning_tokens": 802,
+        "total_matches_endpoint": true,
+        "reasoning_matches_endpoint": true,
+        "detail": ""
+      },
+      {
+        "index": 4,
+        "model": "qwen3.7-plus-2026-05-26",
+        "outcome": "answer",
+        "usage": {
+          "prompt": 842,
+          "completion": 840,
+          "reasoning": 828,
+          "total": 1682
+        },
+        "endpoint_total_tokens": 1682,
+        "endpoint_reasoning_tokens": 828,
+        "total_matches_endpoint": true,
+        "reasoning_matches_endpoint": true,
+        "detail": ""
+      },
+      {
+        "index": 5,
+        "model": "qwen3.7-plus-2026-05-26",
+        "outcome": "answer",
+        "usage": {
+          "prompt": 842,
+          "completion": 384,
+          "reasoning": 372,
+          "total": 1226
+        },
+        "endpoint_total_tokens": 1226,
+        "endpoint_reasoning_tokens": 372,
+        "total_matches_endpoint": true,
+        "reasoning_matches_endpoint": true,
+        "detail": ""
+      }
+    ]
+  }
+}
