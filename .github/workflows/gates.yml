@@ -387,8 +387,31 @@ jobs:
           python3 -m agenerp.seedsite --load-documents --site frontend | tee /tmp/seed-idempotent.log
           grep -qE '^合计：新建 0 ' /tmp/seed-idempotent.log
 
-      - name: ④ 站点侧对账（9 项）
+      - name: ④ 站点侧对账（30 项）
         run: python3 -m agenerp.seedsite --verify-site --site frontend
+
+      # ⑤/⑥ 由 P1.0a 加入。挂在这个 job 上是因为它已经有一个装好数据的活站点，
+      # 另起一个 job 等于把 ERPNext 再拉一遍（分钟级）换不来任何判别力。
+      - name: ⑤ 装载受限身份（permission.scope 判别力的前置）
+        env:
+          AGENERP_WORKER_PASSWORD: ${{ secrets.AGENERP_WORKER_PASSWORD || 'worker-ci-only' }}
+        run: python3 -m agenerp.seedusers --load-users --site frontend
+
+      # ⚠️ 这条**不接受 skip**。没有受限身份时它红而不是跳 ——
+      # 站点上只有 Administrator 时，一个永远回 True 的 permission.scope
+      # 与正确实现在所有其它断言下长得一模一样。
+      - name: ⑥ L2 门禁 —— 工具执行层守约（12 条，零 skip）
+        env:
+          AGENERP_LIVE: "1"
+          AGENERP_WORKER_PASSWORD: ${{ secrets.AGENERP_WORKER_PASSWORD || 'worker-ci-only' }}
+        run: |
+          set -euo pipefail
+          python3 -m pytest tests/gates/test_tool_execution_live.py -q | tee /tmp/tool-gate.log
+          # 判据自身的判据：跳过就是没跑，没跑就是红。
+          if grep -qE '[0-9]+ skipped' /tmp/tool-gate.log; then
+            echo "❌ 工具执行层门禁出现 skip —— 判定器不接受 skip，未跑就是红。" >&2
+            exit 1
+          fi
 
       # 取证一律 always()（不是 failure()）：cancel / timeout 路径上最需要证据，
       # 而 failure() 在那两种收场上不触发。
