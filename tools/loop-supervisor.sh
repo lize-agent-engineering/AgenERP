@@ -76,7 +76,18 @@ while true; do
 
   # ---- 闸 3：LoopX 配额 ----
   DEC=$("$LOOPX" --format json quota should-run --goal-id "$GOAL_ID" --agent-id "$AGENT_ID" 2>/dev/null \
-        | python3 -c 'import json,sys;print(json.load(sys.stdin).get("decision","unknown"))' 2>/dev/null || echo unknown)
+        | python3 -c 'import json,sys;d=json.load(sys.stdin);print(d.get("decision","unknown") if d.get("ok") else "loopx-unavailable")' 2>/dev/null || echo unknown)
+  # ⚠️ **CP9 已判 LoopX「停用」**（2026-08-23：判据「跨会话恢复实际生效 ≥3 次」
+  # 实测 runs=1，且它自报 state_file_missing）。此时 quota should-run 回 ok:false，
+  # 本闸会**永远不放行** —— 监督器一趟都跑不了，而且是**静默地睡**，
+  # 看不出是坏了还是在等窗口。
+  #
+  # 旁路**不是「总是放行」**（那把配额保护一起拆了），而是「LoopX 不可用时
+  # 判为 run，并每次在日志明写」。配额保护还有闸 2（日预算）在管。
+  if [ "$DEC" = "loopx-unavailable" ]; then
+    log "闸 3 旁路：LoopX 不可用（CP9 已判停用），跳过配额闸 —— 日预算闸 2 仍在管"
+    DEC=run
+  fi
   if [ "$DEC" != "run" ]; then
     log "配额未放行（decision=$DEC），睡 ${QUOTA_WAIT}s 再问 —— 撞窗口是常态不是故障"
     sleep "$QUOTA_WAIT"
