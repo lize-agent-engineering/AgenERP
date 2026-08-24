@@ -397,6 +397,18 @@ class SiteClient:
             ) from exc
 
 
+def credential_from_env(variable: str) -> str:
+    """取一个凭据环境变量，缺了就**指名缺哪个变量**（模块头第 3 条：产品代码不内置口令默认值）。
+
+    凭据的读取集中在本模块，装载器不自己读环境 —— 这既是 §11.7 的边界，
+    也让 `agenerp/seed*.py` 那条「生成路径上不许出现 `os.environ`」的判据继续成立。
+    """
+    value = os.environ.get(variable, "").strip()
+    if not value:
+        raise SiteError(f"缺少凭据：设置 {variable}（产品代码不内置口令默认值）")
+    return value
+
+
 def client_from_env(site: str, transport: Transport | None = None) -> SiteClient:
     """环境变量 → 客户端。缺凭据时抛 `SiteError` 并**指名缺哪个变量**。
 
