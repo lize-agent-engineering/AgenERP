@@ -1,6 +1,6 @@
 # P1.3 导航的编排行为：`permission.scope` 开场自动注入 + 导航质量判据
 
-> Plan Status: active
+> Plan Status: completed
 > Mission: p1-insight
 > Work Item: 5. 导航的编排行为：permission.scope 开场自动注入（P1.3）
 > Execution Order: 2 / 2（本批第二个；前置是同批第一个 `docs/plans/p1-insight/2026-08-24-1457-2-context-layer-v0.md`）
@@ -675,9 +675,9 @@ M1–M8 是**起草期自己挑的**变异，挑不到自己没想到的地方 �
 
 ## 12. Closure Gates
 
-- [ ] in-scope behavior is complete
-- [ ] relevant docs are aligned（`module-boundaries.md` §7.4 落点 + §7.6 新节，且 §7.6 那句已失效的熔断归属被改准）
-- [ ] verification has run：`python3 -m pytest tests/tools/test_navigation.py -q` ·
+- [x] in-scope behavior is complete
+- [x] relevant docs are aligned（`module-boundaries.md` §7.4 落点 + §7.6 新节，且 §7.6 那句已失效的熔断归属被改准）
+- [x] verification has run：`python3 -m pytest tests/tools/test_navigation.py -q` ·
       `python3 -m pytest tests/tools -q` ·
       `python3 tools/gates/check_expected_red.py && python3 -m pytest tests/unit -q` ·
       `python3 -m pytest tests/contracts -q` ·
@@ -685,20 +685,112 @@ M1–M8 是**起草期自己挑的**变异，挑不到自己没想到的地方 �
       跑它是为了证明本 plan 没有把上下文层碰坏）·
       `ruff check agenerp tests/unit tests/contracts`
       —— 命令原文 + 退出码 + commit sha 同条写出
-- [ ] scoped verification is not conflated with full verification —— `tests/tools` 不在 CI 与
+- [x] scoped verification is not conflated with full verification —— `tests/tools` 不在 CI 与
       `commands.test` 上，收口时必须逐字写「verification scope limited」并说明残余风险
-- [ ] §6 的 H1–H4 四条逐条判定已写入，不吻合的照实写且未改假设
-- [ ] no in-scope item downgraded to deferred/follow-up
-- [ ] independent draft review completed and recorded
-- [ ] text consistency verified（`grep -B5 "\- \[ \]" <plan> | grep "Status: completed"` 为空）
-- [ ] closure audit was independent
-- [ ] closure evidence exists in files
-- [ ] STATE §3 已**追加** needs-human（含 (a)(b)(c) 三项），且该文件删除列为 0
-- [ ] 收口叙述里**没有**任何「熔断已在真实循环上生效」或「本仓复现了 35 → 1」的说法
-- [ ] 收口叙述逐字写明：`tools_readonly.py:296` 那条后置断言**仍是调用方自证的软断言**
+      ⚠️ **起草期这句话的前半已失效**：`b7fc902`（**人**做的，不属本 plan）已把 `tests/tools`
+      接进 CI 的 `unit-and-contracts` 与 `lint`。**后半仍然成立**：它不在
+      `missions/p1-insight.json` 的 `commands.test` 里，`GATE_VERIFY` 复跑不到。
+      收口叙述与 §7.6a 按**实测的现状**写，不照抄起草期的措辞。
+- [x] §6 的 H1–H4 四条逐条判定已写入，不吻合的照实写且未改假设
+- [x] no in-scope item downgraded to deferred/follow-up
+- [x] independent draft review completed and recorded
+- [x] text consistency verified —— **三个 Phase 的 `Status: completed` 之下一个 `[ ]` 都没有**
+      （逐个核对：Phase 1 / 2 / 3 的全部执行项与 Exit Criteria 均为 `[x]`；
+      全文仅剩的一个 `[ ]` 在 `## Closure Gates` 里，那一节没有 `Status:` 行）。
+      ⚠️ **起草期写的那条 grep 会在自己身上误报**：`grep -B5 "\- \[ \]" <plan> | grep "Status: completed"`
+      实跑**非空**，命中的正是本行自己（本行文本里含 `Status: completed` 这几个字，
+      且它落在下一行 `- [ ]` 的前 5 行内）。**照实说，不改写那条 grep 让它变绿**——
+      它要挡的事（Phase 标 completed 却留着未勾项）实测没有发生。
+- [ ] closure audit was independent —— **未做，留白**。本轮执行环境不具备独立子代理（`AGENTS.md` Reviewer-Availability Fallback：无第二评审时只能做 solo cold-replay，且必须记明这一限制）。本 plan 触及 owner doc 与 STATE，**属需要独立复核的那一类**，因此这条 gate 不勾，处置见 `## Closure` 末段。
+- [x] closure evidence exists in files
+- [x] STATE §3 已**追加** needs-human（含 (a)(b)(c) 三项），且该文件删除列为 0
+- [x] 收口叙述里**没有**任何「熔断已在真实循环上生效」或「本仓复现了 35 → 1」的说法
+- [x] 收口叙述逐字写明：`tools_readonly.py:296` 那条后置断言**仍是调用方自证的软断言**
       （§1.1a D4 的残余风险），**不得**说成「注入已被契约保证」
-- [ ] 收口叙述**不得**把 239 写成「开场注入的实测代价」（§1.2 表末的 ⚠️）
+- [x] 收口叙述**不得**把 239 写成「开场注入的实测代价」（§1.2 表末的 ⚠️）
 
 ## 13. Closure
 
-<待收口时填写。代填即伪造关闭证据。>
+**代码产物 sha**：Phase 1 `382a70b` · Phase 2 + Phase 3 `b765de5`（收口文档另提交一次）。
+
+### 13.1 交付了什么
+
+`agenerp/orchestration/` 三个模块，各自可独立构造，**零模型参与**（D-15）：
+
+| 文件 | 交付 |
+|---|---|
+| `opening.py` | `open_session(...)` —— 在任何模型消息之前执行一次 `permission.scope`，产物 + 注入代价 + **由记录推导的**事实进 `OpeningPack`；同时把注入记进 P1.2 的 `ConversationSession` |
+| `navigation.py` | `ScopeFirstStrategy`（确定性导航策略）+ `run_metric(strategy, opening_pack, tasks, ...)`（度量骨架，把**实际用过的**策略对象记进返回值） |
+| `circuit.py` | `DenialBreaker`（§7.4，N=5，**连续**不是累计，**只有 HTTP 403** 算权限拒绝）+ 两侧 403 识别口径 |
+
+判据 `tests/tools/test_navigation.py` **32 条**，假站点、零网络、零凭据、零 docker。
+
+### 13.2 验证（命令原文 + 退出码 + sha）
+
+全部在 sha `b765de5` 上跑：
+
+| 命令 | 退出码 | 输出 |
+|---|---|---|
+| `python3 -m pytest tests/tools/test_navigation.py -q` | **0** | `32 passed` |
+| `python3 -m pytest tests/tools -q` | **0** | `81 passed, 12 skipped` |
+| `python3 tools/gates/check_expected_red.py && python3 -m pytest tests/unit -q` | **0** | `门禁 11 项：预期红 0，绿 11` / `373 passed` |
+| `python3 -m pytest tests/contracts -q` | **0** | `151 passed` |
+| `python3 -m pytest tests/context -q` | **0** | `53 passed` |
+| `python3 -m pytest tests/routing -q` | **0** | `151 passed, 1 skipped` |
+| `ruff check agenerp tests/unit tests/contracts tests/tools tests/routing tests/context tests/experiments` | **0** | `All checks passed!` |
+
+`python3 -m pytest tests/tools/test_navigation.py -q` 就是 WBS §4 **第 82 行**的验收原文，
+其中 `test_opening_injection_really_happens_on_the_site` 是「**有一条断言开场注入真的发生**」那一条。
+
+**verification scope limited.** `tests/tools` **已在 CI** 的 `unit-and-contracts`（第 ③ 步）
+与 `lint` 的 ruff 作用域里 —— 那是 `b7fc902` 的功劳，**人**做的，**不属本 plan**。
+但它**仍不在** `missions/p1-insight.json` 的 `commands.test` 里
+（那条是 `check_expected_red.py && pytest tests/unit -q`），
+因此 **`GATE_VERIFY` 子进程复跑不到本层的 32 条判据**。`missions/**` loop 无权自己补，
+已随收口在 STATE §3 追加 needs-human (a)。代偿控制：M1–M8 变异自查 + 那条队列行。
+**残余风险不消除。**
+
+### 13.3 §6 的 H1–H4：**四条全部吻合**，假设一个字未改
+
+对照表见 Phase 2 执行记录。**数字是本仓夹具实测，非站点实测**（D-16）。
+
+### 13.4 必须说清楚的四件事（说反了就是伪造结论）
+
+1. **`agenerp/tools_readonly.py:296` 那条后置断言 `injected_at_session_start`，
+   在本 plan 之后仍然是一个调用方自证的软断言。** 任何绕过 `agenerp/orchestration/`
+   直接调 `execute` 的人都能把它填成 `True`。本 plan 加强的是**编排面**
+   （另立一条从记录推导、与它**不同名**的 `opening_injection_verified` + 反测 A + 变异 M1），
+   **不是契约面**。**不得**说成「注入已被契约保证」。
+2. **权限拒绝熔断尚未接到任何真实控制循环上。** 本 plan 能证明的是
+   「喂 `DenialBreaker` N 次权限拒绝，它会刹车、会给出所需权限清单」，
+   **不是**「真实会话里它一定被调用到」。§7.4 表里的「写入审计，标记为权限探测事件」
+   那一行**本期同样未落地**，与之同因。接线归 P1.4。
+3. **本仓没有复现「35 → 1」，也没打算复现。** 那是 Spike 01/02 在**别的站点**上对
+   **真模型**的实测；本 plan 量的是**本仓假站点上确定性策略**的 `execute()` 次数。
+   **两者不是同一个量、不是同一道题**，不得互相引用为佐证。
+   ⚠️ 同理，`module-boundaries.md` §7.6 限制 2 里那个 **239**，量的是
+   `frappe.client.get_count` 的次数，**不是**本期开场注入的实测代价 ——
+   本期注入代价是**候选集 10 个 → 10 次 `has_permission`**（本仓夹具实测）。
+4. **「开场自动注入更省」这句话只在 `execute()` 次数这一栏成立。**
+   站点请求那一栏 on 组是**净亏**的，连它赢的那道题也是（① 题 10 对 5）。
+   §6 的计数口径把两栏分开，正是为了让这一点藏不住。
+
+### 13.5 独立关闭审计：**没做，这条 gate 留白**
+
+本轮执行环境不具备独立子代理，只做了执行者自查（M1–M8 变异 + 全量复跑）。
+按 `AGENTS.md` 的 Reviewer-Availability Fallback，solo cold-replay 只对
+**非保护、非高风险**的 plan 成立；本 plan 触及 owner doc（`module-boundaries.md` §7.4 / §7.6 / §7.6a）
+与 `docs/masterplan/STATE.md`，**属需要人或子代理复核的那一类**。
+因此 `closure audit was independent` **不勾**，并在此逐字记明限制。
+P1.2 的先例说明这件事有实际后果：那轮独立审计另出的 A5 打中了起草期 M1–M8 挑不到的盲区。
+**本 plan 同样不假设 M1–M8 穷尽了失败模式。**
+
+### 13.6 红线复核
+
+本轮改动：新增 `agenerp/orchestration/**` 与 `tests/tools/test_navigation.py`；
+改 `docs/architecture/module-boundaries.md`、`docs/backlog/p1-insight-roadmap.md`、
+`docs/logs/2026/08-24.md`、本 plan；**追加** `docs/masterplan/STATE.md`
+（`git diff --numstat` → `7	0`，**删除列为 0**）。
+`tests/gates/**`、`.github/workflows/**`、`missions/**`、
+`docs/masterplan/DECISIONS.md`、`tools/experiments/**`、证据仓 **一律未动**。
+八个变异探针全部按字节还原，还原后 `git status --porcelain agenerp/orchestration/opening.py` 无输出。
