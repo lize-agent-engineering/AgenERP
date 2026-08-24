@@ -321,6 +321,13 @@
   ⚠️ **结论方向不受影响**：第一轮 5/12、第二轮 11/12，「便宜模型 + 强门禁」仍被推翻；但 `qwen3.6-plus` 无门禁 3/3 意味着**它在第一轮就已可用**，这削弱了「换更高档位才可用」这个叙述
 - 2026-08-24T10:08Z · **人侧 `git add -A` 踩到正在写文件的 loop** · 人做 CI 配置修复时 `git add -A`，把 loop 还没写完的 `agenerp/orchestration/` 三个模块一起提交（`1c61089`）· **后果不是冲突而是归属错乱**：loop 收口按 sha 记证据，那三个模块的产出 sha 变成了人的 CI 提交 · loop 自己发现并改准（`44ce646`「三个模块是被人的 CI 提交扫进去的」）—— **但这属于运气，不能靠它兜底** · 已落 RUNBOOK **§5.5「人与 loop 并发写同一个仓库时的操作纪律」**：不许 `git add -A`、动手前后各看一次 `git status`、红线内文件改完要收掉对应的 needs-human 条目
 - 2026-08-24T10:35Z · **人侧审读 P1.4 方案（执行前，非收口审计）** · 主要核一件事：刚推的「判自由文本前先跑通标注集」（`e08ca4b`）有没有被敷衍引用 · **结论：处理得比预期好，不需干预** —— 它没有随手引一下，而是①**逐条核对自己每条判据落在哪一侧**（H1/H2 判门禁对给定轨迹的判定、H3 判 `execute` 次数与权限清单、H4 判 token 账目，**没有一条判「答案对不对」**）；②据此声明落在例外侧**并说明理由**；③**反过来把口子焊死**：「执行期若有人想补一条『解释答得对不对』的判据，那条受该节约束，跑不通标注集就不许往下写。**本 plan 不开这个口子。**」· **顺带确认一处我起初怀疑的空缺**：P1.4 确实**没有**「答对没有」的判据，但这是**对的** —— 它 Goals 第 2 条逐字写着「门禁拦得住单跳答案，且**拦得住这件事由轨迹证明，不由答案文本证明**」。门禁验的是轨迹上的客观事实，「答得对不对」属评测不属门禁。**将来别把这当成 P1.4 的漏项**
+- 2026-08-24T21:40Z · P1.6/工作项 8（行业包 v0，离散制造） · `python3 tools/gates/check_expected_red.py && python3 -m pytest tests/unit -q` → **exit 0**（414 → **453 passed**）· `python3 -m pytest tests/contracts -q` → **exit 0**（151 passed）· `python3 -m pytest tests/tools -q` → **exit 0**（81 passed, 12 skipped）· `ruff check agenerp tests/unit tests/contracts tests/tools tests/routing tests/context tests/experiments` → **exit 0** · `python3 -m agenerp.packs validate --pack discrete` → **exit 0** · sha `6682b68`（本行随 Phase 3 收尾提交一并入库，该提交 sha 见 `docs/logs/2026/08-24.md`）· plan `2026-08-24-2109-1-industry-pack-v0-discrete.md` 三个 Phase 执行完毕，下一项是同批第二个 plan `2026-08-24-2109-2`（解释成本记账 P1.7）
+  · **WBS §4 P1.6 行的验收命令字符串定稿（本行即证据行）**：WBS 写的是 `python -m agenerp.packs validate --pack discrete`，本机没有 `python` 这个可执行名，**实跑形态是 `python3 -m agenerp.packs validate --pack discrete`**。形状不变（仍是一条能跑、能给出退出码的命令），按表规 6 处理；`docs/masterplan/` 已有行只有人能改（红线 5），归属并入 §3 那条 needs-human 的第二个 bullet。
+  · **交付面是「包在盘上 + 校验器」，不是「行业包已装载」**：`industry-packs/discrete/pack.json`（三条规则各带 `test_case`）· `agenerp/packs/`（装载 + 逐条真跑测例 + CLI）· 四种输入四种**可区分**的退出码（`0` 健康 / `3` 查无此包 / `4` 缺 `test_case` / `5` 测例跑不过，`2` 留给 argparse）。`agenerp/tools/queries.py` 的 `rule.lookup` **仍然指名报错**，只改了 docstring 的说法，报错行为一个字未动。
+  · **M1–M8 八个变异逐个复跑全部由绿转红**，且由**预期的那条判据**打红：M4（判据改成永远命中）由**阴性对照**打红而非消融 · M5（命中量写死 1010）由**第二个数据集**打红（固定测例那条对它是绿的）· M8（CLI 退出码恒为 0）**只被子进程判据打红，函数级判据对它是绿的** —— 这正是两种都写的理由。
+  · ⚠️ **消融判据是恒真的那一侧**：`without()` + `run()` 下抽掉规则自然零命中，它证明「引擎读清单」，不证明「规则有判别力」；发现力由每条规则的**阳性/阴性对照**证明。⚠️ **外协那条规则未在真实数据上验证过命中** —— 种子的外协链是完整的（发多少收多少），两侧零命中是正确行为，验的只是「它不误报」。
+  · ⚠️ **活站点核对（H4）实测「部分一致」，照实记**：`frontend@http://127.0.0.1:18080` 跑整份包（9 次只读请求）—— `finished-goods-backlog` 两侧逐字一致（1010.0）· 外协那条两侧都零命中 · 但 `closed-order-short-delivered` **离线命中 10、站点零命中**。**这是 D-12 预言的失败形态被抓到，不是本包的缺陷**：站点上 `Sales Order.status` 是 `To Deliver and Bill`，`agenerp/seed/model.py:57` 写的是 `Closed`，而 `agenerp/seedsite.py` 全文没有写这个 `status` 的地方。**规则一个字没改去迁就站点**（那是照答案写规则）。已记 `docs/bugs/02-live-site-sales-order-is-not-closed-so-the-account-green-trap-is-absent.md`，归属见 §3。
+
 ---
 
 ## §3 needs-human 队列
@@ -329,6 +336,13 @@
 
 > 格式：`[状态] 日期 · 触发条件 · WBS行ID · 最后一条失败命令原文 + 退出码 · sha · 处置`
 > 状态只有 `open` / `resolved`。**resolved 的行保留不删。**
+
+- [open] 2026-08-24T21:40Z · 触发：**P1.6 已把行业包交付到盘上，`rule.lookup` 的接线需人裁定** · P1.6/工作项 8 · `python3 -m agenerp.packs validate --pack discrete` → **exit 0**（本条不是失败命令，是「做到这一步就停」的边界） · sha `6682b68` · **loop 不替人选，两条出路的代价照实列**：
+  **(a) 人以 `Gates-Change-Approved-By:` 改那条门禁并接线** —— 代价：`tests/gates/test_tool_execution_live.py:119`（裁判）与它委派进去的 `tests/tools/test_live_conformance.py:157` 都钉着 `rule.lookup` 的**现行报错行为**（`ok is False`、reasons 含「行业包」，且上下文已声称 `industry_pack_loaded: True`）；接线会让这条 L2 门禁由绿转红，改它就是改裁判，只有人能做。收益：`rule.lookup` 真的能查到规则，`anomaly.scan` 之类才有地基。
+  **(b) 人裁定 `rule.lookup` 维持报错，把「重开事件」改写到更后面的阶段** —— 代价：`agenerp/tools_readonly.py` 里那条契约的 `rules_carry_provenance` 后置断言长期没有真实调用面（今天出处已经落到 `Hit.pack_id` 上，但工具面够不着它）；`docs/masterplan/02-WBS.md` 与 owner doc 里「重开事件是 P1.6 交付第一个行业包」这句话得由人改写。收益：门禁面零改动。
+  ⚠️ **第二件事一并交人**：`docs/masterplan/02-WBS.md` P1.6 行的验收命令长期写作 `python -m agenerp.packs validate --pack discrete`，而本机跑的是 `python3 -m`。表规 6 允许改这个字符串，但 `docs/masterplan/` 已有行**只有人能改**（红线 5）—— loop 只在 §2 留了定稿证据行，不代改。
+
+- [open] 2026-08-24T21:40Z · 触发：**活站点上的销售订单没有被人工关闭，「账面全绿陷阱」在站点侧不存在** · 归属是种子装载面（`agenerp/seedsite.py`），不是 P1.6 · `AGENERP_SITE=frontend AGENERP_SITE_URL=http://127.0.0.1:18080 AGENERP_ADMIN_PASSWORD=admin` 下读 `Sales Order` → `status='To Deliver and Bill'`（**复跑一次结果相同**），而 `agenerp/seed/model.py:57` 写的是 `SALES_ORDER_STATUS = "Closed"` · sha `6682b68` · **需人裁定两件事**：① 这个 `status` 该由装载器的哪一步来置（`agenerp/seedsite.py` 全文没有写它的地方；**ERPNext 提交时会不会自己重算 `status` 未取证，loop 不猜**）；② 「站点上的订单状态与离线数据集一致」该由哪条判据钉住 —— 它的自然归属是种子自验的站点侧对应物，**不是行业包的判据** · 详情 `docs/bugs/02-live-site-sales-order-is-not-closed-so-the-account-green-trap-is-absent.md` · ⚠️ **规则没有被改去迁就站点**：把 `discrete/closed-order-short-delivered` 改到能命中为止就是照答案写规则，且会让它在真正的「订单被人工关闭」场景上失效
 
 - [resolved] 2026-08-24T09:11Z · 原「`tests/tools` / `tests/routing` 未进 CI」**已由人补齐**（红线 2，带 `Gates-Change-Approved-By:`）· 查下来缺口比交接说的更大：CI 只跑 `tests/unit` + `tests/contracts`，而 **`tests/tools`（61）· `tests/routing`（148）· `tests/context`（51）· `tests/experiments`（10）共 270 条判据一条都没进 CI**；`ruff` 也只扫三个目录 · 已把四个目录全部接进「单测与契约测试」job（③–⑥），lint 范围同步扩到全部非门禁目录 · **并加了一条判据自身的判据（⑦）**：比对 `tests/` 下的目录集合与 CI 认识的集合，**新增目录忘了接就红** —— 不写死条数（条数会长），写死目录集合 · 本地先验：四个目录全绿，扩范围后 ruff `All checks passed`
 
