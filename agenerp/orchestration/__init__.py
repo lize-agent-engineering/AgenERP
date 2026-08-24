@@ -16,6 +16,26 @@
 
 from __future__ import annotations
 
+from agenerp.orchestration.circuit import (
+    DENIAL_THRESHOLD,
+    BreakerReport,
+    DenialBreaker,
+    is_permission_denial,
+    result_is_permission_denial,
+)
+from agenerp.orchestration.navigation import (
+    STEP_ANSWER,
+    STEP_EXECUTE,
+    STEP_REFUSE,
+    Hop,
+    MetricRun,
+    NavigationState,
+    NavigationTask,
+    ScopeFirstStrategy,
+    Step,
+    TaskMetric,
+    run_metric,
+)
 from agenerp.orchestration.opening import (
     CONTRACT_FACT,
     INJECTION_TOOL,
@@ -32,4 +52,20 @@ __all__ = (
     "InjectionCost",
     "OpeningPack",
     "open_session",
+    "STEP_ANSWER",
+    "STEP_EXECUTE",
+    "STEP_REFUSE",
+    "Hop",
+    "MetricRun",
+    "NavigationState",
+    "NavigationTask",
+    "ScopeFirstStrategy",
+    "Step",
+    "TaskMetric",
+    "run_metric",
+    "DENIAL_THRESHOLD",
+    "BreakerReport",
+    "DenialBreaker",
+    "is_permission_denial",
+    "result_is_permission_denial",
 )
