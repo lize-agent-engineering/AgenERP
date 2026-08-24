@@ -206,6 +206,83 @@ sha `5a712a7`）：十条契约各有执行体，且**只有一个执行入口**
 **判据缺口，如实记在这里**：`python3 -m pytest tests/contracts -q` **不在** `missions/p0-foundation.json` 的 `commands.test` 里
 （那条是 `python3 tools/gates/check_expected_red.py && python3 -m pytest tests/unit -q`），因此 `GATE_VERIFY` 复跑不到它。
 `missions/**` 是角色 B 禁区，loop 无权自己补。代偿控制是独立关闭审计。人要补上，把该命令加进 `commands.test` 即可。
+
+### 7.7 上下文层在本仓的落点（P1.2 · 2026-08-24）
+
+plan [`2026-08-24-1457-2`](../plans/p1-insight/2026-08-24-1457-2-context-layer-v0.md)。
+owner doc 是 `docs/design/context-and-memory.md` §8.2（上下文四层）与 §8.5（内置实现零依赖）。
+**只做 ① 即时与 ② 会话两层**；③ 记忆与 ④ 检索不在内（该 plan Non-Goals 1/2，重开事件写在它的 §9）。
+
+| 落点 | 内容 |
+|---|---|
+| `agenerp/context/immediate.py` | **① 即时层**的确定性装配：`assemble()` 收当前单据（`doctype` / `name` / 完整字段表）、角色、视图，产出 `ImmediateContext`；`trim()` 按 §8.2 的四条优先级规则裁到预算内 |
+| `tests/context/test_immediate.py` | ① 层判据：字段→值映射恒等、边界标记三条正向断言、裁剪次序与「裁不下就抛」 |
+
+**装配面不自己去猜。** 当前单据、角色、视图**全部由调用方给**：这一层不打站点、不查权限、不问模型。
+全是确定性规则，零模型参与（D-15）。
+
+**产物是结构，不是拼好的字符串。** §8.2 的「① 当前单据的完整字段永远优先，① 不可裁剪」
+要能被机械判定，而字符串上断言不出「哪个字段被裁掉了」。
+
+**四条优先级规则表达成四个档位，本层只实现其中两条**：
+
+| 档 | 规则出处（§8.2） | 本层 |
+|---|---|---|
+| `TIER_DOCUMENT` (0) | ① 当前单据的完整字段永远优先，不可裁剪 | **实现**，在 `UNTRIMMABLE_TIERS` 里 |
+| `TIER_ACTIONS` (1) | ② 已执行动作的审计记录不可压缩 | **实现**，在 `UNTRIMMABLE_TIERS` 里 |
+| `TIER_MEMORY` (2) | ③ 记忆按「是否已验证」排序，未验证的先裁 | **只留档位**：`trim()` 会先裁它，但**档内排序不实现**（属 ③ 记忆层） |
+| `TIER_SCHEMA` (3) | ④ schema 按检索相关度裁 | **只留档位**：`trim()` 最先裁它，**相关度排序不实现**（属 ④ 检索层） |
+
+留位方式是：`trim()` 认这两个档位、按 `④ → ③` 的次序先裁它们，**档内保持调用方给的次序、从尾部丢**。
+③ / ④ 的档内排序由将来那两层各自决定后把块排好再传进来，本层不替它们排。
+
+**裁不下就抛，不静默截断**（`ContextBudgetExceeded`）。静默截断之后，
+「上下文里没有那个字段」与「模型没看见那个字段」在事后无从分辨。
+
+#### `Decision`：前端注入的单据字段要不要再包一次数据边界标记 —— **要包**
+
+§7.5 的包裹动作今天挂在 `agenerp/tools/runtime.py` 的**工具执行入口**这一个咽喉上。
+而 ① 层的「当前单据完整字段」是**前端注入**的，**不经过那个入口** —— 这是 §7.5 今天没有覆盖到的第二条入口。
+
+- **裁定**：包。§7.5 红线逐字是「任何来自工具结果的文本」，而前端注入的单据字段
+  同样是用户可写自由文本，攻击面同源（Spike 01 探针 5：车间工人写 `resolution`、老板提问时读到）。
+- **备选（否决）**：不包，靠前端保证。否决理由——前端不在本仓，靠不住的东西不能当结构性防御。
+- **包法**：**复用** `agenerp.tools.runtime.wrap_free_text`，不抄一份 —— 抄一份就会漂移。
+  语义逐字沿用它的现行口径：**先把值里自带的标记串转义，然后无条件包**。
+  「已包过就不再包」是**错的**：那等于给攻击者一条「自己写一对标记 → 装配面认为已包过 →
+  载荷落在数据边界之外」的路。判据 `test_a_field_carrying_its_own_boundary_marker_is_escaped_and_still_wrapped`。
+- **残余风险，不宣称消除**：转义口径认的是标记串**字面**，注入方若写出与标记串等价的变体仍可能钻过去。
+  这是 P1.0a `wrap_free_text` 的**既有**残余，本层复用它，不修它、也不假装它不在。
+
+#### `Decision`：本层的 `keep` 集合取 `STRUCTURAL_KEYS`，**`name` 不加进去**
+
+工具层的 `keep` 是 `returns.must_keep | STRUCTURAL_KEYS`（`runtime.py:298`），
+而 `STRUCTURAL_KEYS` 实读是 `("doctype", "parenttype", "parentfield")` —— **`name` 不在里面**。
+本层没有 `returns`，因此 `BOUNDARY_KEEP` 恰好取 `STRUCTURAL_KEYS`。
+
+`name` **不加**的理由：`must_keep` 之所以免包，是因为它是**下游据以判定的结构标识**
+（`runtime.py:68` 逐字「证据门禁按单号比对已调过哪些 `doc.get`」），包进标记判定面就失效。
+而本层把单据身份摆在 `CurrentDocument.doctype` / `.name` 两个**专用字段**上，
+下游读身份读的是它们，不是字段表里的那一份 —— 于是「不包就会失效的判定面」在本层不存在。
+另一侧，prompt 命名的 DocType 上 `name` 是**人写的自由文本**。
+两相权衡取 `runtime.py:220` 的保守口径：**漏套比噪声危险**，所以字段表里的 `name` 被包。
+判据 `test_structural_keys_are_not_wrapped` 与 `test_identity_is_carried_outside_the_wrapped_field_map`
+把这个选择两侧都钉住了。
+
+#### 一处私有名依赖，照实记
+
+`tests/context/test_immediate.py` 显式 `from agenerp.tools.runtime import _BOUNDARY_ESCAPE`
+——**私有名**。这样写是有意的：转义串一旦改名，该判据会当场 `ImportError`，
+而不是悄悄退化成「什么都没验」。代价是本判据与 `runtime.py` 的内部名绑死了，改名要同改两处。
+
+#### 判据缺口，如实记在这里
+
+`tests/context` **不在** `missions/p1-insight.json` 的 `commands.test` 里，
+也不在 `.github/workflows/gates.yml` 的 `unit-and-contracts` / `lint` 任何一个 job 的作用域里
+（那两个 job 的作用域是 `tests/unit` `tests/contracts`）。因此 **`GATE_VERIFY` 与 CI 都复跑不到本层的主判据**。
+`missions/**` 与 `.github/workflows/**` 都在红线内，loop 无权自己补。
+代偿控制：变异自查（plan Phase 3 的 M1–M8）+ 独立关闭审计 + STATE §3 的 needs-human 行。
+**不得因为本层测试自己是绿的就说「已被门禁覆盖」。**
 ---
 
 ## 11. 定制包与 GitOps
