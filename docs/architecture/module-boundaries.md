@@ -672,7 +672,9 @@ D-15 逐字：「按清单逐条查、命中即报**是代码，不是 Agent**�
 （`on_hand = 1010.0`、`received = 2000.0`、`issued = 990.0`、`ordered = 1000.0`，
 `request_count = 5`）。它证明的是「规则表达在真站点的 REST 面上跑得通、
 子表按 `parent` 取得到、命中与离线一致」。**归因那一半没有在活端点上跑过**
-（本层不需要，也不声称跑过）。
+（本层不需要，也不声称跑过）。（**已由 plan `2026-08-25-0225-2` 结清，口径见 §7.16** ——
+上面这句记的是**那个 plan 那一跑的范围**，原句一个字不改；§7.16 记的是后来补跑的那一次，
+**包括它跑出来的是「链路走得通、但答案是空的」这个结果**。）
 
 ### 7.10 行业包 v0（离散制造）在本仓的落点（P1.6 · 2026-08-24）
 
@@ -2551,3 +2553,97 @@ roadmap 那一节实测过：**24 条样本、5 条负例、内容词线性可�
 - **O1（剥离）是观测，不是证据**，不得被引用为判别力或泛化的依据。
 - **自评偏向不因收口而消失**：判定器评了自己写的 6 条（人标全 `correct`）。
 - **活端点那三个子命令只在本机跑过，CI 未覆盖**；CI 复跑得到的只有那 58 条离线判据。
+
+### 7.16 洞察 Agent **归因**的首次活端点实跑在本仓的落点（P1.5 第 2 个 plan · 2026-08-25）
+
+来源 plan：[`docs/plans/p1-insight/2026-08-25-0225-2-insight-attribution-live-run.md`](../plans/p1-insight/2026-08-25-0225-2-insight-attribution-live-run.md)。
+本节结清的是 §7.9「活站点验证范围」那一句里逐字写着的缺口
+（「**归因那一半没有在活端点上跑过**」）与 `docs/backlog/p1-insight-roadmap.md` 工作项 7 的同一句 ⚠️。
+
+**本节不改 §7.9 的任何结论，也不新增任何产品模块**：这一轮交付的全部是
+**实验设施 + 离线判据 + 证据**（`tools/experiments/p1_insight_live/run.py` ·
+`tests/unit/test_insight_live_harness.py` · `docs/evidence/p1-insight-live/`）。
+`agenerp/insight/**` 与 `agenerp/inspection/**` **一行未改**（红线自证：
+`git diff --stat -- agenerp/insight/ agenerp/inspection/` 无输出）。
+
+#### 这一跑的口径
+
+一次「实跑」= `load_pack("discrete")` → `inspect_site(...)` → `attribute_all(...)` →
+把全部可复核事实压成一份 JSON。判的是**结构化事实**，**不判文本质量**。
+退出码由六项合取决定，**判定器的标签取值不在其中**：
+
+| 判据项 | 口径 |
+|---|---|
+| `hits_not_empty` | **空集不是成功** —— 零命中就没有任何归因被跑过 |
+| `hits_unchanged` | 命中记录逐字未被改写（`hits_unchanged()` + `ensure_unchanged()`） |
+| `ledger_matches_chat_calls` | 账本条数 == `chat()` 被调次数。**两个数来自不同采集面**（账本在循环里记，计数探针包在 transport 上数）——从账本自己数账本是同义反复 |
+| `evidence_trace_enumerable` | 取证轨迹非空且每条工具调用可枚举 |
+| `no_denied_requests` | 站点侧零白名单外请求 |
+| `no_credentials_in_evidence` | 落盘前扫一遍凭据，扫到就**拒绝落盘**并非零退出 |
+
+**「只读」按端点语义定义，不按 HTTP 动词定义。** 白名单起草期写死：任意 `GET` ·
+`POST /api/method/login` · `POST /api/method/frappe.client.has_permission` ·
+`POST /api/method/frappe.client.get_count`。理由是 `explain()` 开场**无条件**注入
+`permission.scope`，它逐个 DocType `POST frappe.client.has_permission`
+（`opening.py` → `site_scope.py` → `site.py` 的 `call_method`）——
+**一个完全只读的会话也会发出数百个 `POST`**，照「零 `POST`」跑会在第二个请求上误停机。
+
+#### 假设对照（`H5` 有意留空，见 plan §6 的编号说明）
+
+| # | 结果 | 实测 |
+|---|---|---|
+| **H1** | **吻合** | 活站点上 `discrete` 包**恰好命中 1 条**：`discrete/finished-goods-backlog`，`on_hand = 1010.0`，`HRD-PACK-5K` / `成品仓 - HRD`；另两条零命中 |
+| **H2** | **吻合** | 两跑 `hits_unchanged` 均为 `True`，`ensure_unchanged()` 未抛；`hit` 七项逐字相等 |
+| **H3** | **吻合（判在更强的一处记录上）** | `documents_named_in(question)` → `["HRD-PACK-5K"]`；L1 的拒绝理由**指名了那个物料号**（「未覆盖 `['HRD-PACK-5K']`」，run-01 出现 **14** 次、run-02 **17** 次）。⚠️ 那是 **① 工具前置**那一次求值的记录 —— **② 作答前那一次求值本跑一次都没发生过**（`gate_checks` 长度 0），因为模型自始至终没交出答案 |
+| **H4** | **①「≤ 12」不吻合；②③④ 吻合** | 模型调用 **25**（run-01）/ **22**（run-02），两次都超；账本 == `chat()` 计数（25==25 / 22==22）；三项 usage 全 > 0；`total_matches_endpoint` 逐条为真。**D-18：这是记账不是闸，超了不改变 plan 状态**，已按起草期写死的处置落账并交人 |
+| **H6 / H7** | **吻合** | 四个不变面逐字不变；`tests/routing` 逐字不变（本轮新增 **0** 个 `agenerp/**/*.py`） |
+| **H8** | **吻合，含算式** | 零白名单外请求（`denied` 空、`other_verbs` 空、写请求 0 次）；`POST` = `1 login + 238 has_permission + 238×(system.overview + schema.search 被调次数) get_count`，run-01 `477`、run-02 `715`，**逐字对上**。⚠️ N 实读为 **238** 而不是 `site_scope.py` 注释里那个 2026-08-24 实读的 **239**（落在预测的「> 0 且 ≤ 239」内，**注释不改**） |
+| **O1** | **观测，无标签可看** | 两跑 `answer` 都是空文本，`judge_one("")` 指名抛 `JudgingError`（**没有回一个假标签，也没有把空串判成 `correct`**）。⇒ **本仓没有观测到任何跨题族标签** |
+
+#### 判定器的边界（逐字，不得被下游读松）
+
+> 判定器（`agenerp/judging/`）的**已验证适用范围只有 P1.0 那一道题**。
+> 归因文本是**另一个题族**。把判定器用在归因文本上**属外推**，按 **D-16** 只能写成
+> 「**据判定器，判为 X，待复验**」，**不能**写成「归因质量已验证」。
+
+落到可判形式：`tests/unit/test_insight_live_harness.py` 断言**退出码在
+`correct` / `incomplete` / `truncated` 三个标签下逐字相同**，并另有一条把 `judge`
+换成**根本不带 `label` 键**的替身、退出码照样为 0。
+把 `if verdict.label != "correct": raise SystemExit(1)` 加进 `run.py` 的退出码路径，
+这两条**当场发红**（变异自查 M6 实测：3 条判据同时红）。
+
+#### 分流：活跑抓到的问题归谁
+
+- **`doc.links` 撞上 Single DocType 直接 HTTP 500** —— `scan_links` 遍历 Link 宿主时撞上
+  `Quick Stock Balance`（本站点 `issingle = 1`，无实体表），一次 500 让整次 `doc.links` 作废。
+  ⇒ L1 要的证据在本站点上**取不到** ⇒ 归因**永远到不了 `accepted`**。
+  **可复现**（两跑同形态），根因**实测定位**（直接读 DocType 元数据）。
+  **本 plan 不改它**（那个 plan 是一次验证，在同一个 plan 里既当运动员又当裁判，
+  会让"活跑抓到的问题"变成"顺手改到跑绿为止"）——
+  已记 `docs/bugs/03-doc-links-dies-on-single-doctypes.md` + `STATE.md` §3 needs-human。
+  ⚠️ 它落在 `agenerp/tools/documents.py`，**不在 `agenerp/insight/**` / `agenerp/inspection/**`**，
+  也就**不在** plan D1 三档的逐字覆盖里；执行期按 (ii) 的**理由**归档，这一步是判断，照实记在此。
+- **一次归因烧 25 / 22 次调用**是上一条的**后果**，不单开缺陷，随它一起交人。
+- **`closed-order-short-delivered` 站点零命中**是**既有 open**（`docs/bugs/02-…` /
+  `STATE.md` §3 `[open] 2026-08-24T21:40Z`），**只引用、不重复登记、不代人处置**。
+
+#### 残余风险（照实登记）
+
+1. **这一跑没有产出任何归因文本。** 两跑 `accepted = false`、`answer` 为空。
+   ⇒ 「归因走得通」这句话的**已证部分**是「巡检 → 题面 → 取证 → 门禁这条链在真环境里走得通、
+   没有越权、没有写、账目对得上」；**未证部分**是「它能给出一段答案」——
+   在 `docs/bugs/03-…` 被处置之前，**本站点上这一半证不了**。
+2. **一跑不是分布。** 两跑不是采样计划，是「超了先原样复跑一次」这条裁判规则的产物。
+3. **没有站点级 teardown。** 万一真发生了写，复位只能 `down -v` 冷起并重跑整条种子装载链
+   （§12.9）。本轮**不交付任何代码级回滚**；站点零写的承重面是**请求记录器**，
+   `bench list-apps` 前后一致只是旁证 —— 且「前」值用的是仓里已有的那份记录
+   （`docs/analysis/2026-08-25-0119-desk-sid-identity-probe.md`），**不是 run-01 之前当场取的**。
+4. **L1 把物料号当单据号**（`gate.py` 的 `DOC_NAME`）仍是 `watch-only residual`：
+   误报方向是**更严**。但本轮实测暴露了它的代价 —— 一旦那个"单据"的 `doc.links` 取不到，
+   整条归因就永远过不了门禁。重开事件：**出现一条因该误报而被错误拒绝的真实归因**（本轮尚未构成，
+   因为拒绝的直接原因是站点 500，不是误报本身）。
+
+#### verification scope limited
+
+两次活跑**只在本机、CI 完全没有覆盖**（活栈 + 真 key 都不在 runner 上）。
+CI 复跑得到的只有 `tests/unit/test_insight_live_harness.py` 那 **15** 条离线判据。

@@ -1,0 +1,2561 @@
+{
+  "run": "p1-insight-live-01",
+  "at": "2026-08-24T21:17:50Z",
+  "pack": {
+    "pack_id": "discrete",
+    "version": "0",
+    "rule_ids": [
+      "discrete/finished-goods-backlog",
+      "discrete/subcontracting-issued-not-received",
+      "discrete/closed-order-short-delivered"
+    ],
+    "requires_doctypes": [
+      "Stock Ledger Entry",
+      "Sales Order",
+      "Sales Order Item",
+      "Subcontracting Order",
+      "Subcontracting Order Item",
+      "Subcontracting Receipt Item"
+    ],
+    "elapsed_seconds": 0.436
+  },
+  "site": {
+    "site": "frontend",
+    "base_url": "http://127.0.0.1:18080"
+  },
+  "model": {
+    "attribution_model_requested": "qwen3.6-plus",
+    "judge_model_requested": "qwen3.7-plus-2026-05-26",
+    "chat_calls": 25,
+    "ledger_calls": 25
+  },
+  "inspection": {
+    "rule_ids": [
+      "discrete/finished-goods-backlog",
+      "discrete/subcontracting-issued-not-received",
+      "discrete/closed-order-short-delivered"
+    ],
+    "request_count": 9,
+    "hits": [
+      {
+        "pack_id": "discrete",
+        "rule_id": "discrete/finished-goods-backlog",
+        "statement": "产出远大于销出：某物料在某仓库累计入库减去累计出库之后，剩下的存货仍与该物料的订单量同一量级 —— 多出来的这些没有道理",
+        "subject": {
+          "item_code": "HRD-PACK-5K",
+          "warehouse": "成品仓 - HRD"
+        },
+        "quantity_name": "on_hand",
+        "quantity": 1010.0,
+        "measures": {
+          "issued": 990.0,
+          "on_hand": 1010.0,
+          "ordered": 1000.0,
+          "received": 2000.0
+        }
+      }
+    ],
+    "hits_unchanged": true
+  },
+  "attributions": [
+    {
+      "rule_id": "discrete/finished-goods-backlog",
+      "pack_id": "discrete",
+      "hit": {
+        "pack_id": "discrete",
+        "rule_id": "discrete/finished-goods-backlog",
+        "statement": "产出远大于销出：某物料在某仓库累计入库减去累计出库之后，剩下的存货仍与该物料的订单量同一量级 —— 多出来的这些没有道理",
+        "subject": {
+          "item_code": "HRD-PACK-5K",
+          "warehouse": "成品仓 - HRD"
+        },
+        "quantity_name": "on_hand",
+        "quantity": 1010.0,
+        "measures": {
+          "issued": 990.0,
+          "on_hand": 1010.0,
+          "ordered": 1000.0,
+          "received": 2000.0
+        }
+      },
+      "question": "巡检器按规则 discrete/finished-goods-backlog 报出一条命中：产出远大于销出：某物料在某仓库累计入库减去累计出库之后，剩下的存货仍与该物料的订单量同一量级 —— 多出来的这些没有道理。落点是 item_code = HRD-PACK-5K、warehouse = 成品仓 - HRD，on_hand = 1010。请解释：为什么会这样？要不要紧？作答前先把证据查全，不要猜。",
+      "answer": "",
+      "accepted": false,
+      "gate_l1": {
+        "documents_named_in_question": [
+          "HRD-PACK-5K"
+        ],
+        "failed_turns": [],
+        "gate_check_count": 0
+      },
+      "tool_calls": [
+        {
+          "tool": "query.read",
+          "params": {
+            "doctype": "Item",
+            "filters": [
+              [
+                "item_code",
+                "=",
+                "HRD-PACK-5K"
+              ]
+            ],
+            "fields": [
+              "item_code",
+              "item_name",
+              "item_group",
+              "stock_uom",
+              "description",
+              "has_batch_no",
+              "has_serial_no",
+              "is_stock_item",
+              "default_warehouse"
+            ]
+          },
+          "ok": false,
+          "stage": "preconditions",
+          "reasons": [
+            "前置未满足：问题点名了某张单据 → 接受 answer 之前，必须已对它调用过 doc.links —— 未覆盖 ['HRD-PACK-5K']"
+          ],
+          "request_count": 0,
+          "surface_id": "evidence-surface-1"
+        },
+        {
+          "tool": "doc.get",
+          "params": {
+            "doctype": "Item",
+            "name": "HRD-PACK-5K"
+          },
+          "ok": true,
+          "stage": "postconditions",
+          "reasons": [],
+          "request_count": 2,
+          "surface_id": "evidence-surface-1"
+        },
+        {
+          "tool": "rule.lookup",
+          "params": {
+            "doctype": "Stock Ledger Entry"
+          },
+          "ok": false,
+          "stage": "preconditions",
+          "reasons": [
+            "前置未满足：行业包必须已装载——「无需指令」成立，「无需规则」不成立 —— 上下文缺少事实 'industry_pack_loaded'"
+          ],
+          "request_count": 0,
+          "surface_id": "evidence-surface-1"
+        },
+        {
+          "tool": "query.read",
+          "params": {
+            "doctype": "Bin",
+            "filters": [
+              [
+                "item_code",
+                "=",
+                "HRD-PACK-5K"
+              ],
+              [
+                "warehouse",
+                "=",
+                "成品仓 - HRD"
+              ]
+            ],
+            "fields": [
+              "item_code",
+              "warehouse",
+              "actual_qty",
+              "reserved_qty",
+              "ordered_qty",
+              "indented_qty",
+              "planned_qty",
+              "projected_qty"
+            ]
+          },
+          "ok": false,
+          "stage": "preconditions",
+          "reasons": [
+            "前置未满足：问题点名了某张单据 → 接受 answer 之前，必须已对它调用过 doc.links —— 未覆盖 ['HRD-PACK-5K']"
+          ],
+          "request_count": 0,
+          "surface_id": "evidence-surface-1"
+        },
+        {
+          "tool": "doc.links",
+          "params": {
+            "doctype": "Item",
+            "name": "HRD-PACK-5K"
+          },
+          "ok": false,
+          "stage": "execute",
+          "reasons": [
+            "站点侧失败：GET /api/resource/Quick Stock Balance → HTTP 500（站点 frontend）：{\"exception\":\"pymysql.err.ProgrammingError: ('DocType', 'Quick Stock Balance')\",\"exc_type\":\"ProgrammingError\",\"exc\":\"[\\\"Traceback (most recent call last):\\\\n  File \\\\\\\"apps/frappe/frappe/app.py\\\\\\\", line 120, in application\\\\n    response = frappe.api.handle(request)\\\\n               ^^^^^^^^^^^^^^^"
+          ],
+          "request_count": 77,
+          "surface_id": "evidence-surface-1"
+        },
+        {
+          "tool": "system.overview",
+          "params": {},
+          "ok": true,
+          "stage": "postconditions",
+          "reasons": [],
+          "request_count": 243,
+          "surface_id": "evidence-surface-1"
+        },
+        {
+          "tool": "query.read",
+          "params": {
+            "doctype": "Stock Ledger Entry",
+            "filters": [
+              [
+                "item_code",
+                "=",
+                "HRD-PACK-5K"
+              ],
+              [
+                "warehouse",
+                "=",
+                "成品仓 - HRD"
+              ]
+            ],
+            "fields": [
+              "name",
+              "posting_date",
+              "posting_time",
+              "voucher_type",
+              "voucher_no",
+              "actual_qty",
+              "qty_after_transaction",
+              "incoming_rate",
+              "valuation_rate",
+              "stock_queue"
+            ]
+          },
+          "ok": false,
+          "stage": "preconditions",
+          "reasons": [
+            "前置未满足：问题点名了某张单据 → 接受 answer 之前，必须已对它调用过 doc.links —— 未覆盖 ['HRD-PACK-5K']"
+          ],
+          "request_count": 0,
+          "surface_id": "evidence-surface-1"
+        },
+        {
+          "tool": "query.read",
+          "params": {
+            "doctype": "Bin",
+            "filters": [
+              [
+                "item_code",
+                "=",
+                "HRD-PACK-5K"
+              ],
+              [
+                "warehouse",
+                "=",
+                "成品仓 - HRD"
+              ]
+            ],
+            "fields": [
+              "item_code",
+              "warehouse",
+              "actual_qty",
+              "reserved_qty",
+              "ordered_qty",
+              "indented_qty",
+              "planned_qty",
+              "projected_qty"
+            ]
+          },
+          "ok": false,
+          "stage": "preconditions",
+          "reasons": [
+            "前置未满足：问题点名了某张单据 → 接受 answer 之前，必须已对它调用过 doc.links —— 未覆盖 ['HRD-PACK-5K']"
+          ],
+          "request_count": 0,
+          "surface_id": "evidence-surface-1"
+        },
+        {
+          "tool": "query.read",
+          "params": {
+            "doctype": "Stock Ledger Entry",
+            "filters": [
+              [
+                "item_code",
+                "=",
+                "HRD-PACK-5K"
+              ]
+            ],
+            "fields": [
+              "name",
+              "posting_date",
+              "voucher_type",
+              "voucher_no",
+              "actual_qty",
+              "qty_after_transaction",
+              "warehouse"
+            ]
+          },
+          "ok": false,
+          "stage": "preconditions",
+          "reasons": [
+            "前置未满足：问题点名了某张单据 → 接受 answer 之前，必须已对它调用过 doc.links —— 未覆盖 ['HRD-PACK-5K']"
+          ],
+          "request_count": 0,
+          "surface_id": "evidence-surface-1"
+        },
+        {
+          "tool": "doc.links",
+          "params": {
+            "doctype": "Item",
+            "name": "HRD-PACK-5K"
+          },
+          "ok": false,
+          "stage": "execute",
+          "reasons": [
+            "站点侧失败：GET /api/resource/Quick Stock Balance → HTTP 500（站点 frontend）：{\"exception\":\"pymysql.err.ProgrammingError: ('DocType', 'Quick Stock Balance')\",\"exc_type\":\"ProgrammingError\",\"exc\":\"[\\\"Traceback (most recent call last):\\\\n  File \\\\\\\"apps/frappe/frappe/app.py\\\\\\\", line 120, in application\\\\n    response = frappe.api.handle(request)\\\\n               ^^^^^^^^^^^^^^^"
+          ],
+          "request_count": 77,
+          "surface_id": "evidence-surface-1"
+        },
+        {
+          "tool": "query.read",
+          "params": {
+            "doctype": "Stock Ledger Entry",
+            "filters": [
+              [
+                "item_code",
+                "=",
+                "HRD-PACK-5K"
+              ]
+            ],
+            "fields": [
+              "name",
+              "posting_date",
+              "voucher_type",
+              "voucher_no",
+              "actual_qty",
+              "qty_after_transaction",
+              "warehouse"
+            ],
+            "limit": 20
+          },
+          "ok": false,
+          "stage": "preconditions",
+          "reasons": [
+            "前置未满足：问题点名了某张单据 → 接受 answer 之前，必须已对它调用过 doc.links —— 未覆盖 ['HRD-PACK-5K']"
+          ],
+          "request_count": 0,
+          "surface_id": "evidence-surface-1"
+        },
+        {
+          "tool": "query.read",
+          "params": {
+            "doctype": "Stock Entry",
+            "filters": [],
+            "fields": [
+              "name",
+              "stock_entry_type",
+              "posting_date",
+              "docstatus"
+            ]
+          },
+          "ok": false,
+          "stage": "preconditions",
+          "reasons": [
+            "前置未满足：问题点名了某张单据 → 接受 answer 之前，必须已对它调用过 doc.links —— 未覆盖 ['HRD-PACK-5K']"
+          ],
+          "request_count": 0,
+          "surface_id": "evidence-surface-1"
+        },
+        {
+          "tool": "query.read",
+          "params": {
+            "doctype": "Work Order",
+            "filters": [],
+            "fields": [
+              "name",
+              "production_item",
+              "qty",
+              "produced_qty",
+              "status",
+              "docstatus"
+            ]
+          },
+          "ok": false,
+          "stage": "preconditions",
+          "reasons": [
+            "前置未满足：问题点名了某张单据 → 接受 answer 之前，必须已对它调用过 doc.links —— 未覆盖 ['HRD-PACK-5K']"
+          ],
+          "request_count": 0,
+          "surface_id": "evidence-surface-1"
+        },
+        {
+          "tool": "query.read",
+          "params": {
+            "doctype": "Sales Order",
+            "filters": [],
+            "fields": [
+              "name",
+              "customer",
+              "transaction_date",
+              "delivery_date",
+              "docstatus"
+            ]
+          },
+          "ok": false,
+          "stage": "preconditions",
+          "reasons": [
+            "前置未满足：问题点名了某张单据 → 接受 answer 之前，必须已对它调用过 doc.links —— 未覆盖 ['HRD-PACK-5K']"
+          ],
+          "request_count": 0,
+          "surface_id": "evidence-surface-1"
+        },
+        {
+          "tool": "query.read",
+          "params": {
+            "doctype": "Delivery Note",
+            "filters": [],
+            "fields": [
+              "name",
+              "customer",
+              "posting_date",
+              "docstatus"
+            ]
+          },
+          "ok": false,
+          "stage": "preconditions",
+          "reasons": [
+            "前置未满足：问题点名了某张单据 → 接受 answer 之前，必须已对它调用过 doc.links —— 未覆盖 ['HRD-PACK-5K']"
+          ],
+          "request_count": 0,
+          "surface_id": "evidence-surface-1"
+        },
+        {
+          "tool": "doc.links",
+          "params": {
+            "doctype": "Item",
+            "name": "HRD-PACK-5K"
+          },
+          "ok": false,
+          "stage": "execute",
+          "reasons": [
+            "站点侧失败：GET /api/resource/Quick Stock Balance → HTTP 500（站点 frontend）：{\"exception\":\"pymysql.err.ProgrammingError: ('DocType', 'Quick Stock Balance')\",\"exc_type\":\"ProgrammingError\",\"exc\":\"[\\\"Traceback (most recent call last):\\\\n  File \\\\\\\"apps/frappe/frappe/app.py\\\\\\\", line 120, in application\\\\n    response = frappe.api.handle(request)\\\\n               ^^^^^^^^^^^^^^^"
+          ],
+          "request_count": 77,
+          "surface_id": "evidence-surface-1"
+        },
+        {
+          "tool": "doc.links",
+          "params": {
+            "doctype": "Item",
+            "name": "HRD-PACK-5K"
+          },
+          "ok": false,
+          "stage": "execute",
+          "reasons": [
+            "站点侧失败：GET /api/resource/Quick Stock Balance → HTTP 500（站点 frontend）：{\"exception\":\"pymysql.err.ProgrammingError: ('DocType', 'Quick Stock Balance')\",\"exc_type\":\"ProgrammingError\",\"exc\":\"[\\\"Traceback (most recent call last):\\\\n  File \\\\\\\"apps/frappe/frappe/app.py\\\\\\\", line 120, in application\\\\n    response = frappe.api.handle(request)\\\\n               ^^^^^^^^^^^^^^^"
+          ],
+          "request_count": 77,
+          "surface_id": "evidence-surface-1"
+        },
+        {
+          "tool": "snapshot.read",
+          "params": {
+            "scope": "stock"
+          },
+          "ok": false,
+          "stage": "preconditions",
+          "reasons": [
+            "前置未满足：问题点名了某张单据 → 接受 answer 之前，必须已对它调用过 doc.links —— 未覆盖 ['HRD-PACK-5K']"
+          ],
+          "request_count": 0,
+          "surface_id": "evidence-surface-1"
+        },
+        {
+          "tool": "lineage.trace",
+          "params": {
+            "doctype": "Item",
+            "name": "HRD-PACK-5K",
+            "depth": 2
+          },
+          "ok": false,
+          "stage": "execute",
+          "reasons": [
+            "站点侧失败：GET /api/resource/Quick Stock Balance → HTTP 500（站点 frontend）：{\"exception\":\"pymysql.err.ProgrammingError: ('DocType', 'Quick Stock Balance')\",\"exc_type\":\"ProgrammingError\",\"exc\":\"[\\\"Traceback (most recent call last):\\\\n  File \\\\\\\"apps/frappe/frappe/app.py\\\\\\\", line 120, in application\\\\n    response = frappe.api.handle(request)\\\\n               ^^^^^^^^^^^^^^^"
+          ],
+          "request_count": 77,
+          "surface_id": "evidence-surface-1"
+        },
+        {
+          "tool": "doc.links",
+          "params": {
+            "doctype": "Item",
+            "name": "HRD-PACK-5K"
+          },
+          "ok": false,
+          "stage": "execute",
+          "reasons": [
+            "站点侧失败：GET /api/resource/Quick Stock Balance → HTTP 500（站点 frontend）：{\"exception\":\"pymysql.err.ProgrammingError: ('DocType', 'Quick Stock Balance')\",\"exc_type\":\"ProgrammingError\",\"exc\":\"[\\\"Traceback (most recent call last):\\\\n  File \\\\\\\"apps/frappe/frappe/app.py\\\\\\\", line 120, in application\\\\n    response = frappe.api.handle(request)\\\\n               ^^^^^^^^^^^^^^^"
+          ],
+          "request_count": 77,
+          "surface_id": "evidence-surface-1"
+        },
+        {
+          "tool": "query.read",
+          "params": {
+            "doctype": "Stock Ledger Entry",
+            "filters": [
+              [
+                "item_code",
+                "=",
+                "HRD-PACK-5K"
+              ]
+            ],
+            "fields": [
+              "name",
+              "posting_date",
+              "voucher_type",
+              "voucher_no",
+              "actual_qty",
+              "qty_after_transaction",
+              "warehouse"
+            ],
+            "limit": 50
+          },
+          "ok": false,
+          "stage": "preconditions",
+          "reasons": [
+            "前置未满足：问题点名了某张单据 → 接受 answer 之前，必须已对它调用过 doc.links —— 未覆盖 ['HRD-PACK-5K']"
+          ],
+          "request_count": 0,
+          "surface_id": "evidence-surface-1"
+        },
+        {
+          "tool": "doc.links",
+          "params": {
+            "doctype": "Item",
+            "name": "HRD-PACK-5K"
+          },
+          "ok": false,
+          "stage": "execute",
+          "reasons": [
+            "站点侧失败：GET /api/resource/Quick Stock Balance → HTTP 500（站点 frontend）：{\"exception\":\"pymysql.err.ProgrammingError: ('DocType', 'Quick Stock Balance')\",\"exc_type\":\"ProgrammingError\",\"exc\":\"[\\\"Traceback (most recent call last):\\\\n  File \\\\\\\"apps/frappe/frappe/app.py\\\\\\\", line 120, in application\\\\n    response = frappe.api.handle(request)\\\\n               ^^^^^^^^^^^^^^^"
+          ],
+          "request_count": 77,
+          "surface_id": "evidence-surface-1"
+        },
+        {
+          "tool": "query.read",
+          "params": {
+            "doctype": "Sales Order",
+            "filters": [],
+            "fields": [
+              "name",
+              "customer",
+              "transaction_date",
+              "delivery_date",
+              "docstatus"
+            ],
+            "limit": 5
+          },
+          "ok": false,
+          "stage": "preconditions",
+          "reasons": [
+            "前置未满足：问题点名了某张单据 → 接受 answer 之前，必须已对它调用过 doc.links —— 未覆盖 ['HRD-PACK-5K']"
+          ],
+          "request_count": 0,
+          "surface_id": "evidence-surface-1"
+        },
+        {
+          "tool": "doc.links",
+          "params": {
+            "doctype": "Item",
+            "name": "HRD-PACK-5K"
+          },
+          "ok": false,
+          "stage": "execute",
+          "reasons": [
+            "站点侧失败：GET /api/resource/Quick Stock Balance → HTTP 500（站点 frontend）：{\"exception\":\"pymysql.err.ProgrammingError: ('DocType', 'Quick Stock Balance')\",\"exc_type\":\"ProgrammingError\",\"exc\":\"[\\\"Traceback (most recent call last):\\\\n  File \\\\\\\"apps/frappe/frappe/app.py\\\\\\\", line 120, in application\\\\n    response = frappe.api.handle(request)\\\\n               ^^^^^^^^^^^^^^^"
+          ],
+          "request_count": 77,
+          "surface_id": "evidence-surface-1"
+        },
+        {
+          "tool": "query.read",
+          "params": {
+            "doctype": "Stock Ledger Entry",
+            "filters": [
+              [
+                "item_code",
+                "=",
+                "HRD-PACK-5K"
+              ]
+            ],
+            "fields": [
+              "name",
+              "posting_date",
+              "voucher_type",
+              "voucher_no",
+              "actual_qty",
+              "qty_after_transaction",
+              "warehouse"
+            ],
+            "limit": 10
+          },
+          "ok": false,
+          "stage": "preconditions",
+          "reasons": [
+            "前置未满足：问题点名了某张单据 → 接受 answer 之前，必须已对它调用过 doc.links —— 未覆盖 ['HRD-PACK-5K']"
+          ],
+          "request_count": 0,
+          "surface_id": "evidence-surface-1"
+        },
+        {
+          "tool": "doc.links",
+          "params": {
+            "doctype": "Item",
+            "name": "HRD-PACK-5K"
+          },
+          "ok": false,
+          "stage": "execute",
+          "reasons": [
+            "站点侧失败：GET /api/resource/Quick Stock Balance → HTTP 500（站点 frontend）：{\"exception\":\"pymysql.err.ProgrammingError: ('DocType', 'Quick Stock Balance')\",\"exc_type\":\"ProgrammingError\",\"exc\":\"[\\\"Traceback (most recent call last):\\\\n  File \\\\\\\"apps/frappe/frappe/app.py\\\\\\\", line 120, in application\\\\n    response = frappe.api.handle(request)\\\\n               ^^^^^^^^^^^^^^^"
+          ],
+          "request_count": 77,
+          "surface_id": "evidence-surface-1"
+        },
+        {
+          "tool": "doc.links",
+          "params": {
+            "doctype": "Item",
+            "name": "HRD-PACK-5K"
+          },
+          "ok": false,
+          "stage": "execute",
+          "reasons": [
+            "站点侧失败：GET /api/resource/Quick Stock Balance → HTTP 500（站点 frontend）：{\"exception\":\"pymysql.err.ProgrammingError: ('DocType', 'Quick Stock Balance')\",\"exc_type\":\"ProgrammingError\",\"exc\":\"[\\\"Traceback (most recent call last):\\\\n  File \\\\\\\"apps/frappe/frappe/app.py\\\\\\\", line 120, in application\\\\n    response = frappe.api.handle(request)\\\\n               ^^^^^^^^^^^^^^^"
+          ],
+          "request_count": 77,
+          "surface_id": "evidence-surface-1"
+        },
+        {
+          "tool": "doc.links",
+          "params": {
+            "doctype": "Item",
+            "name": "HRD-PACK-5K"
+          },
+          "ok": false,
+          "stage": "execute",
+          "reasons": [
+            "站点侧失败：GET /api/resource/Quick Stock Balance → HTTP 500（站点 frontend）：{\"exception\":\"pymysql.err.ProgrammingError: ('DocType', 'Quick Stock Balance')\",\"exc_type\":\"ProgrammingError\",\"exc\":\"[\\\"Traceback (most recent call last):\\\\n  File \\\\\\\"apps/frappe/frappe/app.py\\\\\\\", line 120, in application\\\\n    response = frappe.api.handle(request)\\\\n               ^^^^^^^^^^^^^^^"
+          ],
+          "request_count": 77,
+          "surface_id": "evidence-surface-1"
+        },
+        {
+          "tool": "doc.links",
+          "params": {
+            "doctype": "Item",
+            "name": "HRD-PACK-5K"
+          },
+          "ok": false,
+          "stage": "execute",
+          "reasons": [
+            "站点侧失败：GET /api/resource/Quick Stock Balance → HTTP 500（站点 frontend）：{\"exception\":\"pymysql.err.ProgrammingError: ('DocType', 'Quick Stock Balance')\",\"exc_type\":\"ProgrammingError\",\"exc\":\"[\\\"Traceback (most recent call last):\\\\n  File \\\\\\\"apps/frappe/frappe/app.py\\\\\\\", line 120, in application\\\\n    response = frappe.api.handle(request)\\\\n               ^^^^^^^^^^^^^^^"
+          ],
+          "request_count": 77,
+          "surface_id": "evidence-surface-1"
+        }
+      ],
+      "cost_ledger": {
+        "calls": 25,
+        "total": {
+          "prompt": 123177,
+          "completion": 11980,
+          "reasoning": 10032,
+          "total": 135157
+        },
+        "entries": [
+          {
+            "index": 1,
+            "model": "qwen3.6-plus",
+            "outcome": "tools",
+            "usage": {
+              "prompt": 1434,
+              "completion": 387,
+              "reasoning": 280,
+              "total": 1821
+            },
+            "endpoint_total_tokens": 1821,
+            "endpoint_reasoning_tokens": 280,
+            "total_matches_endpoint": true,
+            "reasoning_matches_endpoint": true,
+            "detail": ""
+          },
+          {
+            "index": 2,
+            "model": "qwen3.6-plus",
+            "outcome": "tools",
+            "usage": {
+              "prompt": 1595,
+              "completion": 156,
+              "reasoning": 108,
+              "total": 1751
+            },
+            "endpoint_total_tokens": 1751,
+            "endpoint_reasoning_tokens": 108,
+            "total_matches_endpoint": true,
+            "reasoning_matches_endpoint": true,
+            "detail": ""
+          },
+          {
+            "index": 3,
+            "model": "qwen3.6-plus",
+            "outcome": "tools",
+            "usage": {
+              "prompt": 2599,
+              "completion": 209,
+              "reasoning": 68,
+              "total": 2808
+            },
+            "endpoint_total_tokens": 2808,
+            "endpoint_reasoning_tokens": 68,
+            "total_matches_endpoint": true,
+            "reasoning_matches_endpoint": true,
+            "detail": ""
+          },
+          {
+            "index": 4,
+            "model": "qwen3.6-plus",
+            "outcome": "tools",
+            "usage": {
+              "prompt": 2831,
+              "completion": 157,
+              "reasoning": 109,
+              "total": 2988
+            },
+            "endpoint_total_tokens": 2988,
+            "endpoint_reasoning_tokens": 109,
+            "total_matches_endpoint": true,
+            "reasoning_matches_endpoint": true,
+            "detail": ""
+          },
+          {
+            "index": 5,
+            "model": "qwen3.6-plus",
+            "outcome": "tools",
+            "usage": {
+              "prompt": 3000,
+              "completion": 63,
+              "reasoning": 43,
+              "total": 3063
+            },
+            "endpoint_total_tokens": 3063,
+            "endpoint_reasoning_tokens": 43,
+            "total_matches_endpoint": true,
+            "reasoning_matches_endpoint": true,
+            "detail": ""
+          },
+          {
+            "index": 6,
+            "model": "qwen3.6-plus",
+            "outcome": "tools",
+            "usage": {
+              "prompt": 3818,
+              "completion": 625,
+              "reasoning": 397,
+              "total": 4443
+            },
+            "endpoint_total_tokens": 4443,
+            "endpoint_reasoning_tokens": 397,
+            "total_matches_endpoint": true,
+            "reasoning_matches_endpoint": true,
+            "detail": ""
+          },
+          {
+            "index": 7,
+            "model": "qwen3.6-plus",
+            "outcome": "tools",
+            "usage": {
+              "prompt": 4142,
+              "completion": 289,
+              "reasoning": 193,
+              "total": 4431
+            },
+            "endpoint_total_tokens": 4431,
+            "endpoint_reasoning_tokens": 193,
+            "total_matches_endpoint": true,
+            "reasoning_matches_endpoint": true,
+            "detail": ""
+          },
+          {
+            "index": 8,
+            "model": "qwen3.6-plus",
+            "outcome": "tools",
+            "usage": {
+              "prompt": 4292,
+              "completion": 395,
+              "reasoning": 347,
+              "total": 4687
+            },
+            "endpoint_total_tokens": 4687,
+            "endpoint_reasoning_tokens": 347,
+            "total_matches_endpoint": true,
+            "reasoning_matches_endpoint": true,
+            "detail": ""
+          },
+          {
+            "index": 9,
+            "model": "qwen3.6-plus",
+            "outcome": "tools",
+            "usage": {
+              "prompt": 4461,
+              "completion": 433,
+              "reasoning": 324,
+              "total": 4894
+            },
+            "endpoint_total_tokens": 4894,
+            "endpoint_reasoning_tokens": 324,
+            "total_matches_endpoint": true,
+            "reasoning_matches_endpoint": true,
+            "detail": ""
+          },
+          {
+            "index": 10,
+            "model": "qwen3.6-plus",
+            "outcome": "tools",
+            "usage": {
+              "prompt": 4624,
+              "completion": 319,
+              "reasoning": 249,
+              "total": 4943
+            },
+            "endpoint_total_tokens": 4943,
+            "endpoint_reasoning_tokens": 249,
+            "total_matches_endpoint": true,
+            "reasoning_matches_endpoint": true,
+            "detail": ""
+          },
+          {
+            "index": 11,
+            "model": "qwen3.6-plus",
+            "outcome": "tools",
+            "usage": {
+              "prompt": 4748,
+              "completion": 372,
+              "reasoning": 164,
+              "total": 5120
+            },
+            "endpoint_total_tokens": 5120,
+            "endpoint_reasoning_tokens": 164,
+            "total_matches_endpoint": true,
+            "reasoning_matches_endpoint": true,
+            "detail": ""
+          },
+          {
+            "index": 12,
+            "model": "qwen3.6-plus",
+            "outcome": "tools",
+            "usage": {
+              "prompt": 5094,
+              "completion": 533,
+              "reasoning": 485,
+              "total": 5627
+            },
+            "endpoint_total_tokens": 5627,
+            "endpoint_reasoning_tokens": 485,
+            "total_matches_endpoint": true,
+            "reasoning_matches_endpoint": true,
+            "detail": ""
+          },
+          {
+            "index": 13,
+            "model": "qwen3.6-plus",
+            "outcome": "tools",
+            "usage": {
+              "prompt": 5263,
+              "completion": 1443,
+              "reasoning": 1395,
+              "total": 6706
+            },
+            "endpoint_total_tokens": 6706,
+            "endpoint_reasoning_tokens": 1395,
+            "total_matches_endpoint": true,
+            "reasoning_matches_endpoint": true,
+            "detail": ""
+          },
+          {
+            "index": 14,
+            "model": "qwen3.6-plus",
+            "outcome": "tools",
+            "usage": {
+              "prompt": 5432,
+              "completion": 937,
+              "reasoning": 906,
+              "total": 6369
+            },
+            "endpoint_total_tokens": 6369,
+            "endpoint_reasoning_tokens": 906,
+            "total_matches_endpoint": true,
+            "reasoning_matches_endpoint": true,
+            "detail": ""
+          },
+          {
+            "index": 15,
+            "model": "qwen3.6-plus",
+            "outcome": "tools",
+            "usage": {
+              "prompt": 5517,
+              "completion": 467,
+              "reasoning": 407,
+              "total": 5984
+            },
+            "endpoint_total_tokens": 5984,
+            "endpoint_reasoning_tokens": 407,
+            "total_matches_endpoint": true,
+            "reasoning_matches_endpoint": true,
+            "detail": ""
+          },
+          {
+            "index": 16,
+            "model": "qwen3.6-plus",
+            "outcome": "tools",
+            "usage": {
+              "prompt": 5698,
+              "completion": 321,
+              "reasoning": 273,
+              "total": 6019
+            },
+            "endpoint_total_tokens": 6019,
+            "endpoint_reasoning_tokens": 273,
+            "total_matches_endpoint": true,
+            "reasoning_matches_endpoint": true,
+            "detail": ""
+          },
+          {
+            "index": 17,
+            "model": "qwen3.6-plus",
+            "outcome": "tools",
+            "usage": {
+              "prompt": 5867,
+              "completion": 180,
+              "reasoning": 71,
+              "total": 6047
+            },
+            "endpoint_total_tokens": 6047,
+            "endpoint_reasoning_tokens": 71,
+            "total_matches_endpoint": true,
+            "reasoning_matches_endpoint": true,
+            "detail": ""
+          },
+          {
+            "index": 18,
+            "model": "qwen3.6-plus",
+            "outcome": "tools",
+            "usage": {
+              "prompt": 6030,
+              "completion": 1300,
+              "reasoning": 1252,
+              "total": 7330
+            },
+            "endpoint_total_tokens": 7330,
+            "endpoint_reasoning_tokens": 1252,
+            "total_matches_endpoint": true,
+            "reasoning_matches_endpoint": true,
+            "detail": ""
+          },
+          {
+            "index": 19,
+            "model": "qwen3.6-plus",
+            "outcome": "tools",
+            "usage": {
+              "prompt": 6199,
+              "completion": 1319,
+              "reasoning": 1235,
+              "total": 7518
+            },
+            "endpoint_total_tokens": 7518,
+            "endpoint_reasoning_tokens": 1235,
+            "total_matches_endpoint": true,
+            "reasoning_matches_endpoint": true,
+            "detail": ""
+          },
+          {
+            "index": 20,
+            "model": "qwen3.6-plus",
+            "outcome": "tools",
+            "usage": {
+              "prompt": 6337,
+              "completion": 309,
+              "reasoning": 261,
+              "total": 6646
+            },
+            "endpoint_total_tokens": 6646,
+            "endpoint_reasoning_tokens": 261,
+            "total_matches_endpoint": true,
+            "reasoning_matches_endpoint": true,
+            "detail": ""
+          },
+          {
+            "index": 21,
+            "model": "qwen3.6-plus",
+            "outcome": "tools",
+            "usage": {
+              "prompt": 6506,
+              "completion": 229,
+              "reasoning": 120,
+              "total": 6735
+            },
+            "endpoint_total_tokens": 6735,
+            "endpoint_reasoning_tokens": 120,
+            "total_matches_endpoint": true,
+            "reasoning_matches_endpoint": true,
+            "detail": ""
+          },
+          {
+            "index": 22,
+            "model": "qwen3.6-plus",
+            "outcome": "tools",
+            "usage": {
+              "prompt": 6669,
+              "completion": 91,
+              "reasoning": 43,
+              "total": 6760
+            },
+            "endpoint_total_tokens": 6760,
+            "endpoint_reasoning_tokens": 43,
+            "total_matches_endpoint": true,
+            "reasoning_matches_endpoint": true,
+            "detail": ""
+          },
+          {
+            "index": 23,
+            "model": "qwen3.6-plus",
+            "outcome": "tools",
+            "usage": {
+              "prompt": 6838,
+              "completion": 895,
+              "reasoning": 847,
+              "total": 7733
+            },
+            "endpoint_total_tokens": 7733,
+            "endpoint_reasoning_tokens": 847,
+            "total_matches_endpoint": true,
+            "reasoning_matches_endpoint": true,
+            "detail": ""
+          },
+          {
+            "index": 24,
+            "model": "qwen3.6-plus",
+            "outcome": "tools",
+            "usage": {
+              "prompt": 7007,
+              "completion": 419,
+              "reasoning": 371,
+              "total": 7426
+            },
+            "endpoint_total_tokens": 7426,
+            "endpoint_reasoning_tokens": 371,
+            "total_matches_endpoint": true,
+            "reasoning_matches_endpoint": true,
+            "detail": ""
+          },
+          {
+            "index": 25,
+            "model": "qwen3.6-plus",
+            "outcome": "tools",
+            "usage": {
+              "prompt": 7176,
+              "completion": 132,
+              "reasoning": 84,
+              "total": 7308
+            },
+            "endpoint_total_tokens": 7308,
+            "endpoint_reasoning_tokens": 84,
+            "total_matches_endpoint": true,
+            "reasoning_matches_endpoint": true,
+            "detail": ""
+          }
+        ]
+      },
+      "usage_total": {
+        "prompt": 123177,
+        "completion": 11980,
+        "reasoning": 10032,
+        "total": 135157
+      },
+      "trace": {
+        "question": "巡检器按规则 discrete/finished-goods-backlog 报出一条命中：产出远大于销出：某物料在某仓库累计入库减去累计出库之后，剩下的存货仍与该物料的订单量同一量级 —— 多出来的这些没有道理。落点是 item_code = HRD-PACK-5K、warehouse = 成品仓 - HRD，on_hand = 1010。请解释：为什么会这样？要不要紧？作答前先把证据查全，不要猜。",
+        "model": "qwen3.6-plus",
+        "task_class": "explain",
+        "opening_request_count": 240,
+        "execute_calls": 29,
+        "stopped": "max-turns",
+        "model_tool_calls": 29,
+        "cost_ledger": {
+          "calls": 25,
+          "total": {
+            "prompt": 123177,
+            "completion": 11980,
+            "reasoning": 10032,
+            "total": 135157
+          },
+          "entries": [
+            {
+              "index": 1,
+              "model": "qwen3.6-plus",
+              "outcome": "tools",
+              "usage": {
+                "prompt": 1434,
+                "completion": 387,
+                "reasoning": 280,
+                "total": 1821
+              },
+              "endpoint_total_tokens": 1821,
+              "endpoint_reasoning_tokens": 280,
+              "total_matches_endpoint": true,
+              "reasoning_matches_endpoint": true,
+              "detail": ""
+            },
+            {
+              "index": 2,
+              "model": "qwen3.6-plus",
+              "outcome": "tools",
+              "usage": {
+                "prompt": 1595,
+                "completion": 156,
+                "reasoning": 108,
+                "total": 1751
+              },
+              "endpoint_total_tokens": 1751,
+              "endpoint_reasoning_tokens": 108,
+              "total_matches_endpoint": true,
+              "reasoning_matches_endpoint": true,
+              "detail": ""
+            },
+            {
+              "index": 3,
+              "model": "qwen3.6-plus",
+              "outcome": "tools",
+              "usage": {
+                "prompt": 2599,
+                "completion": 209,
+                "reasoning": 68,
+                "total": 2808
+              },
+              "endpoint_total_tokens": 2808,
+              "endpoint_reasoning_tokens": 68,
+              "total_matches_endpoint": true,
+              "reasoning_matches_endpoint": true,
+              "detail": ""
+            },
+            {
+              "index": 4,
+              "model": "qwen3.6-plus",
+              "outcome": "tools",
+              "usage": {
+                "prompt": 2831,
+                "completion": 157,
+                "reasoning": 109,
+                "total": 2988
+              },
+              "endpoint_total_tokens": 2988,
+              "endpoint_reasoning_tokens": 109,
+              "total_matches_endpoint": true,
+              "reasoning_matches_endpoint": true,
+              "detail": ""
+            },
+            {
+              "index": 5,
+              "model": "qwen3.6-plus",
+              "outcome": "tools",
+              "usage": {
+                "prompt": 3000,
+                "completion": 63,
+                "reasoning": 43,
+                "total": 3063
+              },
+              "endpoint_total_tokens": 3063,
+              "endpoint_reasoning_tokens": 43,
+              "total_matches_endpoint": true,
+              "reasoning_matches_endpoint": true,
+              "detail": ""
+            },
+            {
+              "index": 6,
+              "model": "qwen3.6-plus",
+              "outcome": "tools",
+              "usage": {
+                "prompt": 3818,
+                "completion": 625,
+                "reasoning": 397,
+                "total": 4443
+              },
+              "endpoint_total_tokens": 4443,
+              "endpoint_reasoning_tokens": 397,
+              "total_matches_endpoint": true,
+              "reasoning_matches_endpoint": true,
+              "detail": ""
+            },
+            {
+              "index": 7,
+              "model": "qwen3.6-plus",
+              "outcome": "tools",
+              "usage": {
+                "prompt": 4142,
+                "completion": 289,
+                "reasoning": 193,
+                "total": 4431
+              },
+              "endpoint_total_tokens": 4431,
+              "endpoint_reasoning_tokens": 193,
+              "total_matches_endpoint": true,
+              "reasoning_matches_endpoint": true,
+              "detail": ""
+            },
+            {
+              "index": 8,
+              "model": "qwen3.6-plus",
+              "outcome": "tools",
+              "usage": {
+                "prompt": 4292,
+                "completion": 395,
+                "reasoning": 347,
+                "total": 4687
+              },
+              "endpoint_total_tokens": 4687,
+              "endpoint_reasoning_tokens": 347,
+              "total_matches_endpoint": true,
+              "reasoning_matches_endpoint": true,
+              "detail": ""
+            },
+            {
+              "index": 9,
+              "model": "qwen3.6-plus",
+              "outcome": "tools",
+              "usage": {
+                "prompt": 4461,
+                "completion": 433,
+                "reasoning": 324,
+                "total": 4894
+              },
+              "endpoint_total_tokens": 4894,
+              "endpoint_reasoning_tokens": 324,
+              "total_matches_endpoint": true,
+              "reasoning_matches_endpoint": true,
+              "detail": ""
+            },
+            {
+              "index": 10,
+              "model": "qwen3.6-plus",
+              "outcome": "tools",
+              "usage": {
+                "prompt": 4624,
+                "completion": 319,
+                "reasoning": 249,
+                "total": 4943
+              },
+              "endpoint_total_tokens": 4943,
+              "endpoint_reasoning_tokens": 249,
+              "total_matches_endpoint": true,
+              "reasoning_matches_endpoint": true,
+              "detail": ""
+            },
+            {
+              "index": 11,
+              "model": "qwen3.6-plus",
+              "outcome": "tools",
+              "usage": {
+                "prompt": 4748,
+                "completion": 372,
+                "reasoning": 164,
+                "total": 5120
+              },
+              "endpoint_total_tokens": 5120,
+              "endpoint_reasoning_tokens": 164,
+              "total_matches_endpoint": true,
+              "reasoning_matches_endpoint": true,
+              "detail": ""
+            },
+            {
+              "index": 12,
+              "model": "qwen3.6-plus",
+              "outcome": "tools",
+              "usage": {
+                "prompt": 5094,
+                "completion": 533,
+                "reasoning": 485,
+                "total": 5627
+              },
+              "endpoint_total_tokens": 5627,
+              "endpoint_reasoning_tokens": 485,
+              "total_matches_endpoint": true,
+              "reasoning_matches_endpoint": true,
+              "detail": ""
+            },
+            {
+              "index": 13,
+              "model": "qwen3.6-plus",
+              "outcome": "tools",
+              "usage": {
+                "prompt": 5263,
+                "completion": 1443,
+                "reasoning": 1395,
+                "total": 6706
+              },
+              "endpoint_total_tokens": 6706,
+              "endpoint_reasoning_tokens": 1395,
+              "total_matches_endpoint": true,
+              "reasoning_matches_endpoint": true,
+              "detail": ""
+            },
+            {
+              "index": 14,
+              "model": "qwen3.6-plus",
+              "outcome": "tools",
+              "usage": {
+                "prompt": 5432,
+                "completion": 937,
+                "reasoning": 906,
+                "total": 6369
+              },
+              "endpoint_total_tokens": 6369,
+              "endpoint_reasoning_tokens": 906,
+              "total_matches_endpoint": true,
+              "reasoning_matches_endpoint": true,
+              "detail": ""
+            },
+            {
+              "index": 15,
+              "model": "qwen3.6-plus",
+              "outcome": "tools",
+              "usage": {
+                "prompt": 5517,
+                "completion": 467,
+                "reasoning": 407,
+                "total": 5984
+              },
+              "endpoint_total_tokens": 5984,
+              "endpoint_reasoning_tokens": 407,
+              "total_matches_endpoint": true,
+              "reasoning_matches_endpoint": true,
+              "detail": ""
+            },
+            {
+              "index": 16,
+              "model": "qwen3.6-plus",
+              "outcome": "tools",
+              "usage": {
+                "prompt": 5698,
+                "completion": 321,
+                "reasoning": 273,
+                "total": 6019
+              },
+              "endpoint_total_tokens": 6019,
+              "endpoint_reasoning_tokens": 273,
+              "total_matches_endpoint": true,
+              "reasoning_matches_endpoint": true,
+              "detail": ""
+            },
+            {
+              "index": 17,
+              "model": "qwen3.6-plus",
+              "outcome": "tools",
+              "usage": {
+                "prompt": 5867,
+                "completion": 180,
+                "reasoning": 71,
+                "total": 6047
+              },
+              "endpoint_total_tokens": 6047,
+              "endpoint_reasoning_tokens": 71,
+              "total_matches_endpoint": true,
+              "reasoning_matches_endpoint": true,
+              "detail": ""
+            },
+            {
+              "index": 18,
+              "model": "qwen3.6-plus",
+              "outcome": "tools",
+              "usage": {
+                "prompt": 6030,
+                "completion": 1300,
+                "reasoning": 1252,
+                "total": 7330
+              },
+              "endpoint_total_tokens": 7330,
+              "endpoint_reasoning_tokens": 1252,
+              "total_matches_endpoint": true,
+              "reasoning_matches_endpoint": true,
+              "detail": ""
+            },
+            {
+              "index": 19,
+              "model": "qwen3.6-plus",
+              "outcome": "tools",
+              "usage": {
+                "prompt": 6199,
+                "completion": 1319,
+                "reasoning": 1235,
+                "total": 7518
+              },
+              "endpoint_total_tokens": 7518,
+              "endpoint_reasoning_tokens": 1235,
+              "total_matches_endpoint": true,
+              "reasoning_matches_endpoint": true,
+              "detail": ""
+            },
+            {
+              "index": 20,
+              "model": "qwen3.6-plus",
+              "outcome": "tools",
+              "usage": {
+                "prompt": 6337,
+                "completion": 309,
+                "reasoning": 261,
+                "total": 6646
+              },
+              "endpoint_total_tokens": 6646,
+              "endpoint_reasoning_tokens": 261,
+              "total_matches_endpoint": true,
+              "reasoning_matches_endpoint": true,
+              "detail": ""
+            },
+            {
+              "index": 21,
+              "model": "qwen3.6-plus",
+              "outcome": "tools",
+              "usage": {
+                "prompt": 6506,
+                "completion": 229,
+                "reasoning": 120,
+                "total": 6735
+              },
+              "endpoint_total_tokens": 6735,
+              "endpoint_reasoning_tokens": 120,
+              "total_matches_endpoint": true,
+              "reasoning_matches_endpoint": true,
+              "detail": ""
+            },
+            {
+              "index": 22,
+              "model": "qwen3.6-plus",
+              "outcome": "tools",
+              "usage": {
+                "prompt": 6669,
+                "completion": 91,
+                "reasoning": 43,
+                "total": 6760
+              },
+              "endpoint_total_tokens": 6760,
+              "endpoint_reasoning_tokens": 43,
+              "total_matches_endpoint": true,
+              "reasoning_matches_endpoint": true,
+              "detail": ""
+            },
+            {
+              "index": 23,
+              "model": "qwen3.6-plus",
+              "outcome": "tools",
+              "usage": {
+                "prompt": 6838,
+                "completion": 895,
+                "reasoning": 847,
+                "total": 7733
+              },
+              "endpoint_total_tokens": 7733,
+              "endpoint_reasoning_tokens": 847,
+              "total_matches_endpoint": true,
+              "reasoning_matches_endpoint": true,
+              "detail": ""
+            },
+            {
+              "index": 24,
+              "model": "qwen3.6-plus",
+              "outcome": "tools",
+              "usage": {
+                "prompt": 7007,
+                "completion": 419,
+                "reasoning": 371,
+                "total": 7426
+              },
+              "endpoint_total_tokens": 7426,
+              "endpoint_reasoning_tokens": 371,
+              "total_matches_endpoint": true,
+              "reasoning_matches_endpoint": true,
+              "detail": ""
+            },
+            {
+              "index": 25,
+              "model": "qwen3.6-plus",
+              "outcome": "tools",
+              "usage": {
+                "prompt": 7176,
+                "completion": 132,
+                "reasoning": 84,
+                "total": 7308
+              },
+              "endpoint_total_tokens": 7308,
+              "endpoint_reasoning_tokens": 84,
+              "total_matches_endpoint": true,
+              "reasoning_matches_endpoint": true,
+              "detail": ""
+            }
+          ]
+        },
+        "turns": [
+          {
+            "index": 1,
+            "kind": "tools",
+            "usage": {
+              "prompt": 1434,
+              "completion": 387,
+              "reasoning": 280,
+              "total": 1821
+            },
+            "calls": [
+              "query.read"
+            ]
+          },
+          {
+            "index": 2,
+            "kind": "tools",
+            "usage": {
+              "prompt": 1595,
+              "completion": 156,
+              "reasoning": 108,
+              "total": 1751
+            },
+            "calls": [
+              "doc.get"
+            ]
+          },
+          {
+            "index": 3,
+            "kind": "tools",
+            "usage": {
+              "prompt": 2599,
+              "completion": 209,
+              "reasoning": 68,
+              "total": 2808
+            },
+            "calls": [
+              "rule.lookup",
+              "query.read"
+            ]
+          },
+          {
+            "index": 4,
+            "kind": "tools",
+            "usage": {
+              "prompt": 2831,
+              "completion": 157,
+              "reasoning": 109,
+              "total": 2988
+            },
+            "calls": [
+              "doc.links"
+            ]
+          },
+          {
+            "index": 5,
+            "kind": "tools",
+            "usage": {
+              "prompt": 3000,
+              "completion": 63,
+              "reasoning": 43,
+              "total": 3063
+            },
+            "calls": [
+              "system.overview"
+            ]
+          },
+          {
+            "index": 6,
+            "kind": "tools",
+            "usage": {
+              "prompt": 3818,
+              "completion": 625,
+              "reasoning": 397,
+              "total": 4443
+            },
+            "calls": [
+              "query.read",
+              "query.read"
+            ]
+          },
+          {
+            "index": 7,
+            "kind": "tools",
+            "usage": {
+              "prompt": 4142,
+              "completion": 289,
+              "reasoning": 193,
+              "total": 4431
+            },
+            "calls": [
+              "query.read"
+            ]
+          },
+          {
+            "index": 8,
+            "kind": "tools",
+            "usage": {
+              "prompt": 4292,
+              "completion": 395,
+              "reasoning": 347,
+              "total": 4687
+            },
+            "calls": [
+              "doc.links"
+            ]
+          },
+          {
+            "index": 9,
+            "kind": "tools",
+            "usage": {
+              "prompt": 4461,
+              "completion": 433,
+              "reasoning": 324,
+              "total": 4894
+            },
+            "calls": [
+              "query.read"
+            ]
+          },
+          {
+            "index": 10,
+            "kind": "tools",
+            "usage": {
+              "prompt": 4624,
+              "completion": 319,
+              "reasoning": 249,
+              "total": 4943
+            },
+            "calls": [
+              "query.read"
+            ]
+          },
+          {
+            "index": 11,
+            "kind": "tools",
+            "usage": {
+              "prompt": 4748,
+              "completion": 372,
+              "reasoning": 164,
+              "total": 5120
+            },
+            "calls": [
+              "query.read",
+              "query.read",
+              "query.read"
+            ]
+          },
+          {
+            "index": 12,
+            "kind": "tools",
+            "usage": {
+              "prompt": 5094,
+              "completion": 533,
+              "reasoning": 485,
+              "total": 5627
+            },
+            "calls": [
+              "doc.links"
+            ]
+          },
+          {
+            "index": 13,
+            "kind": "tools",
+            "usage": {
+              "prompt": 5263,
+              "completion": 1443,
+              "reasoning": 1395,
+              "total": 6706
+            },
+            "calls": [
+              "doc.links"
+            ]
+          },
+          {
+            "index": 14,
+            "kind": "tools",
+            "usage": {
+              "prompt": 5432,
+              "completion": 937,
+              "reasoning": 906,
+              "total": 6369
+            },
+            "calls": [
+              "snapshot.read"
+            ]
+          },
+          {
+            "index": 15,
+            "kind": "tools",
+            "usage": {
+              "prompt": 5517,
+              "completion": 467,
+              "reasoning": 407,
+              "total": 5984
+            },
+            "calls": [
+              "lineage.trace"
+            ]
+          },
+          {
+            "index": 16,
+            "kind": "tools",
+            "usage": {
+              "prompt": 5698,
+              "completion": 321,
+              "reasoning": 273,
+              "total": 6019
+            },
+            "calls": [
+              "doc.links"
+            ]
+          },
+          {
+            "index": 17,
+            "kind": "tools",
+            "usage": {
+              "prompt": 5867,
+              "completion": 180,
+              "reasoning": 71,
+              "total": 6047
+            },
+            "calls": [
+              "query.read"
+            ]
+          },
+          {
+            "index": 18,
+            "kind": "tools",
+            "usage": {
+              "prompt": 6030,
+              "completion": 1300,
+              "reasoning": 1252,
+              "total": 7330
+            },
+            "calls": [
+              "doc.links"
+            ]
+          },
+          {
+            "index": 19,
+            "kind": "tools",
+            "usage": {
+              "prompt": 6199,
+              "completion": 1319,
+              "reasoning": 1235,
+              "total": 7518
+            },
+            "calls": [
+              "query.read"
+            ]
+          },
+          {
+            "index": 20,
+            "kind": "tools",
+            "usage": {
+              "prompt": 6337,
+              "completion": 309,
+              "reasoning": 261,
+              "total": 6646
+            },
+            "calls": [
+              "doc.links"
+            ]
+          },
+          {
+            "index": 21,
+            "kind": "tools",
+            "usage": {
+              "prompt": 6506,
+              "completion": 229,
+              "reasoning": 120,
+              "total": 6735
+            },
+            "calls": [
+              "query.read"
+            ]
+          },
+          {
+            "index": 22,
+            "kind": "tools",
+            "usage": {
+              "prompt": 6669,
+              "completion": 91,
+              "reasoning": 43,
+              "total": 6760
+            },
+            "calls": [
+              "doc.links"
+            ]
+          },
+          {
+            "index": 23,
+            "kind": "tools",
+            "usage": {
+              "prompt": 6838,
+              "completion": 895,
+              "reasoning": 847,
+              "total": 7733
+            },
+            "calls": [
+              "doc.links"
+            ]
+          },
+          {
+            "index": 24,
+            "kind": "tools",
+            "usage": {
+              "prompt": 7007,
+              "completion": 419,
+              "reasoning": 371,
+              "total": 7426
+            },
+            "calls": [
+              "doc.links"
+            ]
+          },
+          {
+            "index": 25,
+            "kind": "tools",
+            "usage": {
+              "prompt": 7176,
+              "completion": 132,
+              "reasoning": 84,
+              "total": 7308
+            },
+            "calls": [
+              "doc.links"
+            ]
+          }
+        ],
+        "tool_calls": [
+          {
+            "tool": "query.read",
+            "params": {
+              "doctype": "Item",
+              "filters": [
+                [
+                  "item_code",
+                  "=",
+                  "HRD-PACK-5K"
+                ]
+              ],
+              "fields": [
+                "item_code",
+                "item_name",
+                "item_group",
+                "stock_uom",
+                "description",
+                "has_batch_no",
+                "has_serial_no",
+                "is_stock_item",
+                "default_warehouse"
+              ]
+            },
+            "ok": false,
+            "stage": "preconditions",
+            "reasons": [
+              "前置未满足：问题点名了某张单据 → 接受 answer 之前，必须已对它调用过 doc.links —— 未覆盖 ['HRD-PACK-5K']"
+            ],
+            "request_count": 0,
+            "surface_id": "evidence-surface-1"
+          },
+          {
+            "tool": "doc.get",
+            "params": {
+              "doctype": "Item",
+              "name": "HRD-PACK-5K"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 2,
+            "surface_id": "evidence-surface-1"
+          },
+          {
+            "tool": "rule.lookup",
+            "params": {
+              "doctype": "Stock Ledger Entry"
+            },
+            "ok": false,
+            "stage": "preconditions",
+            "reasons": [
+              "前置未满足：行业包必须已装载——「无需指令」成立，「无需规则」不成立 —— 上下文缺少事实 'industry_pack_loaded'"
+            ],
+            "request_count": 0,
+            "surface_id": "evidence-surface-1"
+          },
+          {
+            "tool": "query.read",
+            "params": {
+              "doctype": "Bin",
+              "filters": [
+                [
+                  "item_code",
+                  "=",
+                  "HRD-PACK-5K"
+                ],
+                [
+                  "warehouse",
+                  "=",
+                  "成品仓 - HRD"
+                ]
+              ],
+              "fields": [
+                "item_code",
+                "warehouse",
+                "actual_qty",
+                "reserved_qty",
+                "ordered_qty",
+                "indented_qty",
+                "planned_qty",
+                "projected_qty"
+              ]
+            },
+            "ok": false,
+            "stage": "preconditions",
+            "reasons": [
+              "前置未满足：问题点名了某张单据 → 接受 answer 之前，必须已对它调用过 doc.links —— 未覆盖 ['HRD-PACK-5K']"
+            ],
+            "request_count": 0,
+            "surface_id": "evidence-surface-1"
+          },
+          {
+            "tool": "doc.links",
+            "params": {
+              "doctype": "Item",
+              "name": "HRD-PACK-5K"
+            },
+            "ok": false,
+            "stage": "execute",
+            "reasons": [
+              "站点侧失败：GET /api/resource/Quick Stock Balance → HTTP 500（站点 frontend）：{\"exception\":\"pymysql.err.ProgrammingError: ('DocType', 'Quick Stock Balance')\",\"exc_type\":\"ProgrammingError\",\"exc\":\"[\\\"Traceback (most recent call last):\\\\n  File \\\\\\\"apps/frappe/frappe/app.py\\\\\\\", line 120, in application\\\\n    response = frappe.api.handle(request)\\\\n               ^^^^^^^^^^^^^^^"
+            ],
+            "request_count": 77,
+            "surface_id": "evidence-surface-1"
+          },
+          {
+            "tool": "system.overview",
+            "params": {},
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 243,
+            "surface_id": "evidence-surface-1"
+          },
+          {
+            "tool": "query.read",
+            "params": {
+              "doctype": "Stock Ledger Entry",
+              "filters": [
+                [
+                  "item_code",
+                  "=",
+                  "HRD-PACK-5K"
+                ],
+                [
+                  "warehouse",
+                  "=",
+                  "成品仓 - HRD"
+                ]
+              ],
+              "fields": [
+                "name",
+                "posting_date",
+                "posting_time",
+                "voucher_type",
+                "voucher_no",
+                "actual_qty",
+                "qty_after_transaction",
+                "incoming_rate",
+                "valuation_rate",
+                "stock_queue"
+              ]
+            },
+            "ok": false,
+            "stage": "preconditions",
+            "reasons": [
+              "前置未满足：问题点名了某张单据 → 接受 answer 之前，必须已对它调用过 doc.links —— 未覆盖 ['HRD-PACK-5K']"
+            ],
+            "request_count": 0,
+            "surface_id": "evidence-surface-1"
+          },
+          {
+            "tool": "query.read",
+            "params": {
+              "doctype": "Bin",
+              "filters": [
+                [
+                  "item_code",
+                  "=",
+                  "HRD-PACK-5K"
+                ],
+                [
+                  "warehouse",
+                  "=",
+                  "成品仓 - HRD"
+                ]
+              ],
+              "fields": [
+                "item_code",
+                "warehouse",
+                "actual_qty",
+                "reserved_qty",
+                "ordered_qty",
+                "indented_qty",
+                "planned_qty",
+                "projected_qty"
+              ]
+            },
+            "ok": false,
+            "stage": "preconditions",
+            "reasons": [
+              "前置未满足：问题点名了某张单据 → 接受 answer 之前，必须已对它调用过 doc.links —— 未覆盖 ['HRD-PACK-5K']"
+            ],
+            "request_count": 0,
+            "surface_id": "evidence-surface-1"
+          },
+          {
+            "tool": "query.read",
+            "params": {
+              "doctype": "Stock Ledger Entry",
+              "filters": [
+                [
+                  "item_code",
+                  "=",
+                  "HRD-PACK-5K"
+                ]
+              ],
+              "fields": [
+                "name",
+                "posting_date",
+                "voucher_type",
+                "voucher_no",
+                "actual_qty",
+                "qty_after_transaction",
+                "warehouse"
+              ]
+            },
+            "ok": false,
+            "stage": "preconditions",
+            "reasons": [
+              "前置未满足：问题点名了某张单据 → 接受 answer 之前，必须已对它调用过 doc.links —— 未覆盖 ['HRD-PACK-5K']"
+            ],
+            "request_count": 0,
+            "surface_id": "evidence-surface-1"
+          },
+          {
+            "tool": "doc.links",
+            "params": {
+              "doctype": "Item",
+              "name": "HRD-PACK-5K"
+            },
+            "ok": false,
+            "stage": "execute",
+            "reasons": [
+              "站点侧失败：GET /api/resource/Quick Stock Balance → HTTP 500（站点 frontend）：{\"exception\":\"pymysql.err.ProgrammingError: ('DocType', 'Quick Stock Balance')\",\"exc_type\":\"ProgrammingError\",\"exc\":\"[\\\"Traceback (most recent call last):\\\\n  File \\\\\\\"apps/frappe/frappe/app.py\\\\\\\", line 120, in application\\\\n    response = frappe.api.handle(request)\\\\n               ^^^^^^^^^^^^^^^"
+            ],
+            "request_count": 77,
+            "surface_id": "evidence-surface-1"
+          },
+          {
+            "tool": "query.read",
+            "params": {
+              "doctype": "Stock Ledger Entry",
+              "filters": [
+                [
+                  "item_code",
+                  "=",
+                  "HRD-PACK-5K"
+                ]
+              ],
+              "fields": [
+                "name",
+                "posting_date",
+                "voucher_type",
+                "voucher_no",
+                "actual_qty",
+                "qty_after_transaction",
+                "warehouse"
+              ],
+              "limit": 20
+            },
+            "ok": false,
+            "stage": "preconditions",
+            "reasons": [
+              "前置未满足：问题点名了某张单据 → 接受 answer 之前，必须已对它调用过 doc.links —— 未覆盖 ['HRD-PACK-5K']"
+            ],
+            "request_count": 0,
+            "surface_id": "evidence-surface-1"
+          },
+          {
+            "tool": "query.read",
+            "params": {
+              "doctype": "Stock Entry",
+              "filters": [],
+              "fields": [
+                "name",
+                "stock_entry_type",
+                "posting_date",
+                "docstatus"
+              ]
+            },
+            "ok": false,
+            "stage": "preconditions",
+            "reasons": [
+              "前置未满足：问题点名了某张单据 → 接受 answer 之前，必须已对它调用过 doc.links —— 未覆盖 ['HRD-PACK-5K']"
+            ],
+            "request_count": 0,
+            "surface_id": "evidence-surface-1"
+          },
+          {
+            "tool": "query.read",
+            "params": {
+              "doctype": "Work Order",
+              "filters": [],
+              "fields": [
+                "name",
+                "production_item",
+                "qty",
+                "produced_qty",
+                "status",
+                "docstatus"
+              ]
+            },
+            "ok": false,
+            "stage": "preconditions",
+            "reasons": [
+              "前置未满足：问题点名了某张单据 → 接受 answer 之前，必须已对它调用过 doc.links —— 未覆盖 ['HRD-PACK-5K']"
+            ],
+            "request_count": 0,
+            "surface_id": "evidence-surface-1"
+          },
+          {
+            "tool": "query.read",
+            "params": {
+              "doctype": "Sales Order",
+              "filters": [],
+              "fields": [
+                "name",
+                "customer",
+                "transaction_date",
+                "delivery_date",
+                "docstatus"
+              ]
+            },
+            "ok": false,
+            "stage": "preconditions",
+            "reasons": [
+              "前置未满足：问题点名了某张单据 → 接受 answer 之前，必须已对它调用过 doc.links —— 未覆盖 ['HRD-PACK-5K']"
+            ],
+            "request_count": 0,
+            "surface_id": "evidence-surface-1"
+          },
+          {
+            "tool": "query.read",
+            "params": {
+              "doctype": "Delivery Note",
+              "filters": [],
+              "fields": [
+                "name",
+                "customer",
+                "posting_date",
+                "docstatus"
+              ]
+            },
+            "ok": false,
+            "stage": "preconditions",
+            "reasons": [
+              "前置未满足：问题点名了某张单据 → 接受 answer 之前，必须已对它调用过 doc.links —— 未覆盖 ['HRD-PACK-5K']"
+            ],
+            "request_count": 0,
+            "surface_id": "evidence-surface-1"
+          },
+          {
+            "tool": "doc.links",
+            "params": {
+              "doctype": "Item",
+              "name": "HRD-PACK-5K"
+            },
+            "ok": false,
+            "stage": "execute",
+            "reasons": [
+              "站点侧失败：GET /api/resource/Quick Stock Balance → HTTP 500（站点 frontend）：{\"exception\":\"pymysql.err.ProgrammingError: ('DocType', 'Quick Stock Balance')\",\"exc_type\":\"ProgrammingError\",\"exc\":\"[\\\"Traceback (most recent call last):\\\\n  File \\\\\\\"apps/frappe/frappe/app.py\\\\\\\", line 120, in application\\\\n    response = frappe.api.handle(request)\\\\n               ^^^^^^^^^^^^^^^"
+            ],
+            "request_count": 77,
+            "surface_id": "evidence-surface-1"
+          },
+          {
+            "tool": "doc.links",
+            "params": {
+              "doctype": "Item",
+              "name": "HRD-PACK-5K"
+            },
+            "ok": false,
+            "stage": "execute",
+            "reasons": [
+              "站点侧失败：GET /api/resource/Quick Stock Balance → HTTP 500（站点 frontend）：{\"exception\":\"pymysql.err.ProgrammingError: ('DocType', 'Quick Stock Balance')\",\"exc_type\":\"ProgrammingError\",\"exc\":\"[\\\"Traceback (most recent call last):\\\\n  File \\\\\\\"apps/frappe/frappe/app.py\\\\\\\", line 120, in application\\\\n    response = frappe.api.handle(request)\\\\n               ^^^^^^^^^^^^^^^"
+            ],
+            "request_count": 77,
+            "surface_id": "evidence-surface-1"
+          },
+          {
+            "tool": "snapshot.read",
+            "params": {
+              "scope": "stock"
+            },
+            "ok": false,
+            "stage": "preconditions",
+            "reasons": [
+              "前置未满足：问题点名了某张单据 → 接受 answer 之前，必须已对它调用过 doc.links —— 未覆盖 ['HRD-PACK-5K']"
+            ],
+            "request_count": 0,
+            "surface_id": "evidence-surface-1"
+          },
+          {
+            "tool": "lineage.trace",
+            "params": {
+              "doctype": "Item",
+              "name": "HRD-PACK-5K",
+              "depth": 2
+            },
+            "ok": false,
+            "stage": "execute",
+            "reasons": [
+              "站点侧失败：GET /api/resource/Quick Stock Balance → HTTP 500（站点 frontend）：{\"exception\":\"pymysql.err.ProgrammingError: ('DocType', 'Quick Stock Balance')\",\"exc_type\":\"ProgrammingError\",\"exc\":\"[\\\"Traceback (most recent call last):\\\\n  File \\\\\\\"apps/frappe/frappe/app.py\\\\\\\", line 120, in application\\\\n    response = frappe.api.handle(request)\\\\n               ^^^^^^^^^^^^^^^"
+            ],
+            "request_count": 77,
+            "surface_id": "evidence-surface-1"
+          },
+          {
+            "tool": "doc.links",
+            "params": {
+              "doctype": "Item",
+              "name": "HRD-PACK-5K"
+            },
+            "ok": false,
+            "stage": "execute",
+            "reasons": [
+              "站点侧失败：GET /api/resource/Quick Stock Balance → HTTP 500（站点 frontend）：{\"exception\":\"pymysql.err.ProgrammingError: ('DocType', 'Quick Stock Balance')\",\"exc_type\":\"ProgrammingError\",\"exc\":\"[\\\"Traceback (most recent call last):\\\\n  File \\\\\\\"apps/frappe/frappe/app.py\\\\\\\", line 120, in application\\\\n    response = frappe.api.handle(request)\\\\n               ^^^^^^^^^^^^^^^"
+            ],
+            "request_count": 77,
+            "surface_id": "evidence-surface-1"
+          },
+          {
+            "tool": "query.read",
+            "params": {
+              "doctype": "Stock Ledger Entry",
+              "filters": [
+                [
+                  "item_code",
+                  "=",
+                  "HRD-PACK-5K"
+                ]
+              ],
+              "fields": [
+                "name",
+                "posting_date",
+                "voucher_type",
+                "voucher_no",
+                "actual_qty",
+                "qty_after_transaction",
+                "warehouse"
+              ],
+              "limit": 50
+            },
+            "ok": false,
+            "stage": "preconditions",
+            "reasons": [
+              "前置未满足：问题点名了某张单据 → 接受 answer 之前，必须已对它调用过 doc.links —— 未覆盖 ['HRD-PACK-5K']"
+            ],
+            "request_count": 0,
+            "surface_id": "evidence-surface-1"
+          },
+          {
+            "tool": "doc.links",
+            "params": {
+              "doctype": "Item",
+              "name": "HRD-PACK-5K"
+            },
+            "ok": false,
+            "stage": "execute",
+            "reasons": [
+              "站点侧失败：GET /api/resource/Quick Stock Balance → HTTP 500（站点 frontend）：{\"exception\":\"pymysql.err.ProgrammingError: ('DocType', 'Quick Stock Balance')\",\"exc_type\":\"ProgrammingError\",\"exc\":\"[\\\"Traceback (most recent call last):\\\\n  File \\\\\\\"apps/frappe/frappe/app.py\\\\\\\", line 120, in application\\\\n    response = frappe.api.handle(request)\\\\n               ^^^^^^^^^^^^^^^"
+            ],
+            "request_count": 77,
+            "surface_id": "evidence-surface-1"
+          },
+          {
+            "tool": "query.read",
+            "params": {
+              "doctype": "Sales Order",
+              "filters": [],
+              "fields": [
+                "name",
+                "customer",
+                "transaction_date",
+                "delivery_date",
+                "docstatus"
+              ],
+              "limit": 5
+            },
+            "ok": false,
+            "stage": "preconditions",
+            "reasons": [
+              "前置未满足：问题点名了某张单据 → 接受 answer 之前，必须已对它调用过 doc.links —— 未覆盖 ['HRD-PACK-5K']"
+            ],
+            "request_count": 0,
+            "surface_id": "evidence-surface-1"
+          },
+          {
+            "tool": "doc.links",
+            "params": {
+              "doctype": "Item",
+              "name": "HRD-PACK-5K"
+            },
+            "ok": false,
+            "stage": "execute",
+            "reasons": [
+              "站点侧失败：GET /api/resource/Quick Stock Balance → HTTP 500（站点 frontend）：{\"exception\":\"pymysql.err.ProgrammingError: ('DocType', 'Quick Stock Balance')\",\"exc_type\":\"ProgrammingError\",\"exc\":\"[\\\"Traceback (most recent call last):\\\\n  File \\\\\\\"apps/frappe/frappe/app.py\\\\\\\", line 120, in application\\\\n    response = frappe.api.handle(request)\\\\n               ^^^^^^^^^^^^^^^"
+            ],
+            "request_count": 77,
+            "surface_id": "evidence-surface-1"
+          },
+          {
+            "tool": "query.read",
+            "params": {
+              "doctype": "Stock Ledger Entry",
+              "filters": [
+                [
+                  "item_code",
+                  "=",
+                  "HRD-PACK-5K"
+                ]
+              ],
+              "fields": [
+                "name",
+                "posting_date",
+                "voucher_type",
+                "voucher_no",
+                "actual_qty",
+                "qty_after_transaction",
+                "warehouse"
+              ],
+              "limit": 10
+            },
+            "ok": false,
+            "stage": "preconditions",
+            "reasons": [
+              "前置未满足：问题点名了某张单据 → 接受 answer 之前，必须已对它调用过 doc.links —— 未覆盖 ['HRD-PACK-5K']"
+            ],
+            "request_count": 0,
+            "surface_id": "evidence-surface-1"
+          },
+          {
+            "tool": "doc.links",
+            "params": {
+              "doctype": "Item",
+              "name": "HRD-PACK-5K"
+            },
+            "ok": false,
+            "stage": "execute",
+            "reasons": [
+              "站点侧失败：GET /api/resource/Quick Stock Balance → HTTP 500（站点 frontend）：{\"exception\":\"pymysql.err.ProgrammingError: ('DocType', 'Quick Stock Balance')\",\"exc_type\":\"ProgrammingError\",\"exc\":\"[\\\"Traceback (most recent call last):\\\\n  File \\\\\\\"apps/frappe/frappe/app.py\\\\\\\", line 120, in application\\\\n    response = frappe.api.handle(request)\\\\n               ^^^^^^^^^^^^^^^"
+            ],
+            "request_count": 77,
+            "surface_id": "evidence-surface-1"
+          },
+          {
+            "tool": "doc.links",
+            "params": {
+              "doctype": "Item",
+              "name": "HRD-PACK-5K"
+            },
+            "ok": false,
+            "stage": "execute",
+            "reasons": [
+              "站点侧失败：GET /api/resource/Quick Stock Balance → HTTP 500（站点 frontend）：{\"exception\":\"pymysql.err.ProgrammingError: ('DocType', 'Quick Stock Balance')\",\"exc_type\":\"ProgrammingError\",\"exc\":\"[\\\"Traceback (most recent call last):\\\\n  File \\\\\\\"apps/frappe/frappe/app.py\\\\\\\", line 120, in application\\\\n    response = frappe.api.handle(request)\\\\n               ^^^^^^^^^^^^^^^"
+            ],
+            "request_count": 77,
+            "surface_id": "evidence-surface-1"
+          },
+          {
+            "tool": "doc.links",
+            "params": {
+              "doctype": "Item",
+              "name": "HRD-PACK-5K"
+            },
+            "ok": false,
+            "stage": "execute",
+            "reasons": [
+              "站点侧失败：GET /api/resource/Quick Stock Balance → HTTP 500（站点 frontend）：{\"exception\":\"pymysql.err.ProgrammingError: ('DocType', 'Quick Stock Balance')\",\"exc_type\":\"ProgrammingError\",\"exc\":\"[\\\"Traceback (most recent call last):\\\\n  File \\\\\\\"apps/frappe/frappe/app.py\\\\\\\", line 120, in application\\\\n    response = frappe.api.handle(request)\\\\n               ^^^^^^^^^^^^^^^"
+            ],
+            "request_count": 77,
+            "surface_id": "evidence-surface-1"
+          },
+          {
+            "tool": "doc.links",
+            "params": {
+              "doctype": "Item",
+              "name": "HRD-PACK-5K"
+            },
+            "ok": false,
+            "stage": "execute",
+            "reasons": [
+              "站点侧失败：GET /api/resource/Quick Stock Balance → HTTP 500（站点 frontend）：{\"exception\":\"pymysql.err.ProgrammingError: ('DocType', 'Quick Stock Balance')\",\"exc_type\":\"ProgrammingError\",\"exc\":\"[\\\"Traceback (most recent call last):\\\\n  File \\\\\\\"apps/frappe/frappe/app.py\\\\\\\", line 120, in application\\\\n    response = frappe.api.handle(request)\\\\n               ^^^^^^^^^^^^^^^"
+            ],
+            "request_count": 77,
+            "surface_id": "evidence-surface-1"
+          }
+        ],
+        "gate_checks": [],
+        "forced_continues": [],
+        "breaker_events": [],
+        "runaway_events": []
+      },
+      "judge": {
+        "ok": false,
+        "error": "JudgingError: 待判的答案是空文本 —— 空答案不是一次判定的合法输入",
+        "label": "",
+        "note": "判定器这次没给出标签 —— 照实记；本 plan 的通过与否不依赖它（§2 Goal 3）。",
+        "ledger": {
+          "calls": 0,
+          "total": {
+            "prompt": 0,
+            "completion": 0,
+            "reasoning": 0,
+            "total": 0
+          },
+          "entries": []
+        }
+      }
+    }
+  ],
+  "requests": {
+    "total": 1419,
+    "get": 942,
+    "post": 477,
+    "other_verbs": [],
+    "denied": [],
+    "allowlist": [
+      "/api/method/login",
+      "/api/method/frappe.client.has_permission",
+      "/api/method/frappe.client.get_count"
+    ],
+    "by_endpoint": {
+      "POST /api/method/frappe.client.get_count": 238,
+      "POST /api/method/frappe.client.has_permission": 238,
+      "GET /api/resource/Sales Order Item": 28,
+      "GET /api/resource/BOM Creator Item": 24,
+      "GET /api/resource/BOM Item": 24,
+      "GET /api/resource/DocField": 24,
+      "GET /api/resource/Item Alternative": 24,
+      "GET /api/resource/Packed Item": 24,
+      "GET /api/resource/Pricing Rule": 24,
+      "GET /api/resource/Production Plan Item": 24,
+      "GET /api/resource/Production Plan Sub Assembly Item": 24,
+      "GET /api/resource/Purchase Order Item": 24,
+      "GET /api/resource/Purchase Order Item Supplied": 24,
+      "GET /api/resource/Purchase Receipt Item Supplied": 24,
+      "GET /api/resource/Work Order": 24,
+      "GET /api/resource/DocType": 14,
+      "GET /api/resource/Stock Ledger Entry": 14,
+      "GET /api/resource/Sales Order": 13,
+      "GET /api/resource/BOM": 12,
+      "GET /api/resource/BOM Creator": 12,
+      "GET /api/resource/BOM Explosion Item": 12,
+      "GET /api/resource/BOM Scrap Item": 12,
+      "GET /api/resource/Batch": 12,
+      "GET /api/resource/Bin": 12,
+      "GET /api/resource/Blanket Order Item": 12,
+      "GET /api/resource/Closing Stock Balance": 12,
+      "GET /api/resource/Delivery Note": 12,
+      "GET /api/resource/Delivery Note Item": 12,
+      "GET /api/resource/Installation Note Item": 12,
+      "GET /api/resource/Item": 12,
+      "GET /api/resource/Item Manufacturer": 12,
+      "GET /api/resource/Item Price": 12,
+      "GET /api/resource/Item Variant Attribute": 12,
+      "GET /api/resource/Job Card": 12,
+      "GET /api/resource/Job Card Item": 12,
+      "GET /api/resource/Job Card Scrap Item": 12,
+      "GET /api/resource/Landed Cost Item": 12,
+      "GET /api/resource/Material Request Item": 12,
+      "GET /api/resource/Material Request Plan Item": 12,
+      "GET /api/resource/Opportunity Item": 12,
+      "GET /api/resource/POS Invoice Item": 12,
+      "GET /api/resource/Packing Slip Item": 12,
+      "GET /api/resource/Pick List Item": 12,
+      "GET /api/resource/Pricing Rule Item Code": 12,
+      "GET /api/resource/Product Bundle": 12,
+      "GET /api/resource/Product Bundle Item": 12,
+      "GET /api/resource/Production Plan": 12,
+      "GET /api/resource/Promotional Scheme": 12,
+      "GET /api/resource/Promotional Scheme Product Discount": 12,
+      "GET /api/resource/Purchase Invoice Item": 12,
+      "GET /api/resource/Purchase Order": 12,
+      "GET /api/resource/Purchase Receipt Item": 12,
+      "GET /api/resource/Putaway Rule": 12,
+      "GET /api/resource/Quality Inspection": 12,
+      "GET /api/resource/Quick Stock Balance": 12,
+      "GET /api/resource/Quotation Item": 12,
+      "GET /api/resource/Repost Item Valuation": 12,
+      "GET /api/resource/Request for Quotation Item": 12,
+      "GET /api/resource/Sales Invoice": 12,
+      "GET /api/resource/Sales Invoice Item": 12,
+      "GET /api/resource/Stock Reconciliation Item": 12,
+      "GET /api/resource/Stock Reservation Entry": 12,
+      "GET /api/resource/Subscription Plan": 12,
+      "GET /api/resource/Supplier Quotation Item": 12,
+      "GET /api/resource/Tax Rule": 12,
+      "GET /api/resource/Work Order Item": 12,
+      "GET /api/resource/Module Def": 2,
+      "GET /api/resource/Company": 1,
+      "GET /api/resource/DocType/Item": 1,
+      "GET /api/resource/GL Entry": 1,
+      "GET /api/resource/Item/HRD-PACK-5K": 1,
+      "GET /api/resource/Subcontracting Order": 1,
+      "GET /api/resource/Subcontracting Order Item": 1,
+      "GET /api/resource/Subcontracting Receipt Item": 1,
+      "POST /api/method/login": 1
+    }
+  },
+  "elapsed_seconds": 241.479,
+  "notes": {
+    "readonly": "只读按**端点语义**定义，不按 HTTP 动词：一个完全只读的会话也会 POST `frappe.client.has_permission` / `frappe.client.get_count`。白名单见 `requests.allowlist`。",
+    "judge": "`attributions[].judge` 是**观测**（plan §6.1 O1）：它测的是判定器在跨题族输入上不崩，**不是归因质量合格**。标签取值不构成本次实跑的任何通过条件。",
+    "one_run": "一跑不是分布：本文件证明的是这条链在真环境里走得通，**不是**归因稳定或正确。",
+    "cost": "本文件没有任何成本阈值、没有拦截分支（D-18：记账不拦截）。"
+  },
+  "credential_scan": {
+    "found": [],
+    "skipped_too_short": [
+      "AGENERP_ADMIN_PASSWORD"
+    ],
+    "min_scanned_len": 8,
+    "scanned": [
+      "AGENERP_LLM_API_KEY",
+      "DASHSCOPE_API_KEY",
+      "AGENERP_API_SECRET",
+      "AGENERP_API_KEY",
+      "AGENERP_ADMIN_PASSWORD",
+      "AGENERP_WORKER_PASSWORD",
+      "AGENERP_SID"
+    ]
+  },
+  "checks": {
+    "hits_not_empty": true,
+    "hits_unchanged": true,
+    "ledger_matches_chat_calls": true,
+    "evidence_trace_enumerable": true,
+    "no_denied_requests": true,
+    "no_credentials_in_evidence": true
+  }
+}

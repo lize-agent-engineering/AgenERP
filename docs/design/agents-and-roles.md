@@ -153,6 +153,10 @@ P1.5 也没有新增契约。⚠️ `agenerp/inspection/` 自带的最小规则�
 ⚠️ **`rule.lookup` 仍然指名报错**，但理由变了：不再是「本仓没有行业包」，
 而是「**包在盘上、尚未接线**」—— 接线会让 `tests/gates/test_tool_execution_live.py` 的一条由绿转红，
 复绿只能改裁判或改它委派的断言体，两者都在红线内，**接线由人裁定**（见 `docs/masterplan/STATE.md` §3）。
+⚠️ **归因那一半的首次活端点实跑（2026-08-25）落点节是 `docs/architecture/module-boundaries.md` §7.16**
+（本行**只补指针**，§5.0 ② 与上面这段的结论一个字未动）：它证明的是这条链在真站点上走得通、
+零越权零写、账目对得上；**它没有产出任何归因文本**（`accepted = false`），
+原因是一个已登记的活缺陷 `docs/bugs/03-doc-links-dies-on-single-doctypes.md`。
 
 **`lineage.trace` 的硬约束**：ERPNext 的单据关联大量挂在**子表**上（如 `Delivery Note Item.against_sales_order`）。只扫主表 Link 字段的血缘实现会返回空结果——实测中 21 个指向 Sales Order 的 Link 字段里，14 个在子表。血缘工具必须同时扫主表级与子表级并回溯父单据。
 
