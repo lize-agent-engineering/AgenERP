@@ -70,36 +70,36 @@ def test_l1_unsatisfied_when_the_context_never_recorded_the_fact():
 def test_l2_satisfied_when_every_submitted_downstream_doc_was_opened():
     context = ReadOnlyContext(
         {
-            "submitted_downstream_documents": ["LOSS-00003", "DN-2026-00007"],
-            "doc_get_called_for": ["SAL-ORD-2026-00001", "LOSS-00003", "DN-2026-00007"],
+            "submitted_downstream_documents": ["MAT-SCR-2026-00001", "DN-2026-00007"],
+            "doc_get_called_for": ["SAL-ORD-2026-00001", "MAT-SCR-2026-00001", "DN-2026-00007"],
         }
     )
     assert EVIDENCE_GATE_L2.evaluate(context).satisfied
 
 
 def test_l2_unsatisfied_reproduces_seeing_loss_00003_without_opening_it():
-    """qwen3:14b 照 L1 调了 doc.links、看到了 LOSS-00003，却没打开它。"""
+    """qwen3:14b 照 L1 调了 doc.links、看到了那张下游单据，却没打开它。"""
     context = ReadOnlyContext(
         {
-            "submitted_downstream_documents": ["LOSS-00003"],
+            "submitted_downstream_documents": ["MAT-SCR-2026-00001"],
             "doc_get_called_for": ["SAL-ORD-2026-00001"],
         }
     )
     result = EVIDENCE_GATE_L2.evaluate(context)
     assert not result.satisfied
-    assert "LOSS-00003" in result.reason
+    assert "MAT-SCR-2026-00001" in result.reason
 
 
 def test_l2_reports_every_unopened_document_not_just_the_first():
     context = ReadOnlyContext(
         {
-            "submitted_downstream_documents": ["LOSS-00003", "DN-2026-00007"],
+            "submitted_downstream_documents": ["MAT-SCR-2026-00001", "DN-2026-00007"],
             "doc_get_called_for": [],
         }
     )
     result = EVIDENCE_GATE_L2.evaluate(context)
     assert not result.satisfied
-    assert "LOSS-00003" in result.reason and "DN-2026-00007" in result.reason
+    assert "MAT-SCR-2026-00001" in result.reason and "DN-2026-00007" in result.reason
 
 
 # --- 门禁挂在哪些工具上 -----------------------------------------------------------
@@ -126,8 +126,13 @@ def test_check_preconditions_evaluates_a_whole_contract():
         {
             "documents_named_in_question": ["SAL-ORD-2026-00001"],
             "doc_links_called_for": ["SAL-ORD-2026-00001"],
-            "submitted_downstream_documents": ["LOSS-00003"],
-            "doc_get_called_for": ["LOSS-00003"],
+            # 下游用一张原生单据。此处原本写 `LOSS-00003` —— 那是 XM 自建的
+            # custom DocType，已按 D-9 退役。
+            "submitted_downstream_documents": ["MAT-DN-2026-00001"],
+            # L3 要求的入库来源覆盖（P1.0）。这里给成空集：本测试验的是
+            # 「三条前置**都满足**时不报违规」，答案不涉及库存数量即为空集。
+            "inbound_vouchers_of_quantities_in_answer": [],
+            "doc_get_called_for": ["MAT-DN-2026-00001"],
         }
     )
     assert unsatisfied(check_preconditions(contract, satisfied_context)) == ()

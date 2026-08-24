@@ -34,11 +34,25 @@ ABORT = "abort_and_report"
 DOC_READ = "<被访问 DocType>.read"
 
 # ---------------------------------------------------------------------------
-# 证据充分性门禁 L1/L2（`docs/design/agents-and-roles.md` §5.0 ①）
+# 证据充分性门禁 L1 / L2 / L3（`docs/design/agents-and-roles.md` §5.0 ①）
 #
 # §7.3.1 把它归为只读工具契约约束的第一件事：**什么时候允许停下来**。
-# 它是 Spike 02 实测产出的：受约束 Agent 对 SAL-ORD-2026-00001 只调一次 `doc.get`
-# 就下结论，每个数字都对、业务结论完全错（那 10 米是 LOSS-00003 已审批的合理损耗）。
+#
+# **L1/L2 由 Spike 02 实测产出**：受约束 Agent 对销售订单只调一次 `doc.get` 就下结论，
+# 每个数字都对、业务结论完全错。L2 由 `qwen3:14b` 补出——它照 L1 调了 `doc.links`、
+# 看到了那张解释单，**却没打开它**，于是得出与不查血缘时同样错误的结论。
+#
+# ⚠️ **原案例已随 D-9 退役**（那张解释单是 XM 自建的 custom DocType）。
+# 规则 L1/L2 本身不依赖它，措辞未动；失效的只是推出它们的那个案例。
+#
+# **L3 由 P1.0 入口关口实验设计**，针对的是一种 L1/L2 都盖不住的形状：
+# 答案涉及某个仓库的库存**数量**时，从任何一张单据出发的血缘都可能只覆盖
+# 部分入库来源 —— 恒锐动力的数据集里，外协批那 1,000 台在 ERPNext v15 的结构上
+# 就挂不回销售订单（`Subcontracting Order` 没有 `sales_order` 字段）。
+# 沿订单查得再深也看不见它，**必须从库存流水反查凭证**。
+#
+# → L1/L2 管「顺着链条查得够不够深」，**L3 管「入库来源查得够不够全」**。
+# 前两条是**深度**，第三条是**覆盖**。
 # ---------------------------------------------------------------------------
 
 EVIDENCE_GATE_L1 = Condition(
@@ -57,7 +71,23 @@ EVIDENCE_GATE_L2 = Condition(
     source=f"{ROLES} §5.0 ① 规则 L2（由 qwen3:14b 实测补出）",
 )
 
-EVIDENCE_GATE = (EVIDENCE_GATE_L1, EVIDENCE_GATE_L2)
+EVIDENCE_GATE_L3 = Condition(
+    text=(
+        "作答涉及某个仓库的库存数量 → 必须已对该库存的全部入库来源逐个 doc.get，"
+        "且来源集合覆盖库存流水里每一张使数量增加的凭证"
+    ),
+    fact="doc_get_called_for",
+    operator="covers_fact",
+    value="inbound_vouchers_of_quantities_in_answer",
+    source=f"{ROLES} §5.0 ① 规则 L3（由 P1.0 入口关口实验设计）",
+)
+
+# ⚠️ **L3 的措辞必须保持通用**，不得出现任何具体单号、DocType 名或数量。
+# 它是照着一个已知陷阱设计的，天然对那个陷阱有效；写进具体单号就成了
+# 「照答案写规则」，实验会自证为真而毫无信息量。
+# 判据：`tests/unit/test_evidence_gate.py` 用一条**与该陷阱无关**的合成轨迹反测。
+
+EVIDENCE_GATE = (EVIDENCE_GATE_L1, EVIDENCE_GATE_L2, EVIDENCE_GATE_L3)
 
 # 门禁挂在**作答类**工具上：这两个工具的返回值就是答案里的数字。
 # `doc.get` / `doc.links` 本身是 L1/L2 要求的**取证步骤**，拿门禁去卡取证步骤是循环依赖

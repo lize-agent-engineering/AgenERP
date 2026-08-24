@@ -172,7 +172,7 @@ def test_dependency_order_is_the_one_the_site_actually_requires():
 
 
 def test_fifo_ordering_puts_the_inhouse_batch_before_the_subcontract_batch():
-    """FIFO 的成立条件：自制批（¥5.00）必须**先入库**，否则发货 990 米出的就不是那一层。"""
+    """FIFO 的成立条件：自制批（¥3,020）必须**先入库**，否则发货 990 米出的就不是那一层。"""
     inhouse = _by_label("自制批入库").payload["posting_date"]
     subcon = _by_label("外协收货").payload["posting_date"]
 
@@ -284,7 +284,7 @@ def _is_money_literal(node, forbidden: set) -> bool:
     ⚠️ **口径限定，照实写**：`M.INHOUSE_RATE` 恰好等于 `5.0`，而 `5` 这个**裸整数**在本模块里
     是日期偏移（`M.day(5)`）。把裸整数一并判违规会让这条断言在一个跟钱无关的地方误报，
     于是它很快会被人放宽掉 —— 那比现在这个口径更糟。
-    因此只判**带小数点写出来的 `float`**（`5.0` / `6450.0` 这种钱的写法）**或 ≥ 100 的整数**。
+    因此只判**带小数点写出来的 `float`**（`3020.0` / `3110200.0` 这种钱的写法）**或 ≥ 100 的整数**。
     代价是「有人把 `INHOUSE_RATE` 写成裸 `5` 再乘出来」这条路它抓不到 ——
     那条路由上面那两条 `M.<NAME>` / `model.<NAME>` 的文本断言与关闭时的人工 `grep` 兜。
     """

@@ -60,7 +60,7 @@ def movements() -> list[tuple[str, str, str, str, str, float, float]]:
         ("Stock Entry", N.RM_TO_SUBCON, day(4), RAW_ITEM, WH_SUBCON, BOM_RAW_QTY, raw_batch),
         ("Subcontracting Receipt", N.RECEIPT, day(5), RAW_ITEM, WH_SUBCON, -BOM_RAW_QTY, -raw_batch),
         ("Subcontracting Receipt", N.RECEIPT, day(5), FINISHED_ITEM, WH_FINISHED, SUBCON_QTY, SUBCON_VALUE),
-        # FIFO：990 米全部出自制批，因此出库价值是 990 × 自制单价，不是均价（§12.1）。
+        # FIFO：990 台全部出自制批，因此出库价值是 990 × 自制单价，不是均价（§12.1）。
         ("Delivery Note", N.DELIVERY, day(6), FINISHED_ITEM, WH_FINISHED, -DELIVERY_QTY, -COGS_VALUE),
     ]
 
