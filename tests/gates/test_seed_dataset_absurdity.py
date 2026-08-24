@@ -80,7 +80,7 @@ def test_backlog_absurdity_is_present_and_exact():
 
     qty = sum(float(b.get("actual_qty") or 0) for b in finished)
     value = sum(float(b.get("stock_value") or 0) for b in finished)
-    assert qty == BACKLOG_QTY_UNITS, f"成品仓积压应为 {BACKLOG_QTY_UNITS} 米，实际 {qty}"
+    assert qty == BACKLOG_QTY_UNITS, f"成品仓积压应为 {BACKLOG_QTY_UNITS} 台，实际 {qty}"
     assert value == BACKLOG_VALUE_CNY, f"积压价值应为 {BACKLOG_VALUE_CNY} 元，实际 {value}"
 
 
