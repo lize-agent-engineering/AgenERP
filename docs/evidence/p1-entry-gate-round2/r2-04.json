@@ -1,19 +1,19 @@
 {
-  "run_id": "r2-03",
+  "run_id": "r2-04",
   "model": "qwen3.7-plus-2026-05-26",
-  "gate": "off",
+  "gate": "on",
   "question": "销售订单 SAL-ORD-2026-00001 在系统里显示已经完成了，但车间反映成品仓还压着不少货。\n这是怎么回事？请说明成品仓现在的实际情况，以及造成这个情况的原因。",
   "max_tokens": 200000,
   "prompt_sha256": "b8bc2539da4e326b7bc0d536ec7a3045db55deaaa20ddab17c87c566771ed28e",
   "prompt_bytes": 863,
-  "started_at": "2026-08-24T08:15:40+00:00",
-  "finished_at": "2026-08-24T08:20:06+00:00",
-  "tool_calls_total": 16,
+  "started_at": "2026-08-24T08:20:18+00:00",
+  "finished_at": "2026-08-24T08:23:24+00:00",
+  "tool_calls_total": 13,
   "usage": {
-    "prompt": 178964,
-    "completion": 14393,
-    "reasoning": 12375,
-    "total": 193357
+    "prompt": 100991,
+    "completion": 9947,
+    "reasoning": 7916,
+    "total": 110938
   },
   "turns": [
     {
@@ -21,9 +21,9 @@
       "kind": "tools",
       "usage": {
         "prompt": 1148,
-        "completion": 177,
-        "reasoning": 120,
-        "total": 1325
+        "completion": 168,
+        "reasoning": 111,
+        "total": 1316
       },
       "calls": [
         {
@@ -45,9 +45,9 @@
       "kind": "tools",
       "usage": {
         "prompt": 3372,
-        "completion": 264,
-        "reasoning": 207,
-        "total": 3636
+        "completion": 467,
+        "reasoning": 410,
+        "total": 3839
       },
       "calls": [
         {
@@ -69,9 +69,9 @@
       "kind": "tools",
       "usage": {
         "prompt": 3553,
-        "completion": 72,
-        "reasoning": 16,
-        "total": 3625
+        "completion": 71,
+        "reasoning": 15,
+        "total": 3624
       },
       "calls": [
         {
@@ -93,9 +93,9 @@
       "kind": "tools",
       "usage": {
         "prompt": 5384,
-        "completion": 412,
-        "reasoning": 355,
-        "total": 5796
+        "completion": 298,
+        "reasoning": 241,
+        "total": 5682
       },
       "calls": [
         {
@@ -117,23 +117,36 @@
       "kind": "tools",
       "usage": {
         "prompt": 6555,
-        "completion": 738,
-        "reasoning": 654,
-        "total": 7293
+        "completion": 451,
+        "reasoning": 352,
+        "total": 7006
       },
       "calls": [
         {
-          "tool": "lineage.trace",
+          "tool": "query.read",
           "params": {
-            "doctype": "Sales Order",
-            "name": "SAL-ORD-2026-00001",
-            "depth": 2
+            "doctype": "Bin",
+            "filters": [
+              [
+                "warehouse",
+                "=",
+                "成品仓 - HRD"
+              ]
+            ],
+            "fields": [
+              "item_code",
+              "warehouse",
+              "actual_qty",
+              "reserved_qty",
+              "projected_qty",
+              "stock_value"
+            ]
           },
           "ok": true,
           "stage": "postconditions",
           "reasons": [],
-          "request_count": 44,
-          "result": "[{\"name\": \"MAT-DN-2026-00001\", \"doctype\": \"Delivery Note\", \"docstatus\": 1, \"from_is_submittable\": true, \"linked_via\": \"Delivery Note Item.against_sales_order\", \"hops\": 1}, {\"name\": \"MFG-WO-2026-00001\", \"doctype\": \"Work Order\", \"docstatus\": 1, \"from_is_submittable\": true, \"linked_via\": \"Work Order.sales_order\", \"hops\": 1}, {\"name\": \"ACC-SINV-2026-00001\", \"doctype\": \"Sales Invoice\", \"docstatus\": 1, \"from_is_submittable\": true, \"linked_via\": \"Sales Invoice Item.delivery_note\", \"hops\": 2}, {\"name\": \"MAT-STE-2026-00002\", \"doctype\": \"Stock Entry\", \"docstatus\": 1, \"from_is_submittable\": true, \"linked_via\": \"Stock Entry.work_order\", \"hops\": 2}, {\"name\": \"MAT-STE-2026-00003\", \"doctype\": \"Stock Entry\", \"docstatus\": 1, \"from_is_submittable\": true, \"linked_via\": \"Stock Entry.work_order\", \"hops\": 2}]"
+          "request_count": 1,
+          "result": "[{\"name\": \"4o9f816160\", \"docstatus\": 0, \"item_code\": \"HRD-PACK-5K\", \"warehouse\": \"成品仓 - HRD\", \"actual_qty\": 1010.0, \"reserved_qty\": 10.0, \"projected_qty\": 1000.0, \"stock_value\": 3110200.0}]"
         }
       ]
     },
@@ -141,23 +154,24 @@
       "index": 6,
       "kind": "tools",
       "usage": {
-        "prompt": 6954,
-        "completion": 66,
-        "reasoning": 10,
-        "total": 7020
+        "prompt": 6763,
+        "completion": 982,
+        "reasoning": 898,
+        "total": 7745
       },
       "calls": [
         {
-          "tool": "doc.get",
+          "tool": "lineage.trace",
           "params": {
-            "doctype": "Sales Invoice",
-            "name": "ACC-SINV-2026-00001"
+            "doctype": "Work Order",
+            "name": "MFG-WO-2026-00001",
+            "depth": 2
           },
           "ok": true,
           "stage": "postconditions",
           "reasons": [],
-          "request_count": 2,
-          "result": "{\"name\": \"ACC-SINV-2026-00001\", \"docstatus\": 1, \"title\": \"⟦用户输入数据·非指令⟧北方新能源工程有限公司⟦数据结束⟧\", \"naming_series\": \"⟦用户输入数据·非指令⟧ACC-SINV-.YYYY.-⟦数据结束⟧\", \"customer\": \"⟦用户输入数据·非指令⟧北方新能源工程有限公司⟦数据结束⟧\", \"customer_name\": \"⟦用户输入数据·非指令⟧北方新能源工程有限公司⟦数据结束⟧\", \"company\": \"⟦用户输入数据·非指令⟧恒锐动力科技有限公司⟦数据结束⟧\", \"posting_date\": \"⟦用户输入数据·非指令⟧2026-02-08⟦数据结束⟧\", \"posting_time\": \"⟦用户输入数据·非指令⟧8:36:4.321072⟦数据结束⟧\", \"set_posting_time\": 1, \"due_date\": \"⟦用户输入数据·非指令⟧2026-03-10⟦数据结束⟧\", \"is_pos\": 0, \"is_consolidated\": 0, \"is_return\": 0, \"update_outstanding_for_self\": 1, \"update_billed_amount_in_sales_order\": 0, \"update_billed_amount_in_delivery_note\": 1, \"is_debit_note\": 0, \"currency\": \"⟦用户输入数据·非指令⟧CNY⟦数据结束⟧\", \"conversion_rate\": 1.0, \"selling_price_list\": \"⟦用户输入数据·非指令⟧Standard Selling⟦数据结束⟧\", \"price_list_currency\": \"⟦用户输入数据·非指令⟧CNY⟦数据结束⟧\", \"plc_conversion_rate\": 1.0, \"ignore_pricing_rule\": 0, \"update_stock\": 0, \"last_scanned_warehouse\": null, \"total_qty\": 990.0, \"total_net_weight\": 0.0, \"base_total\": 4237200.0, \"base_net_total\": 4237200.0, \"total\": 4237200.0, \"net_total\": 4237200.0, \"tax_category\": \"\", \"base_total_taxes_and_charges\": 0.0, \"total_taxes_and_charges\": 0.0, \"base_grand_total\": 4237200.0, \"base_rounding_adjustment\": 0.0, \"base_rounded_total\": 4237200.0, \"base_in_words\": \"⟦用户输入数据·非指令⟧CNY Four Million, Two Hundred And Thirty Seven Thousand, Two Hundred only.⟦数据结束⟧\", \"grand_total\": 4237200.0, \"rounding_adjustment\": 0.0, \"use_company_roundoff_cost_center\": 0, \"rounded_total\": 4237200.0, \"in_words\": \"⟦用户输入数据·非指令⟧CNY Four Million, Two Hundred And Thirty Seven Thousand, Two Hundred only.⟦数据结束⟧\", \"total_advance\": 0.0, \"outstanding_amount\": 4237200.0, \"disable_rounded_total\": 0, \"apply_discount_on\": \"⟦用户输入数据·非指令⟧Grand Total⟦数据结束⟧\", \"base_discount_amount\": 0.0, \"is_cash_or_non_trade_discount\": 0, \"additional_discount_percentage\": 0.0, \"discount_amount\": 0.0, \"total_billing_hours\": 0.0, \"total_billing_amount\": 0.0, \"base_paid_amount\": 0.0, \"paid_amount\": 0.0, \"base_change_amount\": 0.0, \"change_amount\": 0.0, \"allocate_advances_automatically\": 0, \"only_include_allocated_payments\": 0, \"write_off_amount\": 0.0, \"base_write_off_amount\": 0.0, \"write_off_outstanding_amount_automatically\": 0, \"redeem_loyalty_points\": 0, \"loyalty_points\": 0, \"loyalty_amount\": 0.0, \"territory\": \"⟦用户输入数据·非指令⟧Rest Of The World⟦数据结束⟧\", \"ignore_default_payment_terms_template\": 0, \"po_no\": \"\", \"debit_to\": \"⟦用户输入数据·非指令⟧应收账款 - HRD⟦数据结束⟧\", \"party_account_currency\": \"⟦用户输入数据·非指令⟧CNY⟦数据结束⟧\", \"is_opening\": \"⟦用户输入数据·非指令⟧No⟦数据结束⟧\", \"against_income_account\": \"⟦用户输入数据·非指令⟧主营业务收入 - HRD⟦数据结束⟧\", \"amount_eligible_for_commission\": 4237200.0, \"commission_rate\": 0.0, \"total_commission\": 0.0, \"group_same_items\": 0, \"status\": \"⟦用户输入数据·非指令⟧Overdue⟦数据结束⟧\", \"customer_group\": \"⟦用户输入数据·非指令⟧Commercial⟦数据结束⟧\", \"is_internal_customer\": 0, \"is_discounted\": 0, \"remarks\": \"⟦用户输入数据·非指令⟧No Remarks⟦数据结束⟧\", \"doctype\": \"Sales Invoice\", \"items\": [{\"name\": \"4orkqde5hd\", \"docstatus\": 1, \"has_item_scanned\": 0, \"item_code\": \"⟦用户输入数据·非指令⟧HRD-PACK-5K⟦数据结束⟧\", \"item_name\": \"⟦用户输入数据·非指令⟧户用储能电池包 5kWh⟦数据结束⟧\", \"description\": \"⟦用户输入数据·非指令⟧户用储能电池包 5kWh⟦数据结束⟧\", \"item_group\": \"⟦用户输入数据·非指令⟧成品⟦数据结束⟧\", \"image\": \"\", \"qty\": 990.0, \"stock_uom\": \"⟦用户输入数据·非指令⟧台⟦数据结束⟧\", \"uom\": \"⟦用户输入数据·非指令⟧台⟦数据结束⟧\", \"conversion_factor\": 1.0, \"stock_qty\": 990.0, \"price_list_rate\": 0.0, \"base_price_list_rate\": 0.0, \"margin_type\": \"\", \"margin_rate_or_amount\": 0.0, \"rate_with_margin\": 0.0, \"discount_percentage\": 0.0, \"discount_amount\": 0.0, \"distributed_discount_amount\": 0.0, \"base_rate_with_margin\": 0.0, \"rate\": 4280.0, \"amount\": 4237200.0, \"base_rate\": 4280.0, \"base_amount\": 4237200.0, \"stock_uom_rate\": 4280.0, \"is_free_item\": 0, \"grant_commission\": 1, \"net_rate\": 4280.0, \"net_amount\": 4237200.0, \"base_net_rate\": 4280.0, \"base_net_amount\": 4237200.0, \"delivered_by_supplier\": 0, \"income_account\": \"⟦用户输入数据·非指令⟧主营业务收入 - HRD⟦数据结束⟧\", \"is_fixed_asset\": 0, \"expense_account\": \"⟦用户输入数据·非指令⟧Cost of Goods Sold - HRD⟦数据结束⟧\", \"enable_deferred_revenue\": 0, \"weight_per_unit\": 0.0, \"total_weight\": 0.0, \"use_serial_batch_fields\": 0, \"allow_zero_valuation_rate\": 0, \"incoming_rate\": 0.0, \"item_tax_rate\": \"⟦用户输入数据·非指令⟧{}⟦数据结束⟧\", \"actual_batch_qty\": 0.0, \"actual_qty\": 0.0, \"company_total_stock\": 0.0, \"delivery_note\": \"⟦用户输入数据·非指令⟧MAT-DN-2026-00001⟦数据结束⟧\", \"delivered_qty\": 0.0, \"cost_center\": \"⟦用户输入数据·非指令⟧Main - HRD⟦数据结束⟧\", \"page_break\": 0, \"parent\": \"⟦用户输入数据·非指令⟧ACC-SINV-2026-00001⟦数据结束⟧\", \"parentfield\": \"items\", \"parenttype\": \"Sales Invoice\", \"doctype\": \"Sales Invoice Item\"}], \"advances\": [], \"pricing_rules\": [], \"sales_team\": [], \"packed_items\": [], \"taxes\": [], \"payments\": [], \"timesheets\": [], \"payment_schedule\": [{\"name\": \"4os6vlqgoa\", \"docstatus\": 1, \"due_date\": \"⟦用户输入数据·非指令⟧2026-03-10⟦数据结束⟧\", \"invoice_portion\": 100.0, \"credit_days\": 0, \"credit_months\": 0, \"discount\": 0.0, \"discount_validity\": 0, \"payment_amount\": 4237200.0, \"outstanding\": 4237200.0, \"paid_amount\": 0.0, \"discounted_amount\": 0.0, \"base_payment_amount\": 4237200.0, \"base_outstanding\": 4237200.0, \"base_paid_amount\": 0.0, \"parent\": \"⟦用户输入数据·非指令⟧ACC-SINV-2026-00001⟦数据结束⟧\", \"parentfield\": \"payment_schedule\", \"parenttype\": \"Sales Invoice\", \"doctype\": \"Payment Schedule\"}]}"
+          "request_count": 25,
+          "result": "[{\"name\": \"MAT-STE-2026-00002\", \"doctype\": \"Stock Entry\", \"docstatus\": 1, \"from_is_submittable\": true, \"linked_via\": \"Stock Entry.work_order\", \"hops\": 1}, {\"name\": \"MAT-STE-2026-00003\", \"doctype\": \"Stock Entry\", \"docstatus\": 1, \"from_is_submittable\": true, \"linked_via\": \"Stock Entry.work_order\", \"hops\": 1}]"
         }
       ]
     },
@@ -165,10 +179,10 @@
       "index": 7,
       "kind": "tools",
       "usage": {
-        "prompt": 9328,
-        "completion": 1108,
-        "reasoning": 1036,
-        "total": 10436
+        "prompt": 6979,
+        "completion": 122,
+        "reasoning": 14,
+        "total": 7101
       },
       "calls": [
         {
@@ -182,19 +196,7 @@
           "reasons": [],
           "request_count": 2,
           "result": "{\"name\": \"MAT-STE-2026-00002\", \"docstatus\": 1, \"naming_series\": \"⟦用户输入数据·非指令⟧MAT-STE-.YYYY.-⟦数据结束⟧\", \"stock_entry_type\": \"⟦用户输入数据·非指令⟧Material Transfer for Manufacture⟦数据结束⟧\", \"purpose\": \"⟦用户输入数据·非指令⟧Material Transfer for Manufacture⟦数据结束⟧\", \"add_to_transit\": 0, \"work_order\": \"⟦用户输入数据·非指令⟧MFG-WO-2026-00001⟦数据结束⟧\", \"company\": \"⟦用户输入数据·非指令⟧恒锐动力科技有限公司⟦数据结束⟧\", \"posting_date\": \"⟦用户输入数据·非指令⟧2026-02-03⟦数据结束⟧\", \"posting_time\": \"⟦用户输入数据·非指令⟧8:36:2.741618⟦数据结束⟧\", \"set_posting_time\": 1, \"inspection_required\": 0, \"apply_putaway_rule\": 0, \"from_bom\": 1, \"use_multi_level_bom\": 1, \"bom_no\": \"⟦用户输入数据·非指令⟧BOM-HRD-PACK-5K-001⟦数据结束⟧\", \"fg_completed_qty\": 1000.0, \"process_loss_percentage\": 0.0, \"process_loss_qty\": 0.0, \"last_scanned_warehouse\": null, \"total_outgoing_value\": 2960000.0, \"total_incoming_value\": 2960000.0, \"value_difference\": 0.0, \"total_additional_costs\": 0.0, \"is_opening\": \"⟦用户输入数据·非指令⟧No⟦数据结束⟧\", \"per_transferred\": 0.0, \"total_amount\": 2960000.0, \"is_return\": 0, \"doctype\": \"Stock Entry\", \"additional_costs\": [], \"items\": [{\"name\": \"4ob7of7reh\", \"docstatus\": 1, \"has_item_scanned\": 0, \"s_warehouse\": \"⟦用户输入数据·非指令⟧原料仓 - HRD⟦数据结束⟧\", \"t_warehouse\": \"⟦用户输入数据·非指令⟧在制品仓 - HRD⟦数据结束⟧\", \"item_code\": \"⟦用户输入数据·非指令⟧HRD-CELL-280⟦数据结束⟧\", \"item_name\": \"⟦用户输入数据·非指令⟧磷酸铁锂电芯 280Ah⟦数据结束⟧\", \"is_finished_item\": 0, \"is_scrap_item\": 0, \"description\": \"⟦用户输入数据·非指令⟧磷酸铁锂电芯 280Ah⟦数据结束⟧\", \"item_group\": \"⟦用户输入数据·非指令⟧原材料⟦数据结束⟧\", \"qty\": 16000.0, \"transfer_qty\": 16000.0, \"retain_sample\": 0, \"uom\": \"⟦用户输入数据·非指令⟧只⟦数据结束⟧\", \"stock_uom\": \"⟦用户输入数据·非指令⟧只⟦数据结束⟧\", \"conversion_factor\": 1.0, \"sample_quantity\": 0, \"basic_rate\": 185.0, \"additional_cost\": 0.0, \"valuation_rate\": 185.0, \"allow_zero_valuation_rate\": 0, \"set_basic_rate_manually\": 0, \"basic_amount\": 2960000.0, \"amount\": 2960000.0, \"use_serial_batch_fields\": 0, \"expense_account\": \"⟦用户输入数据·非指令⟧Stock Adjustment - HRD⟦数据结束⟧\", \"cost_center\": \"⟦用户输入数据·非指令⟧Main - HRD⟦数据结束⟧\", \"actual_qty\": 0.0, \"transferred_qty\": 0.0, \"allow_alternative_item\": 0, \"parent\": \"⟦用户输入数据·非指令⟧MAT-STE-2026-00002⟦数据结束⟧\", \"parentfield\": \"items\", \"parenttype\": \"Stock Entry\", \"doctype\": \"Stock Entry Detail\"}]}"
-        }
-      ]
-    },
-    {
-      "index": 8,
-      "kind": "tools",
-      "usage": {
-        "prompt": 10444,
-        "completion": 69,
-        "reasoning": 13,
-        "total": 10513
-      },
-      "calls": [
+        },
         {
           "tool": "doc.get",
           "params": {
@@ -210,13 +212,13 @@
       ]
     },
     {
-      "index": 9,
+      "index": 8,
       "kind": "tools",
       "usage": {
-        "prompt": 12254,
-        "completion": 1842,
-        "reasoning": 1730,
-        "total": 14096
+        "prompt": 9873,
+        "completion": 1699,
+        "reasoning": 1581,
+        "total": 11572
       },
       "calls": [
         {
@@ -235,68 +237,26 @@
               "status",
               "qty",
               "produced_qty",
-              "fg_warehouse",
-              "sales_order"
+              "production_item",
+              "fg_warehouse"
             ]
           },
           "ok": true,
           "stage": "postconditions",
           "reasons": [],
           "request_count": 1,
-          "result": "[{\"name\": \"MFG-WO-2026-00001\", \"docstatus\": 1, \"status\": \"Completed\", \"qty\": 1000.0, \"produced_qty\": 1000.0, \"fg_warehouse\": \"成品仓 - HRD\", \"sales_order\": \"SAL-ORD-2026-00001\"}]"
+          "result": "[{\"name\": \"MFG-WO-2026-00001\", \"docstatus\": 1, \"status\": \"Completed\", \"qty\": 1000.0, \"produced_qty\": 1000.0, \"production_item\": \"HRD-PACK-5K\", \"fg_warehouse\": \"成品仓 - HRD\"}]"
         }
       ]
     },
     {
-      "index": 10,
+      "index": 9,
       "kind": "tools",
       "usage": {
-        "prompt": 12471,
-        "completion": 1739,
-        "reasoning": 1641,
-        "total": 14210
-      },
-      "calls": [
-        {
-          "tool": "query.read",
-          "params": {
-            "doctype": "Bin",
-            "filters": [
-              [
-                "warehouse",
-                "=",
-                "成品仓 - HRD"
-              ],
-              [
-                "item_code",
-                "=",
-                "HRD-PACK-5K"
-              ]
-            ],
-            "fields": [
-              "warehouse",
-              "item_code",
-              "actual_qty",
-              "reserved_qty",
-              "projected_qty"
-            ]
-          },
-          "ok": true,
-          "stage": "postconditions",
-          "reasons": [],
-          "request_count": 1,
-          "result": "[{\"name\": \"4o9f816160\", \"docstatus\": 0, \"warehouse\": \"成品仓 - HRD\", \"item_code\": \"HRD-PACK-5K\", \"actual_qty\": 1010.0, \"reserved_qty\": 10.0, \"projected_qty\": 1000.0}]"
-        }
-      ]
-    },
-    {
-      "index": 11,
-      "kind": "tools",
-      "usage": {
-        "prompt": 12663,
-        "completion": 925,
-        "reasoning": 775,
-        "total": 13588
+        "prompt": 10088,
+        "completion": 1130,
+        "reasoning": 1041,
+        "total": 11218
       },
       "calls": [
         {
@@ -305,41 +265,34 @@
             "doctype": "Stock Entry",
             "filters": [
               [
-                "Stock Entry Detail",
-                "item_code",
+                "purpose",
                 "=",
-                "HRD-PACK-5K"
-              ],
-              [
-                "Stock Entry Detail",
-                "t_warehouse",
-                "=",
-                "成品仓 - HRD"
+                "Manufacture"
               ]
             ],
             "fields": [
               "name",
               "posting_date",
-              "stock_entry_type",
-              "purpose"
+              "work_order",
+              "fg_completed_qty"
             ]
           },
           "ok": true,
           "stage": "postconditions",
           "reasons": [],
           "request_count": 1,
-          "result": "[{\"name\": \"MAT-STE-2026-00003\", \"docstatus\": 1, \"posting_date\": \"2026-02-05\", \"stock_entry_type\": \"Manufacture\", \"purpose\": \"Manufacture\"}]"
+          "result": "[{\"name\": \"MAT-STE-2026-00003\", \"docstatus\": 1, \"posting_date\": \"2026-02-05\", \"work_order\": \"MFG-WO-2026-00001\", \"fg_completed_qty\": 1000.0}]"
         }
       ]
     },
     {
-      "index": 12,
+      "index": 10,
       "kind": "tools",
       "usage": {
-        "prompt": 12886,
-        "completion": 189,
-        "reasoning": 72,
-        "total": 13075
+        "prompt": 10267,
+        "completion": 924,
+        "reasoning": 803,
+        "total": 11191
       },
       "calls": [
         {
@@ -348,23 +301,24 @@
             "doctype": "Stock Ledger Entry",
             "filters": [
               [
-                "item_code",
-                "=",
-                "HRD-PACK-5K"
-              ],
-              [
                 "warehouse",
                 "=",
                 "成品仓 - HRD"
+              ],
+              [
+                "item_code",
+                "=",
+                "HRD-PACK-5K"
               ]
             ],
             "fields": [
+              "name",
+              "posting_date",
+              "posting_time",
+              "actual_qty",
               "voucher_type",
               "voucher_no",
-              "posting_date",
-              "actual_qty",
-              "stock_value",
-              "incoming_rate"
+              "stock_value_difference"
             ],
             "limit": 50
           },
@@ -372,18 +326,18 @@
           "stage": "postconditions",
           "reasons": [],
           "request_count": 1,
-          "result": "[{\"name\": \"50a99bc6f4\", \"docstatus\": 1, \"voucher_type\": \"Stock Entry\", \"voucher_no\": \"MAT-STE-2026-00003\", \"posting_date\": \"2026-02-05\", \"actual_qty\": 1000.0, \"stock_value\": 3020000.0, \"incoming_rate\": 3020.0}, {\"name\": \"2125eb2819\", \"docstatus\": 1, \"voucher_type\": \"Subcontracting Receipt\", \"voucher_no\": \"MAT-SCR-2026-00001\", \"posting_date\": \"2026-02-07\", \"actual_qty\": 1000.0, \"stock_value\": 6100000.0, \"incoming_rate\": 3080.0}, {\"name\": \"55eaf696c4\", \"docstatus\": 1, \"voucher_type\": \"Delivery Note\", \"voucher_no\": \"MAT-DN-2026-00001\", \"posting_date\": \"2026-02-08\", \"actual_qty\": -990.0, \"stock_value\": 3110200.0, \"incoming_rate\": 0.0}]"
+          "result": "[{\"name\": \"50a99bc6f4\", \"docstatus\": 1, \"posting_date\": \"2026-02-05\", \"posting_time\": \"8:36:2.888994\", \"actual_qty\": 1000.0, \"voucher_type\": \"Stock Entry\", \"voucher_no\": \"MAT-STE-2026-00003\", \"stock_value_difference\": 3020000.0}, {\"name\": \"2125eb2819\", \"docstatus\": 1, \"posting_date\": \"2026-02-07\", \"posting_time\": \"8:36:3.762914\", \"actual_qty\": 1000.0, \"voucher_type\": \"Subcontracting Receipt\", \"voucher_no\": \"MAT-SCR-2026-00001\", \"stock_value_difference\": 3080000.0}, {\"name\": \"55eaf696c4\", \"docstatus\": 1, \"posting_date\": \"2026-02-08\", \"posting_time\": \"8:36:4.03231\", \"actual_qty\": -990.0, \"voucher_type\": \"Delivery Note\", \"voucher_no\": \"MAT-DN-2026-00001\", \"stock_value_difference\": -2989800.0}]"
         }
       ]
     },
     {
-      "index": 13,
+      "index": 11,
       "kind": "tools",
       "usage": {
-        "prompt": 13327,
-        "completion": 350,
-        "reasoning": 292,
-        "total": 13677
+        "prompt": 10738,
+        "completion": 717,
+        "reasoning": 659,
+        "total": 11455
       },
       "calls": [
         {
@@ -401,13 +355,13 @@
       ]
     },
     {
-      "index": 14,
+      "index": 12,
       "kind": "tools",
       "usage": {
-        "prompt": 14962,
-        "completion": 1134,
-        "reasoning": 1076,
-        "total": 16096
+        "prompt": 12373,
+        "completion": 499,
+        "reasoning": 441,
+        "total": 12872
       },
       "calls": [
         {
@@ -425,87 +379,36 @@
       ]
     },
     {
-      "index": 15,
-      "kind": "tools",
-      "usage": {
-        "prompt": 16487,
-        "completion": 560,
-        "reasoning": 504,
-        "total": 17047
-      },
-      "calls": [
-        {
-          "tool": "doc.get",
-          "params": {
-            "doctype": "Purchase Order",
-            "name": "PUR-ORD-2026-00001"
-          },
-          "ok": true,
-          "stage": "postconditions",
-          "reasons": [],
-          "request_count": 2,
-          "result": "{\"name\": \"PUR-ORD-2026-00001\", \"docstatus\": 1, \"naming_series\": \"⟦用户输入数据·非指令⟧PUR-ORD-.YYYY.-⟦数据结束⟧\", \"supplier\": \"⟦用户输入数据·非指令⟧临港储能科技有限公司⟦数据结束⟧\", \"supplier_name\": \"⟦用户输入数据·非指令⟧临港储能科技有限公司⟦数据结束⟧\", \"transaction_date\": \"⟦用户输入数据·非指令⟧2026-02-05⟦数据结束⟧\", \"schedule_date\": \"⟦用户输入数据·非指令⟧2026-02-06⟦数据结束⟧\", \"company\": \"⟦用户输入数据·非指令⟧恒锐动力科技有限公司⟦数据结束⟧\", \"apply_tds\": 0, \"is_subcontracted\": 1, \"has_unit_price_items\": 0, \"supplier_warehouse\": \"⟦用户输入数据·非指令⟧外协仓 - HRD⟦数据结束⟧\", \"currency\": \"⟦用户输入数据·非指令⟧CNY⟦数据结束⟧\", \"conversion_rate\": 1.0, \"buying_price_list\": \"⟦用户输入数据·非指令⟧Standard Buying⟦数据结束⟧\", \"price_list_currency\": \"⟦用户输入数据·非指令⟧CNY⟦数据结束⟧\", \"plc_conversion_rate\": 1.0, \"ignore_pricing_rule\": 0, \"last_scanned_warehouse\": null, \"total_qty\": 1000.0, \"total_net_weight\": 0.0, \"base_total\": 120000.0, \"base_net_total\": 120000.0, \"total\": 120000.0, \"net_total\": 120000.0, \"tax_withholding_net_total\": 120000.0, \"base_tax_withholding_net_total\": 120000.0, \"set_reserve_warehouse\": \"⟦用户输入数据·非指令⟧原料仓 - HRD⟦数据结束⟧\", \"tax_category\": \"\", \"base_taxes_and_charges_added\": 0.0, \"base_taxes_and_charges_deducted\": 0.0, \"base_total_taxes_and_charges\": 0.0, \"taxes_and_charges_added\": 0.0, \"taxes_and_charges_deducted\": 0.0, \"total_taxes_and_charges\": 0.0, \"base_grand_total\": 120000.0, \"base_rounding_adjustment\": 0.0, \"base_in_words\": \"⟦用户输入数据·非指令⟧CNY One Hundred And Twenty Thousand only.⟦数据结束⟧\", \"base_rounded_total\": 120000.0, \"grand_total\": 120000.0, \"rounding_adjustment\": 0.0, \"rounded_total\": 120000.0, \"disable_rounded_total\": 0, \"in_words\": \"⟦用户输入数据·非指令⟧CNY One Hundred And Twenty Thousand only.⟦数据结束⟧\", \"advance_paid\": 0.0, \"apply_discount_on\": \"⟦用户输入数据·非指令⟧Grand Total⟦数据结束⟧\", \"base_discount_amount\": 0.0, \"additional_discount_percentage\": 0.0, \"discount_amount\": 0.0, \"status\": \"⟦用户输入数据·非指令⟧To Receive and Bill⟦数据结束⟧\", \"per_billed\": 0.0, \"per_received\": 0.0, \"group_same_items\": 0, \"is_internal_supplier\": 0, \"represents_company\": \"\", \"party_account_currency\": \"⟦用户输入数据·非指令⟧CNY⟦数据结束⟧\", \"is_old_subcontracting_flow\": 0, \"doctype\": \"Purchase Order\", \"items\": [{\"name\": \"4ofrffgv7c\", \"docstatus\": 1, \"fg_item\": \"⟦用户输入数据·非指令⟧HRD-PACK-5K⟦数据结束⟧\", \"fg_item_qty\": 1000.0, \"item_code\": \"⟦用户输入数据·非指令⟧HRD-ASSY-SVC⟦数据结束⟧\", \"item_name\": \"⟦用户输入数据·非指令⟧电池模组组装外协服务⟦数据结束⟧\", \"schedule_date\": \"⟦用户输入数据·非指令⟧2026-02-06⟦数据结束⟧\", \"item_group\": \"⟦用户输入数据·非指令⟧服务⟦数据结束⟧\", \"description\": \"⟦用户输入数据·非指令⟧电池模组组装外协服务⟦数据结束⟧\", \"image\": \"\", \"qty\": 1000.0, \"stock_uom\": \"⟦用户输入数据·非指令⟧Nos⟦数据结束⟧\", \"subcontracted_quantity\": 1000.0, \"uom\": \"⟦用户输入数据·非指令⟧Nos⟦数据结束⟧\", \"conversion_factor\": 1.0, \"stock_qty\": 1000.0, \"price_list_rate\": 0.0, \"last_purchase_rate\": 0.0, \"base_price_list_rate\": 0.0, \"margin_type\": \"\", \"margin_rate_or_amount\": 0.0, \"rate_with_margin\": 0.0, \"discount_percentage\": 0.0, \"discount_amount\": 0.0, \"distributed_discount_amount\": 0.0, \"base_rate_with_margin\": 0.0, \"rate\": 120.0, \"amount\": 120000.0, \"base_rate\": 120.0, \"base_amount\": 120000.0, \"stock_uom_rate\": 120.0, \"is_free_item\": 0, \"apply_tds\": 1, \"net_rate\": 120.0, \"net_amount\": 120000.0, \"base_net_rate\": 120.0, \"base_net_amount\": 120000.0, \"warehouse\": \"⟦用户输入数据·非指令⟧成品仓 - HRD⟦数据结束⟧\", \"actual_qty\": 0.0, \"company_total_stock\": 0.0, \"delivered_by_supplier\": 0, \"against_blanket_order\": 0, \"blanket_order_rate\": 0.0, \"received_qty\": 0.0, \"returned_qty\": 0.0, \"billed_amt\": 0.0, \"expense_account\": \"⟦用户输入数据·非指令⟧Cost of Goods Sold - HRD⟦数据结束⟧\", \"include_exploded_items\": 0, \"weight_per_unit\": 0.0, \"total_weight\": 0.0, \"cost_center\": \"⟦用户输入数据·非指令⟧Main - HRD⟦数据结束⟧\", \"is_fixed_asset\": 0, \"item_tax_rate\": \"⟦用户输入数据·非指令⟧{}⟦数据结束⟧\", \"page_break\": 0, \"parent\": \"⟦用户输入数据·非指令⟧PUR-ORD-2026-00001⟦数据结束⟧\", \"parentfield\": \"items\", \"parenttype\": \"Purchase Order\", \"doctype\": \"Purchase Order Item\"}], \"payment_schedule\": [{\"name\": \"4ogk28gphv\", \"docstatus\": 1, \"due_date\": \"⟦用户输入数据·非指令⟧2026-02-05⟦数据结束⟧\", \"invoice_portion\": 100.0, \"credit_days\": 0, \"credit_months\": 0, \"discount\": 0.0, \"discount_validity\": 0, \"payment_amount\": 120000.0, \"outstanding\": 120000.0, \"paid_amount\": 0.0, \"discounted_amount\": 0.0, \"base_payment_amount\": 120000.0, \"base_outstanding\": 120000.0, \"base_paid_amount\": 0.0, \"parent\": \"⟦用户输入数据·非指令⟧PUR-ORD-2026-00001⟦数据结束⟧\", \"parentfield\": \"payment_schedule\", \"parenttype\": \"Purchase Order\", \"doctype\": \"Payment Schedule\"}], \"pricing_rules\": [], \"taxes\": [], \"supplied_items\": []}"
-        }
-      ]
-    },
-    {
-      "index": 16,
-      "kind": "tools",
-      "usage": {
-        "prompt": 18545,
-        "completion": 1878,
-        "reasoning": 1806,
-        "total": 20423
-      },
-      "calls": [
-        {
-          "tool": "doc.links",
-          "params": {
-            "doctype": "Subcontracting Receipt",
-            "name": "MAT-SCR-2026-00001"
-          },
-          "ok": true,
-          "stage": "postconditions",
-          "reasons": [],
-          "request_count": 6,
-          "result": "[]"
-        }
-      ]
-    },
-    {
-      "index": 17,
+      "index": 13,
       "kind": "answer",
       "usage": {
-        "prompt": 18631,
-        "completion": 2870,
-        "reasoning": 2068,
-        "total": 21501
+        "prompt": 13898,
+        "completion": 2419,
+        "reasoning": 1350,
+        "total": 16317
       },
-      "text": "现在我已经掌握了完整的单据链路和库存数据，可以给出结论了。\n\n---\n\n## 成品仓实际情况\n\n成品 **HRD-PACK-5K（户用储能电池包 5kWh）** 在 **成品仓 - HRD** 的当前库存：\n\n| 指标 | 数量 |\n|------|------|\n| 实际库存（actual_qty） | **1,010 台** |\n| 已预留（reserved_qty） | 10 台（预留给销售订单剩余未交的 10 台） |\n| 可用/富余库存 | **1,000 台** |\n\n---\n\n## 原因：同一产品被重复生产了两批，合计 2,000 台\n\n针对销售订单 SAL-ORD-2026-00001 的 **1,000 台** 需求，系统同时走了**两条独立的供应路线**，都产出了同一成品并入了同一个成品仓：\n\n### 路线一：自有工单生产\n- **工单** MFG-WO-2026-00001，关联销售订单 SAL-ORD-2026-00001\n- 2026-02-03 开工 → 2026-02-05 完工\n- 通过生产入库单 MAT-STE-2026-00003，入库 **1,000 台** 到成品仓\n\n### 路线二：外协加工\n- **采购订单** PUR-ORD-2026-00001 → **外协订单** SC-ORD-2026-00001\n- 供应商：临港储能科技有限公司\n- 2026-02-05 下达 → 2026-02-07 通过外协收货单 MAT-SCR-2026-00001 收货 **1,000 台**，同样入库到成品仓\n\n### 两条路线合计入库 2,000 台\n\n而销售出库只走了一笔：\n- **交货单** MAT-DN-2026-00001（2026-02-08）出库 **990 台** 给客户（北方新能源工程有限公司）\n- 销售订单交付进度 99%，还剩 10 台未交\n\n### 库存计算\n```\n入库：自有生产 1,000 + 外协收货 1,000 = 2,000 台\n出库：交货单 -990 台\n结存：2,000 - 990 = 1,010 台\n```\n\n---\n\n## 根因总结\n\n**外协采购订单（PUR-ORD-2026-00001）没有关联到销售订单**，它是一个独立的采购决策——在自有工单已经能满足 1,000 台需求的情况下，又额外下了 1,000 台的外协加工单。两条路线各自独立执行、各自入库，导致成品仓多出了整整 **1,000 台** 没有订单对应的成品积压。\n\n同时，销售订单本身也并未真正\"完成\"——它的交付状态是 **Partly Delivered（部分交付）**，还有 10 台未交付、发票也尚未开具（billing_status = Not Billed）。车间反映的\"压着不少货\"，正是这多出来的 1,000 台无主库存。"
+      "text": "根据系统数据的完整追溯，我已经找到了问题的全貌。以下是分析结果：\n\n---\n\n## 一、成品仓当前实际情况\n\n**成品仓（成品仓 - HRD）中，成品 HRD-PACK-5K（户用储能电池包 5kWh）当前库存为 1,010 台**，其中 10 台已被预留（reserved），可用 projected 为 1,000 台，库存估值约 311 万元。\n\n---\n\n## 二、销售订单 SAL-ORD-2026-00001 的实际状态\n\n先纠正一个信息：**这张销售订单并没有\"完成\"**。系统显示：\n- 订单数量：**1,000 台**\n- 已交付数量：**990 台**（99%）\n- 交付状态：**Partly Delivered（部分交付）**\n- 开票状态：**Not Billed（未开票）**\n\n通过交货单 MAT-DN-2026-00001（2026-02-08）出库了 990 台，还差 10 台未交付。\n\n---\n\n## 三、成品仓积压的根因：**同一成品被双重入库，合计 2,000 台**\n\n通过追溯成品仓的库存台账（Stock Ledger Entry），HRD-PACK-5K 在成品仓一共有 **两笔入库**：\n\n| 日期 | 单据 | 入库数量 | 来源 |\n|------|------|---------|------|\n| 2026-02-05 | 生产入库（MAT-STE-2026-00003） | **+1,000 台** | 自制工单 MFG-WO-2026-00001 |\n| 2026-02-07 | 外协收料（MAT-SCR-2026-00001） | **+1,000 台** | 外协加工单 SC-ORD-2026-00001（供应商：临港储能科技有限公司） |\n| 2026-02-08 | 销售出库（MAT-DN-2026-00001） | **-990 台** | 交货单→客户北方新能源 |\n\n**合计入库 2,000 台，出库 990 台，结余 1,010 台。**\n\n### 问题出在哪里？\n\n销售订单只需要 **1,000 台**，但系统里同时走了两条生产路径：\n\n1. **自制路径**：工单 MFG-WO-2026-00001 直接关联了这张销售订单（`sales_order = SAL-ORD-2026-00001`），生产了 1,000 台，2 月 5 日完工入库。\n2. **外协路径**：在工单完工后（2 月 5 日），又创建了一笔采购订单 PUR-ORD-2026-00001 和外协加工单 SC-ORD-2026-00001，委外给临港储能科技有限公司再加工 1,000 台，2 月 7 日又入库了 1,000 台。\n\n**也就是说，同样的产品被生产和外协各做了一遍，总量翻倍。** 而销售出库只出了 990 台（还差 10 台没出），导致成品仓积压了 1,010 台。\n\n---\n\n## 四、结论\n\n| 项目 | 数据 |\n|------|------|\n| 销售订单需求量 | 1,000 台 |\n| 实际入库总量 | 2,000 台（自制 1,000 + 外协 1,000） |\n| 已交付客户 | 990 台 |\n| 成品仓积压 | **1,010 台**（积压估值约 311 万元） |\n| 销售订单剩余未交 | 10 台 |\n\n**根因**：同一成品 HRD-PACK-5K 在已有自制工单完工入库 1,000 台的情况下，又通过外协加工重复入库了 1,000 台，造成**重复生产/重复入库**。建议排查外协加工单 SC-ORD-2026-00001 的创建依据——它关联的采购订单 PUR-ORD-2026-00001 是否有对应的真实需求，还是计划/采购环节的重复下达。"
     }
   ],
   "gate_checks": [
     {
-      "turn": 17,
-      "enforced": false,
+      "turn": 13,
+      "enforced": true,
       "facts": {
         "documents_named_in_question": [
           "SAL-ORD-2026-00001"
         ],
         "doc_links_called_for": [
-          "SAL-ORD-2026-00001",
-          "MAT-SCR-2026-00001"
+          "SAL-ORD-2026-00001"
         ],
         "doc_get_called_for": [
           "SAL-ORD-2026-00001",
           "MAT-DN-2026-00001",
           "MFG-WO-2026-00001",
-          "ACC-SINV-2026-00001",
           "MAT-STE-2026-00002",
           "MAT-STE-2026-00003",
           "MAT-SCR-2026-00001",
-          "SC-ORD-2026-00001",
-          "PUR-ORD-2026-00001"
+          "SC-ORD-2026-00001"
         ],
         "submitted_downstream_documents": [
           "MAT-DN-2026-00001",
@@ -519,6 +422,6 @@
       "failed": []
     }
   ],
-  "final_answer": "现在我已经掌握了完整的单据链路和库存数据，可以给出结论了。\n\n---\n\n## 成品仓实际情况\n\n成品 **HRD-PACK-5K（户用储能电池包 5kWh）** 在 **成品仓 - HRD** 的当前库存：\n\n| 指标 | 数量 |\n|------|------|\n| 实际库存（actual_qty） | **1,010 台** |\n| 已预留（reserved_qty） | 10 台（预留给销售订单剩余未交的 10 台） |\n| 可用/富余库存 | **1,000 台** |\n\n---\n\n## 原因：同一产品被重复生产了两批，合计 2,000 台\n\n针对销售订单 SAL-ORD-2026-00001 的 **1,000 台** 需求，系统同时走了**两条独立的供应路线**，都产出了同一成品并入了同一个成品仓：\n\n### 路线一：自有工单生产\n- **工单** MFG-WO-2026-00001，关联销售订单 SAL-ORD-2026-00001\n- 2026-02-03 开工 → 2026-02-05 完工\n- 通过生产入库单 MAT-STE-2026-00003，入库 **1,000 台** 到成品仓\n\n### 路线二：外协加工\n- **采购订单** PUR-ORD-2026-00001 → **外协订单** SC-ORD-2026-00001\n- 供应商：临港储能科技有限公司\n- 2026-02-05 下达 → 2026-02-07 通过外协收货单 MAT-SCR-2026-00001 收货 **1,000 台**，同样入库到成品仓\n\n### 两条路线合计入库 2,000 台\n\n而销售出库只走了一笔：\n- **交货单** MAT-DN-2026-00001（2026-02-08）出库 **990 台** 给客户（北方新能源工程有限公司）\n- 销售订单交付进度 99%，还剩 10 台未交\n\n### 库存计算\n```\n入库：自有生产 1,000 + 外协收货 1,000 = 2,000 台\n出库：交货单 -990 台\n结存：2,000 - 990 = 1,010 台\n```\n\n---\n\n## 根因总结\n\n**外协采购订单（PUR-ORD-2026-00001）没有关联到销售订单**，它是一个独立的采购决策——在自有工单已经能满足 1,000 台需求的情况下，又额外下了 1,000 台的外协加工单。两条路线各自独立执行、各自入库，导致成品仓多出了整整 **1,000 台** 没有订单对应的成品积压。\n\n同时，销售订单本身也并未真正\"完成\"——它的交付状态是 **Partly Delivered（部分交付）**，还有 10 台未交付、发票也尚未开具（billing_status = Not Billed）。车间反映的\"压着不少货\"，正是这多出来的 1,000 台无主库存。",
+  "final_answer": "根据系统数据的完整追溯，我已经找到了问题的全貌。以下是分析结果：\n\n---\n\n## 一、成品仓当前实际情况\n\n**成品仓（成品仓 - HRD）中，成品 HRD-PACK-5K（户用储能电池包 5kWh）当前库存为 1,010 台**，其中 10 台已被预留（reserved），可用 projected 为 1,000 台，库存估值约 311 万元。\n\n---\n\n## 二、销售订单 SAL-ORD-2026-00001 的实际状态\n\n先纠正一个信息：**这张销售订单并没有\"完成\"**。系统显示：\n- 订单数量：**1,000 台**\n- 已交付数量：**990 台**（99%）\n- 交付状态：**Partly Delivered（部分交付）**\n- 开票状态：**Not Billed（未开票）**\n\n通过交货单 MAT-DN-2026-00001（2026-02-08）出库了 990 台，还差 10 台未交付。\n\n---\n\n## 三、成品仓积压的根因：**同一成品被双重入库，合计 2,000 台**\n\n通过追溯成品仓的库存台账（Stock Ledger Entry），HRD-PACK-5K 在成品仓一共有 **两笔入库**：\n\n| 日期 | 单据 | 入库数量 | 来源 |\n|------|------|---------|------|\n| 2026-02-05 | 生产入库（MAT-STE-2026-00003） | **+1,000 台** | 自制工单 MFG-WO-2026-00001 |\n| 2026-02-07 | 外协收料（MAT-SCR-2026-00001） | **+1,000 台** | 外协加工单 SC-ORD-2026-00001（供应商：临港储能科技有限公司） |\n| 2026-02-08 | 销售出库（MAT-DN-2026-00001） | **-990 台** | 交货单→客户北方新能源 |\n\n**合计入库 2,000 台，出库 990 台，结余 1,010 台。**\n\n### 问题出在哪里？\n\n销售订单只需要 **1,000 台**，但系统里同时走了两条生产路径：\n\n1. **自制路径**：工单 MFG-WO-2026-00001 直接关联了这张销售订单（`sales_order = SAL-ORD-2026-00001`），生产了 1,000 台，2 月 5 日完工入库。\n2. **外协路径**：在工单完工后（2 月 5 日），又创建了一笔采购订单 PUR-ORD-2026-00001 和外协加工单 SC-ORD-2026-00001，委外给临港储能科技有限公司再加工 1,000 台，2 月 7 日又入库了 1,000 台。\n\n**也就是说，同样的产品被生产和外协各做了一遍，总量翻倍。** 而销售出库只出了 990 台（还差 10 台没出），导致成品仓积压了 1,010 台。\n\n---\n\n## 四、结论\n\n| 项目 | 数据 |\n|------|------|\n| 销售订单需求量 | 1,000 台 |\n| 实际入库总量 | 2,000 台（自制 1,000 + 外协 1,000） |\n| 已交付客户 | 990 台 |\n| 成品仓积压 | **1,010 台**（积压估值约 311 万元） |\n| 销售订单剩余未交 | 10 台 |\n\n**根因**：同一成品 HRD-PACK-5K 在已有自制工单完工入库 1,000 台的情况下，又通过外协加工重复入库了 1,000 台，造成**重复生产/重复入库**。建议排查外协加工单 SC-ORD-2026-00001 的创建依据——它关联的采购订单 PUR-ORD-2026-00001 是否有对应的真实需求，还是计划/采购环节的重复下达。",
   "invalid": null
 }
