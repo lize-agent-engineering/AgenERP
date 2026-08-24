@@ -75,10 +75,11 @@
 
 | ID | 工作项 | 前置 | 验收 | 状态源 |
 |---|---|---|---|---|
-| **P1.0** 🚪 | **入口关口实验**：验「门禁能否补偿模型能力」—— 同一道需两跳取数的问题，在**有证据充分性门禁**与**无门禁**两种配置下各跑一遍，比对是否只有前者拿到可归因的正确答案 | P0.8 | **在本项目自己的站点、用本项目自己的 10 个只读工具跑**（D-9：不借用 XM 的 spike 代码与演示栈）。题目取种子数据集自带的固定测例：成品仓积压 1,010 台 / ¥3,110,200 —— 它需要 `Bin` → `Sales Order` 两跳且订单已被人工关闭，一跳必答错。**实验假设在跑之前逐字写死**（CP9 继承项②），结论无论正反都写进 STATE §2 与 `docs/audits/`。⚠️ 不得据此宣称任何未实测的推广结论 | 人 + `MD:p1-insight` |
+| **P1.0a** | **工具执行层**：给 10 个只读契约写执行体，打 ERPNext REST 面，**按契约的 `returns` 裁剪返回**，跑前置/跑后校验 | P0.8 | `pytest tests/tools -q` 退 0；且 🔴 `tests/gates/test_tool_execution_live.py` —— 每个工具在活站点上各跑一次，断言**返回形状合约束**（`must_keep` 字段在、`max_rows` 不超、裁剪规则生效）。⚠️ 判据不许只验「调得通」 | `MD:p1-insight` |
+| **P1.0** 🚪 | **入口关口实验**：验「门禁能否补偿模型能力」—— 同一道需两跳取数的问题，在**有证据充分性门禁**与**无门禁**两种配置下各跑一遍，比对是否只有前者拿到可归因的正确答案 | **P1.0a** | **在本项目自己的站点、用本项目自己的 10 个只读工具跑**（D-9：不借用 XM 的 spike 代码与演示栈）。题目取种子数据集自带的固定测例：成品仓积压 1,010 台 / ¥3,110,200 —— 它需要 `Bin` → `Sales Order` 两跳且订单已被人工关闭，一跳必答错。**实验假设在跑之前逐字写死**（CP9 继承项②），结论无论正反都写进 STATE §2 与 `docs/audits/`。⚠️ 不得据此宣称任何未实测的推广结论 | 人 + `MD:p1-insight` |
 | P1.1 | 模型路由 v0：OpenAI-compatible adapter + **能力声明按任务分档** | P1.0 | `pytest tests/routing -q` 退 0；分档表落 `docs/architecture/` | `MD:p1-explain` |
 | P1.2 | 上下文层 v0：即时上下文注入 + 会话落 DocType | P1.1 | `pytest tests/context -q` 退 0 | `MD:p1-explain` |
-| P1.3 | 结构化导航工具（`system.overview`/`permission.scope`/`meta.fields`/`doc.links`），**`permission.scope` 由循环开场自动注入** | P1.2 | `pytest tests/tools/test_navigation.py -q` 退 0，且断言开场注入发生 | `MD:p1-explain` |
+| P1.3 | **导航的编排行为**（工具本身由 P1.0a 交付）：`permission.scope` **由循环开场自动注入**，不依赖模型想起来调用；并给导航工具补**质量**判据（能否让模型少走弯路） | P1.2, P1.0a | `pytest tests/tools/test_navigation.py -q` 退 0，且断言开场注入发生 | `MD:p1-explain` |
 | P1.4 | 解释 Agent + **证据充分性门禁** | P1.3 | 🔴 `tests/gates/test_evidence_gate_blocks_single_hop.py` | `MD:p1-explain` |
 | P1.5 | 洞察 Agent：**按行业包规则清单**巡检 | P1.4 | 🔴 `tests/gates/test_insight_rule_ablation.py` | `MD:p1-explain` |
 | P1.6 | 行业包 v0（离散制造）：业务合理性规则为首要内容，**每条带 `test_case`** | P1.5 | `python -m agenerp.packs validate --pack discrete` 退 0（无 `test_case` 的规则即失败） | `MD:p1-explain` |
