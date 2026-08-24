@@ -92,6 +92,38 @@ node tools/mission-driver/src/reap-orphans.mjs
 
 ---
 
+## 3.5 起循环只走 `tools/run-loop.sh`，不要直接调 `mission-driver.sh`
+
+```bash
+tools/run-loop.sh                  # 单趟
+tools/run-loop.sh supervise        # 7×24（监督器）
+```
+
+⚠️ **不要 `nohup ./tools/mission-driver.sh <mission> &`。** 它能跑起来，
+但**绕过了 pidfile**（`_tmp/loop.pid`）—— 而监督器正是靠这个文件判断
+「有没有一趟在跑」：
+
+```bash
+# loop-supervisor.sh:55
+if [ -f "$ROOT/_tmp/loop.pid" ] && kill -0 "$(cat ...)" 2>/dev/null; then
+  log "已有一趟在跑，等它结束"
+```
+
+**后果**：装了 launchd 代理之后，监督器看不见那个手工起的循环，
+于是**并发起第二个**。两个循环同时写同一个工作树 —— 那正是 §4 末尾
+逐字禁止的「7×24 里最难查的一类故障」。
+
+2026-08-24 实测踩到：人侧手工起循环、随后准备装 launchd，
+检查时才发现 `_tmp/loop.pid` 根本不存在。
+
+**若已经手工起了**，补一句就能对上：
+
+```bash
+pgrep -f mission-driver | head -1 > _tmp/loop.pid
+```
+
+---
+
 ## 4.1 GitHub Actions 配额（与 §4 的模型配额是两码事）
 
 **症状与模型限流完全不同，别混。** 2026-08-24 实测踩到，卡了不少时间。
