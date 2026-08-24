@@ -85,21 +85,31 @@ Spike 02 实测（`claude:sonnet`，四道探针的通过态）：
 | 跨单据血缘推理、根因诊断 | **需强模型。**「由更强的循环门禁补偿」这条替代路径已被 P1.0 实测**削弱**，见下方改准 |
 | 形态生成、跨职能规划 | 强模型 |
 
-**改准（2026-08-24 · P1.0 入口关口实验实测）**：上表第二行原文是
+**改准（2026-08-24 · P1.0 入口关口实验，采**人侧独立复核**的判定）**：上表第二行原文是
 「需强模型，或**由更强的循环门禁补偿**（见 §5.0 ①）」。那条替代路径**在本项目的实测下被削弱**：
 
-| 格位 | 正确 / 3 |
-|---|---|
-| `qwen-plus`（弱）· 门禁 **off** | **0** |
-| `qwen-plus`（弱）· 门禁 **on** | **2** |
-| `qwen3.6-plus`（强）· 门禁 **off** | **3** |
-| `qwen3.6-plus`（强）· 门禁 **on** | **3** |
+| 模型 | 门禁 | 正确 | 平均工具调用 |
+|---|---|---|---|
+| `qwen-plus`（弱） | off | **0/3** | 5.3 |
+| `qwen-plus`（弱） | **on** | **1/3** | 10.0 |
+| `qwen3.6-plus`（强） | off | **1/3** | 10.3 |
+| `qwen3.6-plus`（强） | **on** | **0/3** | 10.7 |
 
-同模型下门禁**有效**（0/3 → 2/3），但门禁**没有**让弱模型追上强模型无门禁的 3/3。
+**弱模型那半边支持命题**（门禁把 0/3 提到 1/3，工具调用 5.3 → 10.0）；
+**强模型那半边出现反向证据**（加门禁反而 1/3 → 0/3）。四格合计 **2/12** ——
+门禁在这道题上**没有把任何一个模型带到可用水平**。
 因此「门禁能补偿模型能力」这个推论在这道题上不成立，跨单据血缘推理仍须按强模型分档。
 
+⚠️ **每格 3 次只够看方向，不够算比率。**「0/3 vs 1/3」不得当作量化结论。
+正确表述是：**该命题在这道题上未获支持，且强模型格有反向证据。**
 ⚠️ **只覆盖一道题、两个模型、每格 3 次有效运行，不得外推。**
-判定见 `docs/audits/p1-insight/2026-08-24-P1.0-entry-gate.md`，14 份轨迹见 `docs/evidence/p1-entry-gate/`。
+
+**判定出处与一处需要知道的分歧**（照实记，不合并成一个数）：
+本表取 `docs/masterplan/STATE.md` §2 的 `2026-08-24T07:31Z` 行 —— **人侧独立复核**
+（非循环自审）用方案 §2 事先写死的三条判据逐条重判 14 份轨迹的结果，D-16「以本项目的实测为准」。
+循环自己写的 `docs/audits/p1-insight/2026-08-24-P1.0-entry-gate.md` 逐格计数与此**不同**
+（该文件记弱模型门禁 on 为 2/3、强模型两格均为 3/3），**复核已声明取代它**，
+且复核过程自陈修正过一次自身判据 bug。**两处结论标签一致（`被削弱`），分歧只在逐格计数上。**
 
 **被削弱的是「门禁能补偿能力」这个推论，不是门禁本身**——`agents-and-roles.md` §5.0 ① 的门禁规则文本一个字未动。
 
@@ -180,8 +190,8 @@ Spike 02 实测（`claude:sonnet`，四道探针的通过态）：
 
 | 模型 | 具备能力 | 计 reasoning token | 出处 |
 |---|---|---|---|
-| `qwen3.6-plus` | `tool_calling` · `long_context` · `reasoning` · `multi_hop` | 是 | D-11 默认模型；P1.0 强模型**无门禁 3/3**；14 份轨迹里每次调用均有非零 `reasoning_tokens` |
-| `qwen-plus` | `tool_calling` · `long_context` | 否 | P1.0 弱模型，门禁 off **0/3**、on **2/3**，两跳题上未表现出 `multi_hop`；7 份轨迹里 `reasoning_tokens` **全为 0** |
+| `qwen3.6-plus` | `tool_calling` · `long_context` · `reasoning` · `multi_hop` | 是 | D-11 默认模型（选型未翻案）；`is_reasoning_model` 是**硬证据**——7 份轨迹里每次调用都有非零 `reasoning_tokens`。⚠️ **`multi_hop` 是本表最弱的一格**，见下方限定 |
+| `qwen-plus` | `tool_calling` · `long_context` | 否 | P1.0 弱模型，门禁 off **0/3**、on **1/3**，两跳题上未表现出 `multi_hop`；7 份轨迹里 `reasoning_tokens` **全为 0** |
 | `qwen3:14b` | `tool_calling` | 否 | §12.3 Spike 03：JSON 动作协议稳定（结论 1），多跳追溯不够（结论 3）；长上下文与推理强度**本仓未观测，故不声明** |
 
 **摆放规矩，三条**：
@@ -194,5 +204,61 @@ Spike 02 实测（`claude:sonnet`，四道探针的通过态）：
 3. **「具备 `reasoning` 能力」与「计 reasoning token」是两件事**，刻意分成两列：
    前者是能力，后者是计费形态（P1.7 的成本上限读后者）。
    一个模型可以推理很强却不计 reasoning token，反之亦然。
+
+⚠️ **`multi_hop` 那一格是本表最弱的一处声明，逐字写明，不许读成「已实测支持」。**
+`qwen3.6-plus` 在**本项目自己的两跳题**上是 **2/6**（P1.0 四格里属于它的两格：
+无门禁 1/3、有门禁 0/3；另见 D-11 的复验注记 —— 外部基准 84.1% 在本项目任务上**未成立**）。
+把 `multi_hop` 给它，是照 §12.3「跨单据血缘推理需强模型」这条分档结论、
+把最高一档**限定**到本仓最强的那个模型上（D-11 选型未翻案），
+**不是**"实测证明了它多跳可靠"。后果照实说：`route('lineage', ...)` 今天会放行它，
+而它在本项目实测下答对不到一半。**这是 §12.5 三张表里第一个该被 P1.4 的真实结果推翻的格子。**
+已随 P1.1 收口在 `STATE.md` §3 追加 needs-human。
+
+#### 落地形态：文件职责、配置、判据分组
+
+| 文件 | 职责 | 刻意**不**做的事 |
+|---|---|---|
+| `agenerp/routing/capabilities.py` | 三份声明 + 声明自身的校验器 | 不做任何调用，不读环境 |
+| `agenerp/routing/config.py` | 三个 `AGENERP_LLM_*` 从环境读，零默认值 | 不认任何厂商变量名，key 不进 `repr` |
+| `agenerp/routing/adapter.py` | OpenAI 兼容 `/chat/completions`，transport 可注入，token 三项分开 | **不做能力校验**（那是 router 的活，放两处会一处松一处紧） |
+| `agenerp/routing/router.py` | 集合包含判定 + 明确失败 | **零模型参与**（D-15：规则能覆盖的流程不 Agent 化） |
+| `agenerp/routing/errors.py` | `RoutingError` / `DeclarationError` | 不提供任何"失败时回个空值"的出口 |
+| `agenerp/routing/__init__.py` | 导出面 6 个名字 | 不泄内部件 |
+
+**三个环境变量，一个默认值都没有**（缺任一个 → 指名报错）：
+
+| 变量 | 用途 |
+|---|---|
+| `AGENERP_LLM_BASE_URL` | OpenAI 兼容端点 |
+| `AGENERP_LLM_API_KEY` | 凭据。**绝不进 git / `repr` / 异常文本 / 日志** |
+| `AGENERP_LLM_MODEL` | 默认模型名 |
+
+**为什么不复用 `DASHSCOPE_*`**：那两个名字把厂商写进了产品配置面，与 §12.1 ① 直接冲突。
+实验设施 `tools/experiments/p1_entry_gate/` 仍在用旧变量，那是它的事，本层不读。
+活端点冒烟由跑的人显式转手一次（`AGENERP_LLM_API_KEY=$DASHSCOPE_API_KEY`）。
+
+**`tests/routing` 的判据分组**：
+
+| 文件 | 判的是什么 |
+|---|---|
+| `test_capabilities.py` | 声明与本节三张表**逐行同构** · 四类畸形声明各打红一次 · 空集反测 · `lineage` 必须严格严于 `explain` |
+| `test_adapter.py` | 四条正常路径 · 五类失败各抛一次且**都不回 `Reply`** · 凭据不外泄（哨兵 key vs `repr` 与异常文本）· CI 依赖面反测（AST + 全新解释器两道）· 导出面 |
+| `test_router.py` | 满足→回谁 · 不满足→抛且**文本说得出缺什么缺在谁身上** · `requested` 与默认两条路径参数化跑同一组用例 · **降级反测**（强模型不在候选时 `lineage` 抛，不回弱模型） |
+| `test_live_endpoint.py` | `-m live`。一次真实调用，断言 `usage.reasoning > 0`。无凭据 **skip 并打印理由** |
+
+⚠️ **判定面缺口，照实记，不假装没有。**
+`tests/routing` 既**不在** `missions/p1-insight.json` 的 `commands.test` 里，
+也**不在** `.github/workflows/gates.yml` 的任何 job 里（`unit-and-contracts` 的作用域是
+`tests/unit` `tests/contracts`，`lint` 的是 `agenerp tests/unit tests/contracts`）。
+`tests/tools` 是同形态的第一条缺口，`tests/routing` 是第二条。
+两者都要人来接（`missions/**` 与 `.github/workflows/**` 都在红线内，loop 不得动），
+已在 `STATE.md` §3 追加 needs-human。
+**在人接进去之前，不得声称 CI 覆盖了 `tests/routing`。**
+本层现有的代偿控制只有三条：本节的同构判据、`test_router.py` 的降级反测、
+以及 P1.1 收口时跑过的 M1–M5 假实现变异自查（结果表在 plan 的 Phase 3 记录里）。
+
+⚠️ **`pyproject.toml` 没有声明 `dependencies`**，`certifi` 至今是一个未声明的依赖。
+本层用惰性 import 与两道反测把它挡在"被 CI import 到"的路径之外，
+**这不等于依赖问题解决了** —— 真正解决要和"把 `tests/routing` 接进 CI"一起做，同属人的活。
 
 ---

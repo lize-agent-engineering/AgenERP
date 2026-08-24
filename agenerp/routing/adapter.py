@@ -37,8 +37,18 @@ DEFAULT_MAX_TOKENS = 2048
 
 @dataclass(frozen=True)
 class Usage:
-    """一次调用的 token 账。三项分开记，`total` 不含 reasoning ——
-    reasoning 的计价与 completion 常常不同，加在一起就分不开了。"""
+    """一次调用的 token 账。
+
+    **`reasoning` 是 `completion` 的一个细分，不是第四个桶** —— 2026-08-24 对活端点
+    实读的回包逐字如此：`{"prompt_tokens": 15, "completion_tokens": 178,
+    "total_tokens": 193, "completion_tokens_details": {"reasoning_tokens": 173}}`，
+    `15 + 178 = 193` 对得上，`reasoning` 落在 `completion` 里面。
+    所以 `total` 是 `prompt + completion`（与端点自报的 `total_tokens` 一致），
+    **绝不再把 reasoning 加一遍**。
+
+    分开记的理由不是"加总",是**留住这个细分**：推理模型回两个字也能烧掉九成的
+    completion（上面那次 178 里有 173 是 reasoning），reasoning 与可见输出常常不同价，
+    折掉这一位，P1.7 的成本上限就只能按"输出 178 token"去算，差一个量级。"""
 
     prompt: int = 0
     completion: int = 0
@@ -120,8 +130,8 @@ class ChatAdapter:
             "messages": list(messages),
             "max_tokens": max_tokens,
         }
-        # `tools` 只在给了的时候才进载荷：部分 OpenAI 兼容端点对空数组会 400，
-        # 那会把"这次不带工具"变成一次假故障。
+        # `tools` 只在给了的时候才进载荷。**这是取舍，不是实测**：空数组在各家兼容端点上的
+        # 行为本仓没有逐一验证过，不发送是那个两边都成立的选择。
         if tools:
             payload["tools"] = list(tools)
 
@@ -131,10 +141,29 @@ class ChatAdapter:
             raise RoutingError(
                 f"模型回包里没有 choices：{json.dumps(body, ensure_ascii=False)[:300]}"
             )
-        message = choices[0].get("message") or {}
+        first = choices[0]
+        message = first.get("message") if isinstance(first, dict) else None
+        if not isinstance(message, dict):
+            raise RoutingError(
+                f"模型回包的 choices[0] 里没有成形的 message："
+                f"{json.dumps(body, ensure_ascii=False)[:300]}"
+            )
+
+        text = (message.get("content") or "").strip()
+        tool_calls = tuple(message.get("tool_calls") or ())
+        if not text and not tool_calls:
+            # **既没有文本也没有工具调用 = 一次空回答**，与"模型选择不作答"长得一模一样。
+            # 回它出去就是本模块开头拒绝的那种降级，所以带上 finish_reason 抛出去
+            # （`length` 说明是 max_tokens 截断，那是调用方该知道的事，不是一次"回答"）。
+            raise RoutingError(
+                f"模型既没回文本也没回工具调用（finish_reason="
+                f"{first.get('finish_reason')!r}，usage={usage_of(body.get('usage') or {}).as_dict()}）"
+                "——**不降级成空回答**"
+            )
+
         return Reply(
-            text=(message.get("content") or "").strip(),
-            tool_calls=tuple(message.get("tool_calls") or ()),
+            text=text,
+            tool_calls=tool_calls,
             usage=usage_of(body.get("usage") or {}),
             model=self.model,
             raw=body,

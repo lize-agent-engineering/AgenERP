@@ -104,13 +104,32 @@ def test_three_token_counts_are_kept_apart():
     adapter = _adapter(lambda payload: _body({"content": "在线"}, usage))
     reply = adapter.chat([{"role": "user", "content": "问"}])
     assert reply.usage == Usage(prompt=1200, completion=40, reasoning=195)
-    assert reply.usage.total == 1240, "total 不含 reasoning —— 两者计价不同，加一起就分不开"
+    assert reply.usage.total == 1240, (
+        "total = prompt + completion，与端点自报的 total_tokens 一致；"
+        "reasoning 是 completion 的细分，**不许再加一遍**（活端点实读：15 + 178 = 193）"
+    )
     assert reply.usage.as_dict()["reasoning"] == 195
 
 
 def test_missing_reasoning_detail_reads_as_zero_not_as_completion():
     parsed = usage_of({"prompt_tokens": 10, "completion_tokens": 7})
     assert parsed == Usage(prompt=10, completion=7, reasoning=0)
+
+
+def test_reasoning_is_never_folded_into_completion():
+    """M4 变异自查当场补的一条：原先只有一处断言拦得住"reasoning 记进 completion"。
+    这条直接判解析函数本身 —— reasoning 与 completion 常常不同价，
+    折进去会让 P1.7 的成本模型算错一个量级。"""
+    parsed = usage_of(
+        {
+            "prompt_tokens": 5,
+            "completion_tokens": 12,
+            "completion_tokens_details": {"reasoning_tokens": 900},
+        }
+    )
+    assert parsed.completion == 12
+    assert parsed.reasoning == 900
+    assert parsed.total == 17
 
 
 def test_usage_plus_adds_all_three_dimensions():
@@ -161,6 +180,36 @@ def test_reply_without_choices_raises_instead_of_degrading_to_empty_text():
         adapter.chat([{"role": "user", "content": "问"}])
 
 
+def test_reply_whose_choice_has_no_message_raises():
+    adapter = _adapter(lambda payload: {"choices": [{"finish_reason": "stop"}], "usage": {}})
+    with pytest.raises(RoutingError, match="没有成形的 message"):
+        adapter.chat([{"role": "user", "content": "问"}])
+
+
+def test_a_reply_with_neither_text_nor_tool_calls_raises_instead_of_coming_back_empty():
+    """收尾自查（`development-wisdom-gate-prompt.md` 第 1 条"深度"）当场补的：
+    原实现在这里会**回一个空 `Reply`** —— 那正是模块头拒绝的那种降级，
+    与"模型选择不作答"长得一模一样。`finish_reason='length'` 是 max_tokens 截断，
+    调用方必须知道，不能被当成一次回答。"""
+    body = {
+        "choices": [{"message": {"content": ""}, "finish_reason": "length"}],
+        "usage": {"prompt_tokens": 9, "completion_tokens": 64},
+    }
+    with pytest.raises(RoutingError) as caught:
+        _adapter(lambda payload: body).chat([{"role": "user", "content": "问"}])
+    assert "length" in str(caught.value)
+    assert "不降级成空回答" in str(caught.value)
+
+
+def test_a_reply_with_only_tool_calls_and_no_text_is_still_valid():
+    """反过来不能矫枉过正：只回工具调用、不回文本是**正常**的一轮。"""
+    call = {"id": "c1", "type": "function", "function": {"name": "doc.get", "arguments": "{}"}}
+    reply = _adapter(lambda payload: _body({"content": None, "tool_calls": [call]})).chat(
+        [{"role": "user", "content": "问"}]
+    )
+    assert reply.text == "" and reply.tool_calls == (call,)
+
+
 def test_non_dict_body_raises():
     adapter = _adapter(lambda payload: "OK")
     with pytest.raises(RoutingError, match="不是 JSON 对象"):
@@ -175,8 +224,9 @@ def test_non_dict_body_raises():
         _raises(ValueError("bad json")),
         lambda payload: {"usage": {}},
         lambda payload: "OK",
+        lambda payload: {"choices": [{"message": {"content": "  "}}], "usage": {}},
     ],
-    ids=["http-5xx", "unreachable", "not-json", "no-choices", "not-an-object"],
+    ids=["http-5xx", "unreachable", "not-json", "no-choices", "not-an-object", "empty-answer"],
 )
 def test_no_failure_mode_ever_returns_a_reply(transport):
     """**降级反测**：五类失败没有一类能拿到 `Reply`。
