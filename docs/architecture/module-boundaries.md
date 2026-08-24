@@ -1115,6 +1115,149 @@ M3 **只有** J2(b) 杀得掉、M12 **只有** J10 杀得掉 —— 两条替身
 
 ---
 
+### 7.13 Desk 承载面选型（D1/D2/D3）在本仓的落点（P1.8 上半 · 2026-08-25）
+
+来源 plan：[`docs/plans/p1-insight/2026-08-24-2311-2-desk-embed-carrier-decision.md`](../plans/p1-insight/2026-08-24-2311-2-desk-embed-carrier-decision.md)
+实测记录：[`docs/analysis/2026-08-24-2311-desk-embed-carrier-probe.md`](../analysis/2026-08-24-2311-desk-embed-carrier-probe.md)
+
+> ⚠️ **本节的三条裁定是应用层裁定，不是主计划决策。** `docs/masterplan/DECISIONS.md`
+> 在本 plan 全程**一个字未改**（红线 3）。三条都在 D-10 划下的两扇门之内做选择，
+> 没有新开门，也没有改动任何一条既有决策的措辞。
+
+#### 这一节交付的是什么、不是什么
+
+**是**：一次只读探测的结论 + 三条裁定 + 交给 P1.8 下半的输入契约。
+**不是**：任何承载面的落地。**本 plan 没有落地任何承载面** ——
+没有自建 app、没有 `tests/ui/test_sidebar.py`、没有 ⌘K、没有侧边栏 UI、没有 HTTP 服务面，
+对活站点**零写**（读回证据见探测记录 §5）。
+唯一的代码改动是 `agenerp/site.py` 模块头的一句陈旧注释（见本节末）。
+
+#### Phase 1 实测表（摘要，完整表见探测记录 §2）
+
+Desk 全局 JS 的**完整来源**是 `apps/frappe/frappe/www/app.py:47` 那一行的两项：
+`hooks["app_include_js"]` 与 `frappe.conf["app_include_js"]`。
+
+| 候选 | 结论 | 依据 |
+|---|---|---|
+| **(A) 自建 Frappe app** | **需人批** | 走 `hooks["app_include_js"]`，是真正的全局注入点；身份原生就是登录用户（`www/app.py:21-26` 挡掉 Guest / Website User）。挡它的外部规则是 `docs/design/agents-and-roles.md` §9 **风险档表 L3 行**（「系统形态变更 … **强制人批** + 落 git + 可回滚」） |
+| **(B) `Client Script`** | **不能** | `client_script.json` 的 `dt` 是 `reqd: 1` 的 `Link/DocType`；消费端 `desk/form/meta.py:148` 按 `dt` 过滤 ⇒ 按 DocType 逐条挂，做不出全站 ⌘K。且承载物是 DB 里的一行文本 ⇒ 运行期那扇门 |
+| **(C) 本机 HTTP 服务** | **不能（单独）** | Desk 页面没有第三个 JS 注入口，(C) 送不进去；跨源无 `Access-Control-Allow-*`（实测 `OPTIONS` 回 200 且无该头）；`sid` cookie 不会带给另一个端口 |
+| **(B′) `Website Script` / `Website Theme.js`** | **不能** | `frappe/hooks.py:46` 是 **`web_include_js`**（门户页），Desk 不取 |
+| **(B″) `Custom HTML Block`** | **不能** | 真在 Desk 里跑 JS（`create_shadow_element`），但只在放了该 widget 的那一张 Workspace 页上 |
+| **(D) `Website Settings.head_html` 一族** | **不能** | 消费处 `templates/includes/head.html` 只被 `templates/base.html:24` include，而 **`www/app.html` 不 extends `base.html`** ⇒ **Desk 根本不渲染它** |
+| **(E) `frappe.conf["app_include_js"]`**（探测期新发现） | **停机交人** | 是第二个全局注入点，但承载物是共用 `sites:` volume 里的 `site_config.json` ⇒ 落运行期那扇门 |
+| **(F) 覆盖镜像层 `apps/**` / `assets/**`** | **不能** | `/proc/self/mountinfo` 实读：`frappe-bench` 下只有 `sites` 与 `logs` 两个 volume ⇒ 容器重建即丢；且落运行期那扇门 |
+| **(G) 浏览器 userscript / 扩展** | **停机交人** | 技术上可行，但代码不进 git、写完立刻生效、`git revert` 撤不掉 |
+
+#### D1 · 承载面 = **(A) 自建 Frappe app，但激活需人批**
+
+**① 选中项**：(A)。P1.8 下半的承载面走 `hooks["app_include_js"]`，
+即在本仓 git 里写一个 Frappe app，由**人**批准后 `bench install-app` + 重启激活。
+
+**② 三条备选的否决理由（引实测格，不引起草期推测）**：
+
+- **(B) 被否决**：不是「不该做」，是**结构上做不到** —— `dt` 的 `reqd: 1` 与
+  `meta.py:148` 的 `filters={"dt": self.name}` 两处实读合起来说明它只能按 DocType 逐条挂。
+  P1.8 要的是「全站 ⌘K」，逐条挂做不出来。**这一条与 §14.3 的立场无关，先在结构上就不成立。**
+- **(C) 被否决**：`www/app.py:47` 实读证明 Desk 的 JS 只有两个来源，(C) 不在其中；
+  它必须借别人的注入口，因此**单独满足不了「嵌 Desk」**。它可以作为 (A) 的下游，但那是下半的事。
+- **(B′) / (B″) / (D) 被否决**：三者都实测**到不了 Desk 页面**（`web_include_js` 门户专用 ·
+  Workspace 单页 · `app.html` 不渲染 `head_html`）。
+  ⚠️ 特别记：**(D) 正是 plan §6「洞四」担心的那个形状** —— 实测表明它在 **Desk 上根本不成立**。
+  这**不削弱** §6 的护栏（(D) 依然是运行期那扇门、依然该停机），只是说它连诱惑都构不成。
+- **(E) / (F) / (G) 被否决**：三者按 §6 属性判定**第二问全中**（非 git 源的文本 · 写完立刻生效 ·
+  `git revert` 撤不掉）⇒ 一律停机交人，loop 不选。
+
+**③ 它落在 D-10 的哪扇门，为什么这不是对 D-10 的试探**：
+
+D-10 逐字把**构建期**定义为「代码进 git、走 PR 人审、`bench install-app` + **重启**才生效。
+可 diff、可 revert、可人审，而『重启』本身就是闸」。(A) **逐字就是这个形状**。
+按 §6 两问逐格答：
+
+| 承载物 | 一① 代码进 git | 一② 走人审 | 一③ 装 app/重启才生效 | 二① 非 git 源的文本 | 二② 写完立刻生效 | 二③ revert+重起后仍在 | 判定 |
+|---|---|---|---|---|---|---|---|
+| **(A) 自建 Frappe app** | **是** —— `apps/agenerp_desk/**` 进本仓 | **是** —— 激活由人按 Protected Areas 的批准手段放行；⚠️ **子代理评审不算人审** | **是** —— `install-app` + 重启 | **否** —— 逐字来自本仓 git | **否** —— 有 `install-app` + 重启这道闸 | **否** —— revert 源码 + 重起栈后那份文本不再来自本仓 | **不触发** |
+
+⇒ **护栏六格全不触发，D1 正常出结论，不停机。**
+「不是试探」的理由是 D-10 自己给的：D-10 要禁的是**运行期 Server Script**
+（「暂不解开红线 7」），它反过来**背书**构建期这扇门。
+⚠️ **同时照实说清一件事**：D-10 的「重估不早于 P2 跑通」管的是**解开红线 7**，
+**不是**「人手写一个 custom app」。把它拿来挡 (A) 是误读，本节不这么用。
+
+**④ 残余风险（三条，逐条给判据形状或重开事件）**：
+
+- **(A) 从未被真正装过。** 本 plan 全程只读，`bench install-app` **一次没跑**。
+  H2b 的只读查证说「对零 DocType 的 app 不发 DDL」，那是**读源码得出的**，不是实测。
+  真装那一次可能撞上本次读不出来的东西。→ 交人批那一步一并验证。
+- **静态资产公开可取**：`GET /assets/frappe/images/frappe-favicon.svg` 无 cookie 回 **200**（实测）。
+  这是承载面的**已知属性，不是缺陷**。→ D3 ① 逐字禁止拿它当权限判据。
+- **合规管道能带进不合规承载物**：`frappe/model/sync.py` 的 `IMPORTABLE_DOCTYPES` 含
+  `("custom","client_script")` 与 `("core","server_script")` ⇒ 一个「合规的」app 可以把
+  `Client Script` / `Server Script` 当 fixture 带进站点。**管道合规不豁免承载物。**
+  → P1.8 下半的 app 里**不得出现这两类 fixture**，这条进 D3。
+
+**⑤ 翻案条件**：① 人批不通过或长期不批，且出现一条**不落运行期那扇门**的替代承载面
+（今天穷举下不存在，见探测记录 §3.5 十二条）；② 上游镜像改变 `www/app.py:47` 的注入模型；
+③ 人在 `DECISIONS.md` 发起 D-10 重估并写 `R-x`。
+
+#### D2 · 身份口径 = **(i) 当前登录用户**
+
+**选中项**：解释请求按**浏览器里那个登录用户**的权限作答。
+
+**为什么做得到**：(A) 白送。`www/app.py:21-26` 实读 —— Desk 页面对 `Guest` 直接 403 + 跳 `/login`，
+对 `Website User` 直接 `PermissionError`；因此打到 app 内 whitelisted method 的每一个请求，
+其调用帧里的 `frappe.session.user` 天然就是那个人。**接缝 = 调用帧。**
+
+**备选与否决理由**：
+
+- **(ii) Administrator（今天的实然）—— 否决。** 逐字写明它是**一次已知的信息越权**，
+  不是「暂未实现」：`agenerp/site.py` 的凭据来自环境变量（`credential_from_env`），
+  P1.3 注入的开场 `permission.scope` 是按 `SiteClient` 的身份算的，不是按浏览器里那个人算的。
+  一旦让浏览器发起解释而服务端仍用管理员凭据作答，**等于把信息越权暴露给任何能打开侧边栏的人**。
+  **重开事件**（若 P1.8 下半因故落到 (ii)）：**浏览器第一次发起解释的那一刻** ——
+  这是从 [`2026-08-24-2311-1`](../plans/p1-insight/2026-08-24-2311-1-immediate-context-into-explain-loop.md) §11 继承来的触发条件，**不许被下游改晚**。
+- **(iii) 显式降权（按传入身份重建受限 `SiteClient`）—— 否决，但留作 fallback。**
+  它只在「解释跑在容器外的本机进程里」时才需要；(A) 选中后解释跑在 backend 容器内，
+  用 Frappe ORM 直接受当前用户权限约束，(iii) 是多余的一层，而多一层身份转译就多一处能骗过判据的地方。
+  ⚠️ **若 P1.8 下半实测发现必须把请求转手给容器外的 `agenerp` 进程**（例如 LLM 凭据不进容器），
+  身份问题原样回来，届时 (iii) 是唯一合规选项，且必须带下面那条判据。
+
+**残余风险**：(A) 的身份保证**只对跑在容器内的那段代码成立**。
+凡把请求转手给本机 `agenerp` 进程的形状，身份都要重新回答。
+
+**⚠️ 无论选哪个，P1.8 下半必须交付的那条判据的形状（逐字）**：
+
+> **登录判定必须把请求里的 Frappe `sid` cookie 转发给站点、断言
+> `frappe.auth.get_logged_user` 回的是那个用户**；
+> **伪造 / 过期 `sid` 必须被拒**。
+
+它挡的是：一个自定义 `X-Logged-In` 头就能骗过所有判据（上一轮评审实证）。
+**不许**用「请求里带了个用户名」当登录判定。
+
+#### D3 · 判定面口径 —— 交给 P1.8 下半的判据清单（**最小集，逐条注明挡哪种假实现**）
+
+| # | 判据形状 | 它挡的是哪种假实现 |
+|---|---|---|
+| **①** | **静态资产公开可取是承载面的已知属性，不许拿它当权限判据**（实测 `/assets/**` 无 cookie 回 200）。权限**只判解释端点那一侧** | 挡「写一条『未登录取不到资产』的断言」——那条在 (A) 上**按构造判不绿**，会被当成实现坏了而去放宽真正的权限判据 |
+| **②** | **同一性**：注入内容里必须出现**只有该 `{doctype, name}` 才有的值** | 挡「注入了一段跟当前单据无关的固定文本」 |
+| **③** | **差分**：换一个 `name` 跑第二次，结果必须**不同** | 挡「服务端忽略 `name`、永远取回同一张单据」。本仓踩过同形状的坑（roadmap 工作项 5 逐字「M6 第一轮是绿的」） |
+| **④** | **绑定地址字面写死 `127.0.0.1`、不经环境变量**（`system-baseline.md` §14.1 同一条理由），且**缺失 / 异常 `Origin` 的请求被拒**；配一条变异验证「改成 `0.0.0.0` → 应红」 | 挡「单测绿、真实绑到 0.0.0.0」——静态文本扫描管不到 `.env`（`test_published_ports_bind_loopback_literally` 的同一条教训） |
+| **⑤** | **坏输入的期望在动手前写死**：不存在的 `{doctype, name}` / 空 `question` / 超长 `question` **三种**，各自的状态码与错误标识**逐条预先写死**，事后只填「实际」（先例：P1.6 的 `0/3/4/5` 四种可区分退出码） | 挡「事后照着实现的行为补断言」——那种判据对任何实现都绿 |
+| **⑥**（本轮实测新增） | **P1.8 下半交付的 app 里不得出现 `Client Script` / `Server Script` fixture**，配一条对 app 目录的扫描判据 | 挡「管道合规、承载物不合规」：`sync.py` 的 `IMPORTABLE_DOCTYPES` 含这两项，一个合规的 app 能把它们带进站点（探测记录 §3.2） |
+| **⑦**（= D2 那条，重复列出以免掉队） | **`sid` 转发 + `frappe.auth.get_logged_user` 断言 + 伪造/过期 `sid` 必须被拒** | 挡「一个自定义 `X-Logged-In` 头骗过所有判据」 |
+
+**残余风险**：D3 是**判据形状**，不是判据本身。本 plan 没有交付任何可跑的东西，
+因此**没有可跑的行为判据** —— 这条替代关系是显式的（plan §8 R5），
+**不许在收口时被读成「本 plan 免于判据要求」**。
+
+#### 一处随本节改准的陈旧注释
+
+`agenerp/site.py:5` 原文逐字「本模块仍是唯一的 HTTP 落点」，**自 P1.1 起为假** ——
+`agenerp/routing/adapter.py:196-208` 也在 `urllib.request` 出网打 LLM 端点。
+已改成「唯一**经 HTTP 打站点**的模块」并点名另一条出网路径。**只改注释，行为代码一行未动**
+（`ruff check agenerp` → exit 0）。
+⚠️ 本文件 §11.7 那句「连活站点的**唯一 HTTP** 传输落点」在「打站点」这个读法下**仍然成立，不改**。
+
 
 ---
 

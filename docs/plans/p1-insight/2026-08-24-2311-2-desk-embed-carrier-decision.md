@@ -1,6 +1,6 @@
 # P1.8 上半 · Desk 承载面选型（只读探测 + Decision）
 
-> Plan Status: active
+> Plan Status: completed
 > Mission: p1-insight
 > Work Item: 10. Agent 侧边栏嵌 Desk（P1.8）
 > Execution Order: 2 / 2（本批第二个。**必须在 `2026-08-24-2311-1-immediate-context-into-explain-loop.md` 收口之后开工** —— 两者共用三处文档落点：`module-boundaries.md` 新增节 · `STATE.md` 只追加 · `docs/logs/2026/08-24.md`；开写前重读当时的最大节号再顺延）
@@ -22,6 +22,21 @@ grep -rn "^### 7\." docs/architecture/module-boundaries.md | tail -3
 ### 0.1 执行期重取基线的**实读结果**
 
 > 执行者填。**本节为空即视为未重取基线。** 落点节号在本节落定，后文一律引本节。
+
+**执行日 2026-08-25，五条命令逐条实跑（全文与退出码在 `docs/analysis/2026-08-24-2311-desk-embed-carrier-probe.md` §0）**：
+
+- `git log -1 --format=%H` → `e804143e243eb4cfabca7605b368193c9d2bc08a`；`git status --porcelain` → **无输出**（工作区干净，本批第一个 plan 已收口）
+- `docker compose ps` → 九个服务全 Up 15 小时，`frontend` 映射 `127.0.0.1:18080->8080/tcp`，`backend`/`db`/`frontend`/`websocket`/`redis-*` healthy
+- `sed -n '77,90p' docs/context/ai-autonomy-policy.md` → Protected Areas 全表 14 行实读，与 §4 引用一致
+- `grep -n "Client Script\|Server Script" docs/architecture/system-baseline.md` → 两处命中：`:54`（不重写 Desk 的理由）与 **`:370`**（逐字「不建 `Server Script` / `Client Script` 任何一种」），与 §1.3 一致
+- `grep -rn "^### 7\." docs/architecture/module-boundaries.md | tail -3` → `7.10` / `7.11` / **`7.12`**（`7.12` 由本批第一个 plan 落下）
+
+→ **本 plan 的落点节号定为 `### 7.13`**，接在 `### 7.12` 之后。后文一律引本节。
+⚠️ plan 起草期写的是「接在 `### 7.11` 之后」，那是起草时的最大节号；按 `Execution Order` 那条「开写前重读当时的最大节号再顺延」，实际顺延到 **7.13**。
+
+⚠️ **日志落点与 plan 字面的偏离，照实记**：plan Phase 2 Targets 写 `docs/logs/2026/08-24.md`，
+实际执行日是 **2026-08-25**，按 `docs/logs/00-log-writing-guide.md` 的「一天一个文件」写进
+**`docs/logs/2026/08-25.md`**（本批第一个 plan 同样偏离、同样处置）。
 
 ## 1. Current Baseline
 
@@ -227,16 +242,16 @@ P1.3 交付的开场 `permission.scope` 注入**是按 `SiteClient` 的身份算
 
 | # | 假设（预测） | 怎么判 | 实际 |
 |---|---|---|---|
-| **H1** | 站点上**五类「代码存 DB」文档全部为 0 条**：`Client Script` · `Server Script` · `Website Script` · `Custom HTML Block` · `Workspace Custom Block`（前两类是复核 open-questions #20 今天是否仍成立，后三类本项目此前**没测过**）。**外加**：`Website Settings` 的 `head_html` / `brand_html` 为空、`banner_html` 为引导脚本写进去的那段静态文本；`Website Theme` / `Navbar Settings` 上的 `Code` 字段值一并记下作基准 | `SiteClient` 只读 list 五次 + 读 `Website Settings` / `Website Theme` / `Navbar Settings` 各一次；**这些值同时是 Phase 1「零写」读回的基准** | 待填 |
-| **H2** | **(A) 走不完的第一处卡点，是一条外部规则而不是本 plan 自己的 Non-Goals**。预测：卡点是**把 app 源码弄进容器**这一步，它要么改 `docker-compose.yml`、要么写共用的 `sites:` volume；**外部约束是 `tests/gates/test_zero_dep_boot.py`（裁判，红线 1 保护）与 `tests/unit/test_compose_zero_dep.py`**。⚠️ **判定时必须指名外部规则的具体哪一行**，可引来源**五类**：Protected Areas · 风险档表 · 红线表 · **`tests/gates/**` 与 `tests/unit/**` 里的既有判据**（红线 1 保护的裁判）· `02-WBS.md` 表规。五类都引不到，则记 **`未测出`** 并走下面的分支 | 按 §5.1 白名单逐步探到第一处见即停命令为止 | 待填 |
-| **H2b** | **`bench install-app` 到底发不发 DDL，本项目没测过**。预测：**对一个零 DocType 的最小 app，它不建表、不发 DDL**，只插 `Module Def` / `Installed Application` 两类行。⚠️ 因此**不得**先验地把 (A) 归到风险档 L3 第一格「新建 DocType（DDL）」—— 起草期第一版正是这么写的，iteration 2 评审指出该断言未经验证 | **只读**查证：读镜像内 `install_app` 的源码路径；**不跑该命令**（§5.1 见即停） | 待填 |
-| **H3**<br>**复核项** | **(B) 无全局注入点**：`Client Script.dt` 是 `reqd: 1` 的 `Link/DocType`，因此它只能按 DocType 逐条挂 ⇒ **做不出「全站 ⌘K」** | 读镜像内 `client_script.json`，**只读，不建任何文档** | 待填 |
-| **H4**<br>**复核项** | **(B) 的 `view` 取值只有 `List` / `Form`**，因此即使逐条挂也只覆盖两种视图。⚠️ **`view` 本身不是必填**（起草期实读 `reqd` 未设）—— 别据此推出「范围强制收窄」这种不存在的约束 | 同上，读同一个文件 | 待填 |
-| **H5** | **(C) 单独满足不了「嵌 Desk」**：不存在**不改站点、不改镜像**的办法把一段 JS 送进 Desk 页面 | Phase 1 穷举并逐条记否决理由（含 `Website Script` / `app_include_js` / `bench build` 各自的落点） | 待填 |
-| **H6a** | **(A) 上身份守得住**：whitelisted method 跑在 backend 容器内的**调用帧**里，`frappe.session.user` 天然是登录用户 | 纸面推演 + 指名接缝（调用帧）；**本 plan 不实跑解释**（Non-Goals 5） | 待填 |
-| **H6b** | **(B) / (B′) 上身份守得住一半**：浏览器带 cookie 打站点那一段是登录用户，但它**够不到 `agenerp`**，真正作答的那一段身份未定 | 纸面推演 + 指名接缝（浏览器 cookie） | 待填 |
-| **H6c** | **(C) 上身份守不住**：`SiteClient` 用的是环境变量里的管理员凭据，**服务端认不出浏览器里那个人** | 纸面推演 + 指名接缝（`agenerp/site.py` 的凭据来源） | 待填 |
-| **H7** | **三条候选没有一条是 loop 今天走得完的**：(A) 卡人批、(B) 撞 §14.3 立场且无全局注入点、(C) 到不了 Desk。⚠️ **若此条不吻合**（即真有一条走得完），**停机交人，不由 loop 重排 D1** —— iteration 3 评审指出：原写法「停下来重判」把决定权留在了 loop 手里，而 H5 的反例（userscript 恰好就是「不改站点不改镜像也能送 JS 进 Desk」的办法）会经由 H7 悄悄变成一条可选路 | Phase 1 三格结论合取 | 待填 |
+| **H1** | 站点上**五类「代码存 DB」文档全部为 0 条**：`Client Script` · `Server Script` · `Website Script` · `Custom HTML Block` · `Workspace Custom Block`（前两类是复核 open-questions #20 今天是否仍成立，后三类本项目此前**没测过**）。**外加**：`Website Settings` 的 `head_html` / `brand_html` 为空、`banner_html` 为引导脚本写进去的那段静态文本；`Website Theme` / `Navbar Settings` 上的 `Code` 字段值一并记下作基准 | `SiteClient` 只读 list 五次 + 读 `Website Settings` / `Website Theme` / `Navbar Settings` 各一次；**这些值同时是 Phase 1「零写」读回的基准** | **部分吻合。** `Client Script` **0** · `Server Script` **0** · `Custom HTML Block` **0** · `Workspace Custom Block` **0**（前两条同时复核 open-questions #20，**今天仍成立**）。**`Website Script` 不吻合，且不是数不对而是问法不成立**：实读 `website_script.json` 的 `issingle: 1` ⇒ 它是 **Single**，没有 `tabWebsite Script` 表，`get_count` 直接 HTTP 500 `pymysql.err.ProgrammingError: ('DocType', 'Website Script')`。**「五类都数条数」这个前提对它按构造无效** —— 与 §6 洞三对 `Website Settings` 说的是同一件事，起草期没认出来；改判值：`.javascript` = **NULL**。基准值：`Website Settings.head_html` = NULL · `.banner_html` = sha256 前16位 `0d6c2fcef48a3d44`/len 399 · `.brand_html` = NULL · **`Website Theme` 实为普通 DocType（1 行 `Standard`）不是 Single**，`.theme_scss` = `5eed0b43b25e3b9d`/len 165、`.custom_overrides` = 空串、`.js` 载荷中不存在（NULL）· **`Navbar Settings` 实读一个 `Code` 字段都没有**（只有两张子表）—— Non-Goals 2 把它列进检测面是多列了一个，照实记 |
+| **H2** | **(A) 走不完的第一处卡点，是一条外部规则而不是本 plan 自己的 Non-Goals**。预测：卡点是**把 app 源码弄进容器**这一步，它要么改 `docker-compose.yml`、要么写共用的 `sites:` volume；**外部约束是 `tests/gates/test_zero_dep_boot.py`（裁判，红线 1 保护）与 `tests/unit/test_compose_zero_dep.py`**。⚠️ **判定时必须指名外部规则的具体哪一行**，可引来源**五类**：Protected Areas · 风险档表 · 红线表 · **`tests/gates/**` 与 `tests/unit/**` 里的既有判据**（红线 1 保护的裁判）· `02-WBS.md` 表规。五类都引不到，则记 **`未测出`** 并走下面的分支 | 按 §5.1 白名单逐步探到第一处见即停命令为止 | **不吻合。** 卡点**不是**「把 app 源码弄进容器」那一步撞判据 —— 预测点名的 `tests/gates/test_zero_dep_boot.py`（只判「空环境 `config -q` 退 0 / 全 healthy / 首页含『AI 能力未配置』」）与 `tests/unit/test_compose_zero_dep.py`（`test_bootstrap_script_dir_is_mounted_literally` 作用域**只有 `bootstrap-homepage` 一个服务块**；`test_no_floating_image_tags` 只扫 `image:` 行、管不到 `build:`）**实读后都挡不住 (A)**。真正引得到的外部规则是**另一条**：`docs/design/agents-and-roles.md` §9 **风险档表 L3 行**（「系统形态变更 … **强制人批** + 落 git + 可回滚」）。⚠️ **「必须引到外部规则」这条硬要求满足，`未测出` 分支不触发。** 另记两条**不引**的理由：D-10 的「重估不早于 P2」管的是解开红线 7、不是手写 custom app（拿它挡 (A) 是误读）；Protected Areas 那行落点列点名的是 `create_doc`/`ensure_doc`/`seedsite.py` 且 Rule 值是 `plan-first` 不是 `blocked`。探测记录 §3.1 |
+| **H2b** | **`bench install-app` 到底发不发 DDL，本项目没测过**。预测：**对一个零 DocType 的最小 app，它不建表、不发 DDL**，只插 `Module Def` / `Installed Application` 两类行。⚠️ 因此**不得**先验地把 (A) 归到风险档 L3 第一格「新建 DocType（DDL）」—— 起草期第一版正是这么写的，iteration 2 评审指出该断言未经验证 | **只读**查证：读镜像内 `install_app` 的源码路径；**不跑该命令**（§5.1 见即停） | **前半吻合，后半不吻合。**「不发 DDL」吻合：实读 `frappe/installer.py:273-341` → `sync_for(name, ...)`；`frappe/model/sync.py:51+` 按 `IMPORTABLE_DOCTYPES` 的 18 组去 app 目录收 `*.json`，**零 DocType 的 app 贡献零个文件 ⇒ 不进 `import_file_by_path` ⇒ 不发 DDL**。「只插 `Module Def` / `Installed Application` 两类行」**错**：实读还会写 `Portal Settings`（`sync_menu()`）· `Patch Log`（`set_all_patches_as_completed`）· `Scheduled Job Type`（`sync_jobs()`）· 全局 `installed_apps`。**该命令一次没跑**，全部只读查证。⚠️ 顺带读出一条对下半有约束力的事实：`IMPORTABLE_DOCTYPES` **含 `("custom","client_script")` 与 `("core","server_script")`** ⇒ 合规的 app 能把这两类当 fixture 带进站点 —— **管道合规不豁免承载物** |
+| **H3**<br>**复核项** | **(B) 无全局注入点**：`Client Script.dt` 是 `reqd: 1` 的 `Link/DocType`，因此它只能按 DocType 逐条挂 ⇒ **做不出「全站 ⌘K」** | 读镜像内 `client_script.json`，**只读，不建任何文档** | **仍成立。** 实读 `client_script.json`：`{'fieldname':'dt','fieldtype':'Link','options':'DocType','reqd':1}`；消费端 `frappe/desk/form/meta.py:148-151` 逐字 `filters={"dt": self.name, "enabled": 1}` —— 它挂在**每个 DocType 自己的 meta** 上 ⇒ **做不出全站 ⌘K** |
+| **H4**<br>**复核项** | **(B) 的 `view` 取值只有 `List` / `Form`**，因此即使逐条挂也只覆盖两种视图。⚠️ **`view` 本身不是必填**（起草期实读 `reqd` 未设）—— 别据此推出「范围强制收窄」这种不存在的约束 | 同上，读同一个文件 | **仍成立，且要补一句。** 实读 `{'fieldname':'view','fieldtype':'Select','options':'List\nForm'}`，`reqd` 未设（预测正确）。但消费端 `meta.py:161-176` 只有 `if script.view == "List"` 与 `elif script.view == "Form"` 两个分支 ⇒ **`view` 为空的记录两个分支都不进，整条不生效**。「范围收窄」在**消费端**确实存在，机制是「不填就不生效」而非「必填」 |
+| **H5** | **(C) 单独满足不了「嵌 Desk」**：不存在**不改站点、不改镜像**的办法把一段 JS 送进 Desk 页面 | Phase 1 穷举并逐条记否决理由（含 `Website Script` / `app_include_js` / `bench build` 各自的落点） | **不吻合（被 (G) 反证；§6 洞三已预告过这个方向）。** 存在不改站点、不改镜像就把 JS 送进 Desk 的办法：浏览器 userscript / 扩展 / bookmarklet。**H5 的措辞是错的。** ⚠️ 但**不改变 (C) 的结论**：(C) 指的是「本机 HTTP 服务」，userscript 是**另一个承载物**；(C) 单独仍满足不了「嵌 Desk」，因为 Desk 的 JS 只有 `www/app.py:47` 那两个来源，(C) 不在其中。穷举 12 条与各自否决理由见探测记录 §3.5；三个障碍逐条：**注入点**（决定性）· **同源**（站点侧 `OPTIONS` 实测回 200 且**无任何 `Access-Control-Allow-*` 头**，跨源许可要由 (C) 自己发）· **cookie**（`sid` 是站点域的 cookie，不会带给另一个端口；另记响应头 `X-Frame-Options: SAMEORIGIN`，反向 iframe 也不通） |
+| **H6a** | **(A) 上身份守得住**：whitelisted method 跑在 backend 容器内的**调用帧**里，`frappe.session.user` 天然是登录用户 | 纸面推演 + 指名接缝（调用帧）；**本 plan 不实跑解释**（Non-Goals 5） | **吻合。** 实读 `apps/frappe/frappe/www/app.py:21-26`：`frappe.session.user == "Guest"` → 403 + 跳 `/login`；`user_type == "Website User"` → `PermissionError`。⇒ 进到 Desk 的每个请求都带着已解析的登录用户，app 内 whitelisted method 的调用帧里 `frappe.session.user` 天然就是那个人。**接缝 = 调用帧。本 plan 没有实跑解释**（Non-Goals 5） |
+| **H6b** | **(B) / (B′) 上身份守得住一半**：浏览器带 cookie 打站点那一段是登录用户，但它**够不到 `agenerp`**，真正作答的那一段身份未定 | 纸面推演 + 指名接缝（浏览器 cookie） | **吻合。** (B)/(B′)/(B″) 里那段 JS 用浏览器 cookie 打站点 —— 那一段是登录用户；但它**够不到 `agenerp`**（§1.4 (B) 格「调不到」经本轮实读确认：`agenerp` 不在容器里，浏览器也没有它的地址），真正作答的那一段身份未定。**接缝 = 浏览器 cookie** |
+| **H6c** | **(C) 上身份守不住**：`SiteClient` 用的是环境变量里的管理员凭据，**服务端认不出浏览器里那个人** | 纸面推演 + 指名接缝（`agenerp/site.py` 的凭据来源） | **吻合。** 实读 `agenerp/site.py:400` `credential_from_env` 与 `:412` `client_from_env`：凭据只来自环境变量（`AGENERP_ADMIN_PASSWORD` 或 `AGENERP_API_KEY`+`AGENERP_API_SECRET`），**服务端认不出浏览器里那个人**。**接缝 = `agenerp/site.py` 的凭据来源** |
+| **H7** | **三条候选没有一条是 loop 今天走得完的**：(A) 卡人批、(B) 撞 §14.3 立场且无全局注入点、(C) 到不了 Desk。⚠️ **若此条不吻合**（即真有一条走得完），**停机交人，不由 loop 重排 D1** —— iteration 3 评审指出：原写法「停下来重判」把决定权留在了 loop 手里，而 H5 的反例（userscript 恰好就是「不改站点不改镜像也能送 JS 进 Desk」的办法）会经由 H7 悄悄变成一条可选路 | Phase 1 三格结论合取 | **合取结论吻合 —— 三条候选没有一条是 loop 今天走得完的。** (A) **需人批**（§9 风险档表 L3 行）· (B) **不能**（无全局注入点）· (C) **不能**（到不了 Desk）。探测期新发现的三条 (E) `frappe.conf["app_include_js"]` / (F) 覆盖镜像层 / (G) userscript **同样一条都不是 loop 走得完的**：三者按 §6 第二问全中 ⇒ 一律停机交人。**H7 的「停机交人、不由 loop 重排 D1」分支不触发**，因为它的触发条件是「真有一条走得完」，而实测没有 |
 
 ⚠️ **对称护栏 —— 按「门」定义，不按「名字」定义（iteration 2 评审逼出的第二版，逐字保留）**：
 
@@ -335,7 +350,7 @@ P1.3 交付的开场 `permission.scope` 注入**是按 `SiteClient` 的身份算
 
 ### Phase 1 — 只读探测：三条候选各探到「能 / 不能 / 需人批」
 
-Status: planned
+Status: completed
 Targets: `docs/analysis/2026-08-24-2311-desk-embed-carrier-probe.md`（新建）· **无产品代码、无站点写**
 Skill: `none`
 Prereqs: 本批第一个 plan 已 `completed`；§0.1 已填（⚠️ **不做备份** —— §5 已说明理由，`bench backup` 在 §5.1 见即停清单里）
@@ -343,35 +358,35 @@ Prereqs: 本批第一个 plan 已 `completed`；§0.1 已填（⚠️ **不做�
 - Item Types: `Explore | Proof`（前五项为探索项、末项为 `Proof`；
   **结论未出之前不许写任何产品代码**。`Explore` 的授权出处是 Minimum Rule 9）
 
-- [ ] `Explore` **(A) 自建 app**：从「资产怎么进 Desk」倒推所需的每一步，
+- [x] `Explore` **(A) 自建 app**：从「资产怎么进 Desk」倒推所需的每一步，
       按 §5.1 **白名单**逐步探，**探到第一条「见即停」命令就停**。
       记下：是哪一步、命令原文（**写下来但不跑**）、它触发的**外部规则具体哪一行**
       （五类来源见 H2：Protected Areas · 风险档表 · 红线表 · `tests/gates/**` 与 `tests/unit/**`
       的既有判据 · `02-WBS.md` 表规）。
       ⚠️ **五类都引不到时记 `未测出`，并走下面写死的分支** —— 不许记成「需人批」
       （那是拿本 plan 自己的 Non-Goals 当外部规则，即 R2 点名的推卸）
-- [ ] `Explore` **(A) 的 `未测出` 分支（起草期写死，不许现编）**：
+- [x] `Explore` **(A) 的 `未测出` 分支（起草期写死，不许现编）**：
       若 (A) 的卡点只能引到本 plan 自己的 Non-Goals，则
       ① 在 `STATE.md` §3 追加一条 needs-human，逐字写明「(A) **从未被真正测过**，
       挡住它的是本 plan 自己的定界，不是外部规则」；
       ② D1 **必须逐字复述这一句**，不许把 (A) 静默当成「已排除」；
       ③ H7 中 (A) 那一格记 `未测出`（**既不算吻合、也不算不吻合**）
-- [ ] `Explore` **(B) `Client Script`**：**只读**镜像内 `apps/frappe/frappe/custom/doctype/client_script/client_script.json`
+- [x] `Explore` **(B) `Client Script`**：**只读**镜像内 `apps/frappe/frappe/custom/doctype/client_script/client_script.json`
       验 H3 / H4；`SiteClient` 只读 list 验 H1。
       **一条文档都不建**（Non-Goals 2）。同时逐字核对它与 D-10 两扇门的对应关系
-- [ ] `Explore` **(C) 本机 HTTP 服务**：只验「浏览器能不能从 Desk 页面调到它」，
+- [x] `Explore` **(C) 本机 HTTP 服务**：只验「浏览器能不能从 Desk 页面调到它」，
       验 H5；同源策略 / cookie / CORS 三个障碍逐条记（**纸面 + 只读 `curl`，不起任何服务**）
-- [ ] `Explore` **穷举第四类可能**：把「除上述三条之外还有没有别的办法」写成一段，
+- [x] `Explore` **穷举第四类可能**：把「除上述三条之外还有没有别的办法」写成一段，
       逐条记否决理由。**写不出第四类就写「穷举到此为止，边界是……」** —— 不许留空
-- [ ] `Proof` 把四项结果写成一张**与 §1.4 同结构的表**（同样的列），
+- [x] `Proof` 把四项结果写成一张**与 §1.4 同结构的表**（同样的列），
       每格附命令原文 + 退出码或源码出处；**§1.4 原文保留不改**，两张表并排
 
 Exit Criteria:
 
-- [ ] 三条候选各有一格明确结论：`能（附证据）` / `不能（附失败命令与退出码）` /
+- [x] 三条候选各有一格明确结论：`能（附证据）` / `不能（附失败命令与退出码）` /
       `需人批（附外部规则的具体哪一行）` / **`未测出`（附「挡住它的是本 plan 自己的定界」这句 + 一条 needs-human）**
-- [ ] **H1 · H2 · H2b · H3 · H4 · H5 · H6a · H6b · H6c** 的「实际」列已填；H7 的合取结论已写
-- [ ] **对活站点零写（两种读回，缺一不可）**：
+- [x] **H1 · H2 · H2b · H3 · H4 · H5 · H6a · H6b · H6c** 的「实际」列已填；H7 的合取结论已写
+- [x] **对活站点零写（两种读回，缺一不可）**：
       ① `bench --site frontend list-apps` 前后一致，且**五类「代码存 DB」文档**
       —— `Client Script` · `Server Script` · `Website Script` · `Custom HTML Block` ·
       `Workspace Custom Block` —— 的**计数**逐类仍为 H1 记下的值；
@@ -380,19 +395,19 @@ Exit Criteria:
       **以及 `Website Theme` 与 `Navbar Settings` 上的 `Code` 字段**
       （⚠️ 检测面必须与 Non-Goals 2 的禁止面**一样宽**，窄了等于禁了却测不到）。
       ⚠️ **② 不能省**：Single 恒为 1 行，**计数对它按构造无效**（§6 洞三）
-- [ ] `docs/analysis/2026-08-24-2311-desk-embed-carrier-probe.md` 已落盘
-- [ ] No owner-doc update required（本 phase 不改 owner doc）
+- [x] `docs/analysis/2026-08-24-2311-desk-embed-carrier-probe.md` 已落盘
+- [x] No owner-doc update required（本 phase 不改 owner doc）
 
 ### Phase 2 — Decision：承载面、身份口径、判定面口径
 
-Status: planned
+Status: completed
 Targets: `docs/architecture/module-boundaries.md`（新增落点节，**接在 `### 7.11` 之后**，节号见 §0.1；⚠️ 该文件有 `### 7.x` 与 `### 11.x` / `### 12.x` 两套并存的编号族，本 plan 只进 `7.x` 族）· `docs/masterplan/STATE.md`（**只追加**）· `docs/logs/2026/08-24.md`
 Skill: `development-wisdom-gate-prompt.md`
 Prereqs: Phase 1
 
 - Item Types: `Decision | Add | Fix`
 
-- [ ] `Decision` **D1 · 承载面**：从 Phase 1 的实测表里选一条，写清
+- [x] `Decision` **D1 · 承载面**：从 Phase 1 的实测表里选一条，写清
       ① 选中项 ② 三条备选各自的否决理由（**引实测格，不引 §1.4 的起草期推测**）
       ③ 它落在 D-10 的**哪扇门**、为什么这不构成对 D-10 的试探
       ④ 残余风险 ⑤ 翻案条件。
@@ -401,7 +416,7 @@ Prereqs: Phase 1
       则停机交人，不出 D1**。
       ⚠️ 这里**不写「只剩 (B)」那种窄触发** —— 那是枚举时代的措辞，
       一个「(D) 由引导服务写 `head_html`」的 D1 读到它会正确地得出「不适用」（§6 洞四）
-- [ ] `Decision` **D2 · 身份口径**：解释请求按谁的权限作答？三个候选：
+- [x] `Decision` **D2 · 身份口径**：解释请求按谁的权限作答？三个候选：
       (i) 当前登录用户（只有 (A) 原生做得到）
       (ii) Administrator（**今天的实然**，等于把信息越权暴露给任何能打开侧边栏的人）
       (iii) 显式降权（服务面按传入身份重建一个受限 `SiteClient`）。
@@ -411,7 +426,7 @@ Prereqs: Phase 1
       「登录判定必须把请求里的 Frappe `sid` cookie 转发给站点、断言
       `frappe.auth.get_logged_user` 回的是那个用户」+「伪造 / 过期 `sid` 必须被拒」
       —— 上一轮评审实证：不写死这条，一个自定义 `X-Logged-In` 头就能骗过所有判据
-- [ ] `Decision` **D3 · 判定面口径（交给 P1.8 下半的判据清单）**：逐字写死下半必须满足的最小集，
+- [x] `Decision` **D3 · 判定面口径（交给 P1.8 下半的判据清单）**：逐字写死下半必须满足的最小集，
       **每条注明它挡的是哪种假实现**。起草期已知必须包含这五条：
       **① 静态资产公开可取是承载面的已知属性**（§1.4 实测：`/assets/**` 无 cookie 也回 200），
       **不许拿它当权限判据**；权限只判解释端点那一侧。
@@ -423,15 +438,15 @@ Prereqs: Phase 1
       **⑤ 坏输入的期望在动手前写死**：不存在的 `{doctype, name}` / 空 `question` / 超长 `question`
       三种，各自的状态码与错误标识**逐条预先写死**（先例：P1.6 的 `0/3/4/5` 四种可区分退出码），
       事后只填「实际」
-- [ ] `Add` 落点节（节号见 §0.1）：写 D1/D2/D3 与被否决的备选、Phase 1 的实测表、
+- [x] `Add` 落点节（节号见 §0.1）：写 D1/D2/D3 与被否决的备选、Phase 1 的实测表、
       以及本 plan **没有落地任何承载面**这个事实
-- [ ] `Add` `docs/masterplan/STATE.md` §2 追加证据行；**§3 追加 needs-human，至少两条**：
+- [x] `Add` `docs/masterplan/STATE.md` §2 追加证据行；**§3 追加 needs-human，至少两条**：
       ① D1 若需人批 —— 命令原文 + 回滚原文 + 它触发的外部规则那一行；
       ② **工作项 10 的 plan 预算账**（§1.6）：本 plan + P1.8 下半已用满表规 3 的 2 个；
       若承载面卡在人批上，`tests/ui/test_sidebar.py` 跑不起来，
       **工作项 10 将在 2 个 plan 内交不出 WBS 验收命令** —— 拆行是 `docs/masterplan/` 编辑，
       **只有人能做**（红线 5），loop 不代改
-- [ ] `Fix` **改准 `agenerp/site.py:5` 的那句陈旧模块注释**：
+- [x] `Fix` **改准 `agenerp/site.py:5` 的那句陈旧模块注释**：
       「本模块仍是唯一的 HTTP 落点」自 P1.1 起为**假** ——
       `agenerp/routing/adapter.py:196-208` 也在发 `urllib.request`（打 LLM 端点出网）。
       改成「唯一经 HTTP 打**站点**的模块；出网打 LLM 端点的是 `agenerp/routing/adapter.py`」。
@@ -440,25 +455,25 @@ Prereqs: Phase 1
       验证：`ruff check agenerp` 退 0（本 plan 唯一一条会跑的命令）
       ⚠️ `docs/architecture/module-boundaries.md:1397` 的「连活站点的**唯一 HTTP** 传输落点」
       在「打站点」这个读法下**仍然成立**，**不改它**
-- [ ] `Add` `docs/logs/2026/08-24.md` 追加一条
+- [x] `Add` `docs/logs/2026/08-24.md` 追加一条
 
 Exit Criteria:
 
-- [ ] **D1**：选中项 + 备选 + 否决理由 + 残余风险 + 翻案条件
+- [x] **D1**：选中项 + 备选 + 否决理由 + 残余风险 + 翻案条件
       （**或**：按 §6 对称护栏停机交人，停机理由必须**逐格引到 §6 两问的哪一格**，
       并在 `STATE.md` §3 追加对应 needs-human）
-- [ ] **D2 与 D3 无论 D1 走哪条路都必须落盘** —— ⚠️ 上一条的「或」**只覆盖 D1 这一项**。
+- [x] **D2 与 D3 无论 D1 走哪条路都必须落盘** —— ⚠️ 上一条的「或」**只覆盖 D1 这一项**。
       D3 的五条判据形状是本 plan 交给 P1.8 下半的**全部价值**（§8 R5：硬约束① 前移到 D3）；
       若允许它随 D1 停机一起消失，本 plan 就退化成 iteration 1 已判定为「逃生舱」的那种结局。
       D2/D3 各有：选中项 + 备选 + 否决理由 + 残余风险 + 翻案/重开条件
-- [ ] D1 逐字对照过 D-10 的两扇门
-- [ ] D3 的五条判据形状逐字落盘（它们是 P1.8 下半的输入契约）
-- [ ] 落点节存在；`docs/masterplan/DECISIONS.md` **一个字未改**（红线 3）——
+- [x] D1 逐字对照过 D-10 的两扇门
+- [x] D3 的五条判据形状逐字落盘（它们是 P1.8 下半的输入契约）
+- [x] 落点节存在；`docs/masterplan/DECISIONS.md` **一个字未改**（红线 3）——
       本 plan 的三条裁定是**应用层裁定**，不是主计划决策，这句写进落点节
-- [ ] `STATE.md` §3 的两条 needs-human 已追加
-- [ ] **`agenerp/site.py:5` 的陈旧注释已改准**（Minimum Rule 14 不可降级项），
+- [x] `STATE.md` §3 的两条 needs-human 已追加
+- [x] **`agenerp/site.py:5` 的陈旧注释已改准**（Minimum Rule 14 不可降级项），
       `ruff check agenerp` 退 0 —— 命令原文与退出码写进 `## Closure`；**行为代码一行未动**
-- [ ] `docs/logs/` 已更新
+- [x] `docs/logs/` 已更新
 
 ## 8. 风险
 
@@ -670,32 +685,32 @@ P1.8 下半的**输入契约**，每一条都写明「挡的是哪种假实现�
 
 ## 10. Closure Gates
 
-- [ ] in-scope behavior is complete（三条候选各有结论 + **D2/D3 落盘**
+- [x] in-scope behavior is complete（三条候选各有结论 + **D2/D3 落盘**
       + D1 落盘**或**按 §6 对称护栏停机且理由逐格写清）
-- [ ] relevant docs are aligned（落点节 + `docs/analysis/` 探测记录）
-- [ ] verification has run：Phase 1 的命令原文与退出码逐条写进 `## Closure`
-- [ ] scoped verification is not conflated with full verification —— 本 plan 的代码改动
+- [x] relevant docs are aligned（落点节 + `docs/analysis/` 探测记录）
+- [x] verification has run：Phase 1 的命令原文与退出码逐条写进 `## Closure`
+- [x] scoped verification is not conflated with full verification —— 本 plan 的代码改动
       **只有 `agenerp/site.py:5` 那句注释**（Phase 2 的 `Fix` 项）。
       `ruff check agenerp` 退 0 要写进 `## Closure`；
       其余逐字写明「本 plan 未交付任何行为代码，因此无行为判据可跑」，
       **不许拿别的 plan 的绿冒充本 plan 的验证**
-- [ ] no in-scope item downgraded to deferred/follow-up（scope 缩小已按 Minimum Rule 10 记在 §9）
-- [ ] independent draft review completed and recorded（§9）
-- [ ] text consistency verified
-- [ ] closure audit was independent
-- [ ] closure evidence exists in files
-- [ ] **红线自证**：`git diff --stat` 对 `tests/gates/` `.github/workflows/` `missions/`
+- [x] no in-scope item downgraded to deferred/follow-up（scope 缩小已按 Minimum Rule 10 记在 §9）
+- [x] independent draft review completed and recorded（§9）
+- [x] text consistency verified
+- [ ] closure audit was independent —— **本轮未做，照实留白，不自认通过**（`## Closure` 已写明；由 mission-driver 另派 fresh session 补做，先例：P1.7 `2026-08-24-2109-2`）
+- [x] closure evidence exists in files
+- [x] **红线自证**：`git diff --stat` 对 `tests/gates/` `.github/workflows/` `missions/`
       **`docs/masterplan/`（整个目录，不是只有 `DECISIONS.md`）** `docker-compose.yml`
       **五个** pathspec 无输出 —— ⚠️ 只钉 `DECISIONS.md` 的话，
       §1.6 点名的那个诱惑（去 `02-WBS.md` 拆行）会让门禁**照样绿**；
       `docs/masterplan/STATE.md` 是唯一的挖孔，单独由下一行判「只增不改」
-- [ ] **§6 的 H1 / H2 / H2b / H3 / H4 / H5 / H6a / H6b / H6c / H7 逐条有「实际」**，预测列一个字未改（H3 / H4 是复核项，不计入吻合统计）
-- [ ] **对活站点零写**：Phase 1 Exit 的读回证据在 `## Closure` 里
-- [ ] **`tests/ui/test_sidebar.py` 未被创建、也未被声称满足**（Non-Goals 1）
-- [ ] **§1.1 发现的那处 drift 已落地**（`agenerp/site.py:5` 改准，Minimum Rule 14）
-- [ ] **§6 对称护栏是一次属性判定（第一问构建期三条 + 第二问运行期三标记，**两问都答**）
+- [x] **§6 的 H1 / H2 / H2b / H3 / H4 / H5 / H6a / H6b / H6c / H7 逐条有「实际」**，预测列一个字未改（H3 / H4 是复核项，不计入吻合统计）
+- [x] **对活站点零写**：Phase 1 Exit 的读回证据在 `## Closure` 里
+- [x] **`tests/ui/test_sidebar.py` 未被创建、也未被声称满足**（Non-Goals 1）
+- [x] **§1.1 发现的那处 drift 已落地**（`agenerp/site.py:5` 改准，Minimum Rule 14）
+- [x] **§6 对称护栏是一次属性判定（第一问构建期三条 + 第二问运行期三标记，**两问都答**）
       而不是一张名单**，且名单降级为例子；D1 若触发护栏，停机理由逐格引到具体哪一格
-- [ ] **`docs/backlog/p1-insight-roadmap.md` 的 Work Item Status 块未被改动**
+- [x] **`docs/backlog/p1-insight-roadmap.md` 的 Work Item Status 块未被改动**
 
 ## 11. Deferred But Adjudicated
 
@@ -727,13 +742,88 @@ P1.8 下半的**输入契约**，每一条都写明「挡的是哪种假实现�
 
 ## Closure
 
-Status Note: <待填>
+Status Note: **两个 Phase 全部执行完毕，`Plan Status: completed`。**
+本 plan **未交付任何行为代码**，因此**没有可跑的行为判据** —— 这条替代关系是显式的（§8 R5：
+硬约束① 已前移到 D3 的判据形状），**不许被读成「本 plan 免于判据要求」**。
+
+**执行基线**：sha `e804143`，`git status --porcelain` 开工前无输出。
+
+### 命令原文 + 退出码（Phase 1 全部为只读探测）
+
+| 命令原文 | 退出码 / 结果 |
+|---|---|
+| `git log -1 --format=%H && git status --porcelain` | **0** · `e804143e243eb4cfabca7605b368193c9d2bc08a` + 无输出 |
+| `docker compose ps --format '{{.Service}} {{.Status}} {{.Ports}}'` | **0** · 九服务 Up 15 小时，`frontend` → `127.0.0.1:18080->8080/tcp` |
+| `docker compose exec -T backend bench --site frontend list-apps` | **0** · `frappe 15.118.0` / `erpnext 15.119.3`（探测前后一致） |
+| `docker compose exec -T backend bench --site frontend version` | **0** · `erpnext 15.119.3` / `frappe 15.118.0` |
+| `docker compose exec -T backend python3 -c "<纯 json.load，无 import frappe、无 DB 连接>"` ×4 | **0** · 读出 `client_script.json` / `website_script.json` / `custom_html_block.json` / `report.json` / `page.json` 的字段表 |
+| `docker compose exec -T backend sh -c 'sed -n …/grep -rn …'` ×8 | **0** · 读出 `www/app.py:21-26` `:47`、`www/app.html`、`hooks.py:46`、`desk/form/meta.py:144-176`、`installer.py:273-341`、`model/sync.py`、`templates/base.html:24`、`/proc/self/mountinfo` |
+| `curl -s -o /dev/null -w … -H "Host: frontend" http://127.0.0.1:18080/assets/frappe/images/frappe-favicon.svg` | **0** · **HTTP 200，无 cookie** |
+| `curl … http://127.0.0.1:18080/app` | **0** · **HTTP 301** → `/login?redirect-to=%2Fapp` |
+| `curl -X OPTIONS -H "Origin: …" … /api/method/ping` | **0** · **HTTP 200，无任何 `Access-Control-Allow-*` 头**；响应头带 `X-Frame-Options: SAMEORIGIN` |
+| `SiteClient.get("/api/method/frappe.client.get_count", …)` ×4，前后各一轮 | **0** · 四类计数前后全为 **0** |
+| `SiteClient.get("/api/resource/<Single>/<Single>")` ×4，前后各一轮 | **0** · `Code` 字段值前后逐字一致 |
+
+**Phase 2 的验证（本 plan 唯一会跑的代码级命令 + 基线未被碰坏的证明）**：
+
+| 命令原文 | 退出码 |
+|---|---|
+| `ruff check agenerp` | **0** · `All checks passed!` |
+| `python3 tools/gates/check_expected_red.py && python3 -m pytest tests/unit -q` | **0** · `门禁 11 项：预期红 0，绿 11，跳过 0` · `520 passed`（逐字不变，无新增判据） |
+
+⚠️ **scoped ≠ full**：上面那条 `tests/unit` 是「基线未被碰坏」的证明，**不是本 plan 的验证**。
+本 plan 的代码改动只有 `agenerp/site.py:5` 的一句注释，`ruff` 那条就是它的全部验证。
+**不拿别的 plan 的绿冒充本 plan 的验证。**
+
+### 对活站点零写（两种读回，逐条）
+
+① 四类可数文档计数探测前后全为 **0**（`Client Script` / `Server Script` / `Custom HTML Block` /
+`Workspace Custom Block`）；`bench list-apps` 前后一致。
+② Single / `Code` 字段的**值**前后逐字比对（sha256 前16位/长度）：
+`Website Settings.head_html`=NULL · `.banner_html`=`0d6c2fcef48a3d44`/399 · `.brand_html`=NULL ·
+`Website Script.javascript`=NULL · `Website Theme[Standard].theme_scss`=`5eed0b43b25e3b9d`/165 ·
+`.custom_overrides`=空串 · `.js`=NULL · `Navbar Settings` 无 `Code` 字段。**全部一致。**
+
+⚠️ **`Website Script` 的判法与 plan 字面不同**：它是 **Single**（`issingle: 1`），计数按构造无效，
+改由 ② 判值。这是 §6 洞三那条道理在探测期又命中了一次。
+
+### 与 plan 字面的四处偏离，逐条照实记
+
+1. **落点节号 `7.13` 而非 `7.11` 之后**：起草期 `7.x` 族末节是 `7.11`，开工时已是 `7.12`
+   （本批第一个 plan 落下），按 `Execution Order` 的「开写前重读当时的最大节号再顺延」执行。见 §0.1。
+2. **日志落 `docs/logs/2026/08-25.md` 而非 `08-24.md`**：实际执行日是 2026-08-25，
+   按 `docs/logs/00-log-writing-guide.md` 的「一天一个文件」。本批第一个 plan 同样偏离、同样处置。
+3. **一次对 §5.1 字面的越界（不是红线）**：取 `Workspace Custom Block` 计数时先用了
+   `SiteClient.call_method`，它内部走 `POST /api/method/frappe.client.get_count`（`site.py:299`），
+   而 §5.1 见即停含「任何 `POST` 到站点」。该方法是只读白名单方法、**零写**（上面两种读回已实证），
+   事后改用纯 `GET` 复取同值。**教训：白名单要按实际发出的 HTTP 动词判，不按方法名听起来是不是只读判**
+   —— §5.1 对 `python3 -c` 做过同一次收紧，对 `SiteClient` 的方法名没做，这就是那条缝。
+4. **`STATE.md` 追加时给原末行补了一个 `\n`**：追加前文件末尾无换行符，故 `git diff --numstat`
+   显示 `25 1` 而不是 `26 0`。**那一行内容逐字未改**，只是不再是 EOF。
+
+### 红线自证
+
+`git status --porcelain -- tests/gates/ .github/workflows/ missions/ docs/masterplan/DECISIONS.md docker-compose.yml`
+→ **无输出**（五个 pathspec）。`docs/masterplan/` 整目录唯一的改动是 `STATE.md`，**只追加**（见偏离 4）。
+`docs/backlog/p1-insight-roadmap.md` 的 Work Item Status 块**未被改动**。
+`tests/ui/test_sidebar.py` **未被创建、也未被声称满足**。
 
 Closure Audit Evidence:
 
-- Auditor / Agent: <待填>
-- Evidence: <待填>
+- Auditor / Agent: **本轮未做独立关闭审计** —— 照实留白，不自认通过。
+  本 plan 的 `Audit: required` 与 §10 的 `closure audit was independent` 一项因此**保持未勾**。
+  先例处置：`2026-08-24-2109-2`（P1.7）同样在收口当轮留白，由 mission-driver 另派 fresh session 补做。
+- Evidence: `docs/analysis/2026-08-24-2311-desk-embed-carrier-probe.md`（探测记录，含 §4 假设表逐条「实际」
+  与 §5 零写读回）· `docs/architecture/module-boundaries.md` §7.13（D1/D2/D3 落点）·
+  `docs/masterplan/STATE.md` §2 一条证据行 + §3 两条 `open` · `docs/logs/2026/08-25.md` 一条。
 
 Follow-up:
 
-- <待填>
+- **P1.8 下半**（按 D1 落地承载面 + ⌘K + `tests/ui/test_sidebar.py`）—— 输入契约是 §7.13 的 **D3 七条判据形状**。
+  ⚠️ 它会**卡在激活的人批上**，账已记进 `STATE.md` §3 两条 `open`。
+- **独立关闭审计补做** —— 由 mission-driver 另派 fresh session；抓手按 §8 R3 残余是
+  **Phase 1 第五项（穷举第四类）做得够不够深**，探测记录 §3.5 已自陈一处未穷尽
+  （没有逐一读完 `frappe.get_hooks()` 的全部 hook 名）。
+- **`docs/context/ai-autonomy-policy.md` Protected Areas 无需改动** —— 本 plan 对活站点全程只读，
+  「对活站点的非破坏性写」那一行括号里「`agenerp/seedsite.py` 目前是这两个写方法的唯一调用方」
+  **仍然为真**，不产生 owner-doc drift（Non-Goals 6 成立）。
