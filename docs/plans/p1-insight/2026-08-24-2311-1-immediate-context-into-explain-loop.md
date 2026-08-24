@@ -4,7 +4,7 @@
 > Mission: p1-insight
 > Work Item: 10. Agent 侧边栏嵌 Desk（P1.8）—— 本 plan 是它**后端侧的硬前置**；同时结清工作项 4（P1.2）Non-Goals 3 留下的接线缺口
 > Execution Order: 1 / 2（本批第一个。同批第二个是 `2026-08-24-2311-2-desk-embed-carrier-decision.md`。**必须串行**：两者都要往 `docs/architecture/module-boundaries.md` 新增落点节、都要往 `docs/masterplan/STATE.md` 追加、都要写 `docs/logs/2026/08-24.md`；且第二个 plan 的「一次带当前单据的解释请求」在语义上依赖本 plan 的接线。开写前重读当时的最大节号再顺延，避免撞号）
-> Last Reviewed: 2026-08-24（起草基线 sha `e3de756`，`git status --porcelain` 除本批两个未跟踪的 plan 文件外无输出）
+> Last Reviewed: 2026-08-25（独立关闭审计通过之日；起草基线 sha `e3de756`，起草时 `git status --porcelain` 除本批两个未跟踪的 plan 文件外无输出）
 > Source: `docs/backlog/p1-insight-roadmap.md` 工作项 10（P1.8「保留当前单据上下文」逐字）· `docs/masterplan/02-WBS.md` §4 **P1.8 行** · `docs/design/context-and-memory.md` §8.2 ① 行与「上下文窗口工程」规则 1/2 · 工作项 4 的 plan `2026-08-24-1457-2-context-layer-v0.md` §3 Non-Goals 3
 > Related: 前置 P1.2（已 `completed`，交付 `agenerp/context/`）· 前置 P1.4（已 `completed`，交付 `agenerp/explain/`）· 后继 P1.8 承载面 plan（本批第二个）
 > Audit: required
@@ -563,7 +563,7 @@ M8 已因此改过一次写法（`ImmediateContext()` 会 `TypeError`）。
 - [x] no in-scope item downgraded to deferred/follow-up
 - [x] independent draft review completed and recorded（§9）
 - [x] text consistency verified：顶部 status、各 phase status、exit criteria、gates、日志一致
-- [ ] closure audit was independent —— **未满足，照实留白**：本轮无独立子代理可用（执行者不自证）。先例 P1.7 同形态：收口当轮留白，由 mission-driver 另派 fresh session 的独立审计器补做。**在补做之前，本 plan 的收口结论只到「执行者自验全绿」为止。**
+- [x] closure audit was independent —— **已补做（2026-08-25）**：由 mission-driver 另派的 fresh session 独立审计器完成（非本 plan 执行者、不带实现上下文）。审计记录见 `## Closure` 的 `Closure Audit Evidence`。（收口当轮曾留白，先例 P1.7 同形态。）
 - [x] closure evidence exists in files
 - [x] **红线自证**：`git diff --stat` 对 `tests/gates/` `.github/workflows/` `missions/`
       `docs/masterplan/DECISIONS.md` 四个 pathspec **无输出**；
@@ -603,8 +603,8 @@ M8 已因此改过一次写法（`ImmediateContext()` 会 `TypeError`）。
 
 ## Closure
 
-Status Note: **三个 Phase 全部执行完毕，`Plan Status: completed`。收口结论到「执行者自验全绿」为止 ——
-`closure audit was independent` **未满足，照实留白**（见下）。**
+Status Note: **三个 Phase 全部执行完毕，`Plan Status: completed`。执行者自验全绿，
+且 `closure audit was independent` 已由独立审计器于 2026-08-25 补做完成（见下），十项 Closure Gates 全部满足。**
 
 **实现与判据的提交 sha：`b112d08`**（基线 sha `e3de756`）。
 本节的 sha 由**紧随其后的一个纯文档提交**回填（sha 不可能写进它自己命名的那个提交里；
@@ -667,10 +667,40 @@ Status Note: **三个 Phase 全部执行完毕，`Plan Status: completed`。收�
 
 Closure Audit Evidence:
 
-- Auditor / Agent: **无 —— 本轮未做独立关闭审计。** 本轮环境不具备独立子代理（执行者不自证），
-  照实留白，不降级成「执行者自审即通过」。先例同形态：P1.7 收口当轮留白，
-  由 mission-driver 另派 fresh session 的独立审计器补做（见 `docs/logs/2026/08-24.md`）。
-  **在补做之前，本 plan 的收口结论只到「执行者自验全绿」为止。**
+- Auditor / Agent: **独立关闭审计器**（mission-driver `2026-08-24-203159-mission-driver` 另派的 fresh session，
+  非本 plan 执行者、不带实现上下文），**2026-08-25 补做完成，结论：通过**。
+  （收口当轮因环境不具备独立子代理而照实留白，未降级成「执行者自审即通过」；先例同形态：P1.7，见 `docs/logs/2026/08-24.md`。）
+- 独立审计器实跑的核对（**全部原样复跑，不是读记录**）：
+  1. **六条验证命令逐条复跑**，退出码与数字与上表**逐字一致**：`check_expected_red`（`门禁 11 项：预期红 0，绿 11，跳过 0`）+
+     `pytest tests/unit -q` → **520 passed** · `tests/context` **53 passed** · `tests/tools` **81 passed, 12 skipped** ·
+     `tests/routing` **164 passed, 1 skipped** · `tests/contracts` **151 passed** · `ruff check …` → `All checks passed!`。
+  2. **Follow-up ① §8 R4 的自证防线**：`tests/unit/test_explain_immediate_context.py:84` 的 `SMALL_EXPECTED_PAYLOAD`
+     是**字面量手写字典**（只从 `agenerp.tools.runtime` import 三个边界常量），**全文件无一处把期望值写成回调 `blocks()`**；
+     J2(b) / J7 的替身均**继承 `ImmediateContext` 只覆盖 `blocks()`**（`:189` / `:209` 的 `super().blocks()`）。**防线成立。**
+  3. **Follow-up ② M1–M14 的「红在哪条断言」可原样复跑**：审计器**抽查了四条**（含两条「只有一条判据杀得掉」的承重预测），
+     逐条施加→跑 `tests/unit`→还原，结果与 Phase 2 的记录**逐字吻合**：
+     **M3** → `1 failed, 519 passed`，**只有** `test_j2b…:297` `assert None is True`（`MarkedImmediate.MARK`）；
+     **M12** → `1 failed, 519 passed`，**只有** `test_j10…:455` 的同一性断言；
+     **M13** → `3 failed, 517 passed`（J11 + J2(a) + J7）；
+     **M14** → `3 failed, 517 passed`（J2(a) + J4 + J7）；
+     **M8** → `1 failed, 519 passed`，`test_j1_no_keyword_at_all…:230` `assert [2] == []`（默认值那条路径）。
+     复跑后 `git diff --stat` **无输出**（`agenerp/explain/loop.py` 已原样还原）。
+  4. **Follow-up ③ §7.12「没证明什么」无越界**：该节逐字写着「**这是每侧各一跑，不是分布**」「整跑 prompt 合计**不可直接归因于注入**」
+     「『注入让解释更容易成功 / 更便宜』**没有被证明，也没有被主张**（D-16）」——**无一处优劣比较**。
+     `docs/evidence/p1-immediate/summary.json` 的数（H4 `0` vs `1`、模型调用 `9` vs `12`、`opening_identity_ok: true`）与 §6 / §7.12 **逐字对得上**。
+  5. **接线非空壳（anti-hollow）**：`agenerp/explain/loop.py:307` 把 `self.immediate` 透传给 `open_session()`、
+     `:318` 的 `_immediate_message()` 按 `block.key == IMMEDIATE_BLOCK_KEY` 取块并原样 `json.dumps`、
+     `:353-355` 在 `run()` 装配 `messages` 时插一次（主循环内无 append）、`:636` / `:661` 的 `explain()` 透传 ——
+     **无空函数体、无 `return null` 占位、无吞异常**；产品入口 `explain()` 有判据实跑（J1 第三例、J5）。
+  6. **五点一致性**：`Plan Status: completed` / Phase 1–3 三个 `Status: completed` 且其 Exit Criteria 全 `[x]` /
+     Closure Gates 十项全 `[x]` / Closure 证据 / `docs/logs/2026/08-25.md` **相互一致**。
+  7. **红线复核（审计器自己跑，不是读记录）**：`git diff --stat e3de756..HEAD -- tests/gates/ .github/workflows/ missions/ docs/masterplan/DECISIONS.md`
+     → **无输出**；`docs/masterplan/STATE.md` 逐行子序列检查 → 基线 **465 行**在当前 **480 行**里**按原顺序一条不缺（missing = 0）**，只增不改成立；
+     `git diff --stat e3de756..HEAD -- docs/backlog/p1-insight-roadmap.md` → **无输出**（工作项 10 仍 `todo`）。
+  8. **落点与指针在场**：`docs/architecture/module-boundaries.md:1001` 的 `### 7.12 …` 存在；
+     `docs/design/context-and-memory.md:73` ① 行已含「**循环侧接入点** `agenerp/explain/loop.py`（…见 §7.12）」指针，规则 1「① 不可裁剪」未被改动。
+  - **审计结论：通过。** 未发现被藏进 Deferred / Follow-up 的在场缺陷或契约漂移；
+    `verification scope limited`（未跑 `pytest tests -q -m "not live"`、未过 CI 服务端复跑）已由执行者逐字声明，审计器确认该声明照实、未与全绿混同。
 - Evidence: 六条命令的退出码与输出（上表）· `docs/evidence/p1-immediate/`（活端点两跑 + README 的
   「证明了什么 / 没证明什么」）· Phase 2 的 M1–M14 逐条红/绿记录 ·
   `docs/architecture/module-boundaries.md` §7.12 · `docs/logs/2026/08-25.md` ·
@@ -679,10 +709,9 @@ Closure Audit Evidence:
 
 Follow-up:
 
-- **（必做）独立关闭审计补做** —— 唯一未勾的 Closure Gate。由 fresh session、不带实现上下文、
-  非本 plan 执行者的审计器做，重点核三件事：① §8 R4 的自证防线（J2 的期望值是否真的手写、
-  没有回调 `blocks()`）；② M1–M14 的「红在哪条断言」是否与记录一致（可原样复跑）；
-  ③ §7.12 里对活端点两跑的「没证明什么」是否有一处越界成了优劣比较。
+- **（已完成）独立关闭审计补做** —— 曾是唯一未勾的 Closure Gate，2026-08-25 由独立审计器补做完成，
+  三件重点（① §8 R4 的自证防线；② M1–M14 的「红在哪条断言」原样复跑；③ §7.12 的「没证明什么」是否越界成优劣比较）
+  **逐条核过，全部通过**。逐条记录见上面的 `Closure Audit Evidence`。
 - **（下一项）本批第二个 plan** `docs/plans/p1-insight/2026-08-24-2311-2-desk-embed-carrier-decision.md`
   （P1.8 承载面）。**必须串行**：它也要往 `module-boundaries.md` 新增落点节（**最大号现为 §7.12，顺延取 §7.13**）、
   也要往 `STATE.md` 追加、也要写当日日志。它的**输入约束**已由 §7.12 逐字交接：**① 层不查权限**。
