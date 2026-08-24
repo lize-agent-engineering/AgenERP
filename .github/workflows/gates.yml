@@ -444,6 +444,12 @@ jobs:
       - name: ⑥ L2 门禁 —— 工具执行层守约（12 条，零 skip）
         env:
           AGENERP_LIVE: "1"
+          # ⚠️ **`AGENERP_SITE` 必须显式给。** 本 job 的 job 级 env 里没有它 ——
+          # 前面 ①–⑤ 步靠命令行 `--site frontend` 传，而门禁从**环境变量**读
+          # （`agenerp.site.SITE_ENV`）。2026-08-24 踩到两次：第一次修完因人侧
+          # `git add -A` 把改动混进别人的提交而**从未真正提交**，删库重建后原样复发。
+          # **判据是「CI 上真的绿过一次」，不是「我改过」。**
+          AGENERP_SITE: frontend
           AGENERP_WORKER_PASSWORD: ${{ secrets.AGENERP_WORKER_PASSWORD || 'worker-ci-only' }}
         run: |
           set -euo pipefail
