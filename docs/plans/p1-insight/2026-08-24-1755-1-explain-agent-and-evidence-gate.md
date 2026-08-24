@@ -671,7 +671,7 @@ Exit Criteria:
 - [x] no in-scope item downgraded to deferred/follow-up
 - [x] independent draft review completed and recorded（§9 三轮，第三轮 `acceptable as-is`）
 - [x] text consistency verified: status, phases, gates, and log all agree
-- [ ] closure audit was independent —— ⚠️ **未做，留白照实记**。本轮执行环境不具备独立子代理（执行器被明确约束不得自行派生代理），沿用 P1.3 首次收口的做法：**不由执行者自审冒充独立审计**。补做条件与记录位置见 §12
+- [x] closure audit was independent —— **2026-08-24 由独立会话补做**（mission-driver 派发的独立收口审计器，fresh session、不带实现上下文，非执行者自审）。⚠️ **执行当轮的原状照实保留、不粉饰**：那一轮环境不具备独立子代理（执行器被明确约束不得自行派生代理），此项曾留白为 `[ ]`，沿用 P1.3 首次收口的做法「不由执行者自审冒充独立审计」。补做记录见 `## Closure` 末尾的「独立关闭审计补做记录」一节 —— 原 `Closure Audit Evidence` 块**一个字未改写**
 - [x] closure evidence exists in files（`docs/evidence/p1-explain/` · `docs/architecture/module-boundaries.md` §7.8 · `docs/masterplan/STATE.md` §3 · `docs/logs/2026/08-24.md`）
 - [x] **红线自查**（基线 `6b07889`，`git diff --name-only 6b07889 -- <pathspec>` + `git status --porcelain -- <pathspec>` 两条都跑）：`tests/gates/**` · `.github/workflows/**` · `missions/**` · `docs/masterplan/DECISIONS.md` **四个 pathspec 均无输出**；`git diff --numstat -- docs/masterplan/STATE.md` → `7	0`（**删除列为 0**，只有追加行）。⚠️ 执行期间人又提了两笔（`dc7077c` → `tools/loop-supervisor.sh`；`548cca6` → `docs/masterplan/04-RUNBOOK.md`），**两笔都不属本 plan，loop 一个字未动它们**
 
@@ -692,7 +692,7 @@ Exit Criteria:
 - 重开条件：**人把 `tests/tools` / `tests/routing` / `tests/context` 接进 `missions/*.json` 的
   `commands.test` 之后** —— 届时 D5 可以重估是否仍需绑死 `tests/unit`
 
-## 12. Closure
+## Closure
 
 Status Note: **收口（2026-08-24，基线 `6b07889`）。四个 Phase 全部执行完，判据全绿。**
 
@@ -730,3 +730,39 @@ Follow-up:
   ⚠️ 其中「纯路径加载、无 live 语义是否仍满足那个 🔴」**由人裁定**，loop 不替人拍板。
 - **补做独立关闭审计**（见上）。
 - 以上两条**都不是本 plan 确认的缺陷** —— 一条是红线禁止 loop 做的，一条是环境不具备。
+
+### 独立关闭审计补做记录（2026-08-24，追加节 —— 上方 `Closure Audit Evidence` 块一个字未改写）
+
+- **Auditor / Agent**：mission-driver 派发的**独立收口审计器**（session `2026-08-24-194854-mission-driver`），
+  fresh session、不带实现上下文、非本 plan 的执行者。这正是上方那一节写死的「补做条件」。
+- **审计基线**：`git log -1` → `a39070f`（`feat(explain): P1.4 …`）；本 plan 的执行 diff 基线仍是 `6b07889`。
+- **复跑（命令原文 + 退出码，逐条抄自终端，与 §10 第三条声称的数字逐字对照）**：
+  - `python3 tools/gates/check_expected_red.py` → **exit 0** · `门禁 11 项：预期红 0，绿 11，跳过 0` **吻合**
+  - `python3 -m pytest tests/unit -q` → **exit 0** · `389 passed` **吻合**
+  - `python3 -m pytest tests/tools -q` → **exit 0** · `81 passed, 12 skipped` **吻合**
+  - `ruff check agenerp tests/unit tests/contracts tests/tools tests/routing tests/context tests/experiments` → **exit 0** · `All checks passed!` **吻合**
+  - `python3 -m pytest tests -q -m "not live"` → **exit 0** · `849 passed, 12 skipped, 21 deselected` **吻合**
+- **红线复核（审计侧独立跑，不采信执行者的自述）**：
+  `git diff --name-only 6b07889 HEAD -- tests/gates .github/workflows missions docs/masterplan/DECISIONS.md`
+  → **无输出**；`git diff --numstat 6b07889 HEAD -- docs/masterplan/STATE.md` → `7	0`（**删除列为 0**，只追加）。
+  `git show --stat a39070f` 复核：本 plan 那一笔在 `docs/masterplan/` 下**只碰了 `STATE.md`**；
+  diff 里另外出现的 `docs/masterplan/04-RUNBOOK.md`（`548cca6`）与 `tools/loop-supervisor.sh`（`dc7077c`）
+  **确系人的两笔**，与 §10 末条的声明吻合。
+- **空壳自查（Anti-Hollow）**：`agenerp/explain/loop.py` 逐行读过 —— 三条接线各有**真实调用点**且非空实现：
+  `_open()` → `open_session(...)`、`run()`/`_run_tools()` → `session.with_turn(...)`、
+  `_execute_one()` → `self.breaker.record(result, ...)`；② 作答前门禁走
+  `surface.evaluate(answer)` → `evaluate_all(EVIDENCE_GATE, ...)`，**规则未被复述**；
+  `tool_schemas()` 确由 `READONLY_CONTRACTS` 生成。无空函数体、无 `return null` 占位、无吞异常。
+  判据侧复核 `tests/unit/test_explain_loop.py`（11 条）与 `test_evidence_gate_single_hop_body.py`（5 条）：
+  断言落在轨迹与假站点请求记录上；**消融两侧都验**（`answer_gate_enabled=False` 收 / 默认 `True` 拒），
+  且钉住产品入口 `explain()` 的签名里**没有**这个开关。
+- **五点一致性**：`Plan Status: completed` · 四个 Phase 全 `Status: completed` 且 Exit Criteria 全 `[x]` ·
+  §10 Closure Gates 全 `[x]`（本次补做后不再有留白项）· `## Closure` 证据齐 —— **一致**。
+- **Deferred 诚实性**：§11 两条均非本 plan 确认的活体缺陷 ——
+  一条是红线 1 禁止 loop 创建门禁文件（已交付断言体 + 加载注意事项，重开条件写死），
+  一条是 `missions/*.json` 属 blocked 面（STATE §3 已有三条 `[open]` 覆盖，本 plan 不重复登记）。
+  **未发现被藏进 Deferred 的在范围缺陷或契约漂移。**
+- **文档同步**：`docs/architecture/module-boundaries.md` §7.8 落点节在（`:490`），
+  §7.4/§7.6a 的失效归属已改准（`:215`、`:283`）· `docs/masterplan/STATE.md` §3 追加行在（`:430`–`:435`）·
+  `docs/logs/2026/08-24.md` 收口条目在（`:3` 起，含命令原文与退出码）· `docs/evidence/p1-explain/` 两件在。
+- **结论**：**接受收口**。审计器**不代人**处置 §11 的两条后继（那两条分别归人与后继 plan）。
