@@ -1,0 +1,24 @@
+{
+  "run_id": "r2-03",
+  "model": "qwen3.7-plus",
+  "gate": "off",
+  "question": "销售订单 SAL-ORD-2026-00001 在系统里显示已经完成了，但车间反映成品仓还压着不少货。\n这是怎么回事？请说明成品仓现在的实际情况，以及造成这个情况的原因。",
+  "max_tokens": 200000,
+  "prompt_sha256": "b8bc2539da4e326b7bc0d536ec7a3045db55deaaa20ddab17c87c566771ed28e",
+  "prompt_bytes": 863,
+  "started_at": "2026-08-24T08:02:45+00:00",
+  "finished_at": "2026-08-24T08:02:46+00:00",
+  "tool_calls_total": 0,
+  "usage": {
+    "prompt": 0,
+    "completion": 0,
+    "reasoning": 0,
+    "total": 0
+  },
+  "turns": [],
+  "gate_checks": [],
+  "final_answer": "",
+  "invalid": {
+    "reason": "模型侧失败：HTTP 403：{\"error\":{\"message\":\"Free quota exhausted. To continue accessing the model on a paid basis, please add funds or disable the \\\"use free tier only\\\" mode in the management console.\",\"type\":\"AllocationQuota.FreeTierOnly\",\"param\":null,\"code\":\"AllocationQuota.FreeTierOnly\"},\"id\":\"chatcmpl-5e0386ab-1e29-9a9c-9b8f-c4e10b9a1e6a\",\"request_id\":\"5e0386ab-1e29-9a9c-9b8f-c4e10b9a1e6a\"}"
+  }
+}
