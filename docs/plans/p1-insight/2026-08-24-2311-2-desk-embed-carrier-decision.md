@@ -697,7 +697,7 @@ P1.8 下半的**输入契约**，每一条都写明「挡的是哪种假实现�
 - [x] no in-scope item downgraded to deferred/follow-up（scope 缩小已按 Minimum Rule 10 记在 §9）
 - [x] independent draft review completed and recorded（§9）
 - [x] text consistency verified
-- [ ] closure audit was independent —— **本轮未做，照实留白，不自认通过**（`## Closure` 已写明；由 mission-driver 另派 fresh session 补做，先例：P1.7 `2026-08-24-2109-2`）
+- [x] closure audit was independent —— **由 mission-driver 另派的 fresh session 于 2026-08-25 补做**（收口当轮照实留白、不自认通过；先例：P1.7 `2026-08-24-2109-2`）。审计记录见 `## Closure` 的 `Closure Audit Evidence`
 - [x] closure evidence exists in files
 - [x] **红线自证**：`git diff --stat` 对 `tests/gates/` `.github/workflows/` `missions/`
       **`docs/masterplan/`（整个目录，不是只有 `DECISIONS.md`）** `docker-compose.yml`
@@ -811,9 +811,46 @@ Status Note: **两个 Phase 全部执行完毕，`Plan Status: completed`。**
 
 Closure Audit Evidence:
 
-- Auditor / Agent: **本轮未做独立关闭审计** —— 照实留白，不自认通过。
-  本 plan 的 `Audit: required` 与 §10 的 `closure audit was independent` 一项因此**保持未勾**。
-  先例处置：`2026-08-24-2109-2`（P1.7）同样在收口当轮留白，由 mission-driver 另派 fresh session 补做。
+- Auditor / Agent: **独立关闭审计已补做** —— mission-driver 另派的 **fresh session（独立子代理，2026-08-25）**，
+  非本 plan 的执行者、非其草案评审者。收口当轮照实留白、不自认通过，先例 `2026-08-24-2109-2`（P1.7）同形状。
+- Audit Verdict: **approved**（无 BLOCKING / MAJOR；未改动本 plan 正文的任何结论、预测或实际列，
+  只勾上 §10 那一项并补本节的审计记录）。
+- Audit 逐条复跑与实读（命令原文 + 退出码，审计侧当场跑的，不引执行者的记述）:
+  - `ruff check agenerp` → **exit 0** · `All checks passed!`（Phase 2 `Fix` 项的唯一验证，复跑吻合）
+  - `python3 tools/gates/check_expected_red.py && python3 -m pytest tests/unit -q` → **exit 0** ·
+    `门禁 11 项：预期红 0，绿 11，跳过 0` + `520 passed` —— **基线未被碰坏**，
+    审计侧同样**不拿它冒充本 plan 的验证**（本 plan 未交付行为代码，§8 R5 的前移关系成立）
+  - `git diff --name-only e804143 HEAD -- tests/gates/ .github/workflows/ missions/ docs/masterplan/DECISIONS.md docker-compose.yml`
+    → **exit 0，无输出**（红线 1/2/3 自证复核通过）；`git diff --numstat e804143 HEAD -- docs/masterplan/`
+    → 仅 `27 1 docs/masterplan/STATE.md`，逐行读 diff 确认**只追加**，那 1 行删除即 Closure 偏离 4 自陈的 EOF 换行符，**内容逐字未改**
+  - `git diff --name-only e804143 HEAD -- docs/backlog/` → **无输出**（roadmap Work Item Status 块未被改动）
+  - `ls tests/ui` → `No such file or directory`（`tests/ui/test_sidebar.py` 确未被创建，Non-Goals 1 成立）
+  - **承载面选型三条载重事实在活容器里逐条实读复核**（`docker compose exec -T backend sed -n …`，exit 0）：
+    `www/app.py:21-26` 逐字 `Guest` → 403 + 跳 `/login`、`Website User` → `PermissionError`（H6a / D2 的依据成立）·
+    `www/app.py:47` 逐字 `include_js = hooks.get("app_include_js", []) + frappe.conf.get("app_include_js", [])`
+    （D1 与 (E) 的依据成立，「Desk 全局 JS 的完整来源」属实）·
+    `hooks.py:46` 逐字 `web_include_js = ["website_script.js"]`（(B′) 门户专用、Desk 不取，属实）·
+    `www/app.html` 首行是 `<!DOCTYPE html>` 而非 `{% extends %}`（(D) 在 Desk 上不成立，属实）
+- Audit 核过的语义点（逐条）:
+  - **Phase 状态与勾选一致**：两个 Phase 均 `Status: completed`，其执行项与 Exit Criteria 全部 `[x]`，
+    与 `Plan Status: completed`、§10 Closure Gates、`STATE.md` 与 `docs/logs/2026/08-25.md` 五处口径一致。
+  - **反空壳**：本 plan 按 §3 Non-Goals 1 与 §8 R1 显式不交付行为代码（授权出处 Minimum Rule 9），
+    唯一的代码改动 `agenerp/site.py` 模块头实读已改准且点名了 `agenerp/routing/adapter.py:196-208`
+    —— **不是空函数体、不是占位**；「无代码」在此处是**写在纸上的裁定**，不是执行不足。
+  - **不可降级项没有被藏进 Deferred**：§1.1 发现的 contract drift 走 Phase 2 的 `Fix` 项就地改完（Minimum Rule 14），
+    §11 三条均为显式定界的 `out-of-scope improvement` / `watch-only residual`，各自带重开事件；
+    其中身份降权那条的重开触发条件**逐字继承自本批第一个 plan**、未被改晚。
+  - **交接物实读存在且有内容**：`docs/architecture/module-boundaries.md` **§7.13**（D1/D2/D3 + 两问逐格表 +
+    D3 七条判据形状，含 D2 那条 `sid` 判据的逐字形状）· `docs/analysis/2026-08-24-2311-desk-embed-carrier-probe.md`
+    （§3.5 十二条穷举 + §4 假设表逐条「实际」+ §5 两种零写读回）· `docs/masterplan/STATE.md` §2 两条 + §3 两条 `open` ·
+    `docs/logs/2026/08-25.md` 一条。
+  - **§8 R3 残余（「挡不住探索做得浅」）的抓手已核**：Phase 1 第五项穷举出十二条并逐条给否决理由，
+    审计侧抽查的四处源码出处全部实读吻合；探测记录 §3.5 末尾**自陈**未逐一读完 `frappe.get_hooks()` 全部 hook 名
+    —— 该自陈**不动摇 D1**（D1 选中的正是 `hooks["app_include_js"]` 这一项本身），照实保留为残余风险。
+- Audit 记下但**不构成本 plan 缺陷**的一处（属上一个 plan 的产物，不在本 plan scope 内，故不返工）：
+  `docs/logs/2026/08-25.md:92`（P1.8 前置 ① 那条日志）把 `module-boundaries.md` **§7.12** 描述成
+  「D1/D2/D3 三条裁定与被否决备选」，而 D1/D2/D3 实际落在 **§7.13**。该行在基线 sha `e804143` 里就已存在
+  （`git show e804143:docs/logs/2026/08-25.md` 实证），由 `2026-08-24-2311-1` 写下，**本 plan 一个字未碰**。
 - Evidence: `docs/analysis/2026-08-24-2311-desk-embed-carrier-probe.md`（探测记录，含 §4 假设表逐条「实际」
   与 §5 零写读回）· `docs/architecture/module-boundaries.md` §7.13（D1/D2/D3 落点）·
   `docs/masterplan/STATE.md` §2 一条证据行 + §3 两条 `open` · `docs/logs/2026/08-25.md` 一条。

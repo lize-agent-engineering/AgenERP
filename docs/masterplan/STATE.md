@@ -345,6 +345,14 @@
   · **`tests/ui/test_sidebar.py` 未被创建、也未被声称满足**（plan Non-Goals 1）；`docs/backlog/p1-insight-roadmap.md` 的 Work Item Status 块**未被改动**，工作项 10 保持 `todo`。`git status --porcelain -- tests/gates/ .github/workflows/ missions/ docs/masterplan/DECISIONS.md docker-compose.yml` **无输出**（红线 1/2/3 自证；`docs/masterplan/` 整目录唯一的改动是本文件的追加）。
   · **验证范围限于本机、这个镜像 tag、这一次**（D-16），不外推。**本行只追加，不改写本节任何已有行**（红线 5）。
 
+- 2026-08-25T01:20+08:00（= 2026-08-24T17:20Z） · **P1.8 上半 · plan `2026-08-24-2311-2-desk-embed-carrier-decision.md` 的独立关闭审计回填落账** · `node tools/mission-driver/src/plan-check.mjs docs/plans/p1-insight/2026-08-24-2311-2-desk-embed-carrier-decision.md --strict` → **exit 0**（`passed: true` · `totalChecked: 42` · `totalUnchecked: 0`）· `python3 tools/gates/check_expected_red.py && python3 -m pytest tests/unit -q` → **exit 0**（`门禁 11 项：预期红 0，绿 11，跳过 0` + `520 passed`，逐字不变）· `ruff check agenerp` → **exit 0**（`All checks passed!`）· 基线 sha `0979365`，本行的落地 sha 由本轮提交带入（sha 写不进它自己命名的提交，见 `git log`）· 下一项：P1.8 下半（仍卡在 §3 同日两条 `open` 的人批上，本轮不代人处置）
+  · **回填的是什么**：该 plan 收口当轮唯一未勾的 Closure Gate —— §10 的 `closure audit was independent` —— 由 mission-driver 另派的 **fresh session 独立审计器**补做完成，结论 **approved**（无 BLOCKING / MAJOR）；plan 该行由 `[ ]` 翻为 `[x]`，`## Closure` 的 `Closure Audit Evidence` 由「本轮未做独立关闭审计」改写为完整审计记录。⚠️ **归属照实记：审计由独立审计器执行并写入，本轮只做验证与落账提交，不代其自证。**
+  · **本轮工作树只改了一个文件**：`git status --porcelain` 仅 `M docs/plans/p1-insight/2026-08-24-2311-2-desk-embed-carrier-decision.md`（41 insertions / 4 deletions），本次提交另加本文件与 `docs/logs/2026/08-25.md` 两处追加。**`agenerp/**` 与 `tests/**` 零改动**，plan 的任何结论、预测或「实际」列一个字未改。
+  · **红线自证（对基线 `e804143` 复核）**：`git diff --name-only e804143 HEAD -- tests/gates/ .github/workflows/ missions/ docs/masterplan/DECISIONS.md docker-compose.yml` → **无输出**；`git diff --numstat e804143 HEAD -- docs/masterplan/` → 仅 `27 1 docs/masterplan/STATE.md`，逐行确认**只追加**（那 1 行删除是原 EOF 补换行符，内容逐字未改）；`git diff --name-only e804143 HEAD -- docs/backlog/` → **无输出**。
+  · ⚠️ **`docs/backlog/p1-insight-roadmap.md` 工作项 10 按 plan §3 Non-Goals 8 与 §10 Closure Gate 保持 `todo`，本轮未改**：本 plan 只是工作项 10 的**上半（选型）**，`tests/ui/test_sidebar.py` 未创建、也未声称满足（`ls tests/ui` → 不存在）。
+  · ⚠️ **两处照实记下、按红线 5 不改写的既有偏差**：① 上一条 `2026-08-25T02:25Z` 的 sha 回填证据行**被追加在文件末尾，落进了 §3 而不是 §2**（`0979365` 写下）—— 归位需要删除已有行，红线 5 不允许，故只记不动；② `docs/logs/2026/08-25.md` 里 P1.8 前置 ① 那条日志的 owner doc 行（本轮追加前第 92 行，追加后第 134 行）把 `module-boundaries.md` §7.12 描述成「D1/D2/D3 三条裁定」，而 D1/D2/D3 实落 **§7.13** —— 该行在基线 `e804143` 中已存在（由 plan `2026-08-24-2311-1` 写下），**不属本 plan、本轮未返工**。
+  · **本行只追加，不改写本节任何已有行**（红线 5）。⚠️ 本行的时间戳写**本地时区 +08:00 并折算 UTC**：同日几条已有行的 `…Z` 后缀实际携带的是 `+08:00` 墙钟（与 `git log` 的 `+0800` 时刻对不上 UTC），**照实记下，不改写**。
+
 ---
 
 ## §3 needs-human 队列
