@@ -11,7 +11,6 @@ from typing import Any
 from agenerp.seed import names as N
 from agenerp.seed.model import (
     ACC_OPERATING,
-    SHORTFALL_QTY,
     BOM_RAW_QTY,
     COMPANY,
     CUSTOMER,
@@ -23,7 +22,6 @@ from agenerp.seed.model import (
     INVOICE_TERM_DAYS,
     OPENING_RAW_QTY,
     OPERATION_MINUTES,
-    ORDER_QTY,
     RAW_ITEM,
     RAW_RATE,
     SALES_RATE,
