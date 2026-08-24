@@ -747,6 +747,7 @@ Status Note: **两个 Phase 全部执行完毕，`Plan Status: completed`。**
 硬约束① 已前移到 D3 的判据形状），**不许被读成「本 plan 免于判据要求」**。
 
 **执行基线**：sha `e804143`，`git status --porcelain` 开工前无输出。
+**落地 sha**：**`babec7d`**（本行的 sha 由紧随其后的纯文档回填提交带入）。
 
 ### 命令原文 + 退出码（Phase 1 全部为只读探测）
 
