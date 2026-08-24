@@ -28,6 +28,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from agenerp.seed import checks as CH
+from agenerp.seed import generate as seed_generate
 from agenerp.seed import masters, names
 from agenerp.seed import model as M
 from agenerp.site import SiteClient, SiteError, client_from_env
@@ -217,6 +218,10 @@ def _item_steps() -> list[Step]:
             "item_group": row["item_group"],
             "stock_uom": row["stock_uom"],
             "is_stock_item": row["is_stock_item"],
+            # D-12：原生外协链的前置。不带这个标志，建外协采购订单回 417
+            # `Row #1: Finished Good Item ... must be a sub-contracted item`（实测两次）。
+            # 用 `.get` 而不是 `row[...]`：只有成品需要它，原料与服务件不该被迫声明。
+            "is_sub_contracted_item": row.get("is_sub_contracted_item", 0),
         })
         for row in masters.items()
     ]
@@ -331,12 +336,18 @@ def plan_steps() -> tuple[Step, ...]:
 #   **`M.<NAME>` / `model.<NAME>` 在本文件零命中**（`tests/unit/test_seedsite_documents.py` 那条
 #   `test_no_derived_quantity_is_ever_fed_to_the_site` 判的正是这个），不是裸名零命中。
 #
-# **外协批用的不是 `Subcontracting Receipt`**，逐字登记，不含糊：ERPNext v15 的原生外协链要求
-# 成品 `Item` 带 `is_sub_contracted_item = 1`（实测：建 `Purchase Order` 回 417
-# `Row #1: Finished Good Item ... must be a sub-contracted item`），加它要改 `--load-masters` 的载荷，
-# 本 plan 逐字禁止。故外协批走 `Stock Entry(Manufacture)` + 服务费附加成本 —— 它复现的是
-# ERPNext 给外协收货算成本的同一道公式（`rm_cost_per_qty + service_cost_per_qty`），
-# **但走的 DocType 不同**。这是具名残余风险，**不得据此宣称「站点验证了 ERPNext 的外协单据链」**。
+# **外协批走 ERPNext v15 原生四步链**（D-12，2026-08-23 落地）：
+#   采购订单(外协) → 外协订单 → 发料到供应商仓 → 外协收货。
+#   后三步全部由服务端工厂方法派生（见 `SiteClient.call_method`），不手工拼载荷。
+#
+#   此前这里是一条**具名残余风险**：外协批伪造成第二张 `Work Order` +
+#   `Stock Entry(Manufacture)` + 服务费附加成本，理由是原生链要求成品带
+#   `is_sub_contracted_item = 1` 而当时的 plan 逐字禁止改主数据载荷。那条注释
+#   声称「复现的是 ERPNext 给外协收货算成本的同一道公式」——**现已实测证实**：
+#   换成原生链后 `Bin.stock_value` 仍为 3,110,200.00，分文不差；收货单实算
+#   `rm_cost_per_qty 2,960 + service_cost_per_qty 120 = rate 3,080`。
+#   推理是对的，但**走的 DocType 不同**这一点当时就写明了不能含糊 —— 而洞察
+#   Agent 读的正是 DocType。风险已消除，判据见 `_document_graph_checks`。
 
 # ── 单据段自有的纯 ERPNext 结构常量（不参与任何断言）────────────────────────
 FISCAL_YEAR = str(M.BASE_DATE.year)
@@ -350,8 +361,11 @@ BUYING_PRICE_LIST = "Standard Buying"
 # 建 `Material Receipt` 直接回 417 `ValidationError: Source warehouse is mandatory for row 1`。
 PURPOSE_RECEIPT = "Material Receipt"
 PURPOSE_TRANSFER = "Material Transfer for Manufacture"
+PURPOSE_SEND_TO_SUBCONTRACTOR = "Send to Subcontractor"
 PURPOSE_MANUFACTURE = "Manufacture"
-STOCK_ENTRY_PURPOSES = (PURPOSE_RECEIPT, PURPOSE_TRANSFER, PURPOSE_MANUFACTURE)
+STOCK_ENTRY_PURPOSES = (PURPOSE_RECEIPT, PURPOSE_TRANSFER, PURPOSE_MANUFACTURE,
+    PURPOSE_SEND_TO_SUBCONTRACTOR,
+)
 
 # 装载期解析的站点事实。`document_steps()` 是**纯函数**（不联网、不读环境），
 # 站点才知道的值以占位符出现在载荷里，由 `load_documents` 边跑边绑。
@@ -360,7 +374,8 @@ REF_OPERATING_COST = "{{operating_cost}}"
 REF_SALES_ORDER = "{{sales_order}}"
 REF_SO_DETAIL = "{{so_detail}}"
 REF_WORK_ORDER_INHOUSE = "{{work_order_inhouse}}"
-REF_WORK_ORDER_SUBCON = "{{work_order_subcon}}"
+REF_SUBCON_PO = "{{subcon_po}}"
+REF_SUBCON_ORDER = "{{subcon_order}}"
 REF_DELIVERY_NOTE = "{{delivery_note}}"
 
 
@@ -383,6 +398,29 @@ class DocStep:
     label: str
     submit: bool = False
     binds: tuple[str, ...] = ()
+    # ── 服务端工厂方法（D-12：真实外协语义）────────────────────────────
+    # `factory` 非空时，载荷**由站点派生**：先调 `POST /api/method/<factory>` 拿草稿，
+    # 再用 `payload` 覆盖需要指定的少数字段。理由见 `SiteClient.call_method` 的
+    # docstring —— `Subcontracting Order` 手工 POST 直接 500，那些派生字段只在
+    # 工厂方法里算。**凡「本该由另一张单派生出来」的单据一律走这条路。**
+    factory: str | None = None
+    factory_args: dict[str, Any] | None = None
+
+
+_FRAMEWORK_KEYS = frozenset({
+    "name", "owner", "creation", "modified", "modified_by", "docstatus", "idx",
+    "__islocal", "__unsaved", "doctype",
+})
+
+
+def _strip_framework_keys(draft: dict) -> dict:
+    """剥掉工厂方法草稿里的框架字段，只留业务载荷。
+
+    **`name` 必须剥掉**：草稿里带的是 `new-subcontracting-order-xxxxx` 这类本地占位名，
+    原样 POST 会让站点拿它当显式 `name`（而命名序列本该胜出，见 `DocStep` 的 docstring）。
+    `docstatus` 也剥：提交由 `DocStep.submit` 统一管，不由草稿说了算。
+    """
+    return {k: v for k, v in draft.items() if k not in _FRAMEWORK_KEYS}
 
 
 def _pick(doc: dict, path: str) -> Any:
@@ -513,15 +551,51 @@ def document_steps() -> tuple[DocStep, ...]:
         }, "原料转在制品仓（自制批）"),
         _manufacture_step(REF_WORK_ORDER_INHOUSE, M.WH_WIP, M.day(3), M.INHOUSE_QTY,
                           REF_OPERATING_COST, "工序费用（站点按 BOM 工序汇总）", "自制批入库"),
-        _work_order_step(M.WH_SUBCON, M.day(3), M.day(4), "工单（外协批）", "work_order_subcon"),
-        _stock_entry(PURPOSE_TRANSFER, M.day(4), {
-            "work_order": REF_WORK_ORDER_SUBCON, "from_bom": 1, "bom_no": names.BOM,
-            "fg_completed_qty": M.SUBCON_QTY,
-            "items": [{"item_code": M.RAW_ITEM, "s_warehouse": M.WH_RAW,
-                       "t_warehouse": M.WH_SUBCON, "qty": M.BOM_RAW_QTY}],
-        }, "原料转外协仓（外协批）"),
-        _manufacture_step(REF_WORK_ORDER_SUBCON, M.WH_SUBCON, M.day(5), M.SUBCON_QTY,
-                          M.SUBCONTRACT_FEE, "外协服务费", "外协批入库"),
+        # ── 外协批：ERPNext v15 原生四步链（D-12）────────────────────────
+        # 采购订单(外协) → 外协订单 → 发料到供应商仓 → 外协收货。
+        # 后三步**全部由工厂方法派生**，不手工拼载荷 —— 见 `SiteClient.call_method`。
+        DocStep("Purchase Order",
+                {"company": M.COMPANY, "supplier": M.SUPPLIER},
+                {"supplier": M.SUPPLIER, "company": M.COMPANY,
+                 "transaction_date": M.day(3), "schedule_date": M.day(4),
+                 "is_subcontracted": 1, "supplier_warehouse": site_name_of(M.WH_SUBCON),
+                 # 从哪个仓发料给供应商。**不设则 ERPNext 把 `reserve_warehouse` 推成
+                 # 采购行的 `warehouse`（即成品仓）**，而电芯在原料仓 —— 发料时查不到
+                 # 估值，回 417 `Valuation Rate for the Item HRD-CELL-280, is required`（实测）。
+                 "set_reserve_warehouse": site_name_of(M.WH_RAW),
+                 "currency": DEFAULT_CURRENCY, "conversion_rate": 1,
+                 "items": [{"item_code": M.SERVICE_ITEM, "qty": M.SUBCON_QTY,
+                            "rate": M.SUBCONTRACT_FEE / M.SUBCON_QTY,
+                            "schedule_date": M.day(4),
+                            "warehouse": site_name_of(M.WH_FINISHED),
+                            "fg_item": M.FINISHED_ITEM, "fg_item_qty": M.SUBCON_QTY}]},
+                "采购订单（外协）", submit=True, binds=("subcon_po=name",)),
+        DocStep("Subcontracting Order",
+                {"company": M.COMPANY, "supplier": M.SUPPLIER},
+                {"transaction_date": M.day(3)},
+                "外协订单", submit=True, binds=("subcon_order=name",),
+                factory="erpnext.buying.doctype.purchase_order.purchase_order.make_subcontracting_order",
+                factory_args={"source_name": REF_SUBCON_PO}),
+        DocStep("Stock Entry",
+                {"stock_entry_type": PURPOSE_SEND_TO_SUBCONTRACTOR, "posting_date": M.day(4)},
+                # `stock_entry_type` 必须自己送：工厂方法回的草稿只带 `purpose`，
+                # 而 Frappe 的必填校验看的是 `stock_entry_type`（实测 MandatoryError）。
+                # 两个都显式送。`stock_entry_type` 是 Frappe 的必填校验看的字段
+                # （实测 MandatoryError），`purpose` 虽然工厂草稿里有，但依赖草稿等于
+                # 把不变量押在工厂的实现上 —— 见同文件那条「只送 stock_entry_type 时
+                # 站点不带出 purpose，Material Receipt 直接回 417」。
+                {"posting_date": M.day(4), "set_posting_time": 1,
+                 "stock_entry_type": PURPOSE_SEND_TO_SUBCONTRACTOR,
+                 "purpose": PURPOSE_SEND_TO_SUBCONTRACTOR},
+                "发料到供应商仓（外协）", submit=True,
+                factory="erpnext.controllers.subcontracting_controller.make_rm_stock_entry",
+                factory_args={"subcontract_order": REF_SUBCON_ORDER}),
+        DocStep("Subcontracting Receipt",
+                {"company": M.COMPANY, "supplier": M.SUPPLIER},
+                {"posting_date": M.day(5), "set_posting_time": 1},
+                "外协收货", submit=True,
+                factory="erpnext.subcontracting.doctype.subcontracting_order.subcontracting_order.make_subcontracting_receipt",
+                factory_args={"source_name": REF_SUBCON_ORDER}),
         DocStep("Delivery Note",
                 {"company": M.COMPANY, "customer": M.CUSTOMER, "posting_date": M.day(6)},
                 {"customer": M.CUSTOMER, "company": M.COMPANY, "posting_date": M.day(6),
@@ -694,6 +768,14 @@ def load_documents(client: SiteClient) -> DocLoadReport:
     bindings: dict[str, Any] = {"operating_cost": inhouse_operating_cost}
     for step in document_steps():
         payload = resolve_refs(step.payload, bindings)
+        # **幂等先于工厂**：单据已在站点上时不得再调工厂方法。实测（2026-08-23）
+        # 重跑装载会撞 `This PO has been fully subcontracted` —— 工厂方法**有副作用感知**，
+        # 它按源单的已外协量判定，不是纯函数。`ensure_doc` 的幂等在它之后就太晚了。
+        if step.factory and client.find_one(step.doctype, step.key) is None:
+            draft = client.call_method(step.factory, resolve_refs(step.factory_args or {}, bindings))
+            if not isinstance(draft, dict):
+                raise SiteError(f"{step.label}：工厂方法 {step.factory} 没回一份文档草稿：{str(draft)[:160]}")
+            payload = {**_strip_framework_keys(draft), **payload}
         doc, created = client.ensure_doc(step.doctype, step.key, payload)
         name = str(doc.get("name"))
         submitted = False
@@ -897,9 +979,52 @@ def _overdue_checks(client: SiteClient, today: str | None = None) -> list[CheckR
     return results
 
 
+def _document_graph_checks(client: SiteClient) -> list[CheckResult]:
+    """**文档图对账**：站点上每种 DocType 的条数，必须与离线数据集逐一相等。
+
+    这条判据是 D-12 的直接产物，补的是一道**结构性的缝**。在它之前，站点与离线
+    数据集对同一桩业务可以讲两个不同的故事而两边都绿：外协批在离线是
+    `Subcontracting Order` + `Subcontracting Receipt`，在站点上却是第二张工单 ——
+    财务与库存口径完全一致，所以 `_backlog_checks` / `_books_checks` 全都过。
+
+    **谁读谁，决定了这道缝有多深**：洞察 Agent 读的是站点。规则写在
+    `Subcontracting Order` 上时，站点零命中而单测（跑离线数据集）照样绿。
+    测试通过、线上零命中，且无任何信号 —— 这正是本判据要挡的形状。
+
+    条数是最粗但最不可绕过的一层。它不保证字段一致，只保证**两边讲的是同一个
+    故事的同一批单据**。字段级一致由各单据自己的判据管。
+    """
+    dataset = seed_generate()
+    results: list[CheckResult] = []
+    for doctype in dataset.doctypes():
+        if doctype in _DERIVED_DOCTYPES:
+            continue
+        expected = len(dataset.of(doctype))
+        actual = len(client.list_resource(doctype, fields=("name",)))
+        results.append(CheckResult(
+            label=f"{doctype} 的文档条数",
+            actual=str(actual),
+            expected=str(expected),
+            source=f"agenerp.seed 生成的数据集（{doctype}）",
+            ok=actual == expected,
+        ))
+    return results
+
+
+# 站点自己派生、离线数据集不建模的 DocType —— 不参与条数对账。
+# 逐条列名而不是按前缀排除：新增一种就必须显式决定它算不算，不留静默通道。
+_DERIVED_DOCTYPES = frozenset({
+    "Bin",              # 站点按库存流水实时维护
+    "GL Entry",         # 提交单据时由站点自动生成
+    "Stock Ledger Entry",  # 同上
+    "Item", "Warehouse", "BOM",  # 主数据段装，不在单据段
+})
+
+
 def verify_site(client: SiteClient, today: str | None = None) -> list[CheckResult]:
     """站点侧对账：读回**站点自己算出来**的数，跟 `checks.EXPECTED_*` 比。"""
-    return _backlog_checks(client) + _books_checks(client) + _overdue_checks(client, today)
+    return (_backlog_checks(client) + _books_checks(client) + _overdue_checks(client, today)
+            + _document_graph_checks(client))
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(

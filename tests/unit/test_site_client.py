@@ -636,3 +636,41 @@ def test_default_base_url_falls_back_to_the_http_port_variable(clean_env, monkey
 def test_default_base_url_uses_the_compose_default_port_when_neither_variable_is_set(clean_env):
     """两个变量都不设时才落到默认端口 —— 这条是上面那条的对照组，缺了它「恒取默认」看起来也对。"""
     assert default_base_url() == f"http://127.0.0.1:{site_mod.DEFAULT_HTTP_PORT}"
+
+
+# ── call_method：服务端工厂方法面（plan D-12 · 真实外协语义）────────────────
+
+
+def test_call_method_posts_to_api_method_and_unwraps_message():
+    """工厂方法走 `POST /api/method/<dotted.path>`，返回值取 `message`。
+
+    存在理由见 `SiteClient.call_method` 的 docstring：`Subcontracting Order`
+    手工 POST 到 `/api/resource` 直接 500，必须由采购订单派生。
+    """
+    transport = FakeTransport([
+        SiteResponse(200, json.dumps({"message": {"doctype": "Subcontracting Order", "items": [{"qty": 1000}]}}))
+    ])
+
+    got = _client(transport, api_key="k", api_secret="s").call_method(
+        "erpnext.buying.doctype.purchase_order.purchase_order.make_subcontracting_order",
+        {"source_name": "PUR-ORD-2026-00001"},
+    )
+
+    assert got == {"doctype": "Subcontracting Order", "items": [{"qty": 1000}]}
+    assert transport.last.method == "POST"
+    assert "/api/method/erpnext.buying" in transport.last.url
+    assert json.loads(transport.last.body) == {"source_name": "PUR-ORD-2026-00001"}
+
+
+def test_call_method_raises_when_the_response_has_no_message():
+    """方法名写错时 Frappe 回 `{}` —— 与「方法无返回值」长得一样。
+
+    不主动抛错就会把空结果当成功，那正是「不伪装成功」这条约束要挡的形状。
+    """
+    transport = FakeTransport([SiteResponse(200, json.dumps({}))])
+
+    with pytest.raises(SiteError) as err:
+        _client(transport, api_key="k", api_secret="s").call_method("erpnext.nonexistent.method")
+
+    assert "message" in str(err.value)
+    assert "erpnext.nonexistent.method" in str(err.value)

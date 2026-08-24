@@ -32,6 +32,7 @@ def generate(seed: int = 42) -> Dataset:
         "Sales Order": masters.sales_order(),
         "Work Order": masters.work_order(),
         "Stock Entry": documents.stock_entries(rng),
+        "Purchase Order": documents.subcontract_purchase_order(),
         "Subcontracting Order": subcon_order,
         "Subcontracting Receipt": subcon_receipt,
         "Delivery Note": documents.delivery(),

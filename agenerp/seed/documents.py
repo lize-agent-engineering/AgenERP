@@ -142,23 +142,54 @@ def stock_entries(rng: random.Random) -> list[Row]:
 
 
 def subcontracting() -> tuple[list[Row], list[Row]]:
+    """外协批：**ERPNext v15 原生结构**（D-12）。
+
+    结构照站点实测形状写，不自造：
+    - `items` 装的是**成品**（HRD-PACK-5K，带 BOM 与收货仓），不是服务件
+    - `service_items` 才装服务件，带 `fg_item` / `fg_item_qty` 指回成品
+    - `supplied_items` 是发给供应商的原料，`reserve_warehouse` 是**原料仓**
+
+    D-12 之前这里把服务件塞进 `items`，与站点对不上；而站点侧当时压根没有这两张单
+    （装载器把外协批伪造成第二张工单）。两边现已统一到真实语义。
+    """
     order = [
         {
             "name": N.SUBCON_ORDER,
+            "purchase_order": N.SUBCON_PO,
             "supplier": SUPPLIER,
             "company": COMPANY,
             "transaction_date": day(3),
             "docstatus": 1,
             "status": "Completed",
+            "supplier_warehouse": WH_SUBCON,
             "items": [
                 {
+                    "item_code": FINISHED_ITEM,
+                    "qty": SUBCON_QTY,
+                    "warehouse": WH_FINISHED,
+                    "bom": N.BOM,
+                    "rate": SUBCONTRACT_FEE / SUBCON_QTY,
+                    "service_cost_per_qty": SUBCONTRACT_FEE / SUBCON_QTY,
+                    "amount": SUBCONTRACT_FEE,
+                }
+            ],
+            "service_items": [
+                {
                     "item_code": SERVICE_ITEM,
-                    "qty": 1,
-                    "rate": SUBCONTRACT_FEE,
+                    "qty": SUBCON_QTY,
+                    "rate": SUBCONTRACT_FEE / SUBCON_QTY,
+                    "amount": SUBCONTRACT_FEE,
                     "fg_item": FINISHED_ITEM,
                     "fg_item_qty": SUBCON_QTY,
-                    "bom": N.BOM,
-                    "warehouse": WH_FINISHED,
+                }
+            ],
+            "supplied_items": [
+                {
+                    "rm_item_code": RAW_ITEM,
+                    "required_qty": BOM_RAW_QTY,
+                    "reserve_warehouse": WH_RAW,
+                    "rate": RAW_RATE,
+                    "amount": BOM_RAW_QTY * RAW_RATE,
                 }
             ],
         }
@@ -176,15 +207,18 @@ def subcontracting() -> tuple[list[Row], list[Row]]:
                     "item_code": FINISHED_ITEM,
                     "warehouse": WH_FINISHED,
                     "qty": SUBCON_QTY,
+                    "received_qty": SUBCON_QTY,
                     "rate": SUBCON_RATE,
                     "amount": SUBCON_VALUE,
+                    # 站点实算的两段分解（实测：2,960 + 120 = 3,080）。
+                    "rm_cost_per_qty": BOM_RAW_QTY * RAW_RATE / SUBCON_QTY,
                     "service_cost_per_qty": SUBCONTRACT_FEE / SUBCON_QTY,
                 }
             ],
             "supplied_items": [
                 {
                     "rm_item_code": RAW_ITEM,
-                    "reserve_warehouse": WH_SUBCON,
+                    "reserve_warehouse": WH_RAW,
                     "consumed_qty": BOM_RAW_QTY,
                     "rate": RAW_RATE,
                     "amount": BOM_RAW_QTY * RAW_RATE,
@@ -194,6 +228,43 @@ def subcontracting() -> tuple[list[Row], list[Row]]:
         }
     ]
     return order, receipt
+
+
+def subcontract_purchase_order() -> list[Row]:
+    """外协采购订单 —— ERPNext v15 外协链的起点（D-12）。
+
+    `Subcontracting Order` 的 `purchase_order` 是**必填**（实测 `DocField.reqd = 1`），
+    外协订单只能由它派生（`make_subcontracting_order`）。缺这一张，离线数据集与
+    站点的文档图就对不上 —— 那正是 D-12 要治理的分歧。
+    """
+    return [
+        {
+            "name": N.SUBCON_PO,
+            "supplier": SUPPLIER,
+            "company": COMPANY,
+            "transaction_date": day(3),
+            "schedule_date": day(4),
+            "docstatus": 1,
+            "status": "Completed",
+            "is_subcontracted": 1,
+            "supplier_warehouse": WH_SUBCON,
+            # 发料仓。不设则 ERPNext 把 `reserve_warehouse` 推成采购行的收货仓
+            # （成品仓），发料时查不到电芯估值（实测 417）。
+            "set_reserve_warehouse": WH_RAW,
+            "items": [
+                {
+                    "item_code": SERVICE_ITEM,
+                    "qty": SUBCON_QTY,
+                    "rate": SUBCONTRACT_FEE / SUBCON_QTY,
+                    "amount": SUBCONTRACT_FEE,
+                    "warehouse": WH_FINISHED,
+                    "fg_item": FINISHED_ITEM,
+                    "fg_item_qty": SUBCON_QTY,
+                }
+            ],
+            "grand_total": SUBCONTRACT_FEE,
+        }
+    ]
 
 
 def delivery() -> list[Row]:

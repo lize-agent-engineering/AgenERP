@@ -30,6 +30,7 @@ from agenerp.seed.model import (
     SALES_ORDER_PER_DELIVERED,
     SALES_ORDER_STATUS,
     UOM_FINISHED,
+    UOM_RAW,
 )
 
 Row = dict[str, Any]
@@ -39,15 +40,18 @@ def items() -> list[Row]:
         {
             "name": FINISHED_ITEM,
             "item_name": "户用储能电池包 5kWh",
+            # D-12：原生外协链的前置。不加则建外协采购订单回 417
+            # `Row #1: Finished Good Item ... must be a sub-contracted item`（实测）。
+            "is_sub_contracted_item": 1,
             "item_group": "成品",
-            "stock_uom": "Meter",
+            "stock_uom": UOM_FINISHED,
             "is_stock_item": 1,
         },
         {
             "name": RAW_ITEM,
-            "item_name": "白色锦纶丝",
+            "item_name": "磷酸铁锂电芯 280Ah",
             "item_group": "原材料",
-            "stock_uom": "Kg",
+            "stock_uom": UOM_RAW,
             "is_stock_item": 1,
         },
         {

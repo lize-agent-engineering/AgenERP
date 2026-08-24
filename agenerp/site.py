@@ -71,6 +71,7 @@ ALL_FIELDS = ("*",)
 
 LOGIN_PATH = "/api/method/login"
 RESOURCE_PATH = "/api/resource"
+METHOD_PATH = "/api/method"
 
 # 存在性判断走列表端点 + `filters`，不走「GET 单文档、404 判不存在」：
 # 2026-08-22 实测，站点对 `Warehouse` / `Account` / `Item` / `BOM` **不采纳显式 `name`**
@@ -273,6 +274,35 @@ class SiteClient:
         if existing is not None:
             return existing, False
         return self.create_doc(doctype, payload), True
+
+    def call_method(self, method: str, params: dict | None = None) -> Any:
+        """调服务端白名单方法（`POST /api/method/<dotted.path>`），返回 `message` 的内容。
+
+        **为什么必须有这个面**：ERPNext 的一部分派生字段**只在服务端工厂方法里算**，
+        走 `/api/resource` 手工建档时不跑。2026-08-23 活站点实测两例：
+
+        1. `Subcontracting Order` 手工 POST 直接 **HTTP 500**
+           （`TypeError: unsupported operand type(s) for /: 'NoneType' and 'int'`），
+           而 `erpnext.buying.doctype.purchase_order.purchase_order.make_subcontracting_order`
+           一次成功且 `items` / `service_items` 全部填好（`rate 120.0` / `amount 120000.0` /
+           `fg_item` 挂对）。
+        2. 同类先例见 `seedsite.py` 的 `_manufacture_step`：`add_operations_cost()`
+           只在服务端 `make_stock_entry` 路径上跑，不送 `additional_costs` 时工序成本整段丢掉。
+
+        → **凡「本该由另一张单派生出来」的单据，一律走工厂方法，不手工拼载荷。**
+        手工拼等于用本仓的理解覆盖站点的计算，且失败方式是 500 而不是清晰的校验错。
+
+        `message` 缺失时**主动抛错**：Frappe 对无返回值的方法回 `{}`，与「方法名写错被
+        静默忽略」长得一样，不查就会把空结果当成功。
+        """
+        self._ensure_authenticated()
+        response = self._request("POST", f"{METHOD_PATH}/{method}", body=params or {})
+        if not isinstance(response, dict) or "message" not in response:
+            raise SiteError(
+                f"调用 {method!r} 的响应没有 message 字段（方法名写错会长成这样）："
+                f"{str(response)[:200]}"
+            )
+        return response["message"]
 
     def submit_doc(self, doctype: str, name: str) -> dict:
         """把一份已存在的文档由 `docstatus 0` 推到 `1`（提交），返回站点回的 `data`。
