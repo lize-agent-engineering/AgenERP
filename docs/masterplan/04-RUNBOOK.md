@@ -143,6 +143,56 @@ node tools/mission-driver/src/reap-orphans.mjs
 
 ---
 
+## 5.6 凭据放哪（`.env` 里永远不放）
+
+**规矩一句话：真凭据一律放仓库目录之外。**
+
+```
+~/.config/agenerp/secrets.env      # 0600，仓库目录之外
+```
+
+加载：
+
+```bash
+set -a; . ~/.config/agenerp/secrets.env; set +a
+```
+
+### 为什么不放 `.env`
+
+`.env` **就在仓库目录里**。它今天被 `.gitignore` 挡着，但那是一层**约定**，
+不是一道**墙**：
+
+- 一次 `git add -A`（人侧刚踩过，见 §5.5）
+- 一次 `.gitignore` 被谁改动
+- 一次把目录整个打包 / 拷贝 / 同步到别处
+- 一次 `docker cp` 或挂载整个工作目录进容器
+
+凭据就出去了。**放在仓库目录之外，这些路径全部不存在** —— 不是「更难出错」，
+是「那条路不通」。
+
+### 当前放着什么
+
+| 变量 | 用途 |
+|---|---|
+| `DASHSCOPE_API_KEY` | 百炼端点（P1 起的 LLM 调用）|
+| `AGENERP_WORKER_PASSWORD` | 受限身份口令（`permission.scope` 判别力判据的前置）|
+
+`.env` 里只留**非敏感配置**（引擎路径、端口、模型名这类），并留一行指路。
+`.env.example` 里的凭据槽位**值一律留空**，只用来说明「能配什么」。
+
+### 一条不许省的自查
+
+**任何提交之前**，确认这条为空：
+
+```bash
+git diff --cached | grep -iE "api[_-]?key|password|secret|token" 
+```
+
+有输出就停下来看清楚。公开仓库上，提交过的 key 几分钟内会被爬走，
+**撤销提交没用 —— 要当作已泄露去轮换**。
+
+---
+
 ## 6. 崩溃恢复
 
 | 症状 | 处置 |
