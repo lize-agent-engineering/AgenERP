@@ -95,7 +95,13 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - run: pip install pytest
+      # 装本仓自身的运行期依赖，不只是 pytest。
+      # 只装 pytest 会让「本机碰巧装着某个库」变成 CI 绿而线上红 ——
+      # 2026-08-24 实测踩到：certifi 从未被声明为依赖，本机碰巧有，
+      # 直到 tests/routing 进 CI 才在 runner 上 ModuleNotFoundError。
+      # 不用 `-e .`：那要跑构建后端，多一层能失败的东西；直接读 pyproject 的
+      # dependencies 装，判据更直接。
+      - run: pip install pytest certifi
       - name: 门禁结果必须与预期红名单一致
         run: python3 tools/gates/check_expected_red.py
 
@@ -161,7 +167,13 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - run: pip install pytest
+      # 装本仓自身的运行期依赖，不只是 pytest。
+      # 只装 pytest 会让「本机碰巧装着某个库」变成 CI 绿而线上红 ——
+      # 2026-08-24 实测踩到：certifi 从未被声明为依赖，本机碰巧有，
+      # 直到 tests/routing 进 CI 才在 runner 上 ModuleNotFoundError。
+      # 不用 `-e .`：那要跑构建后端，多一层能失败的东西；直接读 pyproject 的
+      # dependencies 装，判据更直接。
+      - run: pip install pytest certifi
 
       # runner 与本机的 compose 版本差是 plan 1022-1 登记的 watch-only residual，
       # 每次都把版本打出来，差异出现时能直接比对，不用回头猜。
@@ -220,7 +232,13 @@ jobs:
           python-version: "3.11"
       # 不可省：check_expected_red.py 用 sys.executable -m pytest 起子进程，
       # pytest 必须装在这个解释器里。
-      - run: pip install pytest
+      # 装本仓自身的运行期依赖，不只是 pytest。
+      # 只装 pytest 会让「本机碰巧装着某个库」变成 CI 绿而线上红 ——
+      # 2026-08-24 实测踩到：certifi 从未被声明为依赖，本机碰巧有，
+      # 直到 tests/routing 进 CI 才在 runner 上 ModuleNotFoundError。
+      # 不用 `-e .`：那要跑构建后端，多一层能失败的东西；直接读 pyproject 的
+      # dependencies 装，判据更直接。
+      - run: pip install pytest certifi
 
       - name: runner 上的 docker / compose 版本
         run: |
@@ -440,7 +458,13 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - run: pip install pytest
+      # 装本仓自身的运行期依赖，不只是 pytest。
+      # 只装 pytest 会让「本机碰巧装着某个库」变成 CI 绿而线上红 ——
+      # 2026-08-24 实测踩到：certifi 从未被声明为依赖，本机碰巧有，
+      # 直到 tests/routing 进 CI 才在 runner 上 ModuleNotFoundError。
+      # 不用 `-e .`：那要跑构建后端，多一层能失败的东西；直接读 pyproject 的
+      # dependencies 装，判据更直接。
+      - run: pip install pytest certifi
 
       - name: ① 单测（tests/unit）
         run: python3 -m pytest tests/unit -q

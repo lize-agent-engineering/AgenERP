@@ -7,6 +7,13 @@ name = "agenerp"
 version = "0.0.0"
 description = "Agent-driven ERP on Frappe/ERPNext"
 requires-python = ">=3.11"
+# 运行期依赖。**此前一个都没声明** —— 本机碰巧装着 certifi，所以直到
+# 2026-08-24 把 tests/routing 接进 CI 才暴露（runner 上 ModuleNotFoundError）。
+# certifi 不是可选项：D-11 记着本机 python.org 版 Python 未装 CA 根证书，
+# 直连 HTTPS 报 CERTIFICATE_VERIFY_FAILED，产品代码必须显式用它建 SSL 上下文。
+dependencies = [
+    "certifi>=2024.2.2",
+]
 
 [tool.setuptools.packages.find]
 where = ["."]
