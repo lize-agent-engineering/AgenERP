@@ -1,0 +1,182 @@
+"""OpenAI 兼容的 chat 适配面。
+
+形状继承 `tools/experiments/p1_entry_gate/llm.py` 已解决掉的四件事（**继承形状，不复制文件**
+—— 那个文件是 P1.0 的判定证据，一行不动）：
+
+1. OpenAI 兼容 `/chat/completions`，`model` / `messages` / `tools` / `max_tokens` 四件套；
+2. **transport 可注入** —— 单测喂假模型，不打网络；
+3. **token 三项分开记**（`prompt` / `completion` / `reasoning`）——
+   推理模型回两个字也烧 reasoning token（D-11：`qwen3.6-plus` 约 195），
+   混进 `completion` 里成本模型（P1.7）就没法算；
+4. **失败不降级成空回答** —— 一切失败抛 `RoutingError`。空回答与"模型选择不作答"
+   长得一样，降级会把一次 API 故障记成一次真实结果。
+
+**certifi 是惰性 import。** CI 的 `unit-and-contracts` job 只 `pip install pytest`
+（`.github/workflows/gates.yml`），模块级 `import certifi` 会让 CI 当场 ImportError；
+而 D-11 的环境注记又要求产品代码显式给 CA 根证书。两条同时成立的唯一摆法就是：
+`import certifi` 只出现在真正构造 SSL 上下文的函数体内。判据见
+`tests/routing/test_adapter.py` 的 CI 依赖面反测（AST + 全新解释器两道）。
+"""
+
+from __future__ import annotations
+
+import json
+import ssl
+import urllib.error
+import urllib.request
+from collections.abc import Sequence
+from dataclasses import dataclass, field
+
+from agenerp.routing.capabilities import ModelProfile
+from agenerp.routing.config import LlmConfig
+from agenerp.routing.errors import RoutingError
+
+DEFAULT_TIMEOUT = 300
+DEFAULT_MAX_TOKENS = 2048
+
+
+@dataclass(frozen=True)
+class Usage:
+    """一次调用的 token 账。三项分开记，`total` 不含 reasoning ——
+    reasoning 的计价与 completion 常常不同，加在一起就分不开了。"""
+
+    prompt: int = 0
+    completion: int = 0
+    reasoning: int = 0
+
+    @property
+    def total(self) -> int:
+        return self.prompt + self.completion
+
+    def plus(self, other: Usage) -> Usage:
+        return Usage(
+            self.prompt + other.prompt,
+            self.completion + other.completion,
+            self.reasoning + other.reasoning,
+        )
+
+    def as_dict(self) -> dict[str, int]:
+        return {
+            "prompt": self.prompt,
+            "completion": self.completion,
+            "reasoning": self.reasoning,
+            "total": self.total,
+        }
+
+
+@dataclass(frozen=True)
+class Reply:
+    """模型的一次回复：要么是若干次工具调用，要么是最终答案文本。"""
+
+    text: str = ""
+    tool_calls: tuple[dict, ...] = ()
+    usage: Usage = field(default_factory=Usage)
+    model: str = ""
+    raw: dict = field(default_factory=dict, compare=False)
+
+
+def _ssl_context() -> ssl.SSLContext:
+    """**唯一** import certifi 的地方，且在函数体内（见模块头）。"""
+    import certifi
+
+    return ssl.create_default_context(cafile=certifi.where())
+
+
+class ChatAdapter:
+    """绑定到一个具体模型的调用面。`route()` 返回的就是它。
+
+    `profile` 是这个模型的能力档案。adapter **自己不做能力校验** ——
+    校验是 `router.route()` 的职责，放两处会出现"一处松一处紧"。
+    档案带在身上是为了让调用方（P1.7 的成本面）能读到 `is_reasoning_model`。
+    """
+
+    def __init__(
+        self,
+        config: LlmConfig,
+        *,
+        model: str | None = None,
+        profile: ModelProfile | None = None,
+        transport=None,
+        timeout: int = DEFAULT_TIMEOUT,
+    ) -> None:
+        self._config = config
+        self.model = model or config.model
+        self.profile = profile
+        self._transport = transport
+        self._timeout = timeout
+
+    def __repr__(self) -> str:
+        """**不含凭据。** `LlmConfig.api_key` 是 `repr=False`，这里也不另插值它。"""
+        return f"ChatAdapter(model={self.model!r}, base_url={self._config.base_url!r})"
+
+    def chat(
+        self,
+        messages: Sequence[dict],
+        tools: Sequence[dict] | None = None,
+        max_tokens: int = DEFAULT_MAX_TOKENS,
+    ) -> Reply:
+        payload: dict = {
+            "model": self.model,
+            "messages": list(messages),
+            "max_tokens": max_tokens,
+        }
+        # `tools` 只在给了的时候才进载荷：部分 OpenAI 兼容端点对空数组会 400，
+        # 那会把"这次不带工具"变成一次假故障。
+        if tools:
+            payload["tools"] = list(tools)
+
+        body = self._send(payload)
+        choices = body.get("choices")
+        if not isinstance(choices, list) or not choices:
+            raise RoutingError(
+                f"模型回包里没有 choices：{json.dumps(body, ensure_ascii=False)[:300]}"
+            )
+        message = choices[0].get("message") or {}
+        return Reply(
+            text=(message.get("content") or "").strip(),
+            tool_calls=tuple(message.get("tool_calls") or ()),
+            usage=usage_of(body.get("usage") or {}),
+            model=self.model,
+            raw=body,
+        )
+
+    def _send(self, payload: dict) -> dict:
+        """注入的 transport 与真网络**走同一段失败映射** ——
+        分成两段写，假 transport 就测不到真网络那段的映射了。"""
+        try:
+            body = self._transport(payload) if self._transport is not None else self._post(payload)
+        except urllib.error.HTTPError as exc:
+            detail = exc.read().decode("utf-8", "replace")[:400]
+            raise RoutingError(f"模型端点返回 HTTP {exc.code}：{detail}") from exc
+        except (urllib.error.URLError, TimeoutError) as exc:
+            raise RoutingError(f"调模型失败（连不上端点 {self._config.base_url}）：{exc}") from exc
+        except ValueError as exc:
+            raise RoutingError(f"模型回包不是 JSON：{exc}") from exc
+        if not isinstance(body, dict):
+            raise RoutingError(f"模型回包不是 JSON 对象，拿到 {type(body).__name__}")
+        return body
+
+    def _post(self, payload: dict) -> dict:
+        request = urllib.request.Request(
+            self._config.chat_completions_url,
+            data=json.dumps(payload).encode("utf-8"),
+            headers={
+                "Authorization": self._config.authorization(),
+                "Content-Type": "application/json",
+            },
+            method="POST",
+        )
+        with urllib.request.urlopen(
+            request, timeout=self._timeout, context=_ssl_context()
+        ) as resp:
+            return json.loads(resp.read().decode("utf-8", "replace"))
+
+
+def usage_of(usage: dict) -> Usage:
+    """`completion_tokens_details.reasoning_tokens` 缺失时回 0，**不回退成把它算进 completion**。"""
+    details = usage.get("completion_tokens_details") or {}
+    return Usage(
+        prompt=int(usage.get("prompt_tokens") or 0),
+        completion=int(usage.get("completion_tokens") or 0),
+        reasoning=int(details.get("reasoning_tokens") or 0),
+    )
