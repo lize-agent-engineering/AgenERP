@@ -7,16 +7,16 @@
 
 缺变量时**指名报错**，不猜、不兜底：一个默认端点会让"没配置"静默变成"连到了别人家"。
 
-**凭据不进 `repr`、不进异常文本、不进任何日志。** `api_key` 是 `repr=False` 的字段，
-本模块任何一条异常消息里都不插值它。判据在 `tests/routing/test_adapter.py`
-（哨兵 key + 断言它不出现在 `repr` 与异常文本里），不是靠 code review 保证。
+**凭据不进 `repr`、不进 `asdict` / `vars`、不进异常文本、不进本层任何日志。**
+判据在 `tests/routing/test_adapter.py`（哨兵 key + 逐条断言），不是靠 code review 保证。
+**边界照实说**：带栈帧局部变量的 traceback 打印器仍读得到 `_post` 里那个 `Request` 的请求头，
+本层挡不住那种打印器 —— 判据判的是标准库 `traceback.format_exc()`。
 """
 
 from __future__ import annotations
 
 import os
 from collections.abc import Mapping
-from dataclasses import dataclass, field
 
 from agenerp.routing.errors import RoutingError
 
@@ -27,16 +27,32 @@ MODEL_ENV = "AGENERP_LLM_MODEL"
 REQUIRED_ENV = (BASE_URL_ENV, API_KEY_ENV, MODEL_ENV)
 
 
-@dataclass(frozen=True)
 class LlmConfig:
-    """一个 OpenAI 兼容端点的最小配置。`api_key` 不参与 `repr`。"""
+    """一个 OpenAI 兼容端点的最小配置。
 
-    base_url: str
-    model: str
-    api_key: str = field(repr=False, compare=False)
+    **刻意不是 dataclass。** 用 `__slots__` + 自己写的 `__repr__`，是为了把**批量序列化**
+    这条泄漏路径整个拿掉：`dataclasses.asdict()` 会把 `repr=False` 的字段照样倒出来，
+    `vars()` / `__dict__` 也一样 —— 那两条不是假想，任何一句"把配置打进日志看看"都会走上去。
+    现在 `asdict` 不适用、`vars()` 直接 `TypeError`，key 只能**指名去取**。
 
-    def __post_init__(self) -> None:
-        object.__setattr__(self, "base_url", self.base_url.rstrip("/"))
+    ⚠️ **能挡住什么、挡不住什么，说清楚**：挡得住 `repr` / `str` / `asdict` / `vars` /
+    本层任何一条异常文本。**挡不住**带栈帧局部变量的 traceback 打印器（rich、cgitb 之类）——
+    `_post` 的栈帧里有构造好的 `Request`，请求头里就是 `Authorization`。
+    标准库 `traceback.format_exc()` 不打 locals，本层判据判的是它。
+    """
+
+    __slots__ = ("base_url", "model", "_api_key")
+
+    def __init__(self, base_url: str, model: str, api_key: str) -> None:
+        object.__setattr__(self, "base_url", base_url.rstrip("/"))
+        object.__setattr__(self, "model", model)
+        object.__setattr__(self, "_api_key", api_key)
+
+    def __setattr__(self, name: str, value: object) -> None:
+        raise AttributeError("LlmConfig 是只读的")
+
+    def __repr__(self) -> str:
+        return f"LlmConfig(base_url={self.base_url!r}, model={self.model!r})"
 
     @property
     def chat_completions_url(self) -> str:
@@ -44,7 +60,7 @@ class LlmConfig:
 
     def authorization(self) -> str:
         """唯一一处该把 key 拿出来的地方 —— 拼请求头。别在别处调它。"""
-        return f"Bearer {self.api_key}"
+        return f"Bearer {self._api_key}"
 
 
 def from_env(env: Mapping[str, str] | None = None) -> LlmConfig:

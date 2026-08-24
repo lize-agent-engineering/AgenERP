@@ -115,6 +115,12 @@ def test_capability_outside_the_enum_is_rejected_in_a_model_profile():
         validate_model_profile(ModelProfile(name="m", capabilities=frozenset({"fast"})))
 
 
+def test_a_model_profile_without_a_name_is_rejected():
+    """收口审计 F10：这是校验器的第五条分支，原先没有判据盖住。"""
+    with pytest.raises(DeclarationError, match="缺名字"):
+        validate_model_profile(ModelProfile(name="   ", capabilities=frozenset({"tool_calling"})))
+
+
 def test_unknown_task_class_does_not_silently_become_an_empty_requirement():
     """未知类目回空集 = 谁都能接。那是本模块存在理由的反面，必须报错。"""
     with pytest.raises(DeclarationError, match="未知任务类目"):

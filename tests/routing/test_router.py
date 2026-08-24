@@ -138,6 +138,16 @@ def test_requesting_a_weak_model_out_of_a_full_candidate_set_is_still_checked(
         assert profile.name in str(caught.value)
 
 
+def test_models_may_be_given_as_a_mapping_not_only_a_sequence():
+    """收口审计 F10：`route` 自己的签名写着 `Mapping[str, ModelProfile]`，
+    那条分支原先没有判据 —— 一个文档里写着的入参形态必须被判。"""
+    as_mapping = {p.name: p for p in (LOCAL, STRONG)}
+    assert _route("lineage", as_mapping).model == "qwen3.6-plus"
+    assert _route("explain", as_mapping, requested="qwen3:14b").model == "qwen3:14b"
+    with pytest.raises(RoutingError):
+        _route("shape", {"qwen3:14b": LOCAL})
+
+
 def test_requesting_a_model_outside_the_candidates_fails_by_name():
     with pytest.raises(RoutingError, match="不在候选档案里"):
         _route("explain", [STRONG], requested="gpt-9-omni")

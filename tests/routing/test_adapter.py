@@ -21,16 +21,20 @@
 from __future__ import annotations
 
 import ast
+import dataclasses
 import io
 import json
+import ssl
 import subprocess
 import sys
+import traceback
 import urllib.error
 from pathlib import Path
 
 import pytest
 
-from agenerp.routing.adapter import ChatAdapter, Reply, Usage, usage_of
+from agenerp.routing import adapter as adapter_module
+from agenerp.routing.adapter import DEFAULT_TIMEOUT, ChatAdapter, Reply, Usage, usage_of
 from agenerp.routing.config import (
     API_KEY_ENV,
     BASE_URL_ENV,
@@ -134,6 +138,112 @@ def test_reasoning_is_never_folded_into_completion():
 
 def test_usage_plus_adds_all_three_dimensions():
     assert Usage(1, 2, 3).plus(Usage(10, 20, 30)) == Usage(11, 22, 33)
+
+
+# --- 1b. 出站请求本身（`_post`）——收口审计 F1 当场补的一整组 -------------------
+#
+# 独立收口审计用四个变异证明了这里原先是**完全空的**：把 `messages` 换成空数组、
+# 让 `tools` 永不转发、拿掉 `context=_ssl_context()`（D-11 明文要求的 certifi）、
+# 把 `Authorization` 换成别的头 —— **四个变异全都绿着过去**。
+# 根因是每条单测都注入 transport，`_post` 一次都没被执行过。
+# 下面这组直接判**发出去的那个请求**：URL / 方法 / 请求头 / 载荷 / SSL 上下文。
+
+
+class _FakeResponse:
+    def __init__(self, payload: dict) -> None:
+        self._payload = payload
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+    def read(self) -> bytes:
+        return json.dumps(self._payload).encode("utf-8")
+
+
+@pytest.fixture
+def sent(monkeypatch):
+    """打桩 `urlopen`，把真正发出去的那个 `Request` 原样接住。"""
+    captured: dict = {}
+
+    def fake_urlopen(request, timeout=None, context=None):
+        captured["url"] = request.full_url
+        captured["method"] = request.get_method()
+        captured["headers"] = dict(request.header_items())
+        captured["body"] = json.loads(request.data.decode("utf-8"))
+        captured["context"] = context
+        captured["timeout"] = timeout
+        return _FakeResponse(_body({"content": "在线"}, {"prompt_tokens": 3}))
+
+    monkeypatch.setattr(adapter_module.urllib.request, "urlopen", fake_urlopen)
+    return captured
+
+
+def _post_once(sent, **kw):
+    """走**真** `_post`（transport=None），不是假 transport。"""
+    return ChatAdapter(_config(), transport=None).chat(**kw), sent
+
+
+def test_post_sends_the_messages_verbatim(sent):
+    """杀 Mut-A1：`messages` 被换成空数组时必须红 —— 用户的问题没发出去是最坏的静默失败。"""
+    messages = [{"role": "system", "content": "系统指令"}, {"role": "user", "content": "1,010 台哪来的"}]
+    _post_once(sent, messages=messages)
+    assert sent["body"]["messages"] == messages
+
+
+def test_post_forwards_tools_when_they_are_supplied(sent):
+    """杀 Mut-A2：`if tools:` 被改成永不转发时必须红 —— 工具没发出去，Agent 就成了纯聊天。"""
+    tools = [{"type": "function", "function": {"name": "doc.get"}}]
+    _post_once(sent, messages=[{"role": "user", "content": "问"}], tools=tools, max_tokens=321)
+    assert sent["body"]["tools"] == tools
+    assert sent["body"]["max_tokens"] == 321
+    assert sent["body"]["model"] == "qwen3.6-plus"
+
+
+def test_post_hits_the_openai_compatible_path_with_post(sent):
+    _post_once(sent, messages=[{"role": "user", "content": "问"}])
+    assert sent["url"] == "https://endpoint.invalid/compatible-mode/v1/chat/completions"
+    assert sent["method"] == "POST"
+    assert sent["headers"]["Content-type"] == "application/json"
+
+
+def test_post_carries_the_bearer_authorization_header(sent):
+    """杀 Mut-A4：换掉 `Authorization` 时必须红 —— 端点会 401，而那是一次假故障。"""
+    _post_once(sent, messages=[{"role": "user", "content": "问"}])
+    assert sent["headers"]["Authorization"] == f"Bearer {SENTINEL_KEY}"
+
+
+def test_post_always_supplies_an_explicit_ssl_context(sent):
+    """杀 Mut-A3。D-11 的环境注记**明文**要求产品代码显式给 CA 根证书
+    （本机 python.org 版 Python 未装系统 CA，依赖默认必报 CERTIFICATE_VERIFY_FAILED）。
+    拿掉 `context=` 在装了 CA 的机器上照样跑得通 —— 所以只有这条断言拦得住它。"""
+    pytest.importorskip("certifi", reason="_post 构造 SSL 上下文需要 certifi（D-11）")
+    _post_once(sent, messages=[{"role": "user", "content": "问"}])
+    assert isinstance(sent["context"], ssl.SSLContext), "没有显式 SSL 上下文 —— D-11 的环境注记被绕过了"
+    assert sent["timeout"] == DEFAULT_TIMEOUT
+
+
+def test_the_ssl_context_is_built_from_certifi_and_only_then_is_certifi_imported():
+    """惰性 import 的**另一半**：不但模块级不许 import，真要用时还必须**真的**用 certifi 的 CA。"""
+    certifi = pytest.importorskip("certifi")
+    context = adapter_module._ssl_context()
+    assert isinstance(context, ssl.SSLContext)
+    loaded = {cert["subject"] for cert in context.get_ca_certs()}
+    reference = ssl.create_default_context(cafile=certifi.where())
+    assert loaded == {cert["subject"] for cert in reference.get_ca_certs()}
+
+
+def test_post_maps_a_real_http_error_the_same_way_the_transport_path_does(monkeypatch):
+    """真网络那一段的失败映射也要判，别让"两条路一段映射"这句话只停在 docstring 里。"""
+
+    def boom(request, timeout=None, context=None):
+        raise _http_error(503, "upstream down")
+
+    monkeypatch.setattr(adapter_module.urllib.request, "urlopen", boom)
+    with pytest.raises(RoutingError, match="HTTP 503"):
+        ChatAdapter(_config(), transport=None).chat([{"role": "user", "content": "问"}])
 
 
 # --- 2. 失败路径：四类各一次，一次都不许降级成空 Reply -------------------------
@@ -324,6 +434,37 @@ def test_the_api_key_never_shows_up_in_a_config_error():
     with pytest.raises(RoutingError) as caught:
         from_env({API_KEY_ENV: SENTINEL_KEY})
     assert SENTINEL_KEY not in str(caught.value)
+
+
+def test_the_api_key_survives_no_bulk_serialization_path():
+    """收口审计 F6：`repr` 不够。`dataclasses.asdict()` 会把 `repr=False` 的字段照样倒出来，
+    `vars()` / `__dict__` 也一样 —— 那两条不是假想，任何一句"把配置打进日志看看"都会走上去。
+    现在 `LlmConfig` 用 `__slots__` 且不是 dataclass，这两条路整个不存在。"""
+    config = _config()
+    assert not dataclasses.is_dataclass(config)
+    with pytest.raises(TypeError):
+        vars(config)
+    assert not hasattr(config, "__dict__")
+    with pytest.raises(TypeError):
+        dataclasses.asdict(config)
+    with pytest.raises(AttributeError):
+        config.base_url = "https://elsewhere.invalid"
+
+
+def test_the_api_key_is_absent_from_a_standard_traceback(monkeypatch):
+    """**边界照实判**：标准库 `traceback.format_exc()` 不打栈帧 locals，本层判的就是它。
+    ⚠️ 带 locals 的打印器（rich / cgitb / `pytest -l`）**仍读得到** `_post` 栈帧里那个
+    `Request` 的请求头 —— 本层挡不住，`config.py` 的模块头与 §12.5 都逐字写明了这条边界。"""
+
+    def boom(request, timeout=None, context=None):
+        raise urllib.error.URLError("down")
+
+    monkeypatch.setattr(adapter_module.urllib.request, "urlopen", boom)
+    try:
+        ChatAdapter(_config(), transport=None).chat([{"role": "user", "content": "问"}])
+    except RoutingError:
+        rendered = traceback.format_exc()
+    assert SENTINEL_KEY not in rendered
 
 
 def test_authorization_header_is_the_only_place_the_key_is_used():
