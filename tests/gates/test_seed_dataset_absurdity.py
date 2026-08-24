@@ -68,7 +68,7 @@ def test_different_seed_yields_different_data():
 
 
 def test_backlog_absurdity_is_present_and_exact():
-    """成品仓积压 1,010 米、价值 6,450 元，必须精确存在。
+    """成品仓积压 1,010 台、价值 3,110,200 元，必须精确存在。
 
     这是整个数据集存在的理由：洞察 Agent 与行业包规则的固定测例。
     数字对不上，P1 的验收（「无需指令报出积压」）就失去了判定基准。
