@@ -87,9 +87,25 @@ def test_payload_round_trip_without_touching_the_filesystem():
 
 
 def test_total_is_not_persisted_as_a_second_source_of_truth():
-    """`total` 是 `prompt + completion` 的派生量。落进去就是第二份真相。"""
+    """`total` 是 `prompt + completion` 的派生量。落进去就是第二份真相。
+
+    ⚠️ `cached` **不在此列** —— 它不是派生量，是端点自报的 prompt 侧细分，
+    不落盘就是静默丢数（下一条判的正是这个）。
+    """
     usage_payload = to_payload(_session())["turns"][0]["usage"]
-    assert set(usage_payload) == {"prompt", "completion", "reasoning"}
+    assert set(usage_payload) == {"prompt", "completion", "reasoning", "cached"}
+
+
+def test_a_cached_hit_survives_the_round_trip():
+    """**上面那条 round-trip 判不到 `cached`** —— `_session()` 的 `cached` 恒为 0，
+    一个把 `cached` 落盘时丢掉的实现照样能让它全绿。这一条专喂 `cached > 0`。
+    """
+    session = start("S-cache").with_turn(
+        Turn("assistant", "答案", usage=Usage(prompt=1334, completion=457, reasoning=446, cached=1024))
+    )
+
+    assert to_payload(session)["turns"][0]["usage"]["cached"] == 1024
+    assert from_payload(to_payload(session)) == session
 
 
 def test_a_missing_key_raises_instead_of_defaulting():

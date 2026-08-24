@@ -11,10 +11,11 @@
 不构造 `facts` 字典交给 `execute`。判据在 `tests/context/test_session.py`，**不是靠 code review**。
 
 **用量聚合**：`usage_total` 逐轮调 `agenerp.routing.adapter.Usage.plus()`，
-**不自己写三项加法** —— 自己写就会与 P1.1 漂移。折叠形态**定死为「从空 `Usage()` 起折 N 轮」**，
+**不自己写四项加法** —— 自己写就会与 P1.1 漂移。折叠形态**定死为「从空 `Usage()` 起折 N 轮」**，
 即 N 轮恰好 N 次 `plus()`；判据 monkeypatch `Usage.plus` 数调用次数。
-逐项语义沿用 P1.1：`reasoning` 是 `completion` 的细分，**不是第四个桶**，
-`total = prompt + completion`，reasoning **不参与求和**。
+逐项语义沿用 P1.1：`reasoning` 是 `completion` 的细分、`cached` 是 `prompt` 的细分，
+**两者都不是新的桶**，`total = prompt + completion`，
+reasoning 与 cached **都不参与 `total` 的求和**（但它们各自逐轮相加，细分不能折掉）。
 
 **快照那一项复用 `agenerp.snapshot`，不另写一套。** 本模块**不调 `capture`**（那是 I/O，
 归调用方），只收 `Snapshot` 对象、用 `snapshot.diff` 算差异。
@@ -144,7 +145,7 @@ class ConversationSession:
     def usage_total(self) -> Usage:
         """本会话累计用量。**折叠形态：从空 `Usage()` 起折 N 轮 → 恰好 N 次 `plus()`。**
 
-        必须走 `Usage.plus()`。自己写三项加法能算对，但会与 P1.1 的口径分家 ——
+        必须走 `Usage.plus()`。自己写四项加法能算对，但会与 P1.1 的口径分家 ——
         下一次 `Usage` 改口径时，漂移的是这里，而且不会有任何东西说话。
         """
         total = Usage()

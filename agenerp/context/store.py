@@ -45,12 +45,19 @@ class SessionStore(Protocol):
 
 
 def _usage_payload(usage: Usage) -> dict[str, int]:
-    """落 `prompt` / `completion` / `reasoning` 三项。
+    """落 `prompt` / `completion` / `reasoning` / `cached` 四项。
 
     **`total` 不落盘**：它是 `prompt + completion` 的派生量（`Usage.total`），
     落进去就成了第二份真相，两边一旦对不上，谁对谁错没人说得清。
+    `cached` 与它不同 —— 它**不是派生量**，是端点自报的 prompt 侧细分，
+    不落盘就是**静默丢数**：`from_payload(to_payload(x))` 对 `cached > 0` 的会话不再相等。
     """
-    return {"prompt": usage.prompt, "completion": usage.completion, "reasoning": usage.reasoning}
+    return {
+        "prompt": usage.prompt,
+        "completion": usage.completion,
+        "reasoning": usage.reasoning,
+        "cached": usage.cached,
+    }
 
 
 def to_payload(session: ConversationSession) -> dict[str, Any]:
@@ -108,6 +115,7 @@ def from_payload(payload: Mapping[str, Any]) -> ConversationSession:
                     prompt=turn["usage"]["prompt"],
                     completion=turn["usage"]["completion"],
                     reasoning=turn["usage"]["reasoning"],
+                    cached=turn["usage"]["cached"],
                 ),
             )
             for turn in payload["turns"]

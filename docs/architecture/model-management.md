@@ -50,11 +50,17 @@ Spike 02 实测（`claude:sonnet`，四道探针的通过态）：
 > 系统指令、工具定义、DocType schema 构成的稳定前缀不是「可以顺便缓存一下」，
 > 而是这条产品线能否存在的前提。
 
+⚠️ 上表是 Spike 02 的数（别的栈、别的站点、别的题）。本项目端点上的前缀缓存实测见
+[`module-boundaries.md`](./module-boundaries.md) §7.17（2026-08-25，`qwen3.6-plus`，
+一次 10 轮解释，逐次 `cached_tokens` **全为 0**，且端点根本没报这个字段）。
+**两个数不是同一个量，不得互相佐证**（D-16）。
+
 → 因此：
 
 - **P1 的验收标准必须包含单次解释的成本记账**，与正确率并列
   （⚠️ **D-18 已把它从「成本上限」改成「成本记账」**：判据是**成本可观测**——
-  三项 token 分开记、能按一次解释汇总，**不设阈值、不拦截**。理由是没有本项目的成本分布
+  四项 token 分开记（`prompt` / `completion` / `reasoning` / `cached`）、能按一次解释汇总，
+  **不设阈值、不拦截**。理由是没有本项目的成本分布
   就定阈值等于拍脑袋；**先有数据，再谈阈值**。落地见 `module-boundaries.md` §7.11。
   ⚠️ **不拦成本 ≠ 不拦失控**：单次解释的工具调用总数上限**仍然存在**，那是另一个闸）
 - 按租户/角色设 token 预算与配额
@@ -237,7 +243,7 @@ Spike 02 实测（`claude:sonnet`，四道探针的通过态）：
 |---|---|---|
 | `agenerp/routing/capabilities.py` | 三份声明 + 声明自身的校验器 | 不做任何调用，不读环境 |
 | `agenerp/routing/config.py` | 三个 `AGENERP_LLM_*` 从环境读，零默认值 | 不认任何厂商变量名，key 不进 `repr` |
-| `agenerp/routing/adapter.py` | OpenAI 兼容 `/chat/completions`，transport 可注入，token 三项分开 | **不做能力校验**（那是 router 的活，放两处会一处松一处紧） |
+| `agenerp/routing/adapter.py` | OpenAI 兼容 `/chat/completions`，transport 可注入，token 四项分开（`reasoning` 是 completion 细分、`cached` 是 prompt 细分） | **不做能力校验**（那是 router 的活，放两处会一处松一处紧） |
 | `agenerp/routing/router.py` | 集合包含判定 + 明确失败 | **零模型参与**（D-15：规则能覆盖的流程不 Agent 化） |
 | `agenerp/routing/errors.py` | `RoutingError` / `DeclarationError` | 不提供任何"失败时回个空值"的出口 |
 | `agenerp/routing/__init__.py` | 导出面 6 个名字 | 不泄内部件 |

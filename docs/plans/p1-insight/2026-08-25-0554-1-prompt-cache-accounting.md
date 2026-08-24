@@ -44,15 +44,21 @@
 
 <!-- 开工时填。与起草期不一致的照实记，不改起草期原文。 -->
 
+执行期实读时间：2026-08-25。
+
 | # | 重读项 | 实读值 | 与起草期 |
 |---|---|---|---|
-| 1 | `git log -1 --format=%H` / `git status --porcelain` | 待填 | 待填 |
-| 2 | `7.x` 最大节号 | 待填 | 待填 |
-| 3 | 七条基线命令 | 待填 | 待填 |
-| 4 | `find agenerp -name '*.py' \| wc -l` | 待填 | 待填 |
-| 5 | `secrets.env` | 待填 | 待填 |
-| 6 | 判定器证据里的 `cached_tokens` 分布 | 待填 | 待填 |
-| 7 | `p1-cost/live-run-01.json` 的 `usage_total_session` | 待填 | 待填 |
+| 1 | `git log -1 --format=%H` / `git status --porcelain` | `9dea949ba1b19915baa50de5fcb1961cb75010e6` / **无输出**（本 plan 文件已随 `9dea949` 入库，工作区干净） | **不一致但更严**：起草期记的 `f14d576` 是**起草前**的 sha，本 plan 文件随后由 `9dea949` 提交；判据「除本 plan 文件外无输出」**满足**（实际是完全无输出） |
+| 2 | `7.x` 最大节号 | **§7.16**（`module-boundaries.md:2557`「洞察 Agent **归因**的首次活端点实跑…」） | 一致 ⇒ 本 plan 落 **§7.17**，不顺延 |
+| 3 | 七条基线命令 | ①`exit 0` `门禁 11 项：预期红 0，绿 11，跳过 0` · ②`exit 0` `614 passed` · ③`exit 0` `151 passed` · ④`exit 0` `81 passed, 12 skipped` · ⑤`exit 0` `167 passed, 1 skipped` · ⑥`exit 0` `53 passed` · ⑦`exit 0` `10 passed` | **逐条一致** |
+| 4 | `find agenerp -name '*.py' \| wc -l` | **56** | 一致 |
+| 5 | `secrets.env` | 存在，`-rw-------`，含 `DASHSCOPE_API_KEY`（`grep -c` 得 1） | 一致 |
+| 6 | 判定器证据里的 `cached_tokens` 分布 | `all.json` **24** 值 · `stability.json` **18** 值 · `controls.json` **6** 值 = **48** 个，**distinct 全为 `[0]`** | 一致（H2 的强先验仍成立） |
+| 7 | `p1-cost/live-run-01.json` 的 `usage_total_session` | `{"prompt": 53041, "completion": 5538, "reasoning": 3098, "total": 58579}` | 一致 |
+
+⚠️ 附加实读（H7 的前置）：`env \| grep AGENERP_LLM_` 得 **`AGENERP_LLM_MODEL=qwen3.6-plus` 一行**，
+`AGENERP_LLM_BASE_URL` / `AGENERP_LLM_API_KEY` **未 export** ⇒ `tests/routing/test_live_endpoint.py` 仍 skip，
+基线实读 `167 passed, 1 skipped` 与 H7 口径吻合。
 
 ## 1. Current Baseline（起草期逐条实读，非记忆、非转述）
 
@@ -393,7 +399,7 @@
 
 ### Phase 1 — 解析面：`Usage.cached` 与 `usage_of()`
 
-Status: planned
+Status: completed
 Targets: `agenerp/routing/adapter.py`（**只改代码**；它的模块 docstring 与 §1.6 其余落点一起在 **Phase 2 的 `Fix` 项**里改）·
 `tests/unit/test_prompt_cache_accounting.py`（新建）
 Skill: `none`
@@ -401,13 +407,13 @@ Skill: `none`
 - Item Types: `Add`（4/5 项为 `Add`，其余 1 项为 `Proof`）
 - Prereqs: §0 的七处重取基线已填进 §0.1
 
-- [ ] `Add` — `Usage` 加 `cached: int = 0`；docstring 逐字写明「**`cached` 是 `prompt` 的一个细分，
+- [x] `Add` — `Usage` 加 `cached: int = 0`；docstring 逐字写明「**`cached` 是 `prompt` 的一个细分，
       不是第五个桶**」，与既有那句 `reasoning` 的话形状对称；`total` 的实现**一个字不动**。
-- [ ] `Add` — `usage_of()` 解析 `prompt_tokens_details.cached_tokens`，缺失回 `0`（D2）。
-- [ ] `Add` — `plus()` 四项相加；`as_dict()` 出五键（`prompt` / `completion` / `reasoning` / `cached` / `total`）。
-- [ ] `Add` — 起草期 §1.5 第 9 行的三个转发点（`judge.py:52`、`loop.py:387/524`）**开工时逐个复读**，
+- [x] `Add` — `usage_of()` 解析 `prompt_tokens_details.cached_tokens`，缺失回 `0`（D2）。
+- [x] `Add` — `plus()` 四项相加；`as_dict()` 出五键（`prompt` / `completion` / `reasoning` / `cached` / `total`）。
+- [x] `Add` — 起草期 §1.5 第 9 行的三个转发点（`judge.py:52`、`loop.py:387/524`）**开工时逐个复读**，
       确认无键集断言；有则就地处置并记进 §12。
-- [ ] `Proof` — 判据落 `tests/unit/test_prompt_cache_accounting.py`（**不落 `tests/routing`**，
+- [x] `Proof` — 判据落 `tests/unit/test_prompt_cache_accounting.py`（**不落 `tests/routing`**，
       理由是 `tests/routing` 进不了 `commands.test`，见 §1.1）：
       ① 端点回包带 `prompt_tokens_details.cached_tokens: 1024` ⇒ `Usage.cached == 1024`；
       ② `prompt_tokens_details` 整个缺 ⇒ `cached == 0` 且**不影响** `prompt`；
@@ -419,15 +425,15 @@ Skill: `none`
 
 Exit Criteria:
 
-- [ ] `python3 -m pytest tests/unit -q` **exit 0**，条数逐字 **`619 passed`**（H9 的 Phase 1 格）
-- [ ] `python3 -m pytest tests/unit/test_prompt_cache_accounting.py -q` **exit 0**，条数**恰 5 条**
-- [ ] `python3 -m pytest tests/routing -q` **exit 0**，条数**仍为 167**（H7）
-- [ ] `ruff check agenerp tests/unit tests/contracts tests/tools tests/routing tests/context tests/experiments` **exit 0**
-- [ ] `docs/logs/` 更新
+- [x] `python3 -m pytest tests/unit -q` **exit 0**，条数逐字 **`619 passed`**（H9 的 Phase 1 格）
+- [x] `python3 -m pytest tests/unit/test_prompt_cache_accounting.py -q` **exit 0**，条数**恰 5 条**
+- [x] `python3 -m pytest tests/routing -q` **exit 0**，条数**仍为 167**（H7）
+- [x] `ruff check agenerp tests/unit tests/contracts tests/tools tests/routing tests/context tests/experiments` **exit 0**
+- [x] `docs/logs/` 更新
 
 ### Phase 2 — 账本面：`endpoint_cached` 与 `cached_matches_endpoint`，以及落盘
 
-Status: planned
+Status: completed
 Targets: `agenerp/explain/ledger.py` · `agenerp/context/store.py` · `agenerp/context/session.py` ·
 `agenerp/explain/loop.py` · `agenerp/routing/adapter.py`（模块 docstring）·
 `agenerp/context/doctype/agent_conversation_session.json`（**只改 `turns` 的 `description`**）·
@@ -441,22 +447,22 @@ Skill: `none`
   D3 认定的静默丢数契约漂移与 §1.6 的确认漂移，指南第 14 条**不可降级**）
 - Prereqs: Phase 1
 
-- [ ] `Add` — `_endpoint_numbers()` 回三个数，加 `endpoint_cached`（口径按 D2）。
-- [ ] `Add` — `CallEntry` 加 `endpoint_cached` 字段与 `cached_matches_endpoint` 属性
+- [x] `Add` — `_endpoint_numbers()` 回三个数，加 `endpoint_cached`（口径按 D2）。
+- [x] `Add` — `CallEntry` 加 `endpoint_cached` 字段与 `cached_matches_endpoint` 属性
       （形状**逐字对称**于既有的 `reasoning_matches_endpoint`：端点没报 ⇒ `False`，「不知道 ≠ 对得上」）。
-- [ ] `Add` — `CallEntry.as_dict()` / `CallLedger.as_dict()` 出这两项。
-- [ ] `Fix` — `agenerp/context/store.py` 落盘四键、读回四键（D3）。
+- [x] `Add` — `CallEntry.as_dict()` / `CallLedger.as_dict()` 出这两项。
+- [x] `Fix` — `agenerp/context/store.py` 落盘四键、读回四键（D3）。
       ⚠️ **`total` 仍不落盘**（`test_store.py` 那条判据的原意是「`total` 不做第二份真相」，本 plan 不动这个原意）。
-- [ ] `Proof` — `tests/context/test_store.py`：`:92` 键集改四键；**新增**一条
+- [x] `Proof` — `tests/context/test_store.py`：`:92` 键集改四键；**新增**一条
       `from_payload(to_payload(cached>0 的会话)) == 原会话` 的 round-trip 判据（H8）。
-- [ ] `Proof` — `tests/unit/test_prompt_cache_accounting.py` 追加（D3 残余风险的处置，**不 import `tests/context` 的夹具**）：
+- [x] `Proof` — `tests/unit/test_prompt_cache_accounting.py` 追加（D3 残余风险的处置，**不 import `tests/context` 的夹具**）：
       ⑥ 账本记一条带 `cached` 的回包 ⇒ `endpoint_cached` 与 `usage.cached` 都对，`cached_matches_endpoint` 为真；
       ⑦ 回包**根本没有 `usage`** ⇒ `endpoint_cached is None` 且 `cached_matches_endpoint` 为 **False**；
       ⑧ 端点自报 `cached=100` 而解析值被做成 `0` 的坏实现 ⇒ `cached_matches_endpoint` 为 **False**（这条是打红假实现的那条）；
       ⑨ `CallLedger.total` 折叠**两条写死字面数字的账**后，**整字典比较**
       （同 ③ 的理由，不写恒真式）：`total.as_dict()` 恰等于写死的期望字典，`cached` 两条相加、**不进** `total`；
       ⑩ **账本仍然不拦截**：喂一条 `cached` 巨大的账，`explain` 照样把答案交出去（D-18 回归）。
-- [ ] `Proof` — **⑪ D3 的承重判据，落在 `tests/unit`**（这条是 D3 残余风险与 §11 第四条 Deferred
+- [x] `Proof` — **⑪ D3 的承重判据，落在 `tests/unit`**（这条是 D3 残余风险与 §11 第四条 Deferred
       「不阻塞理由」所依赖的那一条，**不写它，D3 的缓解措施就从未落地**）：
       在 `tests/unit/test_prompt_cache_accounting.py` 里**直接 import** `agenerp.context.store` 的
       `to_payload` / `from_payload`（**不 import `tests/context` 的夹具、不用 `_session()`**）。
@@ -465,7 +471,7 @@ Skill: `none`
       （**开工时按 `agenerp/context/session.py` 的实际签名写，不照抄本行的形参名**）。断言
       （a）`set(to_payload(<cached>0 的会话>)["turns"][0]["usage"])` **恰等于写死的四键字面量**；
       （b）`from_payload(to_payload(x)) == x` 对 `cached > 0` 成立。
-- [ ] `Fix` — **§1.6 那张表逐行改准**（指南第 14 条**不可降级**）。
+- [x] `Fix` — **§1.6 那张表逐行改准**（指南第 14 条**不可降级**）。
       **做法是先跑穷举命令、再逐条对照那张表**，不许照行号改（行号会漂）。
       ⚠️ 表里标「**一个字不改**」的两类（P1.5 的历史记录 · `tools/experiments/**` 冻结面）**不许动**。
       ⚠️ §7.11 是 **P1.7 本体的落点节**，改它属本 plan 结果面内的连带修改，**不是越界**。
@@ -481,17 +487,17 @@ Skill: `none`
 
 Exit Criteria:
 
-- [ ] `python3 -m pytest tests/unit -q` **exit 0**，条数逐字 **`626 passed`**（H9 的 Phase 2 格）
-- [ ] `python3 -m pytest tests/unit/test_prompt_cache_accounting.py -q` **exit 0**，条数**恰 12 条**
-- [ ] `python3 -m pytest tests/context -q` **exit 0**，条数 **54**（H8）
-- [ ] `python3 tools/gates/check_expected_red.py` **exit 0**，`预期红 0，绿 11，跳过 0`
-- [ ] **§1.6 那张表逐行改准**（**不是**「§1.5 第 12–15 行四处」—— §1.5 现在只有 12 行，
+- [x] `python3 -m pytest tests/unit -q` **exit 0**，条数逐字 **`626 passed`**（H9 的 Phase 2 格）
+- [x] `python3 -m pytest tests/unit/test_prompt_cache_accounting.py -q` **exit 0**，条数**恰 12 条**
+- [x] `python3 -m pytest tests/context -q` **exit 0**，条数 **54**（H8）
+- [x] `python3 tools/gates/check_expected_red.py` **exit 0**，`预期红 0，绿 11，跳过 0`
+- [x] **§1.6 那张表逐行改准**（**不是**「§1.5 第 12–15 行四处」—— §1.5 现在只有 12 行，
       漂移面已改由 §1.6 的穷举命令定义），改后的措辞记进 §12
-- [ ] `docs/logs/` 更新
+- [x] `docs/logs/` 更新
 
 ### Phase 3 — 变异自查 M1–M10（共 10 个）
 
-Status: planned
+Status: completed
 Targets: 无产物（只跑变异，跑完**逐个还原**）
 Skill: `none`
 
@@ -518,9 +524,9 @@ Skill: `none`
 
 Exit Criteria:
 
-- [ ] **十个**变异（M1–M10）**逐个由绿转红**，结果表记进 §12（**没有 M11 就写「没有 M11」**）
-- [ ] 变异**全部还原**，`git status --porcelain` 回到 Phase 2 结束时的形态
-- [ ] No owner-doc update required（本 Phase 无产物）
+- [x] **十个**变异（M1–M10）**逐个由绿转红**，结果表记进 §12（**没有 M11 就写「没有 M11」**）
+- [x] 变异**全部还原**，`git status --porcelain` 回到 Phase 2 结束时的形态
+- [x] No owner-doc update required（本 Phase 无产物）
 
 ### Phase 4 — 活端点实跑一次，与 §6 逐条对照
 
@@ -785,7 +791,119 @@ Exit Criteria:
 
 ## 12. 执行记录
 
-<!-- 开工后填：命令原文 + 退出码 + sha；H1–H9 逐格对照表；M1–M10 变异结果表 -->
+执行日期 **2026-08-25**，开工基线 sha `9dea949ba1b19915baa50de5fcb1961cb75010e6`（工作区干净）。
+
+### 12.1 七条基线命令（收口时复跑，逐条实读）
+
+⚠️ 复跑前先跑 `env | grep AGENERP_LLM_`（H7 的前置）：只有 `AGENERP_LLM_MODEL=qwen3.6-plus` 一行，
+`BASE_URL` / `API_KEY` **未 export** ⇒ `tests/routing/test_live_endpoint.py` 仍 skip。
+
+| # | 命令原文 | 退出码 | 输出尾行 | 与基线 |
+|---|---|---|---|---|
+| ① | `python3 tools/gates/check_expected_red.py` | **0** | `门禁 11 项：预期红 0，绿 11，跳过 0` / `✅ 与预期红名单完全一致` | 不变 |
+| ② | `python3 -m pytest tests/unit -q` | **0** | `626 passed` | **614 → 626**（+12，H9 吻合） |
+| ③ | `python3 -m pytest tests/contracts -q` | **0** | `151 passed` | 不变 |
+| ④ | `python3 -m pytest tests/tools -q` | **0** | `81 passed, 12 skipped` | 不变 |
+| ⑤ | `python3 -m pytest tests/routing -q` | **0** | `167 passed, 1 skipped` | 不变（H7 吻合） |
+| ⑥ | `python3 -m pytest tests/context -q` | **0** | `54 passed` | **53 → 54**（+1，H8 吻合） |
+| ⑦ | `python3 -m pytest tests/experiments -q` | **0** | `10 passed` | 不变 |
+
+`ruff check agenerp tests/unit tests/contracts tests/tools tests/routing tests/context tests/experiments`
+→ **exit 0**（`All checks passed!`）。
+
+⚠️ **两条不在上表、也不在 `commands.test` 里的命令收口时同样跑了，实读为红，且红在基线上就已经红**
+（裁判规则 3：先原样复跑，不猜根因）：
+
+- `ruff check agenerp tests tools` → **exit 1**，全部命中在 `tools/gates/check_budget.py:142-143`（`F541`）。
+  **本 plan 一个字未动该文件**；`git stash` 到基线复跑 **同样 exit 1**。
+  （这正是 Phase 1 Exit 那条 ruff 命令的路径清单不含 `tools/` 的原因。）
+- `node tools/check-doc-references.mjs` → **exit 1**，失败 **77 条**；基线复跑同样 **exit 1 / 77 条**，
+  **逐条 diff 后只有行号位移**（本 plan 在 §7.7 / §7.11 插了行），
+  **一条新失败都没引入**，且失败清单里**没有** `p1-cache` / `model-management.md` / 本 plan 新增的任何内容。
+  `bash tools/check-masterplan-links.sh` → **exit 0**。
+
+### 12.2 H1–H9 逐格对照（§6 原文一个字未改）
+
+⚠️ **实测落在「全 0」那一支** ⇒ §6.1 的四条逐条执行，H1 / H4 按其第 2 条逐字标注。
+
+| # | 假设（§6 写死的） | 实测 | 判定 |
+|---|---|---|---|
+| **H1** | 第 1 次调用 `cached_tokens == 0` | 第 1 次 `prompt 1,054` / `cached 0` | **吻合，但「该支下恒真，不构成证据」**（§6.1 第 2 条） |
+| **H2** | 第 2 次及以后至少一次 `cached_tokens > 0` | **10 次逐次全为 0** | **不吻合。这就是本项目端点上的结论**：「隐式前缀缓存在本配置下未生效或未上报」。⚠️ **照实记，未改假设、未换模型、未重跑**（§6 逐字禁止） |
+| **H3** | 若 H2 成立：`S = {i : c_i == max(c)}`，判 `S ∩ {N, N-1} != ∅` | H2 落空 ⇒ `max(c) = 0`、`S = {1..10}`、`\|S\| = 10`，`S ∩ {10, 9} = {9,10} != ∅` | **前提未成立，该支下恒真** ⇒ **不构成证据**，照实记而不记「吻合」 |
+| **H4** | 逐次 `cached_tokens ≤ prompt_tokens` | `0 ≤ 1,054 … 0 ≤ 11,851`，10/10 成立 | **吻合，但「该支下恒真，不构成证据」**（§6.1 第 2 条）。**未把断言放松成 `>= 0`** |
+| **H5** | 判定器 48 次单发全 0，而本次多轮至少一次 > 0 | **两者都全为 0** | **不吻合（混淆已预先声明）**。按 §6 写死的处置：「**「多轮 vs 单发」的差异在本项目上不存在**」。⚠️ 裁定规则的另一支（第 1 次为 0、后续更长的 > 0 ⇒ 支持「长度阈值」解释）**未触发** |
+| **H6** | `total_matches_endpoint` N/N 全真，且 `usage_total_session["total"] == prompt + completion` | `total_matches_endpoint` **10/10**；`56,343 + 6,770 = 63,113` == `total` ✅；另 `reasoning_matches_endpoint` **10/10**、`cached_matches_endpoint` **10/10**；账本 `total` 与 `ConversationSession.usage_total` **逐项相等** | **吻合**（回归面无缺陷，无需 Deferred） |
+| **H7** | `tests/routing` 逐字仍 `167 passed, 1 skipped` | 逐字一致，`env | grep AGENERP_LLM_` 前置已确认 live 变量未 export | **吻合** |
+| **H8** | `tests/context` **53 → 54** | `54 passed` | **吻合** |
+| **H9** | `tests/unit` **614 → 619 → 626**，新文件恰 **12** 条 | Phase 1 结束 `619 passed` / 新文件 **5** 条；Phase 2 结束 `626 passed` / 新文件 **12** 条 | **逐格吻合** |
+
+⚠️ **实测比 §6 预想的更彻底一层，照实记**：端点**十次都报了** `prompt_tokens_details`，
+但那个子对象的键集**逐次恒等于 `{"text_tokens"}` —— 根本没有 `cached_tokens` 这个键**。
+即本次的 `0` 不是「端点说命中了 0 个」，而是「端点根本没说」。
+这**恰好是 D2 残余风险（`0` 有两个含义）在实测中落地的样子**，
+也证明 §6.1 第 4 条「必须原样落原始子对象」不是多余的手续。
+⚠️ 与 `docs/evidence/p1-answer-judge/` 的 48 个回包（`{"cached_tokens": 0, "text_tokens": N}`，
+**键在、值为 0**）成因不同，**本 plan 不解释这个差异、不猜根因**（裁判规则 3）。
+
+### 12.3 M1–M10 变异结果（**没有 M11**）
+
+文件级 `cp` 备份还原，**全程未用 `git checkout`**；每个变异跑完当场比对文件内容一致才继续。
+
+| # | 变异（产品侧） | 指定的红灯 | 实测 |
+|---|---|---|---|
+| M1 | `usage_of()` 不读 `prompt_tokens_details`，`cached` 恒 0 | Phase 1 ① + Phase 2 ⑥ | 两条各 **exit 1** ✅ |
+| M2 | `cached` 被算进 `total` | Phase 1 ③ + Phase 2 ⑨ | 两条各 **exit 1** ✅ |
+| M3 | `cached` 读成 `completion_tokens_details` 的细分 | Phase 1 ① | **exit 1** ✅ |
+| M4 | 整个 `usage` 缺失时 `endpoint_cached` 记 `0` 而非 `None` | Phase 2 ⑦ | **exit 1** ✅ |
+| M5 | `cached_matches_endpoint` 写成拿端点的数跟自己比（恒真） | Phase 2 ⑧ | **exit 1** ✅ |
+| M6 | `store.py` 落盘仍写三键 | Phase 2 ⑪(a) + `tests/context` 键集那条 | 两条各 **exit 1** ✅ |
+| M7 | 落四键但读回只读三键（静默丢数） | Phase 2 ⑪(b) 的 round-trip | **exit 1** ✅ |
+| M8 | 账本加「`cached` 超过 X 就拒答」的分支 | Phase 2 ⑩（D-18 回归） | **exit 1** ✅ |
+| M9 | `Usage.as_dict()` 不出 `cached` 键 | Phase 1 ⑤ + Phase 1 ③ | 两条各 **exit 1** ✅ |
+| M10 | `Usage.plus()` 漏加 `cached` | Phase 1 ④ + Phase 2 ⑨ | 两条各 **exit 1** ✅ |
+
+**十个变异全部由绿转红，没有一条需要就地补断言 ⇒ 没有 M11。**
+还原后 `git status --porcelain` 与 Phase 2 结束时**逐行相同**，`tests/unit` / `tests/context` 复跑全绿。
+
+### 12.4 §1.6 漂移面的收口复核（逐字复跑 grep-1 与 grep-2）
+
+改后复跑，命中**按三类归档，三类之外零命中**：
+
+**① 改准（11 处，逐处已落地）**：`adapter.py:8`（模块 docstring 的「三项」）·
+`ledger.py:9-11,16,124` · `store.py:48` · `session.py:13-17,147` · `explain/loop.py:240` ·
+`agent_conversation_session.json` 的 `turns` `description` ·
+`module-boundaries.md:347` / §7.7 / §7.11 · `model-management.md:57,240`。
+⚠️ `adapter.py:42` 那句 `reasoning …不是第四个桶` **按 §1.6 保留原句**（它讲 completion 侧，仍然对），
+`cached` 那句**另起**，两句并存 —— 复跑后 grep-1 仍命中该行，**属预期**。
+
+**② 一个字不改（4 处，复跑逐字确认未被触及）**：
+`tools/experiments/p1_entry_gate/llm.py:40` 与 `loop.py:13`（Non-Goals 6 的冻结面）·
+`module-boundaries.md` 里 P1.5 的**历史记录**两行（改后位移为 `:2538` / `:2601`，
+`git diff` 复核**内容逐字未动** —— 改它等于改历史，硬约束 ②）。
+
+**③ 无关命中，不改（3 处，§1.6 已预先点名）**：`seedsite.py:267` / `:870` · `contracts.py:161`
+（讲的是别的「三项」）。grep-2 在 `ledger.py` 的十处**代码标识符**行随实现自然改，不进逐行对照。
+
+⚠️ **改后新出现的一处命中，当场处置了**：`ledger.py:46` 原写「整个 `usage` 都没有时三项都是 `None`」
+—— 这里的「三项」指 `_endpoint_numbers` 回的三个数（`total`/`reasoning`/`cached`），
+语义正确但与「token 三项」撞词。已改为「**这三个数全是 `None`**」，消歧。
+
+### 12.5 红线自证（对基线 `9dea949` 复核）
+
+- `git diff --name-only 9dea949 HEAD -- tests/gates .github/workflows missions tools/experiments/p1_entry_gate ':!docs/masterplan/STATE.md' docs/masterplan` → **无输出**
+- `git diff --numstat 9dea949 HEAD -- docs/masterplan/STATE.md` → **删除列为 0**（只追加一行）
+- 证据仓 `XM_PATH` **未写入**；**未生成任何运行时 Server Script**；项目名 / 包名 / 命名空间**未动**
+- `DECISIONS.md` **一个字未改**，未新增 `R-x`
+
+### 12.6 活端点实跑
+
+一次性脚本**不进仓**（照 P1.4 / P1.7 先例），做法是在 `explain(transport=…)` 上包一层记录型 transport
+（形先例 `judge.py` 的 `Verdict.endpoint_usage`），**产品代码为此一行未改**。
+一次跑通，**未重跑**（`elapsed 124.3s`，`stopped = answered`，`accepted = true`，失控闸未触发）。
+证据落 `docs/evidence/p1-cache/live-run-01.json` + `README.md`，
+**逐次 `prompt_tokens_details` 原始子对象在场**，落盘前逐个凭据环境变量扫过产物，**零命中**。
+⚠️ **只调只读工具，一条业务数据都没写。**
 
 ## Closure Gates
 

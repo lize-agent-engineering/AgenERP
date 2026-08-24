@@ -237,7 +237,7 @@ class ExplainResult:
     @property
     def usage(self) -> Usage:
         """累计用量。走 `ConversationSession.usage_total`（内部逐轮 `Usage.plus()`），
-        **不自己写三项加法** —— 自己写就会与 P1.1 漂移（§7.7 逐字）。
+        **不自己写四项加法** —— 自己写就会与 P1.1 漂移（§7.7 逐字）。
 
         ⚠️ **它不是成本账本，两者的权威面分工写死在落点节 §7.11**（P1.7 的 `Decision` D2）：
         本属性答的是「**这次会话累计了多少**」（口径：成为了一轮对话的那些调用）；

@@ -78,6 +78,39 @@ P1.0 两轮实测都不支持这个前提（第一轮 5/12、第二轮 11/12，*
 - ⚠️ **不拦成本 ≠ 不拦失控**：工具调用轮数上限仍要有。一个陷入循环的 Agent
   会无限调工具 —— 那不是「贵」，是**坏**。两者判据**分开写，不许合并**
 
+### 第 2 个 plan 已落地：prompt 侧细分 `cached` 也进了账（2026-08-25）
+
+plan `docs/plans/p1-insight/2026-08-25-0554-1-prompt-cache-accounting.md`（`completed`）。
+⚠️ **上面那条「三项分开记」的字面验收由第 1 个 plan（`2026-08-24-2109-2`）已完整满足**，
+本条**不声称它没做完**。本 plan 的授权来自 **P1.1 `2026-08-24-1457-1` §9 第三条 Deferred
+自己写死的 successor 指派**（重开事件「P1.4 解释 Agent 落地」已触发）。
+
+- `Usage` 现在是**四项**：`prompt` / `completion` / `reasoning` / **`cached`**。
+  `cached` 是 **`prompt` 的细分**，与 `reasoning` 是 `completion` 的细分**形状完全对称**；
+  **`cached` 不进 `total`**（它是 `prompt` 的子集，加进去当场与端点自报的 `total_tokens` 对不上）。
+- 账本加 `endpoint_cached` + `cached_matches_endpoint`（端点没报 ⇒ `False`）；
+  会话落盘 `store.py` 落/读**四键**（否则 `cached > 0` 的会话 round-trip 不相等 —— 静默丢数）。
+- 判据 `tests/unit/test_prompt_cache_accounting.py`（**12 条**）+ `tests/context/test_store.py`（+1）。
+  `check_expected_red.py && pytest tests/unit -q` → **exit 0**（614 → **626 passed**）；
+  `pytest tests/context -q` → **exit 0**（53 → **54**）；`pytest tests/routing -q` → **exit 0**（`167 passed, 1 skipped`）。
+  **变异自查 M1–M10 十个全部被打红，无一需要补断言，因此没有 M11。**
+- **首次在本项目自己的端点上实测前缀缓存**（`docs/evidence/p1-cache/`，`qwen3.6-plus`，一次 10 轮解释）：
+  **逐次 `cached_tokens` 全为 `0`**，且端点在 `prompt_tokens_details` 里
+  **根本没有报 `cached_tokens` 这个键**（键集逐次恒为 `{"text_tokens"}`）。
+  ⚠️ **这是负结果，负结果同样有价值** —— 它是本仓关于这个问题的**第一个观测样本**（此前 0 个）。
+- ⚠️ **举证责任的边界（跑之前写死的）**：**活端点证据在这一支上不承担「记全了」的举证责任**
+  —— 逐次全为 0 时 `cached_matches_endpoint` 恒为 `0 == 0 → True`，
+  **一个把 `cached` 恒写 0 的假实现产出的证据文件与真实现逐字节相同**。
+  「记全了」由 `tests/unit` 的判据 ① 与 ⑧ **单独承担**。
+- ⚠️ **`model-management.md` §12.2 的 Spike 02 成本表与「没有前缀缓存，解释 Agent 在经济上不成立」
+  那句结论一个字未动**，只加了一行指针（两个数**不得互相佐证**，D-16）。
+  **一次实测不足以推翻一句上位结论**；改写与否**由人裁定**。
+- ⚠️ **没有设任何阈值、没有加任何拦截分支**（D-18）；**没有做前缀重排 / 提示词改造**（Non-Goals 2）；
+  **没有做多次采样与分布**（一次实测不是分布）。
+- ⚠️ **工作项 9 的 plan 预算（表规 3 的 1–2 个）到此用尽** —— plan §11 的**五条** Deferred
+  若将来重开，须由**人**在 `02-WBS.md` 拆行 / 加行（红线 5，loop 无权）。
+- ⚠️ **独立关闭审计未做** —— 本轮执行环境不具备独立子代理，详见 plan `## Closure`。
+
 ## ⚠️ 判自由文本答案之前，先跑通标注集（P1.4 / P1.5 动手前必读）
 
 **`tests/fixtures/p1_entry_gate_labels.jsonl`**（24 条，人工标注，每条带 `reason`）

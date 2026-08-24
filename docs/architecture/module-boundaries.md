@@ -344,7 +344,7 @@ owner doc 是 `docs/design/context-and-memory.md` §8.2（上下文四层）与 
 | `agenerp/context/store.py` | 会话的**存储端口** `SessionStore`（协议）+ **零依赖内置实现** `JsonFileSessionStore`（落盘 JSON，`sort_keys=True`）。§8.5 逐字要求「内置实现必须存在且零外部依赖」 |
 | `agenerp/context/doctype/agent_conversation_session.json` | 会话 DocType 的**声明**（落 git、可 diff、可 review）。**不含任何 apply 逻辑** —— 活站点上的建表是人的动作，见下面的可逆性声明 |
 | `tests/context/_scan.py` | 两条红线**共用**的源码/AST 扫描器（权限求值面 · 站点写入面） |
-| `tests/context/test_session.py` · `test_store.py` | ② 层判据：轮次 / 动作 / 快照引用、token 三项口径、`Usage.plus` 计数、保真 / 字节相等 / 键序三条分开的落盘断言、权限红线扫描 |
+| `tests/context/test_session.py` · `test_store.py` | ② 层判据：轮次 / 动作 / 快照引用、token 四项口径（含 prompt 侧细分 `cached`）、`Usage.plus` 计数、保真 / 字节相等 / 键序三条分开的落盘断言、权限红线扫描 |
 | `tests/context/test_doctype_declaration.py` | 声明 ↔ `ConversationSession` 逐字段同构 · **零站点写**扫描 |
 
 **装配面不自己去猜。** 当前单据、角色、视图**全部由调用方给**：这一层不打站点、不查权限、不问模型。
@@ -419,13 +419,15 @@ owner doc 是 `docs/design/context-and-memory.md` §8.2（上下文四层）与 
 #### ② 会话的用量聚合：`Usage.plus()`，不许自己写加法
 
 逐项语义**沿用 P1.1，不另立一套**（`agenerp/routing/adapter.py` 的 `Usage`）：
-`reasoning` 是 `completion` 的**一个细分**，不是第四个桶；`total = prompt + completion`，
-**reasoning 不参与求和**。分工是：`Usage` 是**一次调用**的账，「一个会话累计烧了多少」是会话的属性，
+`reasoning` 是 `completion` 的**一个细分**、`cached` 是 `prompt` 的**一个细分**，
+两者都不是新的桶；`total = prompt + completion`，**reasoning 与 cached 都不参与 `total` 的求和**
+（但两者各自逐轮相加 —— 细分不能折掉，见 §7.17）。
+分工是：`Usage` 是**一次调用**的账，「一个会话累计烧了多少」是会话的属性，
 P1.1 里没有这个概念，也不该有 —— 所以聚合归本层。
 
 **折叠形态定死**：从空 `Usage()` 起逐轮折，N 轮 → **恰好 N 次 `plus()`**。
 判据 monkeypatch `Usage.plus` 数次数，次数写死成 `== 3`，**不写「至少一次」**。
-没有这一条，「必须调 `plus()`」只是一句注释 —— 一份手写但算得对的三项加法能满足全部算术断言。
+没有这一条，「必须调 `plus()`」只是一句注释 —— 一份手写但算得对的四项加法能满足全部算术断言。
 
 #### ② 的「前后快照」记的是取证快照，**不是写操作的回滚点**
 
@@ -908,11 +910,12 @@ D-18 逐字要求「**两者的判据分开写，不许合并**」—— 判据�
 **为什么不从 `ConversationSession` 反推**：session 只记「成为了一轮对话」的调用，
 模型抛错那一次**根本没有 turn**，反推必然漏 —— 实测该路径上 session 的 usage 记录数为 **0**。
 
-**三项 token 的口径归 P1.1，本模块一个字不重定**：`reasoning` 是 `completion` 的细分、
-不是第四个桶，`total = prompt + completion`。汇总走 `Usage.plus()`，**不自己写三项加法**。
+**四项 token 的口径归 P1.1，本模块一个字不重定**：`reasoning` 是 `completion` 的细分、
+`cached` 是 `prompt` 的细分，两者都不是新的桶，`total = prompt + completion`
+（`cached` **不进 `total`**）。汇总走 `Usage.plus()`，**不自己写四项加法**。
 
 **每条记录留两组数，刻意不合并**：解析后的 `usage`（由 `usage_of()` 产出，本模块不另写解析）
-+ **端点自报的原始数字** `endpoint_total` / `endpoint_reasoning`。
++ **端点自报的原始数字** `endpoint_total` / `endpoint_reasoning` / `endpoint_cached`。
 理由是判据强度：`prompt + completion == total` 是恒真式，判它等于没判；
 只有拿解析后的数去对**端点自己报的那个数**，「只记 completion 不记 reasoning」与
 「把 reasoning 再加一遍」这两类假实现才打得红。
@@ -931,7 +934,7 @@ D-18 逐字要求「**两者的判据分开写，不许合并**」—— 判据�
   ⚠️ 挂的是**原始 dict** 而不是 `Usage.as_dict()`：后者里的 `total` 是那个恒真式，
   注入它会让异常路径上的「对得上端点」判了等于没判。
   ⚠️ 该改动**动到 P1.1 的导出面**，因此 `pytest tests/routing -q` 进入本模块的验证命令清单。
-- **端点根本没回包**（连不上、配置不全）→ 三项记 0，`endpoint_*` 记 `None`
+- **端点根本没回包**（连不上、配置不全）→ 四项记 0，`endpoint_*` 记 `None`
   —— **「不知道」不写成「对得上」**，`total_matches_endpoint` 因此为 `False`。
 
 **不许悄悄不记**：不记就等于把一次真实花掉的 token 从账上抹掉，
@@ -2647,3 +2650,105 @@ roadmap 那一节实测过：**24 条样本、5 条负例、内容词线性可�
 
 两次活跑**只在本机、CI 完全没有覆盖**（活栈 + 真 key 都不在 runner 上）。
 CI 复跑得到的只有 `tests/unit/test_insight_live_harness.py` 那 **15** 条离线判据。
+
+### 7.17 prompt 侧细分 `cached` 的记账口径，与前缀缓存在本项目端点上的首次实测（P1.7 第 2 个 plan · 2026-08-25）
+
+plan：[`2026-08-25-0554-1-prompt-cache-accounting.md`](../plans/p1-insight/2026-08-25-0554-1-prompt-cache-accounting.md)。
+本节是 §7.11（P1.7 账本本体）的**连带扩展**，不是新模块。
+
+⚠️ **开宗明义**：本节记的实测数与
+[`model-management.md`](./model-management.md) §12.2 的 Spike 02 成本表
+**不是同一个量，不得互相佐证**（D-16）。那张表来自别的栈、别的站点、别的题；
+本节来自本项目自己的端点。
+
+#### 口径：`cached` 是 `prompt` 的细分，不是第五个桶
+
+`agenerp/routing/adapter.py` 的 `Usage` 有**四项** `prompt` / `completion` / `reasoning` / `cached`：
+
+- `reasoning` 是 `completion` 的细分（§7.7 已定，本节不重定）；
+- `cached` 是 **`prompt` 的细分**，形状与前者**完全对称** ——
+  端点回包里 `prompt_tokens_details.cached_tokens` 与
+  `completion_tokens_details.reasoning_tokens` 是同一形状的两个子对象。
+- **`total` 仍是 `prompt + completion`，`cached` 不进 `total`**：它是 `prompt` 的子集，
+  加进去当场与端点自报的 `total_tokens` 对不上，且会把 §7.11 已绿的
+  `total_matches_endpoint` 整片打红。
+- 汇总走 `Usage.plus()`，四项各自相加 —— **细分不能折掉**。
+
+**为什么值得记**（不是「顺手优化」）：P1.7 已实测的那次解释里
+`prompt` 占 `53,041 / 58,579 = 90.5%`，而命中缓存与未命中的 prompt token
+在多数计费口径下不同价。折掉这一位，成本账在**占九成的那一栏**上分辨不出贵与便宜
+—— 与 roadmap 点名的「只记 completion 不记 reasoning」是同一类失真，只是发生在 prompt 侧。
+
+#### 「缺失」与「0」怎么分（D2），以及它的残余风险
+
+**逐字沿用 `reasoning` 的口径**，不给对称字段配两套规矩：
+
+| 回包形状 | `Usage.cached`（解析值） | `CallEntry.endpoint_cached` |
+|---|---|---|
+| 整个 `usage` 都没有 | `0` | **`None`**（真的不知道） |
+| `usage` 在，`prompt_tokens_details` 缺 | `0` | **`0`**（端点没报命中） |
+| `usage` 在，`prompt_tokens_details` 在但无 `cached_tokens` 键 | `0` | **`0`** |
+| 端点报了 `cached_tokens: N` | `N` | `N` |
+
+`cached_matches_endpoint` 与既有两条同形态：**端点没报 ⇒ `False`**（「不知道」不写成「对得上」）。
+
+⚠️ **残余风险，必须写明**：`0` 因此有**两个含义** —— 端点报了 0 命中 / 端点根本没报这个字段。
+**处置**：证据文件里把「端点是否报了 `prompt_tokens_details`」**单独记一列**，
+并**原样落每一次的原始子对象**，不让成因被 `0` 吃掉。
+2026-08-25 的实测证明这条处置不是多余的：端点**报了** `prompt_tokens_details`，
+但那个子对象里**没有 `cached_tokens` 键**——两件事只有靠原始子对象才分得开。
+
+#### 落盘也记 `cached`（跨出 P1.7 边界的唯一一处）
+
+`agenerp/context/store.py` 的 `to_payload()` / `from_payload()` 落**四键**、读**四键**。
+理由是**静默丢数**：`Usage` 一旦有第四项，`from_payload(to_payload(x))` 对
+`cached > 0` 的会话就不再相等，而这条契约漂移在今天的夹具上测不出来（夹具的 `cached` 恒 0）。
+⚠️ **`total` 仍不落盘** —— 它是派生量，落进去就是第二份真相；`cached` 不是派生量，两者不同类。
+**无数据迁移**：`from_payload` 缺键即抛，但全仓除 `store.py` 自身与再导出外零调用方，
+`docs/evidence/**` 下零存量会话文件。
+
+⚠️ `tests/context` **不在** `missions/p1-insight.json` 的 `commands.test` 里，
+所以落盘/读回的承重判据**同时钉在 `tests/unit/test_prompt_cache_accounting.py`**
+（直接 import `agenerp.context.store`，不碰 `tests/context` 的夹具）。
+
+#### 首次实测：本项目端点上前缀缓存**一个 token 都没省下来**
+
+证据：[`docs/evidence/p1-cache/`](../evidence/p1-cache/)（2026-08-25，`qwen3.6-plus`，一次 10 轮解释）。
+
+| 项 | 实测 |
+|---|---|
+| 逐次 `cached_tokens` | **10 次全为 `0`** |
+| 逐次 `prompt_tokens` | 1,054 → 3,278 → 3,407 → 3,588 → 3,733 → 6,719 → 6,876 → 7,415 → 8,422 → **11,851** |
+| 端点报了 `prompt_tokens_details` | **10/10 报了** |
+| 其中含 `cached_tokens` 键 | **0/10** —— 键集逐次恒等于 `{"text_tokens"}` |
+| 汇总 | `prompt 56,343 · completion 6,770 · reasoning 3,806 · cached 0 · total 63,113` |
+| 账目核对 | `total` / `reasoning` / `cached` 三项 `*_matches_endpoint` 各 **10/10**；账本与 `usage_total` 逐项相等 |
+
+⚠️ **举证责任的边界，逐字**（跑之前就写死的，不是事后找补）：
+
+> **活端点证据在这一支上不承担「记全了」的举证责任。**
+> 逐次全为 0 时每一次的 `cached_matches_endpoint` 都是 `0 == 0 → True`，
+> **一个把 `cached` 恒写 0 的假实现产出的证据文件与真实现逐字节相同。**
+
+「记全了」由 `tests/unit/test_prompt_cache_accounting.py` 的判据 ①（端点报 1024 ⇒ 解析得 1024）
+与 ⑧（端点报 100 而解析成 0 ⇒ 比对属性为 `False`）**单独承担**。
+
+**这是负结果，负结果同样有价值**：它是本仓关于「自己端点上前缀缓存生不生效」的
+**第一个观测样本**（此前是 0 个），并证伪了 §12.2 那句从 Spike 02 搬来的话在本项目上的**直接适用性**。
+⚠️ 但**不足以推翻那句上位结论本身** —— 一道题、一个模型、一次运行不是分布。
+是否改写 §12.2 **由人裁定**，loop 不代拍。
+
+#### 本节刻意**没有**做的事
+
+- **没有设任何阈值、没有加任何拦截分支**（D-18 逐字：记账，不拦截）。
+- **没有做前缀重排 / 提示词改造** —— 没测出自己的数之前谈优化正是 D-16 禁止的那件事；
+  且本次测出的是「端点根本没报这个字段」，那时该做的是查「为什么没生效」，不是重排前缀。
+- **没有做多次采样与成本分布**（一次实测不是分布）。
+
+#### verification scope limited
+
+那一跑**只在本机、CI 完全没有覆盖**（活栈 + 真 key 都不在 runner 上）。
+`pytest tests/context -q`（54 条）与 `pytest tests/routing -q`（167 条）
+**也不在 `commands.test` 里**，它们的绿**不代表 `GATE_VERIFY` 复跑得到**。
+`GATE_VERIFY` 复跑得到的是 `tools/gates/check_expected_red.py` 与
+`pytest tests/unit -q`（626 条，含本节的 12 条）。

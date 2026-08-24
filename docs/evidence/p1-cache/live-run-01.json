@@ -1,0 +1,432 @@
+{
+  "accepted": true,
+  "answer": "证据已补齐。两张入库凭证均已获取：\n- **MAT-STE-2026-00003**（Stock Entry / Manufacture）：从在制品仓转入成品仓 HRD-PACK-5K，数量 **1000 台**。\n- **MAT-SCR-2026-00001**（Subcontracting Receipt）：从供应商\"临港储能科技有限公司\"委外收货至成品仓 HRD-PACK-5K，数量 **1000 台**。\n\n库存流水中所有使数量增加的入库凭证均已覆盖，现给出最终回答。\n\n---\n\n## 成品仓当前实际情况\n\n查询 Bin（库存结余表）可知，成品仓 - HRD 的物料 HRD-PACK-5K（户用储能电池包 5kWh）当前：\n\n| 指标 | 数值 |\n|---|---|\n| 实际库存 (actual_qty) | **1010 台** |\n| 已预留 (reserved_qty) | **10 台** |\n\n即仓库实际压着 **1010 台** 成品。\n\n---\n\n## 库存流水逐笔核对\n\nStock Ledger Entry 记录了该仓库该物料的三笔变动：\n\n| 日期 | 凭证类型 | 单号 | 变动数量 | 结余 |\n|---|---|---|---|---|\n| 2026-02-05 | Stock Entry（生产入库） | MAT-STE-2026-00003 | **+1000** | 1000 |\n| 2026-02-07 | Subcontracting Receipt（委外收货） | MAT-SCR-2026-00001 | **+1000** | 2000 |\n| 2026-02-08 | Delivery Note（交货出库） | MAT-DN-2026-00001 | **-990** | **1010** |\n\n### 入库来源 1：MAT-STE-2026-00003（生产制造入库）\n- 类型：Stock Entry，purpose = Manufacture\n- 关联工单：MFG-WO-2026-00001\n- 从在制品仓 - HRD 将 **1000 台** HRD-PACK-5K 转入成品仓 - HRD\n- 估值单价 3020 元/台（材料 2960 + 工序费用 60）\n\n### 入库来源 2：MAT-SCR-2026-00001（委外收货入库）\n- 类型：Subcontracting Receipt，状态 = Completed\n- 供应商：临港储能科技有限公司\n- 委外订单：SC-ORD-2026-00001（关联采购订单 PUR-ORD-2026-00001）\n- 收货 **1000 台** HRD-PACK-5K 入成品仓 - HRD\n- 单价 3080 元/台（材料成本 2960 + 加工费 120）\n- 同时消耗了我司发给委外方的原材料 HRD-CELL-280 共 16000 只\n\n---\n\n## 造成\"订单看似完成但仓库压货\"的原因\n\n### 1. 销售订单实际并未完成\nSAL-ORD-2026-00001 的状态字段明确显示：\n- `status` = **\"To Deliver and Bill\"**（待交货待开票）\n- `delivery_status` = **\"Partly Delivered\"**（部分交货）\n- `per_delivered` = **99%**，`delivered_qty` = 990 台（订单总量 1000 台）\n\n**仍有 10 台未交货**，这 10 台在 Bin 中体现为 `reserved_qty = 10`，被系统锁定等待后续发运。\n\n### 2. 存在双重入库来源——工单生产 + 委外收货\n- 2 月 5 日工单 MFG-WO-2026-00001 完工，通过 Stock Entry 入库 **1000 台**\n- 2 月 7 日又通过委外收货单 MAT-SCR-2026-00001 从临港储能科技有限公司收货 **额外 1000 台**\n- 两笔入库使成品仓库存达到 **2000 台**\n\n### 3. 交货单仅发出 990 台，未消化委外库存\n2 月 8 日的交货单 MAT-DN-2026-00001 只发出了 990 台，导致：\n- 工单生产的 1000 台中，990 台已发出，剩余 10 台被预留；\n- **委外收货的 1000 台完全没有被发运**，全部积压在成品仓。\n\n---\n\n## 结论\n\n成品仓积压 **1010 台** 的构成：\n\n| 来源 | 数量 | 说明 |\n|---|---|---|\n| 工单生产剩余 | 10 台 | 销售订单还差 10 台未交，系统已预留 |\n| 委外收货 | 1000 台 | 来自 MAT-SCR-2026-00001，未被任何交货单消耗 |\n\n**根本原因**：系统在工单自行生产 1000 台的同时，又通过委外订单（SC-ORD-2026-00001）额外入库了 1000 台，但交货单仅安排了 990 台的发运，导致委外渠道来的 1000 台成品全部积压在仓库中。",
+  "calls": 10,
+  "cost_ledger": {
+    "calls": 10,
+    "entries": [
+      {
+        "cached_matches_endpoint": true,
+        "detail": "",
+        "endpoint_cached_tokens": 0,
+        "endpoint_reasoning_tokens": 156,
+        "endpoint_total_tokens": 1267,
+        "index": 1,
+        "model": "qwen3.6-plus",
+        "outcome": "tools",
+        "reasoning_matches_endpoint": true,
+        "total_matches_endpoint": true,
+        "usage": {
+          "cached": 0,
+          "completion": 213,
+          "prompt": 1054,
+          "reasoning": 156,
+          "total": 1267
+        }
+      },
+      {
+        "cached_matches_endpoint": true,
+        "detail": "",
+        "endpoint_cached_tokens": 0,
+        "endpoint_reasoning_tokens": 186,
+        "endpoint_total_tokens": 3531,
+        "index": 2,
+        "model": "qwen3.6-plus",
+        "outcome": "tools",
+        "reasoning_matches_endpoint": true,
+        "total_matches_endpoint": true,
+        "usage": {
+          "cached": 0,
+          "completion": 253,
+          "prompt": 3278,
+          "reasoning": 186,
+          "total": 3531
+        }
+      },
+      {
+        "cached_matches_endpoint": true,
+        "detail": "",
+        "endpoint_cached_tokens": 0,
+        "endpoint_reasoning_tokens": 26,
+        "endpoint_total_tokens": 3490,
+        "index": 3,
+        "model": "qwen3.6-plus",
+        "outcome": "tools",
+        "reasoning_matches_endpoint": true,
+        "total_matches_endpoint": true,
+        "usage": {
+          "cached": 0,
+          "completion": 83,
+          "prompt": 3407,
+          "reasoning": 26,
+          "total": 3490
+        }
+      },
+      {
+        "cached_matches_endpoint": true,
+        "detail": "",
+        "endpoint_cached_tokens": 0,
+        "endpoint_reasoning_tokens": 150,
+        "endpoint_total_tokens": 3805,
+        "index": 4,
+        "model": "qwen3.6-plus",
+        "outcome": "tools",
+        "reasoning_matches_endpoint": true,
+        "total_matches_endpoint": true,
+        "usage": {
+          "cached": 0,
+          "completion": 217,
+          "prompt": 3588,
+          "reasoning": 150,
+          "total": 3805
+        }
+      },
+      {
+        "cached_matches_endpoint": true,
+        "detail": "",
+        "endpoint_cached_tokens": 0,
+        "endpoint_reasoning_tokens": 16,
+        "endpoint_total_tokens": 3858,
+        "index": 5,
+        "model": "qwen3.6-plus",
+        "outcome": "tools",
+        "reasoning_matches_endpoint": true,
+        "total_matches_endpoint": true,
+        "usage": {
+          "cached": 0,
+          "completion": 125,
+          "prompt": 3733,
+          "reasoning": 16,
+          "total": 3858
+        }
+      },
+      {
+        "cached_matches_endpoint": true,
+        "detail": "",
+        "endpoint_cached_tokens": 0,
+        "endpoint_reasoning_tokens": 168,
+        "endpoint_total_tokens": 6954,
+        "index": 6,
+        "model": "qwen3.6-plus",
+        "outcome": "tools",
+        "reasoning_matches_endpoint": true,
+        "total_matches_endpoint": true,
+        "usage": {
+          "cached": 0,
+          "completion": 235,
+          "prompt": 6719,
+          "reasoning": 168,
+          "total": 6954
+        }
+      },
+      {
+        "cached_matches_endpoint": true,
+        "detail": "",
+        "endpoint_cached_tokens": 0,
+        "endpoint_reasoning_tokens": 520,
+        "endpoint_total_tokens": 7524,
+        "index": 7,
+        "model": "qwen3.6-plus",
+        "outcome": "tools",
+        "reasoning_matches_endpoint": true,
+        "total_matches_endpoint": true,
+        "usage": {
+          "cached": 0,
+          "completion": 648,
+          "prompt": 6876,
+          "reasoning": 520,
+          "total": 7524
+        }
+      },
+      {
+        "cached_matches_endpoint": true,
+        "detail": "",
+        "endpoint_cached_tokens": 0,
+        "endpoint_reasoning_tokens": 2139,
+        "endpoint_total_tokens": 10502,
+        "index": 8,
+        "model": "qwen3.6-plus",
+        "outcome": "answer",
+        "reasoning_matches_endpoint": true,
+        "total_matches_endpoint": true,
+        "usage": {
+          "cached": 0,
+          "completion": 3087,
+          "prompt": 7415,
+          "reasoning": 2139,
+          "total": 10502
+        }
+      },
+      {
+        "cached_matches_endpoint": true,
+        "detail": "",
+        "endpoint_cached_tokens": 0,
+        "endpoint_reasoning_tokens": 329,
+        "endpoint_total_tokens": 8861,
+        "index": 9,
+        "model": "qwen3.6-plus",
+        "outcome": "tools",
+        "reasoning_matches_endpoint": true,
+        "total_matches_endpoint": true,
+        "usage": {
+          "cached": 0,
+          "completion": 439,
+          "prompt": 8422,
+          "reasoning": 329,
+          "total": 8861
+        }
+      },
+      {
+        "cached_matches_endpoint": true,
+        "detail": "",
+        "endpoint_cached_tokens": 0,
+        "endpoint_reasoning_tokens": 116,
+        "endpoint_total_tokens": 13321,
+        "index": 10,
+        "model": "qwen3.6-plus",
+        "outcome": "answer",
+        "reasoning_matches_endpoint": true,
+        "total_matches_endpoint": true,
+        "usage": {
+          "cached": 0,
+          "completion": 1470,
+          "prompt": 11851,
+          "reasoning": 116,
+          "total": 13321
+        }
+      }
+    ],
+    "total": {
+      "cached": 0,
+      "completion": 6770,
+      "prompt": 56343,
+      "reasoning": 3806,
+      "total": 63113
+    }
+  },
+  "doctypes": [
+    "Sales Order",
+    "Delivery Note",
+    "Sales Invoice",
+    "Work Order",
+    "Stock Entry",
+    "Stock Ledger Entry",
+    "Bin",
+    "Item"
+  ],
+  "elapsed_seconds": 124.3,
+  "execute_calls": 10,
+  "model": "qwen3.6-plus",
+  "model_tool_calls": 10,
+  "per_call_cache": [
+    {
+      "cached_matches_endpoint": true,
+      "cached_tokens": 0,
+      "endpoint_cached_tokens": 0,
+      "endpoint_reported_cached_tokens_key": false,
+      "endpoint_reported_prompt_tokens_details": true,
+      "endpoint_total_tokens": 1267,
+      "index": 1,
+      "outcome": "tools",
+      "prompt_tokens": 1054,
+      "prompt_tokens_details_keys": [
+        "text_tokens"
+      ],
+      "prompt_tokens_details_raw": {
+        "text_tokens": 1054
+      },
+      "reasoning_matches_endpoint": true,
+      "total_matches_endpoint": true
+    },
+    {
+      "cached_matches_endpoint": true,
+      "cached_tokens": 0,
+      "endpoint_cached_tokens": 0,
+      "endpoint_reported_cached_tokens_key": false,
+      "endpoint_reported_prompt_tokens_details": true,
+      "endpoint_total_tokens": 3531,
+      "index": 2,
+      "outcome": "tools",
+      "prompt_tokens": 3278,
+      "prompt_tokens_details_keys": [
+        "text_tokens"
+      ],
+      "prompt_tokens_details_raw": {
+        "text_tokens": 3278
+      },
+      "reasoning_matches_endpoint": true,
+      "total_matches_endpoint": true
+    },
+    {
+      "cached_matches_endpoint": true,
+      "cached_tokens": 0,
+      "endpoint_cached_tokens": 0,
+      "endpoint_reported_cached_tokens_key": false,
+      "endpoint_reported_prompt_tokens_details": true,
+      "endpoint_total_tokens": 3490,
+      "index": 3,
+      "outcome": "tools",
+      "prompt_tokens": 3407,
+      "prompt_tokens_details_keys": [
+        "text_tokens"
+      ],
+      "prompt_tokens_details_raw": {
+        "text_tokens": 3407
+      },
+      "reasoning_matches_endpoint": true,
+      "total_matches_endpoint": true
+    },
+    {
+      "cached_matches_endpoint": true,
+      "cached_tokens": 0,
+      "endpoint_cached_tokens": 0,
+      "endpoint_reported_cached_tokens_key": false,
+      "endpoint_reported_prompt_tokens_details": true,
+      "endpoint_total_tokens": 3805,
+      "index": 4,
+      "outcome": "tools",
+      "prompt_tokens": 3588,
+      "prompt_tokens_details_keys": [
+        "text_tokens"
+      ],
+      "prompt_tokens_details_raw": {
+        "text_tokens": 3588
+      },
+      "reasoning_matches_endpoint": true,
+      "total_matches_endpoint": true
+    },
+    {
+      "cached_matches_endpoint": true,
+      "cached_tokens": 0,
+      "endpoint_cached_tokens": 0,
+      "endpoint_reported_cached_tokens_key": false,
+      "endpoint_reported_prompt_tokens_details": true,
+      "endpoint_total_tokens": 3858,
+      "index": 5,
+      "outcome": "tools",
+      "prompt_tokens": 3733,
+      "prompt_tokens_details_keys": [
+        "text_tokens"
+      ],
+      "prompt_tokens_details_raw": {
+        "text_tokens": 3733
+      },
+      "reasoning_matches_endpoint": true,
+      "total_matches_endpoint": true
+    },
+    {
+      "cached_matches_endpoint": true,
+      "cached_tokens": 0,
+      "endpoint_cached_tokens": 0,
+      "endpoint_reported_cached_tokens_key": false,
+      "endpoint_reported_prompt_tokens_details": true,
+      "endpoint_total_tokens": 6954,
+      "index": 6,
+      "outcome": "tools",
+      "prompt_tokens": 6719,
+      "prompt_tokens_details_keys": [
+        "text_tokens"
+      ],
+      "prompt_tokens_details_raw": {
+        "text_tokens": 6719
+      },
+      "reasoning_matches_endpoint": true,
+      "total_matches_endpoint": true
+    },
+    {
+      "cached_matches_endpoint": true,
+      "cached_tokens": 0,
+      "endpoint_cached_tokens": 0,
+      "endpoint_reported_cached_tokens_key": false,
+      "endpoint_reported_prompt_tokens_details": true,
+      "endpoint_total_tokens": 7524,
+      "index": 7,
+      "outcome": "tools",
+      "prompt_tokens": 6876,
+      "prompt_tokens_details_keys": [
+        "text_tokens"
+      ],
+      "prompt_tokens_details_raw": {
+        "text_tokens": 6876
+      },
+      "reasoning_matches_endpoint": true,
+      "total_matches_endpoint": true
+    },
+    {
+      "cached_matches_endpoint": true,
+      "cached_tokens": 0,
+      "endpoint_cached_tokens": 0,
+      "endpoint_reported_cached_tokens_key": false,
+      "endpoint_reported_prompt_tokens_details": true,
+      "endpoint_total_tokens": 10502,
+      "index": 8,
+      "outcome": "answer",
+      "prompt_tokens": 7415,
+      "prompt_tokens_details_keys": [
+        "text_tokens"
+      ],
+      "prompt_tokens_details_raw": {
+        "text_tokens": 7415
+      },
+      "reasoning_matches_endpoint": true,
+      "total_matches_endpoint": true
+    },
+    {
+      "cached_matches_endpoint": true,
+      "cached_tokens": 0,
+      "endpoint_cached_tokens": 0,
+      "endpoint_reported_cached_tokens_key": false,
+      "endpoint_reported_prompt_tokens_details": true,
+      "endpoint_total_tokens": 8861,
+      "index": 9,
+      "outcome": "tools",
+      "prompt_tokens": 8422,
+      "prompt_tokens_details_keys": [
+        "text_tokens"
+      ],
+      "prompt_tokens_details_raw": {
+        "text_tokens": 8422
+      },
+      "reasoning_matches_endpoint": true,
+      "total_matches_endpoint": true
+    },
+    {
+      "cached_matches_endpoint": true,
+      "cached_tokens": 0,
+      "endpoint_cached_tokens": 0,
+      "endpoint_reported_cached_tokens_key": false,
+      "endpoint_reported_prompt_tokens_details": true,
+      "endpoint_total_tokens": 13321,
+      "index": 10,
+      "outcome": "answer",
+      "prompt_tokens": 11851,
+      "prompt_tokens_details_keys": [
+        "text_tokens"
+      ],
+      "prompt_tokens_details_raw": {
+        "text_tokens": 11851
+      },
+      "reasoning_matches_endpoint": true,
+      "total_matches_endpoint": true
+    }
+  ],
+  "question": "销售订单 SAL-ORD-2026-00001 在系统里显示已经完成了，但车间反映成品仓还压着不少货。\n这是怎么回事？请说明成品仓现在的实际情况，以及造成这个情况的原因。",
+  "run": "p1-cache-live-run-01",
+  "runaway_events": [],
+  "stopped": "answered",
+  "task_class": "explain",
+  "usage_total_ledger": {
+    "cached": 0,
+    "completion": 6770,
+    "prompt": 56343,
+    "reasoning": 3806,
+    "total": 63113
+  },
+  "usage_total_session": {
+    "cached": 0,
+    "completion": 6770,
+    "prompt": 56343,
+    "reasoning": 3806,
+    "total": 63113
+  }
+}

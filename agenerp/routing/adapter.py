@@ -5,9 +5,11 @@
 
 1. OpenAI 兼容 `/chat/completions`，`model` / `messages` / `tools` / `max_tokens` 四件套；
 2. **transport 可注入** —— 单测喂假模型，不打网络；
-3. **token 三项分开记**（`prompt` / `completion` / `reasoning`）——
+3. **token 四项分开记**（`prompt` / `completion` / `reasoning` / `cached`）——
    推理模型回两个字也烧 reasoning token（D-11：`qwen3.6-plus` 约 195），
-   混进 `completion` 里成本模型（P1.7）就没法算；
+   混进 `completion` 里成本模型（P1.7）就没法算；`cached` 是**对称的另一半**
+   （端点自报的 prompt 侧细分），一次多轮解释里 prompt 能占九成，
+   折掉它就分辨不出那九成里哪些是命中缓存的便宜 token；
 4. **失败不降级成空回答** —— 一切失败抛 `RoutingError`。空回答与"模型选择不作答"
    长得一样，降级会把一次 API 故障记成一次真实结果。
 
@@ -49,11 +51,21 @@ class Usage:
     分开记的理由不是"加总",是**留住这个细分**：推理模型回两个字也能烧掉九成的
     completion（上面那次 178 里有 173 是 reasoning），reasoning 与可见输出常常不同价，
     折掉这一位，P1.7 的**成本账**就只能按"输出 178 token"去算，差一个量级
-    （D-18：P1.7 是**记账**不是设上限；账记错了将来连阈值都没法定）。"""
+    （D-18：P1.7 是**记账**不是设上限；账记错了将来连阈值都没法定）。
+
+    **`cached` 是 `prompt` 的一个细分，不是第五个桶** —— 与上面那句 `reasoning` 的话
+    形状完全对称，只是发生在 prompt 侧：端点回包里
+    `prompt_tokens_details.cached_tokens` 与 `completion_tokens_details.reasoning_tokens`
+    是同一形状的两个细分。所以 `total` 仍是 `prompt + completion`，
+    **`cached` 绝不进 `total`** —— 它是 `prompt` 的子集，加进去当场与端点自报的
+    `total_tokens` 对不上。分开记的理由同样不是"加总"，是**留住这个细分**：
+    命中前缀缓存的 prompt token 与未命中的在多数计费口径下不同价，
+    折掉这一位，占一次解释九成的那一栏就分辨不出贵与便宜。"""
 
     prompt: int = 0
     completion: int = 0
     reasoning: int = 0
+    cached: int = 0
 
     @property
     def total(self) -> int:
@@ -64,6 +76,7 @@ class Usage:
             self.prompt + other.prompt,
             self.completion + other.completion,
             self.reasoning + other.reasoning,
+            self.cached + other.cached,
         )
 
     def as_dict(self) -> dict[str, int]:
@@ -71,6 +84,7 @@ class Usage:
             "prompt": self.prompt,
             "completion": self.completion,
             "reasoning": self.reasoning,
+            "cached": self.cached,
             "total": self.total,
         }
 
@@ -210,10 +224,18 @@ class ChatAdapter:
 
 
 def usage_of(usage: dict) -> Usage:
-    """`completion_tokens_details.reasoning_tokens` 缺失时回 0，**不回退成把它算进 completion**。"""
+    """两个细分各自缺失时都回 0，**不回退成把它算进所属的那个桶**。
+
+    `completion_tokens_details.reasoning_tokens` 缺失 → `reasoning = 0`（不算进 completion）；
+    `prompt_tokens_details.cached_tokens` 缺失 → `cached = 0`（不算进 prompt，也不算进别处）。
+    ⚠️ 解析侧的 `0` 因此有两个含义（端点报了 0 命中 / 端点根本没报这个字段），
+    要分辨得看账本的 `endpoint_cached`（`agenerp/explain/ledger.py`）。
+    """
     details = usage.get("completion_tokens_details") or {}
+    prompt_details = usage.get("prompt_tokens_details") or {}
     return Usage(
         prompt=int(usage.get("prompt_tokens") or 0),
         completion=int(usage.get("completion_tokens") or 0),
         reasoning=int(details.get("reasoning_tokens") or 0),
+        cached=int(prompt_details.get("cached_tokens") or 0),
     )

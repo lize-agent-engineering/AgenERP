@@ -32,7 +32,7 @@
       "options": "User"
     },
     {
-      "description": "对话轮次：角色 / 文本 / 工具调用 / 每轮 token 三项（prompt · completion · reasoning）。reasoning 是 completion 的细分，不是第四个桶；会话累计的 total 只是 prompt + completion。",
+      "description": "对话轮次：角色 / 文本 / 工具调用 / 每轮 token 四项（prompt · completion · reasoning · cached）。reasoning 是 completion 的细分、cached 是 prompt 的细分，两者都不是新的桶；会话累计的 total 只是 prompt + completion，reasoning 与 cached 都不进 total。",
       "fieldname": "turns",
       "fieldtype": "Code",
       "label": "Turns",
