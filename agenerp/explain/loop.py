@@ -43,6 +43,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from agenerp.context import session as conversation
+from agenerp.context.immediate import ImmediateContext
 from agenerp.context.session import ConversationSession, ExecutedAction, ToolCall, Turn
 from agenerp.explain import gate as evidence
 from agenerp.explain.gate import EvidenceSurface
@@ -146,6 +147,14 @@ SYSTEM_PROMPT = (
     "你是 ERP 的解释 Agent。只能通过给定的只读工具取证，"
     "不许凭常识或记忆报任何数字。取证不足时继续调工具，不要猜。"
 )
+
+# ① 即时上下文注入那条消息的抬头。正文是 `blocks()` 里 `key == "document"` 那块的
+# `payload` 原样序列化，抬头与正文之间**只有一个换行** —— 判据据此把正文解析回来。
+IMMEDIATE_PREFIX = "当前单据（由调用方在发起解释时给定，已在上下文中，不必再取一次）："
+
+# ① 档在 `ImmediateContext.blocks()` 里的块名。**按名取，不按下标取**：
+# 下标取会在 `blocks()` 改序时静默串档（§7.12 的 D2 残余风险）。
+IMMEDIATE_BLOCK_KEY = "document"
 
 
 def tool_schemas() -> list[dict]:
@@ -269,6 +278,7 @@ class ExplainLoop:
         doctypes: Sequence[str] | None = None,
         breaker: DenialBreaker | None = None,
         system_prompt: str = SYSTEM_PROMPT,
+        immediate: ImmediateContext | None = None,
     ) -> None:
         self.adapter = adapter
         self.client = client
@@ -280,6 +290,7 @@ class ExplainLoop:
         self.doctypes = doctypes
         self.breaker = breaker if breaker is not None else DenialBreaker()
         self.system_prompt = system_prompt
+        self.immediate = immediate
 
     # ── 开场 ────────────────────────────────────────────────────────────────
     def _open(self, session: ConversationSession) -> OpeningPack:
@@ -293,6 +304,7 @@ class ExplainLoop:
             doctypes=self.doctypes,
             session=session,
             executors=self.executors,
+            immediate=self.immediate,
         )
 
     def _opening_message(self, pack: OpeningPack) -> str:
@@ -302,6 +314,24 @@ class ExplainLoop:
         ]
         body = "\n".join(rows) if rows else "（开场注入没有取回任何可见范围）"
         return "本次会话的可见范围（由控制循环在开场自动注入，不必也无法自行调用）：\n" + body
+
+    def _immediate_message(self, pack: OpeningPack) -> str | None:
+        """① 即时上下文（当前单据）渲染成一条消息体；没给就返回 `None`（**一条都不注入**）。
+
+        内容取自 `ImmediateContext.blocks()` 里 `key == "document"` 那块的 `payload`，
+        **原样序列化**：不截断、不省略、不 unwrap §7.5 的边界标记、也不从
+        `pack.immediate.document` 另行重拼 —— 重拼会绕过 `blocks()` 这个唯一口径。
+        ② 档（`key == "actions"`）**不在这里注入**：同一批事实在 `messages` 里已逐条在场
+        （`tool_call` + 工具结果），再注一份就是双写（§7.12 的 D2）。
+        """
+        immediate = pack.immediate
+        if immediate is None:
+            return None
+        for block in immediate.blocks():
+            if block.key == IMMEDIATE_BLOCK_KEY:
+                body = json.dumps(block.payload, ensure_ascii=False, sort_keys=True)
+                return f"{IMMEDIATE_PREFIX}\n{body}"
+        return None
 
     # ── 主循环 ──────────────────────────────────────────────────────────────
     def run(self, question: str, *, session_id: str = "explain", user: str = "") -> ExplainResult:
@@ -317,8 +347,13 @@ class ExplainLoop:
         messages: list[dict] = [
             {"role": "system", "content": self.system_prompt},
             {"role": "system", "content": self._opening_message(pack)},
-            {"role": "user", "content": question},
         ]
+        # ① 只在装配 `messages` 时插这一次；主循环里**不再 append**，
+        # 不然注入的 prompt 成本会随轮数放大（判据 J9）。
+        immediate_message = self._immediate_message(pack)
+        if immediate_message is not None:
+            messages.append({"role": "system", "content": immediate_message})
+        messages.append({"role": "user", "content": question})
         session = session.with_turn(Turn(role=conversation.ROLE_USER, text=question))
         schemas = tool_schemas()
 
@@ -598,6 +633,7 @@ def explain(
     user: str = "",
     max_turns: int = MAX_TURNS,
     executors: Mapping[str, Executor] | None = None,
+    immediate: ImmediateContext | None = None,
 ) -> ExplainResult:
     """产品入口：跑一次解释。**② 作答前门禁在这条路径上永远是开的**（无参数可关）。
 
@@ -608,6 +644,10 @@ def explain(
     ⚠️ **残余风险照实登记**：`lineage` 档今天会放行 `qwen3.6-plus`，而它在本项目两跳题上
     是 1/6（STATE §3 `[open] 2026-08-24T07:50Z`）。那条 `[open]` **不因本模块落地而消失**，
     本模块也不代人处置它。
+
+    `immediate` 是 ① 即时上下文（当前单据），给了就渲染成**一条独立的 `system` 消息**
+    插在开场可见范围之后、提问之前。⚠️ **① 层不查权限**（`agenerp/context/immediate.py`
+    模块头规矩 1）：字段表是不是当前身份有权看的，**由调用方负责** —— 这一层不判、也判不了。
     """
     adapter = route(
         task_class, models=models, requested=requested, config=config, transport=transport
@@ -618,6 +658,7 @@ def explain(
         max_turns=max_turns,
         executors=executors,
         doctypes=doctypes,
+        immediate=immediate,
     )
     result = loop.run(question, session_id=session_id, user=user)
     result.trace.task_class = task_class

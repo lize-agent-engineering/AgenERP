@@ -1,0 +1,15 @@
+{
+ "H4_doc_get_on_same_name": {
+  "without_immediate": 1,
+  "with_immediate": 0
+ },
+ "H5_prompt_tokens": {
+  "without_immediate": 101282,
+  "with_immediate": 75159
+ },
+ "model_calls": {
+  "without_immediate": 12,
+  "with_immediate": 9
+ },
+ "opening_identity_ok": true
+}
