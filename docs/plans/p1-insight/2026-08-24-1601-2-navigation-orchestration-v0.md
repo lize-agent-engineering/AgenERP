@@ -287,19 +287,19 @@ Phase 2 的质量度量会产出本仓此前没有过的数字。**以下的计�
 
 ### Phase 1 — 会话开场装配器：真的注入，且骗不过去
 
-Status: planned
+Status: completed
 Targets: `agenerp/orchestration/__init__.py` · `agenerp/orchestration/opening.py` · `tests/tools/test_navigation.py`
 Skill: `none`
 
 - Item Types: `Add | Proof`
 - Prereqs: §5.1（P1.2 完成）
 
-- [ ] `Add` — `open_session(...)`：在**任何模型消息之前**调用一次
+- [x] `Add` — `open_session(...)`：在**任何模型消息之前**调用一次
       `execute("permission.scope", ..., client=..., context=...)`，把 `ToolResult` 收进开场包。
       **候选集允许由调用方给**（§1.2 限制 1）：受限身份枚举不出 DocType 清单，
       装配器必须支持带候选集注入，**不得**为了走发现式路径而给身份提权。
       - Skill: `none`
-- [ ] `Add` — **两段机制照 §1.1a 落地，不混为一谈**：
+- [x] `Add` — **两段机制照 §1.1a 落地，不混为一谈**：
       ① **契约面**——装配器调 `execute` 时**必须**把 `injected_at_session_start=True` 交进
       `ReadOnlyContext`，否则契约必然在 `STAGE_POSTCONDITIONS` 上 `_abort`（`runtime.py:359`
       + `contracts.py:102`）。这一段是**调用方自证**，本 plan 不宣称它被加强。
@@ -309,10 +309,10 @@ Skill: `none`
       `request_count > 0` · 产物里含 `can_read` 行。
       **开场包里对外暴露的是 ② 那条**；调用方传进来的任何同名值一律不进开场包。
       - Skill: `none`
-- [ ] `Add` — 开场包记**注入代价**：`request_count` 与候选集大小随产物一并落进开场包，
+- [x] `Add` — 开场包记**注入代价**：`request_count` 与候选集大小随产物一并落进开场包，
       使「开场注入烧了多少次站点请求」可被断言（§1.2 限制 4）。
       - Skill: `none`
-- [ ] `Proof` — `tests/tools/test_navigation.py`（unit，`FakeSite`，零网络）：
+- [x] `Proof` — `tests/tools/test_navigation.py`（unit，`FakeSite`，零网络）：
       ① **WBS 验收原文那一条**：断言开场注入**真的发生**——从 `FakeSite.requests` 里
       核出那次 `POST /api/method/frappe.client.has_permission`，而不是只看标志位；
       ② 注入产物里**含 `can_read: False` 的行**（全是 `True` 是假实现的形状，§1.2）。
@@ -336,12 +336,12 @@ Skill: `none`
 
 Exit Criteria:
 
-- [ ] 开场注入真实发生；**开场包暴露的 `opening_injection_verified` 由记录推导**，
+- [x] 开场注入真实发生；**开场包暴露的 `opening_injection_verified` 由记录推导**，
       与契约面那条调用方自证的 `injected_at_session_start` **分名分述**；反测 A / B 各有一条红
-- [ ] 注入代价（`request_count` + 候选集大小）可断言
-- [ ] owner doc：**本 Phase 无 owner-doc 更新**（落点节集中在 Phase 3 一次写完，不分两次改同一节）
-- [ ] `python3 -m pytest tests/tools/test_navigation.py -q` 退 0（命令原文 + 退出码 + sha 同条写出）
-- [ ] `docs/logs/2026/08-24.md` 更新
+- [x] 注入代价（`request_count` + 候选集大小）可断言
+- [x] owner doc：**本 Phase 无 owner-doc 更新**（落点节集中在 Phase 3 一次写完，不分两次改同一节）
+- [x] `python3 -m pytest tests/tools/test_navigation.py -q` 退 0（命令原文 + 退出码 + sha 同条写出）
+- [x] `docs/logs/2026/08-24.md` 更新
 
 ### Phase 2 — 导航质量判据：在本仓自己的夹具上量，不搬外部数字
 
