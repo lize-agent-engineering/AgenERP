@@ -491,6 +491,14 @@ def _work_order_step(wip_warehouse: str, transaction_date: str, start: str,
         {"production_item": M.FINISHED_ITEM, "bom_no": names.BOM, "company": M.COMPANY,
          "qty": M.ORDER_QTY, "wip_warehouse": wip_warehouse, "fg_warehouse": M.WH_FINISHED,
          "source_warehouse": M.WH_RAW, "transaction_date": transaction_date,
+         # 工单挂回销售订单。**离线数据集一直有这个字段，站点上此前是 NULL** ——
+         # `_document_graph_checks` 只比每种 DocType 的条数，比不到字段，故未抓到。
+         # 补一层 `_link_field_checks` 把这类字段级分歧也钉住（P1.0 前置 T0）。
+         # 它同时决定了 `doc.links` 从销售订单出发能看到什么，进而决定 P1.0
+         # 实验的难度：挂上之后自制批可见、外协批仍不可见（ERPNext v15 的
+         # `Subcontracting Order` 结构上没有 sales_order 字段），使实验测的是
+         # **一件事**（外协是孤儿）而不是两件。
+         "sales_order": REF_SALES_ORDER,
          "planned_start_date": f"{start} 09:00:00"},
         label,
         submit=True,
@@ -1021,10 +1029,58 @@ _DERIVED_DOCTYPES = frozenset({
 })
 
 
+def _link_field_checks(client: SiteClient) -> list[CheckResult]:
+    """**跨单据 Link 字段对账**：离线数据集里指向另一张单据的字段，站点上必须相同。
+
+    这条补的是 `_document_graph_checks` 的盲区 —— 那条只比每种 DocType 的**条数**。
+    2026-08-24 实测到的分歧正是它抓不到的形状：离线 `Work Order.sales_order =
+    "SAL-ORD-2026-00001"`，**站点上是 NULL**（装载器未送该字段），而两边条数一致，
+    于是全绿。
+
+    **为什么这个盲区要紧**：`doc.links` 走的就是这些字段。少一个 Link，Agent 从
+    某张单出发能看到的下游就少一片 —— 这不是「数据小瑕疵」，是**证据面的缺口**。
+    P1.0 的实验难度直接由它决定。
+
+    **判据不硬写字段清单，从数据集自己推**：凡某字段的值恰好等于数据集里另一份
+    单据的 `name`，即认定为跨单据 Link。将来新增关联自动被覆盖，不需要有人记得
+    回来加一行 —— 硬写清单的判据会随数据集演进而静默失效。
+    """
+    dataset = seed_generate()
+    all_names = {
+        str(row["name"]): doctype
+        for doctype in dataset.doctypes()
+        for row in dataset.of(doctype)
+        if row.get("name")
+    }
+    results: list[CheckResult] = []
+    for doctype in dataset.doctypes():
+        if doctype in _DERIVED_DOCTYPES:
+            continue
+        for row in dataset.of(doctype):
+            name = str(row.get("name") or "")
+            links = {
+                field: value for field, value in row.items()
+                if field != "name" and isinstance(value, str) and value in all_names
+            }
+            if not links:
+                continue
+            site_doc = client.get(f"/api/resource/{doctype}/{name}").get("data", {})
+            for field, expected in sorted(links.items()):
+                actual = site_doc.get(field)
+                results.append(CheckResult(
+                    label=f"{doctype} {name}.{field}",
+                    actual=repr(actual),
+                    expected=repr(expected),
+                    source=f"agenerp.seed 生成的数据集（{doctype}.{field} → {all_names[expected]}）",
+                    ok=actual == expected,
+                ))
+    return results
+
+
 def verify_site(client: SiteClient, today: str | None = None) -> list[CheckResult]:
     """站点侧对账：读回**站点自己算出来**的数，跟 `checks.EXPECTED_*` 比。"""
     return (_backlog_checks(client) + _books_checks(client) + _overdue_checks(client, today)
-            + _document_graph_checks(client))
+            + _document_graph_checks(client) + _link_field_checks(client))
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(

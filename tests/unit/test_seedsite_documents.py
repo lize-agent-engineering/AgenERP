@@ -486,8 +486,17 @@ class FakeVerifySite:
     def __call__(self, request):
         from urllib.parse import unquote, urlparse
 
-        doctype = unquote(urlparse(request.url).path).split("/api/resource/")[1]
-        return SiteResponse(200, json.dumps({"data": self.data[doctype]}))
+        tail = unquote(urlparse(request.url).path).split("/api/resource/")[1]
+        if "/" in tail:
+            # 取单份文档（`_link_field_checks` 用它读 Link 字段）。
+            # **答离线数据集里那一份，逐字回**——这个假站点的契约是「默认答对的」，
+            # 于是默认这组数全绿，各条测试再按需 override 成错的那组。
+            doctype, name = tail.split("/", 1)
+            for row in seed_generate().of(doctype):
+                if str(row.get("name")) == name:
+                    return SiteResponse(200, json.dumps({"data": row}, default=str))
+            return SiteResponse(404, json.dumps({"data": None}))
+        return SiteResponse(200, json.dumps({"data": self.data[tail]}))
 
 
 def _verify(**overrides):
@@ -498,9 +507,9 @@ def test_verify_site_passes_on_the_numbers_the_plan_exists_to_prove():
     results = _verify()
 
     assert [r.label for r in results if not r.ok] == []
-    assert len(results) == 18, (
-        "9 条财务/库存口径 + 9 条文档图对账（D-12）。条数变了就必须来这里改，"
-        "不许让判据悄悄少跑"
+    assert len(results) == 30, (
+        "9 条财务/库存口径 + 9 条文档图条数对账（D-12）+ 12 条跨单据 Link 字段对账"
+        "（P1.0 前置 T0）。条数变了就必须来这里改，不许让判据悄悄少跑"
     )
 
 
@@ -663,3 +672,31 @@ def test_cli_requires_exactly_one_action_and_a_site():
     assert seedsite.main([]) == 2
     assert seedsite.main(["--load-documents"]) == 2
     assert seedsite.main(["--load-masters", "--verify-site", "--site", "frontend"]) == 2
+
+
+def test_link_field_check_catches_a_missing_link_the_count_check_cannot_see():
+    """Link 字段对账必须抓住「条数对、字段空」这个形状。
+
+    这是它存在的理由：2026-08-24 实测到离线 `Work Order.sales_order =
+    "SAL-ORD-2026-00001"` 而站点上是 NULL，两边**条数一致**，`_document_graph_checks`
+    全绿。少一个 Link 不是数据小瑕疵——`doc.links` 走的就是这些字段，
+    缺一条，Agent 从那张单出发能看到的下游就少一片。
+    """
+    class SiteWithABrokenLink(FakeVerifySite):
+        def __call__(self, request):
+            from urllib.parse import unquote, urlparse
+            tail = unquote(urlparse(request.url).path).split("/api/resource/")[1]
+            if tail == f"Work Order/{names.WORK_ORDER}":
+                doc = dict(next(r for r in seed_generate().of("Work Order")))
+                doc["sales_order"] = None      # 站点上字段空着，条数照样对
+                return SiteResponse(200, json.dumps({"data": doc}, default=str))
+            return super().__call__(request)
+
+    results = seedsite.verify_site(_client(SiteWithABrokenLink()))
+    reds = [r for r in results if not r.ok]
+
+    assert len(reds) == 1, f"应恰好红一条，实为 {[r.label for r in reds]}"
+    assert reds[0].label == f"Work Order {names.WORK_ORDER}.sales_order"
+    assert "SAL-ORD" in reds[0].expected and reds[0].actual == "None"
+    # 条数那一族必须仍是绿的 —— 证明这个缺口确实是它看不见的
+    assert all(r.ok for r in results if "文档条数" in r.label)

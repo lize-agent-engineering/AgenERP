@@ -199,10 +199,14 @@ def subcontracting() -> tuple[list[Row], list[Row]]:
             "company": COMPANY,
             "posting_date": day(5),
             "docstatus": 1,
-            "subcontracting_order": N.SUBCON_ORDER,
             "items": [
                 {
                     "item_code": FINISHED_ITEM,
+                    # **挂在行上，不是表头。** ERPNext v15 的 `Subcontracting Receipt`
+                    # 表头没有 `subcontracting_order` 列，它在 `Subcontracting Receipt
+                    # Item` 上（站点实读确认）。此前离线放在表头，层级错了 ——
+                    # 由 `_link_field_checks` 抓出（2026-08-24，它上线第一次跑就抓到两条）。
+                    "subcontracting_order": N.SUBCON_ORDER,
                     "warehouse": WH_FINISHED,
                     "qty": SUBCON_QTY,
                     "received_qty": SUBCON_QTY,
