@@ -92,6 +92,71 @@ node tools/mission-driver/src/reap-orphans.mjs
 
 ---
 
+## 4.1 GitHub Actions 配额（与 §4 的模型配额是两码事）
+
+**症状与模型限流完全不同，别混。** 2026-08-24 实测踩到，卡了不少时间。
+
+### 怎么认出来
+
+| 现象 | 判读 |
+|---|---|
+| **全部 job 一起红**，含「主计划引用不断链」这种纯文档检查 | 不是判据问题 —— 判据不会集体失效 |
+| job 存活 **3–9 秒**，`steps` 数为 **0** | 一步都没跑，是 GitHub 侧没启动 |
+| 上一次成功的 run 时长是 **200–700 秒** | 对比即知：真跑过的 run 是分钟级 |
+
+一条命令区分「真跑了红在判据」与「压根没跑」：
+
+```bash
+gh run list --branch main --limit 10 --json headSha,conclusion,createdAt,updatedAt \
+  | python3 -c "import json,sys,datetime
+for x in json.load(sys.stdin):
+    a=datetime.datetime.fromisoformat(x['createdAt'].replace('Z','+00:00'))
+    b=datetime.datetime.fromisoformat(x['updatedAt'].replace('Z','+00:00'))
+    print(x['headSha'][:7], x['conclusion'], f\"{(b-a).total_seconds():.0f}s\")"
+```
+
+**< 30 秒 = 没跑起来；> 200 秒 = 真跑了。**
+
+### 确诊：读 annotation
+
+错误信息**不在日志里**（日志根本不存在），在 check-run 的 annotation 上：
+
+```bash
+RID=$(gh run list --branch main --limit 1 --json databaseId --jq '.[0].databaseId')
+JID=$(gh api "repos/{owner}/{repo}/actions/runs/$RID/jobs" --jq '.jobs[0].id')
+gh api "repos/{owner}/{repo}/check-runs/$JID/annotations" --jq '.[].message'
+```
+
+实测拿到的原文：
+
+> The job was not started because recent account payments have failed or your
+> spending limit needs to be increased.
+
+### ⚠️ 去哪看：**Budgets and alerts，不是 Overview**
+
+这是当时最耽误事的一点。Billing Overview 页只显示用量与抵扣：
+
+```
+Current metered usage   $12.00
+Current included usage  $12.00     ← 抵扣正好等于用量 = 免费额度已用满
+Next payment due        –          ← 没欠款，所以「付款失败」是误导
+```
+
+**「没欠款」不等于「没问题」**：免费额度用满后，继续跑需要一个 > $0 的预算，
+而消费上限现在在左栏 **Budgets and alerts** 里，不在 Overview。
+
+### 处置
+
+设一个 Actions 预算（本项目实测 **$12/月**，$20 上限绰绰有余）。
+
+⚠️ **不要为了省这点钱去删库或改公开。** 当时评估过，代价是：
+70 处 GitHub 侧证据（12 个 PR + 58 个 run/job ID）永久失效 —— 那是
+「预测在前、结果在后、逐条吻合」全部实证的追溯依据；改公开还要额外
+改写 259 个提交（个人邮箱在 88 个提交的作者字段里），连带 103 处 sha 引用。
+**用 $20 换一条完整的审计链，这个交易不用犹豫。**
+
+---
+
 ## 5. 停机条件响应表
 
 判据正文见 `REF:HALT`。**四条都是「宁可停，不带病狂奔」**。
