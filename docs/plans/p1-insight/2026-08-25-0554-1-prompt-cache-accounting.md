@@ -814,9 +814,20 @@ Exit Criteria:
 ⚠️ **两条不在上表、也不在 `commands.test` 里的命令收口时同样跑了，实读为红，且红在基线上就已经红**
 （裁判规则 3：先原样复跑，不猜根因）：
 
-- `ruff check agenerp tests tools` → **exit 1**，全部命中在 `tools/gates/check_budget.py:142-143`（`F541`）。
-  **本 plan 一个字未动该文件**；`git stash` 到基线复跑 **同样 exit 1**。
+- `ruff check agenerp tests tools` → **exit 1**，命中**全部落在 `tools/` 下、且全部在本 plan 未触碰的文件里**。
+  **本 plan 一个字未动 `tools/`**（`git diff --name-only 9dea949 HEAD` 的 16 个文件里没有一个在 `tools/` 下）；
+  `git stash` 到基线复跑 **同样 exit 1**。
   （这正是 Phase 1 Exit 那条 ruff 命令的路径清单不含 `tools/` 的原因。）
+  ⚠️ **收口审计复跑时逐条列全，更正执行期只点了其中一个文件的记法**（`ruff 0.14.1`，
+  `--output-format concise` 实读 **9 条**，照实记）：
+  `tools/gates/check_budget.py:142/:143`（`F541` ×2）·
+  `tools/gates/pass_usage.py:14`（`E401`）·
+  `tools/rotate-state.py:53/:54/:65/:96/:103/:105`（`E741` ×6）。
+  三个文件的最后一次改动分别是 `4d4856c`（2026-08-23）/ `47ea9a5`（2026-08-21）/ `0e03492`（2026-08-22），
+  **`git merge-base --is-ancestor` 逐个实测三者都是 `9dea949` 的祖先，即都早于本 plan 的基线**
+  （⚠️ 此处更正了一次记录不准：收口审计第一遍把 `check_budget.py` 的末次改动误记为 `47ea9a5`，
+  实读是 `4d4856c`；祖先关系与结论均不受影响）
+  ⇒ 「红在基线上就已经红、本 plan 一条新失败都没引入」这个结论**不受这次更正影响**。
 - `node tools/check-doc-references.mjs` → **exit 1**，失败 **77 条**；基线复跑同样 **exit 1 / 77 条**，
   **逐条 diff 后只有行号位移**（本 plan 在 §7.7 / §7.11 插了行），
   **一条新失败都没引入**，且失败清单里**没有** `p1-cache` / `model-management.md` / 本 plan 新增的任何内容。
@@ -905,6 +916,15 @@ Exit Criteria:
 **逐次 `prompt_tokens_details` 原始子对象在场**，落盘前逐个凭据环境变量扫过产物，**零命中**。
 ⚠️ **只调只读工具，一条业务数据都没写。**
 
+⚠️ **§6.1 第 3 条要求的收口陈述，逐字写在这里**（执行期漏写，收口审计补上）：
+**活端点证据在这一支上不承担「记全」的举证责任。**
+实测落在「全 0」那一支，此时每一次的 `cached_matches_endpoint` 都是 `0 == 0 → True`，
+**一个把 `cached` 恒写 0 的假实现产出的证据文件与真实现逐字节相同**；
+该举证责任**由 `tests/unit` 判据 ①（回包 `cached_tokens: 1024` ⇒ `Usage.cached == 1024`）
+与 ⑧（端点报 100 而解析成 0 ⇒ `cached_matches_endpoint` 为 False）单独承担**。
+**H1 与 H4 在这一支上恒真、不构成证据**（已逐字标注在 §12.2 的对照表里）。
+⚠️ **不把「跑了一次、全绿」说成「记全了已被实测证明」。**
+
 ## Closure Gates
 
 - [x] in-scope behavior is complete
@@ -916,28 +936,77 @@ Exit Criteria:
 - [x] no in-scope item downgraded to deferred/follow-up
 - [x] independent draft review completed and recorded（§10）
 - [x] text consistency verified: status, phases, gates, and log all agree
-- [ ] closure audit was independent —— ⚠️ **未满足，留白，照实记**：本轮执行环境不具备独立子代理
-      （沿用同工作项第 1 个 plan `2026-08-24-2109-2` 收口时的同一条处置）。
-      走的是 AGENTS.md `Reviewer-Availability Fallback` 允许的**单人冷复跑**，
-      **并在此记下该限制**：本 plan 非受保护面（Phase 1–4 的 `Targets` 已逐条比对四个受保护 pathspec，
-      `git diff` 实测无输出）、无未决产品风险、无真相源冲突，因此该 fallback 适用。
-      **它不等于独立审计** —— 想要独立审计的话，须由人另起一个全新会话的子代理复核。
+- [x] closure audit was independent —— ⚠️ **分两段，照实记**：
+      **执行期未满足**（本轮执行环境不具备独立子代理，沿用同工作项第 1 个 plan `2026-08-24-2109-2`
+      收口时的同一条处置），走的是 AGENTS.md `Reviewer-Availability Fallback` 允许的**单人冷复跑**；
+      该 fallback 适用的理由：本 plan 非受保护面（Phase 1–4 的 `Targets` 已逐条比对四个受保护 pathspec，
+      `git diff` 实测无输出）、无未决产品风险、无真相源冲突。**单人冷复跑不等于独立审计。**
+      **收口后由 mission-driver 派出的独立收口审计器（`2026-08-25-043455-mission-driver`）已实跑复核**，
+      在基线 `b8c1391`（工作区干净）上独立复跑了七条基线命令 + ruff + 两条非门禁命令 + 四个红线 pathspec，
+      并实读了 `agenerp/` 与 `docs/evidence/p1-cache/` 的产物，**结论与执行记录一致**，
+      两处记录不准确处已当场更正（见 §12.1 的 ruff 逐条列全、§12.6 的 §6.1 第 3 条补写）。
+      审计明细记在下面的 `Closure Audit Evidence`。
 - [x] closure evidence exists in files
 - [x] §9 红线七条逐条复核，且 `git diff` 四个 pathspec 无输出
 
 ## Closure
 
-Status Note: **十项 Closure Gates 中九项满足，第八项（`closure audit was independent`）未满足并留白。**
-`Plan Status` 已置 `completed`，**依据是同工作项第 1 个 plan `2026-08-24-2109-2` 的同一条先例**
-（该 plan 亦在独立收口审计缺位时置 `completed` 并把该 gate 留白）
-与 AGENTS.md 的 `Reviewer-Availability Fallback`。
-⚠️ **不把单人冷复跑说成独立审计。**
+Status Note: **十项 Closure Gates 全部满足。**
+执行期第八项（`closure audit was independent`）曾未满足并留白 —— 当时的依据是同工作项第 1 个 plan
+`2026-08-24-2109-2` 的同一条先例与 AGENTS.md 的 `Reviewer-Availability Fallback`（单人冷复跑）。
+**收口后独立收口审计已补上并实跑复核，该 gate 于 2026-08-25 转 `[x]`。**
+⚠️ **仍然不把单人冷复跑说成独立审计** —— 上面两段是两件事，分开记。
+⚠️ 结论层面照实记：**H2 落空，本项目端点上前缀缓存未生效或未上报**，
+且**活端点证据在这一支上不承担「记全」的举证责任**（§12.6 逐字）。
 
 Closure Audit Evidence:
 
-- Auditor / Agent: **无独立审计者** —— 本轮执行环境不具备独立子代理。
-  实际走的是**执行者本人的冷复跑**（AGENTS.md `Reviewer-Availability Fallback`），
-  **该限制已在 Closure Gates 第八项与 `STATE.md` §2 的证据行里逐字记下**。
+- Auditor / Agent（**两段，分开记**）:
+  1. **执行期**：**无独立审计者** —— 本轮执行环境不具备独立子代理。
+     实际走的是**执行者本人的冷复跑**（AGENTS.md `Reviewer-Availability Fallback`），
+     **该限制已在 Closure Gates 第八项与 `STATE.md` §2 的证据行里逐字记下**。
+  2. **收口后**：**独立收口审计器**（mission-driver 任务 `2026-08-25-043455-mission-driver`，
+     独立上下文，非执行者），在基线 **`b8c1391`**（`git status --porcelain` 无输出）上实跑复核。
+- 独立收口审计的复跑实读（**命令原文 + 退出码 + 尾行**，全部在审计器自己的进程里跑出来）:
+  - `python3 tools/gates/check_expected_red.py` → **exit 0** · `门禁 11 项：预期红 0，绿 11，跳过 0`
+  - `python3 -m pytest tests/unit -q` → **exit 0** · `626 passed`（与 §12.1 ② 逐字一致）
+  - `python3 -m pytest tests/unit/test_prompt_cache_accounting.py -q` → **exit 0** · `12 passed`
+  - `python3 -m pytest tests/contracts -q` → **exit 0** · `151 passed`
+  - `python3 -m pytest tests/tools -q` → **exit 0** · `81 passed, 12 skipped`
+  - `python3 -m pytest tests/routing -q` / `tests/context -q` → **exit 0** · 合计 `221 passed, 1 skipped`
+    （= `167 + 1 skipped` 与 `54`，与 H7 / H8 逐字一致）
+  - `python3 -m pytest tests/experiments -q` → **exit 0** · `10 passed`
+  - `ruff check agenerp tests/unit tests/contracts tests/tools tests/routing tests/context tests/experiments`
+    → **exit 0** · `All checks passed!`
+  - `node tools/check-doc-references.mjs` → **exit 1 / 77 条**（与执行期一致）；
+    失败清单里 `p1-cache` / 本 plan 的命中数 **0**。`bash tools/check-masterplan-links.sh` → **exit 0**
+  - 四个红线 pathspec 的 `git diff --name-only 9dea949 HEAD` → **无输出**；
+    `git diff --numstat 9dea949 HEAD -- docs/masterplan/STATE.md` → **`12  0`（删除列为 0）**
+- 独立收口审计的落地实读（**不看 plan 自述，直接读盘**）:
+  - `agenerp/routing/adapter.py`：`Usage.cached` 字段在（`:68`）、`plus()` 加它（`:79`）、
+    `as_dict()` 出它（`:87`）、`usage_of()` 读 `prompt_tokens_details.cached_tokens` 且缺失回 0（`:240`），
+    且 `usage_of()` **在产品路径上被真调用**（`:189` 的 `Reply` 组装、`ledger.py:155`）—— 非空壳
+  - `agenerp/explain/ledger.py`：`_endpoint_numbers()` 回三个数（`:64-68`）、
+    `CallEntry.endpoint_cached`（`:82`）、`cached_matches_endpoint`（`:98-101`，端点没报 ⇒ `False`）、
+    `as_dict()` 出这两项（`:112` / `:115`）、`record` 路径接上（`:171` / `:179`）
+  - `agenerp/context/store.py`：落盘四键（`:59`）、读回四键（`:118`）—— M7「静默丢数」那一支已堵上
+  - `agent_conversation_session.json`：`git diff` 实读**只改了 `turns` 的 `description` 自由文本**，
+    `field_order` / 字段集 / `permissions` 一个字未动（与 Phase 2 那条逐字定性一致，不触发 L3）
+  - `docs/evidence/p1-cache/live-run-01.json`：`per_call_cache` **10 条**，
+    **逐条 `prompt_tokens_details_raw` 原始子对象在场**且逐条恒为 `{"text_tokens": N}`
+    —— **端点确实没报 `cached_tokens` 这个键**，与 §12.2 的那段观测逐字一致；
+    `usage_total_ledger` 实读 `prompt 56,343 + completion 6,770 == total 63,113`、`cached 0` **不进 `total`**
+  - `docs/architecture/module-boundaries.md:2654` **§7.17** 在场；`model-management.md:54` 指针行在场；
+    `docs/logs/2026/08-25.md` 在场
+- 独立收口审计当场更正的**三处记录不准确**（**都不改结论，只把记录改准**）:
+  1. §12.1 的 `ruff check agenerp tests tools` 一行原写「全部命中在 `check_budget.py:142-143`」，
+     审计复跑实读为 **9 条 / 3 个文件**（`ruff 0.14.1`）。三个文件的末次改动均早于基线 `9dea949`，
+     **本 plan 未触碰 `tools/`** ⇒ 「一条新失败都没引入」的结论不变，已逐条列全。
+  2. §6.1 第 3 条要求的收口陈述**执行期漏写**，已逐字补进 §12.6。
+  3. ⚠️ **上面第 1 条自己也带了一处记录不准，由本轮落盘前的复跑逮到**：它把 `check_budget.py`
+     的末次改动记成 `47ea9a5`，`git log -1 -- tools/gates/check_budget.py` 实读是 **`4d4856c`**（2026-08-23）。
+     已在 §12.1 更正，并逐个 `git merge-base --is-ancestor` 实测 `4d4856c` / `47ea9a5` / `0e03492`
+     **都是 `9dea949` 的祖先** ⇒ 结论不变。**照实记：审计器的更正本身也需要复跑，不许免检。**
 - Evidence（全部落在文件里，非聊天记忆）：
   - 命令原文 + 退出码 + 条数：§12.1（七条基线命令逐条实读）+ commit `1b1625f` 的 message
   - commit sha：`1b1625f8b6874b3ed0346cf7bb05b52bede62023`（基线 `9dea949ba1b19915baa50de5fcb1961cb75010e6`）
