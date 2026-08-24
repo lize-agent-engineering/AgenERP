@@ -573,6 +573,105 @@ owner doc 是 `docs/design/agents-and-roles.md` §5.0 ①（三条证据规则�
 **没有 skip 可以收严**，P1.0a 那次的「skip → fail」在这里不适用）——
 **这一句要人复核**，loop 不替人拍板它算不算满足那个 🔴。
 
+### 7.9 巡检器与洞察 Agent 在本仓的落点（P1.5 · 2026-08-24）
+
+plan [`2026-08-24-1755-2`](../plans/p1-insight/2026-08-24-1755-2-inspector-and-insight-agent.md)。
+owner doc 是 `docs/design/agents-and-roles.md` §5.0 ②（巡检器存在的实测理由）与 §5.1。
+决策依据是 `docs/masterplan/DECISIONS.md` **D-15**（只读，本节不改它一个字）。
+
+⚠️ **先把最容易读错的一件事写在最前面：巡检规则 ≠ 行业包制品。**
+`agenerp/inspection/minimal.py` 里那**一条**规则是**引擎自带的判据夹具**，用来证明
+「发现力来自规则清单」这件事本身；**行业包 v0（`pack_id` + `rule_id` 的来源、每条带
+`test_case` 的完整清单）归 P1.6，本仓今天没有**。因此 `agenerp/tools/queries.py` 的
+`rule.lookup` **仍然指名报错**，那不是过期漂移，是两件事：一件是引擎，一件是内容。
+另外，`agenerp/pack.py` 的「包」是**定制包**（Custom Field / Property Setter 的导出与 apply，
+见 §11），与行业规则包毫无关系 —— 命名消歧见下面的 `Decision` D2。
+
+#### 为什么是两个模块而不是一个「洞察 Agent」
+
+D-15 逐字：「按清单逐条查、命中即报**是代码，不是 Agent**」，模型真正不可替代的位置
+在**命中之后**。判据是「路径能否预先枚举」：巡检枚举得完 → 必须是代码；
+归因叙述的组织枚举不完 → 仍归模型。混在一个「Agent」里会让规则的确定性
+被模型的随机性污染，且成本白花。
+
+| 包 | 职责 | 不做什么 |
+|---|---|---|
+| `agenerp/inspection/` | 巡检器：声明式规则清单 → 逐条查 → 命中即报，**零 LLM** | **没有任何模型接缝**；不写任何业务数据；不判「要不要紧」 |
+| `agenerp/insight/` | 洞察 Agent：命中**之后**的归因（为什么会这样 / 要不要紧） | 不发现任何东西；不另起控制循环；**不改写命中记录** |
+
+| 文件 | 职责 |
+|---|---|
+| `agenerp/inspection/rules.py` | 规则的声明形状 v0 + 装载器（有限算子集；**未知键与缺 `test_case` 一律拒载**） |
+| `agenerp/inspection/engine.py` | 巡检执行体 + 命中记录 `Hit` / 报告 `InspectionReport`；行源可换（站点 / 内存） |
+| `agenerp/inspection/minimal.py` | 最小规则集 v0（一条，口径「产出 vs 销出」） |
+| `agenerp/insight/attribution.py` | 命中 → 归因的接线；边界执行 `ensure_unchanged` |
+
+#### 四个 `Decision`
+
+- **D1 · 规则的声明形状 v0 = 声明式数据 + 有限算子。**
+  否决 (A) 自由 Python 谓词 —— 不可 diff、不可迁移，与北极星里「可 diff、可回滚、可迁移的产物」
+  直接冲突；否决 (C) 照搬 `agenerp/contracts.py` 的 `Condition` —— 那套算子的语义是
+  「什么时候允许停下来」，与「业务数据是否荒谬」不是一回事，硬套会让两处语义互相污染。
+  形状至少含 `rule_id` / 人话陈述 / 确定性判据表达 / **`test_case`**（P1.6 的验收原文
+  「无 `test_case` 的规则即失败」，位现在就留出来了，且引擎会**真跑**它）。
+  **算子集刻意小**：行过滤 `truthy` / `falsy`；度量 `sum_positive` / `sum_negative_abs` /
+  `difference` / `related_sum`；触发 `greater_than` / `at_least_fraction_of`。
+- **D2 · 目录命名消歧**（`constrained choice`：备选被既有命名与标准库挤掉）。
+  `agenerp/pack.py` 已占用「包」，`inspect` 是标准库名 → `agenerp/inspection/` 与
+  `agenerp/insight/`，**两者分开**是 D-15 的直接后果，不许合并；本层不复用 `pack.py` 的任何结构。
+- **D3 · 归因走 P1.4 的解释循环，不另起一条。** 消费的符号是 **`agenerp.explain.explain`**
+  （§7.8 的导出面两项之一），命中记录作为问题的一部分进循环，取证与证据充分性门禁全部沿用。
+  否决 (A) 洞察侧自开一条不带门禁的轻循环 —— 那正是 §5.0 ① 要修的「停在第一层证据上」。
+- **D4 · 判据夹具由 `agenerp/seed/` 派生，不许手写数据行。** 手写夹具可以被调到
+  「怎么写规则都命中」，消融判据就测不出发现力。**两侧取数方向不许合并**：
+  夹具（数据）取**构造侧**（`agenerp/seed/model.py` / `dataset.py`），
+  期望值取 `agenerp/seed/checks.py` 或由判据自己写死字面量 —— 从同一侧取会让断言变成
+  同义反复（`checks.py:18-20` 的原话）。
+  **耦合照实登记**：夹具与种子数据集是耦合的，种子改了夹具会跟着变。这是想要的耦合
+  （改了就该红），**不是「夹具独立」**。
+
+#### 「零 LLM」判在哪个可观测量上
+
+不判源码文本（那种检查改个字符串就骗过去了），判两个可观测量：
+
+1. **进程级探针**：把 `ChatAdapter` 的 `__init__` / `chat` / `_send` / `_post`、`_ssl_context`、
+   `urllib.request.urlopen` 整体换成一被碰就抛的替身，整条巡检路径跑完仍绿。
+   **配阳性对照**：同一模块里 `route("explain", …)` 在同一探针下必须被打红 ——
+   没有阳性对照的「零调用」什么都没测（替身没装上、装错位置，两种情况都会静静地绿）。
+2. **导入图**：全新解释器里 `import agenerp.inspection` 之后，`agenerp.routing`
+   **不在 `sys.modules`** 里。巡检器**根本没有模型接缝** —— 留一个「可注入模型」的口子
+   再往里塞替身，等于先假设接缝存在再证明它没被用过。
+
+#### 判据缺口与验证范围（不粉饰）
+
+- **两条 🔴 门禁文件本层交付不了**：`tests/gates/test_insight_rule_ablation.py` 与
+  「巡检器在零 LLM 调用下跑通固定测例」那一条都在红线 1 内，loop 不得创建。
+  本层交付**断言体** `tests/unit/test_inspection_rules.py` 与 `tests/unit/test_insight_attribution.py`，
+  按 P1.0a 先例（断言体不重写，按路径加载开发期那份）由**人**创建门禁文件。
+  ⚠️ **收口时不得声称 WBS §4 P1.5 的 🔴 验收已满足。**
+- **最小规则集只有一条，阈值是取舍不是实测**：`at_least_fraction_of` 的 `0.5`
+  是 v0 的保守口径，没有跑过多站点校准。误报/漏报率本层不产出数字。
+- **有限算子集在 P1.6 可能不够用**：v0 的判据是「够跑固定测例 + 形状可扩」，
+  不是「覆盖离散制造全部规则」。重开事件是 P1.6 起草时发现某条规则表达不出来。
+- **`related_sum` 不看单据状态**：订单量按 `Sales Order Item` 全量求和，不筛 `docstatus`。
+  固定测例上只有一张已提交订单，所以这一条今天不影响结论；多站点上它会。
+- **归因文本的质量本层没有任何判据**：判自由文本要先跑通
+  `tests/unit/test_answer_judging_fixture.py` 的 24 条人工标注，属另一个交付面。
+  本层的判据只落在结构化事实上：命中记录、命中数量、调用次数、取证轨迹、门禁判定。
+- **D3 的两条残余风险**（都是选项 B 的代价，实测确认）：
+  ① 命中记录里的数字会进答案文本 → 触发 L3 的取证要求（**这是想要的行为**，但抬高单次成本）；
+  ② 命中的 `subject` 里可能有**长得像单号**的取值（`HRD-PACK-5K` 是三段全大写数字，
+  正好落进 `agenerp/explain/gate.py` 的 `DOC_NAME`），于是 **L1 把物料号当成
+  「问题点名的单据」**并要求 `doc.links`。**不擅自绕开**：门禁措辞归 owner doc 与人的裁定面，
+  且它误报的方向是**更严**（保守侧），不是更松。
+
+**活站点验证范围**：2026-08-24 在本地活站点（`frontend@http://127.0.0.1:18080`）
+跑过**一次**巡检，退出码 0，命中与离线夹具**逐字一致**
+（`on_hand = 1010.0`、`received = 2000.0`、`issued = 990.0`、`ordered = 1000.0`，
+`request_count = 5`）。它证明的是「规则表达在真站点的 REST 面上跑得通、
+子表按 `parent` 取得到、命中与离线一致」。**归因那一半没有在活端点上跑过**
+（本层不需要，也不声称跑过）。
+
 ---
 
 ## 11. 定制包与 GitOps

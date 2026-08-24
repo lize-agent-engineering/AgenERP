@@ -140,6 +140,16 @@ Agent 找到了两笔逾期账款（应收 ¥18,612、应付 ¥2,200），**漏�
 >    过滤后分别是 34 个和 12 个。
 >    → **工具契约必须包含 `returns` 的裁剪规则，不能把后端能查到的东西原样倒给模型。**
 
+**洞察那一行在本仓的落点（P1.5 · 2026-08-24 · 只补指针，§5.0 ② 的实测结论一个字未动）**：
+D-15 把「洞察」拆成了两件东西 —— **巡检（按清单逐条查、命中即报）是代码**，
+落在 `agenerp/inspection/`（纯规则引擎，零 LLM）；**归因（为什么会这样、要不要紧）才是模型**，
+落在 `agenerp/insight/`，取证走 P1.4 的解释循环（`agenerp.explain.explain`）与证据充分性门禁。
+边界与四个 `Decision` 见 `docs/architecture/module-boundaries.md` **§7.9**。
+⚠️ 上表洞察行里的 **`anomaly.scan` 与 `benchmark.compare` 仍未实现**：
+它们不在十个只读契约里（`agenerp/tools_readonly.py` 逐字给了排除理由「依赖行业包规则」），
+P1.5 也没有新增契约。⚠️ `agenerp/inspection/` 自带的最小规则集**不是行业包制品** ——
+行业包 v0 归 P1.6，`rule.lookup` 因此仍然指名报错。
+
 **`lineage.trace` 的硬约束**：ERPNext 的单据关联大量挂在**子表**上（如 `Delivery Note Item.against_sales_order`）。只扫主表 Link 字段的血缘实现会返回空结果——实测中 21 个指向 Sales Order 的 Link 字段里，14 个在子表。血缘工具必须同时扫主表级与子表级并回溯父单据。
 
 ---
