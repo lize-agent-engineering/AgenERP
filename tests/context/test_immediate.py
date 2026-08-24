@@ -166,6 +166,60 @@ def test_it_raises_instead_of_truncating_the_document():
     assert "① 与 ② 不可裁剪" in str(excinfo.value)
 
 
+def _with_actions():
+    """一份 ② 档**有内容**的装配产物 —— 空 `actions` 的块只有 2 个字符，
+    裁不裁都碰不到预算，拿它验不出「审计记录会不会被裁掉」。"""
+    return assemble(
+        doctype="Production Issue",
+        name="PI-2026-00001",
+        fields={"doctype": "Production Issue", "name": "PI-2026-00001"},
+        role="生产主管",
+        view="form",
+        actions=("submit PI-2026-00001", "cancel PI-2026-00002"),
+    )
+
+
+def _blocks_with_memory_and_schema(context):
+    document, actions = context.blocks()
+    return document, actions, (
+        document,
+        actions,
+        ContextBlock(TIER_MEMORY, "memory", ["m" * 200]),
+        ContextBlock(TIER_SCHEMA, "schema", ["s" * 200]),
+    )
+
+
+def test_the_audit_record_blocks_all_survive_once_memory_and_schema_are_gone():
+    """② 档的**行为级**正向断言：③ / ④ 全裁光后，② 档的块一个不少地留在返回里。
+
+    ⚠️ 与 `test_the_two_in_scope_tiers_are_declared_untrimmable` 的分工要说清：
+    那一条验的是 `UNTRIMMABLE_TIERS` 这个**常量长什么样**，不是 `trim()` 的行为。
+    一个绕开常量、直接把判断改成「只保 ① 档」的实现在常量断言上全绿（M9）。
+    """
+    document, actions, blocks = _blocks_with_memory_and_schema(_with_actions())
+
+    kept = trim(blocks, budget=document.size() + actions.size())
+
+    assert [b.key for b in kept] == ["document", "actions"]
+    assert kept[1].tier == TIER_ACTIONS
+    assert kept[1].payload == ["submit PI-2026-00001", "cancel PI-2026-00002"]
+
+
+def test_it_raises_rather_than_dropping_the_audit_record_to_fit_the_budget():
+    """**反测**：预算差一个字符也不许拿 ② 档去填 —— 必须抛。**M9 靠这一条打红。**
+
+    M9 的变异位是 `trim()` 里的 `b.tier not in UNTRIMMABLE_TIERS` 改成 `b.tier != TIER_DOCUMENT`
+    ——**常量原封不动、只改行为**。那样 ② 档会被悄悄裁掉、预算刚好装得下 ①，于是不抛，
+    「模型没看见那条审计记录」在事后无从分辨。
+    """
+    document, actions, blocks = _blocks_with_memory_and_schema(_with_actions())
+
+    with pytest.raises(ContextBudgetExceeded) as excinfo:
+        trim(blocks, budget=document.size() + actions.size() - 1)
+
+    assert "② 已执行动作/actions" in str(excinfo.value)
+
+
 def test_trim_keeps_caller_order_within_a_tier():
     """档内次序是调用方的事（③ 的已验证排序、④ 的相关度排序属另两层）。"""
     blocks = (
