@@ -83,7 +83,7 @@
 | P1.4 | 解释 Agent + **证据充分性门禁** | P1.3 | 🔴 `tests/gates/test_evidence_gate_blocks_single_hop.py` | `MD:p1-explain` |
 | P1.5 | **巡检器 + 洞察 Agent（两件东西，D-15）**：巡检器是**纯规则引擎**——按行业包清单逐条查、命中即报，不进模型；洞察 Agent 只负责命中**之后**的归因与要不要紧 | P1.4 | 🔴 `tests/gates/test_insight_rule_ablation.py`（消融：抽掉规则则查不出）+ 🔴 巡检器在**零 LLM 调用**下跑通固定测例 —— 后者不绿即说明规则被塞进了提示词 | `MD:p1-explain` |
 | P1.6 | 行业包 v0（离散制造）：业务合理性规则为首要内容，**每条带 `test_case`** | P1.5 | `python -m agenerp.packs validate --pack discrete` 退 0（无 `test_case` 的规则即失败） | `MD:p1-explain` |
-| P1.7 | 单次解释成本上限 | P1.4 | 🔴 `tests/gates/test_explain_cost_ceiling.py` | `MD:p1-explain` |
+| P1.7 | **单次解释成本记账（记账但不拦截，D-18）**：每次调用的 token 三项分开记（prompt / completion / **reasoning**），可按一次解释汇总。**不设阈值、不拦截** | P1.4 | 🔴 `tests/gates/test_explain_cost_accounting.py` —— 断言**成本可观测**：三项都记了、能按解释汇总、缺任一项即红。⚠️ **不许退化成「跑通就算」**：判据要能挡住「只记 completion 不记 reasoning」这种假实现（D-11：回两个字也烧约 195 reasoning token）<br>🔴 **失控闸另算**：单次解释的工具调用轮数上限仍要有——**不拦成本 ≠ 不拦失控** | `MD:p1-explain` |
 | P1.8 | Agent 侧边栏嵌 Desk（⌘K 唤起，保留当前单据上下文） | P1.4 | `pytest -m live tests/ui/test_sidebar.py` 退 0 | `MD:p1-explain` |
 | P1.9 | CP9 · P1 阶段复盘 | P1.1–P1.8 | 纪要落 `docs/audits/` | 人 |
 

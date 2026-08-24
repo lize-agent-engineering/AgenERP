@@ -70,8 +70,8 @@ ERP 的 schema 是强结构的，把它压平成向量再用相似度找回来�
 
 | 层 | 内容 | 生命周期 | 实现 | 可替换 |
 |---|---|---|---|---|
-| ① 即时 | 当前单据、角色、视图 | 一次请求 | 前端注入 | — |
-| ② 会话 | 对话历史、已执行动作、前后快照 | 一次会话 | Session → DocType | ✅ |
+| ① 即时 | 当前单据、角色、视图 | 一次请求 | 前端注入 · **本仓落点** `agenerp/context/immediate.py`（`assemble` / `trim`，见 `module-boundaries.md` §7.7） | — |
+| ② 会话 | 对话历史、已执行动作、前后快照 | 一次会话 | Session → DocType · **本仓落点** `agenerp/context/session.py` + `store.py`（端口 + 零依赖内置实现）；DocType **声明**在 `agenerp/context/doctype/`，**活站点上尚未建表**（风险档 L3 强制人批） | ✅ |
 | ③ 记忆 | 组织 / 角色 / 个人知识 | 长期，会过时 | Memory DocType | ✅ |
 | ④ 检索 | schema 元知识、行业文档 | 静态/半静态 | 检索工具 | ✅ |
 

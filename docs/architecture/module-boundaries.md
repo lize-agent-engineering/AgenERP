@@ -217,6 +217,12 @@ owner doc 是 `docs/design/context-and-memory.md` §8.2（上下文四层）与 
 |---|---|
 | `agenerp/context/immediate.py` | **① 即时层**的确定性装配：`assemble()` 收当前单据（`doctype` / `name` / 完整字段表）、角色、视图，产出 `ImmediateContext`；`trim()` 按 §8.2 的四条优先级规则裁到预算内 |
 | `tests/context/test_immediate.py` | ① 层判据：字段→值映射恒等、边界标记三条正向断言、裁剪次序与「裁不下就抛」 |
+| `agenerp/context/session.py` | **② 会话层**：`ConversationSession`（轮次 / 已执行动作 / 前后快照引用）、会话级用量聚合 `usage_total`、审计记录摊平 `audit_records()`。**不可变**，每个 `with_*` 回新会话 |
+| `agenerp/context/store.py` | 会话的**存储端口** `SessionStore`（协议）+ **零依赖内置实现** `JsonFileSessionStore`（落盘 JSON，`sort_keys=True`）。§8.5 逐字要求「内置实现必须存在且零外部依赖」 |
+| `agenerp/context/doctype/agent_conversation_session.json` | 会话 DocType 的**声明**（落 git、可 diff、可 review）。**不含任何 apply 逻辑** —— 活站点上的建表是人的动作，见下面的可逆性声明 |
+| `tests/context/_scan.py` | 两条红线**共用**的源码/AST 扫描器（权限求值面 · 站点写入面） |
+| `tests/context/test_session.py` · `test_store.py` | ② 层判据：轮次 / 动作 / 快照引用、token 三项口径、`Usage.plus` 计数、保真 / 字节相等 / 键序三条分开的落盘断言、权限红线扫描 |
+| `tests/context/test_doctype_declaration.py` | 声明 ↔ `ConversationSession` 逐字段同构 · **零站点写**扫描 |
 
 **装配面不自己去猜。** 当前单据、角色、视图**全部由调用方给**：这一层不打站点、不查权限、不问模型。
 全是确定性规则，零模型参与（D-15）。
@@ -274,6 +280,80 @@ owner doc 是 `docs/design/context-and-memory.md` §8.2（上下文四层）与 
 `tests/context/test_immediate.py` 显式 `from agenerp.tools.runtime import _BOUNDARY_ESCAPE`
 ——**私有名**。这样写是有意的：转义串一旦改名，该判据会当场 `ImportError`，
 而不是悄悄退化成「什么都没验」。代价是本判据与 `runtime.py` 的内部名绑死了，改名要同改两处。
+
+#### 命名消歧：`ConversationSession` 不是 `tools.runtime.Session`
+
+| | `agenerp.context.session.ConversationSession` | `agenerp.tools.runtime.Session` |
+|---|---|---|
+| 是什么 | **对话会话** | **工具会话** —— 执行体与站点之间的唯一通道 |
+| 记什么 | 轮次 / 已执行动作 / 前后快照引用 / 每轮 token 账 | `request_count` / `resource_doctypes` / `row_sources` / `methods` 四类站点请求留痕 |
+| 谁消费 | 控制循环（P1.4）与审计 | 契约的后置断言（推「过程约束」类事实） |
+| 生命周期 | 一次对话 | 一次 `execute()` |
+
+**同名不同义，没有继承、没有组合、不可互换。** 产品类名带 `Conversation` 前缀就是为了这个。
+**残余**：将来若有人再引入第三个 `Session`，这张表拦不住，只能靠 review。
+
+#### ② 会话的用量聚合：`Usage.plus()`，不许自己写加法
+
+逐项语义**沿用 P1.1，不另立一套**（`agenerp/routing/adapter.py` 的 `Usage`）：
+`reasoning` 是 `completion` 的**一个细分**，不是第四个桶；`total = prompt + completion`，
+**reasoning 不参与求和**。分工是：`Usage` 是**一次调用**的账，「一个会话累计烧了多少」是会话的属性，
+P1.1 里没有这个概念，也不该有 —— 所以聚合归本层。
+
+**折叠形态定死**：从空 `Usage()` 起逐轮折，N 轮 → **恰好 N 次 `plus()`**。
+判据 monkeypatch `Usage.plus` 数次数，次数写死成 `== 3`，**不写「至少一次」**。
+没有这一条，「必须调 `plus()`」只是一句注释 —— 一份手写但算得对的三项加法能满足全部算术断言。
+
+#### ② 的「前后快照」记的是取证快照，**不是写操作的回滚点**
+
+`ConversationSession.with_readonly_probe()` 收调用方给的两张 `Snapshot`，
+用 `agenerp.snapshot.diff` 算差异摘要，只存 `SnapshotRef`（`label` / `scope` / `entry_count`），
+**不复制快照内容** —— 复制会让会话记录随站点规模膨胀，而 ② 层要落进一条 DocType 记录里。
+
+本模块**不调 `capture`**：那是 I/O，归调用方。复用的是 `Snapshot` 的形状与 `diff` 的口径，
+**不另写第二套比对** —— 第二套会在 scope 不同、属性变更这类边角上与它错开。
+
+⚠️ v0 的 ② 端**只有只读工具，没有写动作**，所以这里记的是**取证前后的只读快照**。
+不要读成「已经在记写操作的回滚点了」。
+
+#### `Decision`：「会话落 DocType」在 v0 落成什么 —— **端口 + 零依赖内置实现 + 声明落 git**
+
+| 方案 | 否决 / 选定 |
+|---|---|
+| (A) 直接在活站点建 DocType 并写记录 | **否决**。`agents-and-roles.md` §9 的风险档 **L3**（新建 DocType / DDL）**强制人批**，loop 自行执行等于绕过人批；且 `SiteClient` 侧无 teardown，回滚只能手工 |
+| **(B) 存储端口 + 零依赖内置实现 + DocType 声明落 git，建表交人** | **选定**。WBS §4 P1.2 的验收原文是 `pytest tests/context -q` 退 0，(B) 完整满足；§8.5 逐字要求「内置实现必须存在且零外部依赖」，(B) 正是它；声明落 git 满足 L3 的「落 git + 可回滚」里 loop 能做的那部分 |
+| (C) 只做内存实现，不出声明 | **否决**。那样「落 DocType」四个字一点没兑现，收口时只能靠措辞含糊过关 |
+
+**不扩展 `agenerp/pack.py`**：定制包格式只装 Custom Field（`PACK_ENTRIES_KEY = "custom_fields"`），
+装不下一个新 DocType；扩展它会把改动挂进 `apply_pack → execute_plan → drop_orphan_columns → oob.drop_columns`
+这条**不可逆 DDL 调用链**，而那条链已被 `docs/backlog/irreversible-ddl-has-no-code-level-precondition.md`
+登记为 `deferred`、处置者是人。本仓因此**不长第二条 DDL 路径**。
+
+#### 可逆性声明（`ai-autonomy-policy.md` Protected Areas 末行的 Required Evidence，逐字回答）
+
+**本层不新增任何对活站点的写调用。** `agenerp/context/**` 不引用
+`SiteClient.create_doc` / `ensure_doc` / `delete_custom_field`，
+判据是 `tests/context/test_doctype_declaration.py::test_the_context_layer_never_writes_to_a_live_site`
+（源码/AST 扫描，不是 code review）。
+**因此站点侧回滚问题在本层的交付面上不产生。**
+
+⚠️ **残余，照实记，不得说成「已证明不可能写站点」**：AST 扫描挡得住直写，
+挡不住 `getattr(client, "create_" + "doc")` 这类拼名调用。v0 接受这条残余。
+
+⚠️ **会话记录在活站点上还没有落处。** 将来人手工建表之后要回滚，手工命令原文是
+`docker compose exec -T backend bench --site frontend backup`（先备份）+ 在 Desk 里删除该 DocType。
+**这是「回滚仍然只能手工做」，不是「已提供回滚」。** 已挂进 `docs/masterplan/STATE.md` §3 的 needs-human 队列。
+
+#### 权限 / 风险红线的机械判据
+
+`context-and-memory.md` §8.4 的硬红线（代码级、不可配置）与本文件 §7.5 红线行同源：
+**本层的任何字段都不得参与权限判定或风险档计算。** v0 表达成三条可扫描的禁令 ——
+本包不 import `agenerp.contracts`、不碰它的求值面（`ReadOnlyContext` / `Condition` /
+`check_preconditions` / `check_postconditions` / …）、不构造 `facts` 字典交给 `execute`。
+
+⚠️ **黑名单刻意是这三样具体的东西，不是「禁止 import `agenerp.tools.runtime`」**：
+① 层正要 import 那个模块的 `wrap_free_text`，一条过宽的模块级禁令会把 ① 层当场打红，
+而那与权限判定毫无关系。
 
 #### 判据缺口，如实记在这里
 
