@@ -574,3 +574,5 @@
   · ⚠️ **既有 `[open] 2026-08-24T21:40Z`（站点 `Sales Order.status` 不是 `Closed`）不因本轮落地而消失**，本轮**只引用、不重复登记、不代人处置**。
   · 记录：`docs/bugs/03-doc-links-dies-on-single-doctypes.md` · `docs/evidence/p1-insight-live/` · `module-boundaries.md` §7.16。
   · **本行只追加，不改写本节任何已有行**（红线 5）。
+
+- 2026-08-25T06:55Z · **P1.5 第 2 个 plan · plan `2026-08-25-0225-2-insight-attribution-live-run.md` 收口 sha 回填** · `git log -1 --format=%H` → **exit 0** · **落地 sha `b28a1c07159347d7ead3c7ca044d46f673de597e`** · 本行只回填 sha（上一条 `06:40Z` 证据行写的是占位符 `<收口提交后回填>`，独立关闭审计 **F-5** 点名要求补齐 —— 裁判规则 2 要求「命令原文 + 退出码 + commit sha」三者齐全，在本行落地之前该 plan 的状态只能写「我认为完成，待验证」）；实现与结论在 `06:40Z` 那条，**不改写本节任何已有行**（红线 5）· 下一项：**无自动下一项** —— 卡在同日 `[open] 06:40Z`（`doc.links` 撞 Single DocType 该怎么修，需人裁定）与既有 `[open] 2026-08-24T21:40Z` / `2026-08-25T02:10Z` ×2 / `04:05Z` 上，**loop 一条都不代做**
