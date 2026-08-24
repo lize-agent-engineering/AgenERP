@@ -260,6 +260,12 @@ jobs:
       # 正好是判定器不该做的事（AGENTS.md 裁判规则）。补前置才是对的方向。
       - name: 前置 —— 装种子数据与受限身份
         env:
+          # 装载器与门禁**都从环境变量读连接信息**，`--site` 只给站点名。
+          # 三个都要给：缺一个是「连不上」而不是「装载失败」，报错指向错的地方。
+          # 2026-08-24 踩到两次 —— 第一次的修复随 `git add -A` 丢失（见 ⑥ 步注释）。
+          AGENERP_SITE: frontend
+          AGENERP_SITE_URL: http://127.0.0.1:8080
+          AGENERP_ADMIN_PASSWORD: admin
           AGENERP_WORKER_PASSWORD: ${{ secrets.AGENERP_WORKER_PASSWORD || 'worker-ci-only' }}
         run: |
           set -euo pipefail
@@ -391,6 +397,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
+      # 站点名放 job 级 env，与 --site 参数并存 —— 装载器读参数，门禁读环境变量。
+      # 2026-08-24 踩到：只传参数不设环境变量，门禁步一跑就红「需要活站点」。
+      AGENERP_SITE: frontend
       AGENERP_SITE_URL: http://127.0.0.1:8080
       AGENERP_ADMIN_PASSWORD: admin
     steps:
