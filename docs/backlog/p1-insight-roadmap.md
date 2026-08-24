@@ -32,7 +32,7 @@ P1 的目标一句话：**让 Agent 能看懂这套 ERP，并且能证明它真�
 > **这是唯一的动态状态块。** 状态只在这里改。
 > 顺序即执行顺序，引擎取第一个 `todo`。
 
-- 1. 工具执行层：10 个只读契约的执行体（P1.0a）: `todo`
+- 1. 工具执行层：10 个只读契约的执行体（P1.0a）: `done`（2026-08-24，sha `5a712a7`；⚠️ WBS §4 第 78 行的 🔴 门禁判据**那一半仍未满足**——提升进 `tests/gates/` 与 CI 接线在红线内，已挂 STATE §3 needs-human）
 - 2. 入口关口实验：门禁能否补偿模型能力（P1.0 🚪）: `todo`
 - 3. 模型路由 v0：OpenAI 兼容 adapter + 能力声明按任务分档（P1.1）: `todo`
 - 4. 上下文层 v0：即时上下文注入 + 会话落 DocType（P1.2）: `todo`
@@ -59,9 +59,12 @@ P1 的目标一句话：**让 Agent 能看懂这套 ERP，并且能证明它真�
 
 ## 已知的坑（照抄，不要重新发现）
 
-- **`permission.scope` 的判别力在当前站点上验不出来**：只有 Administrator，
-  对什么都有权限，**永远返回 `true` 的实现与正确实现长得一样**。
-  实现前必须先建受限用户
+- ~~**`permission.scope` 的判别力在当前站点上验不出来**~~ —— **2026-08-24 已解决**：
+  `agenerp/seedusers.py` 幂等建出受限身份「车间工人」（只读 3 个 DocType），
+  以它实跑得到**可读 3、不可读 3**。⚠️ **新坑照实记**：stock Frappe 只把 `DocType`
+  的读权限给 System Manager / Administrator，且对它建 `Custom DocPerm` **不生效**，
+  因此**受限身份枚举不出 DocType 清单**——`permission.scope` 的候选集必须由调用方给，
+  **不要靠给工人发 System Manager 绕过去**（那等于把「受限」取消掉）
 - **`lineage.trace` 必须扫子表**：21 个指向 `Sales Order` 的 Link 里 14 个在子表
 - **`doc.links` 的下游筛选是「排除已取消」**，不是「只要已提交」——
   滤掉草稿会把 L2 门禁架空
