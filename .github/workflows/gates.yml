@@ -223,7 +223,7 @@ jobs:
   #    从离线来源翻到活站点上（这两条不取 fixture、直接调 capture()，只能由 env 供给站点）。
   #    实测影响面恰好只有这两条。两条在 gates-l1 里仍按离线判定，两处判据来源不同。
   gates-l2-live:
-    name: L2 全量 live 判定（19 条）
+    name: L2 全量 live 判定（全部门禁，零 skip）
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -253,12 +253,29 @@ jobs:
       # AGENERP_HTTP_PORT 不设：走 compose 默认 127.0.0.1:8080，runner 上已实证空闲。
       # AGENERP_SITE_URL 是冗余而非新耦合——agenerp/site.py 的 default_base_url() 本来就回落到
       # DEFAULT_HTTP_PORT = "8080"，写出来只是更好读。
-      - name: 全部 19 条门禁的 live 判定
+      # 装种子数据与受限身份。**不可省，也不许改成「把那道门禁摘出判定面」**：
+      # 2026-08-24 实测踩到 —— 本 job 原本只起栈不装数据，而
+      # `test_tool_execution_live.py` 要查 Bin / Sales Order / 受限身份，
+      # 于是 8 条红。摘掉它能让 CI 变绿，但那是**把判据调整到迁就环境**，
+      # 正好是判定器不该做的事（AGENTS.md 裁判规则）。补前置才是对的方向。
+      - name: 前置 —— 装种子数据与受限身份
+        env:
+          AGENERP_WORKER_PASSWORD: ${{ secrets.AGENERP_WORKER_PASSWORD || 'worker-ci-only' }}
+        run: |
+          set -euo pipefail
+          python3 -m agenerp.seedsite --load-masters --site frontend
+          python3 -m agenerp.seedsite --load-documents --site frontend
+          python3 -m agenerp.seedusers --load-users --site frontend
+
+      - name: 全部门禁的 live 判定（条数由 check_expected_red.py 自己数）
         env:
           AGENERP_LIVE: "1"
           AGENERP_ADMIN_PASSWORD: admin
           AGENERP_SITE: frontend
           AGENERP_SITE_URL: http://127.0.0.1:8080
+          # 工具执行层门禁的 permission.scope 判别力那条要以受限身份登录。
+          # 缺它那条会红（**不是 skip** —— 门禁里没有 skip 这个出口）。
+          AGENERP_WORKER_PASSWORD: ${{ secrets.AGENERP_WORKER_PASSWORD || 'worker-ci-only' }}
         run: python3 tools/gates/check_expected_red.py
 
       - name: 取证 —— 服务状态
@@ -418,6 +435,12 @@ jobs:
       # ⚠️ 这条**不接受 skip**。没有受限身份时它红而不是跳 ——
       # 站点上只有 Administrator 时，一个永远回 True 的 permission.scope
       # 与正确实现在所有其它断言下长得一模一样。
+      # ⑥ 要跑 pytest，而本 job 原本只跑 `python3 -m agenerp.*`，从来没装过。
+      # 2026-08-24 实测踩到：加了 ⑥ 却没补这一步，runner 上
+      # `No module named pytest`。certifi 同理（见 pyproject 的 dependencies）。
+      - name: ⑥ 前置 —— 装 pytest 与本仓运行期依赖
+        run: pip install pytest certifi
+
       - name: ⑥ L2 门禁 —— 工具执行层守约（12 条，零 skip）
         env:
           AGENERP_LIVE: "1"
