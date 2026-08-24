@@ -711,7 +711,21 @@ M1–M8 是**起草期自己挑的**变异，挑不到自己没想到的地方 �
 
 ## 13. Closure
 
-**代码产物 sha**：Phase 1 `382a70b` · Phase 2 + Phase 3 `b765de5`（收口文档另提交一次）。
+**sha 归属照实记，不按「我提交的那两个」写**（`git log --diff-filter=A` 实查）：
+
+| 产物 | 首次进仓的 commit | 谁提交的 |
+|---|---|---|
+| `tests/tools/test_navigation.py` · `agenerp/orchestration/__init__.py` | `382a70b` | 本 plan（Phase 1） |
+| `agenerp/orchestration/opening.py` | **`90ccb4b`** | **人**的 CI 提交 |
+| `agenerp/orchestration/navigation.py` · `circuit.py` | **`d3b9213`** | **人**的 CI 提交 |
+| owner doc §7.4 / §7.6 / §7.6a · STATE §3 追加 | `b765de5` | 本 plan（Phase 2 + 3） |
+| plan 收口 · roadmap · 日志 | `e55d985` | 本 plan |
+
+⚠️ **`90ccb4b` / `d3b9213` 是人在同一工作树上做 CI 修复时 `git add` 扫进去的**，
+那两个 commit 的信息里没有一个字提到编排层。**本 plan 不把它们算成自己的提交**，
+但也不假装代码是在 `382a70b` / `b765de5` 里落地的 —— 那样写就与 `git log` 对不上。
+**「全部产物同时为绿」的权威 sha 是 `e55d985`**（HEAD），下面的验证全部在它之前的
+`b765de5` 上跑过，`e55d985` 只改文档、复跑结果相同。
 
 ### 13.1 交付了什么
 
