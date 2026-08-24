@@ -1,6 +1,8 @@
 # STATE · 状态投影
 
-> **这是投影，不是真相源。** 真相源是：LoopX 状态（启用时）+ git + 门禁退出码。
+> **这是投影，不是真相源。** 真相源是：**git + 门禁退出码**。
+> （2026-08-23 CP9 复盘：LoopX 停用。本阶段实际发生的跨会话恢复靠的是本文件的
+> RESUME 协议 + git，不是 LoopX —— 它的状态文件自始缺失，从未被真正依赖。）
 > 与本文件冲突时，以那三者为准（见 [01-EXECUTION-MODEL.md](./01-EXECUTION-MODEL.md) §4）。
 > §2 **只追加，不改写、不删除**。改写历史等于销毁证据。
 
@@ -244,6 +246,10 @@
 - 2026-08-23T06:25Z · P0 独立坐实 · 手工复演暴露一个**没人要求过的安全边界**：apply 引擎主动跳过 10 条「不在定制包管辖范围内」的删除（`Address.tax_category`、`Print Settings.*` 等 ERPNext 自带定制），按包覆盖的 DocType 划定管辖。差集引擎最危险的失败模式正是**越权删除**——循环自己加了这道闸
 - 2026-08-23T06:25Z · P0 独立坐实 · 种子数据核实：确定性一致；成品仓 **1,010 米 / ¥6,450** 精确到位；**990 米之谜的完整链条都在**（订单下 1000 交付 990、`LOSS-00003` 下机 1000/实发 990/已审批损耗 10 米/状态 Approved）——P1 头条验收要问的那道题，原始数据已备好
 
+- 2026-08-23T07:18Z · 边界裁定 · **D-9**：AgenERP 与 XM 演示项目在数据、环境、命名、DocType 上彻底切开，本项目是独立生产型项目。已清点三类纠缠并转 §3
+- 2026-08-23T07:18Z · 方向裁定 · **D-10**：红线 7 暂不解开。「自己修改自己并重启」走**构建期**那扇门（custom app → git → PR 人审 → `bench install-app` + 重启），不走运行期（Server Script 写完即活、语义差不是文本差、不可 diff 不可 revert）。⚠️ 架构 §10.5 自记「编码 Agent 是便宜的那条路」，当初选了贵的行为 DSL —— 解开等于翻案，须由人正式重估，不早于 P2
+- 2026-08-23T07:18Z · 方向裁定 · 值得记的一句：**构建设施的自修改本项目早已在做**（循环改自己的判定器、加 CI job、写自己的守卫，全程 git 可查 + 人工批准把关）。缺的只是把同一模式延伸到产品行为层
+
 ---
 
 ## §3 needs-human 队列
@@ -252,6 +258,14 @@
 
 > 格式：`[状态] 日期 · 触发条件 · WBS行ID · 最后一条失败命令原文 + 退出码 · sha · 处置`
 > 状态只有 `open` / `resolved`。**resolved 的行保留不删。**
+
+- [resolved] 2026-08-23T09:22Z · 触发：**重建站点丢了首页横幅** —— 手搓 `bench new-site`（漏 `--no-mariadb-socket`）导致 MariaDB 授权被钉死在创建者容器 IP（`@172.25.0.9`）。**失败是静默且错位的**：`bench` 与 HTTP API 装载全正常（都走 backend），只有 `bootstrap-homepage` 这类另一容器的直连步骤 `Access denied`，表现为首页横幅丢失，看不出跟建站有关。改走 compose 的 `create-site`（带该标志，授权发 `%`）后恢复。**已补 runbook** `docs/runbooks/rebuild-site.md`，含判据：重建后 `mysql.user` 的 host 必须是 `%`
+
+- [resolved] 2026-08-24T02:27Z · 原「离线数据集与站点对同一桩业务建模不一致」**已治理**（D-12）。外协批改为 ERPNext v15 **原生四步链**：采购订单(外协) → 外协订单 → 发料到供应商仓 → 外协收货，后三步全部由**服务端工厂方法**派生。离线数据集补齐外协采购订单并按站点真实结构改写（成品在 `items`、服务件在 `service_items`、原料在 `supplied_items`）。**新增文档图对账判据** `_document_graph_checks`：站点每种 DocType 的条数须与离线数据集逐一相等，使这类分歧不能再无声发生。站点侧对账 9 → **18 项全过**；换成原生链后 `Bin.stock_value` 仍为 3,110,200.00 分文不差 —— 当初那条「复现的是同一道公式」的推断**被实测证实**，具名残余风险已消除
+
+- [resolved] 2026-08-23T09:22Z · 原「种子数据全套沿用 XM 业务实体」**已完成**。样板公司重构为**恒锐动力科技有限公司（HRD）· 户用储能电池包**，数量骨架（1,000/990/1,010）原样保留、价格改为电池包量级，派生值全部重算并经**站点自己的估值引擎**独立验证（`stock_value = 3,110,200` 与手算 FIFO 分层一致）。公司缩写从两处收敛到单一出处 `model.COMPANY_ABBR`。sha `a55f1c3`
+- [resolved] 2026-08-23T09:22Z · 原「`Loss Review` 缺席」**已处置**。按 D-9 不继承该 custom DocType，「990 台之谜」改用**原生字段**表达：`Sales Order.status = "Closed"` + `per_delivered = 99`。订单被人工关闭、ERPNext 据此按完成计，达成率显示 100% 而实发仅 990 台。数据集 15 个 DocType 现已**全部为原生 ERPNext**。荒谬因此更锋利——从前尚有「损耗审批过了」的解释，现在没有任何解释。sha `a55f1c3`
+- [resolved] 2026-08-23T09:16Z · 原「站点多出 MFG-WO-2026-00002」**已查明：不是残留，也不是 bug**。装载器**故意**建两张工单——自制批（在制品仓）与外协批（外协仓），幂等键正是 `(company, production_item, wip_warehouse)`，靠在制仓分开（`seedsite.py:445`）。两张创建时间相隔 0.45 秒，同一次装载。证据留存 `docs/evidence/2026-08-23-site-work-orders-before-rebuild.json`
 
 - [resolved] 2026-08-22 · 触发：**CI 连续 2 轮红即停机**（`AGENTS.md` 裁判规则 4）。plan `2026-08-22-0027-2` 把 L2 判定扩到全部 19 条门禁的新 job `gates-l2-live` 第一次在 CI 上跑，**两次 attempt 全红，同一条 nodeid，可复现** · **P0 工作项 9（L2 门禁的判定与 CI 覆盖）** · 最后一条失败命令 `python3 tools/gates/check_expected_red.py`（env：`AGENERP_LIVE=1` / `AGENERP_ADMIN_PASSWORD=admin` / `AGENERP_SITE=frontend` / `AGENERP_SITE_URL=http://127.0.0.1:8080`，runner `ubuntu-latest`）→ **exit 1**，输出逐字：「判定模式：live（AGENERP_LIVE=1）—— 契约为全部门禁绿、零 skip，不读预期红名单 / 门禁 19 项：红 1，绿 18，跳过 0 / ❌ live 判定契约是全部门禁绿，下列门禁红了： tests/gates/test_customization_roundtrip_delete.py::test_no_orphan_column_left_behind」 · sha `9a8832f`（PR head；开工基线 `7b0f585`） · run `32509351108` attempt 1（job `96856597161`，`failure`）与 attempt 2（`gh run rerun --failed` 原样复跑，仍 `failure`），**其余 8 个 job 两次 attempt 全部 `success`** · **处置**：plan 已按自己写死的固定处置置 `Plan Status: deferred`；**PR #1 未合并**，两个新 job 只在分支 `ci/0027-2-l2-full-live-gate` 上，`main` 未受影响；`agenerp/**` / `tests/gates/**` / `docs/masterplan/DECISIONS.md` / `missions/**` / `tools/gates/check_expected_red.py` / `tools/gates/expected-red.txt` **全部一行未改**（`git diff --stat 7b0f585..HEAD` 与 `git status --porcelain` 两条命令对该 pathspec 均无输出） · **处置（2026-08-21T21:33Z）**：查明红因是判据变严而非坏了（18/19 绿，唯一红的是孤儿列这个真缺口）。循环已自行绕开：动 CI 的 plan 置 deferred，另起纯本机的取证与修复 plan。不放宽判据，修完自然绿
   · **红因分流：红在实现，不是红在判据。** 那条门禁断言的是 `apply_pack` 删掉 Custom Field 之后必须连物理列一起清掉（清除面由 plan `2026-08-21-2220-1` 交付）。断言在 runner 上不成立，**判据没问题，不成立的是被判的实现**。修它要动 `agenerp/**`，那是本 plan 的 Non-Goal；且 `agenerp/apply.py` 的删除路径是 `ai-autonomy-policy.md` Protected Areas 末行的 `plan-first` 面，Required Evidence 含「实跑前后全量 `capture` 对照」，在一个 CI 判定面的 plan 里顺手改它等于绕过那条证据要求。**需要一个专门的 successor plan。**
@@ -274,6 +288,7 @@
   · **授权链**：与本队列 2026-08-21 那几行同一处矛盾，处置相同：按 `AGENTS.md` 红线 5「只允许追加证据行」执行，**只追加、不改写任何已有行**。
 
 - [open] 2026-08-22 · 触发：**守卫 `verdict-tool-untouched` 的「触及 + 带 trailer → 放行」出口在同一 sha、同一输入上不可复现**（`AGENTS.md` 裁判规则 3 的「一红一绿 → 记不可复现，不许猜根因」） · **P0 工作项 9** · 最后一条失败命令：CI job `判定器未被改动` 的 step `检查本次改动是否触及门禁判定器`（run `32570942284` attempt 1，job `97026197943`，runner `ubuntu-latest`）→ **exit 1**，输出逐字：「本次改动触及判定器： / tools/gates/check_expected_red.py / ❌ 改动了门禁判定器却没有人工批准。」；**原样复跑**（`gh run rerun --failed`）attempt 2 job `97026657710` → **exit 0**，输出逐字「本次改动触及判定器： / tools/gates/check_expected_red.py / ✅ 找到人工批准 trailer，放行」 · sha `cf73d90c0dd842fddb260b3aede2aecbcc5b05ef`（分支 `ci/1206-1-verdict-guard-proof` 上的实验 ④ 提交，已随收尾 reset 移出分支，按 sha 仍可访问）；PR #2 `baseRefOid` = `f689d0e7cde…` · **处置：登记不修，交人裁定。**
+- [resolved] 2026-08-24T02:32Z · 承接上一行 · **根因仍未证实，但该面已做确定化**。复现尝试**失败并照实登记**：怀疑 `git log --format=%B | grep -q` 在 `pipefail` 下吃 SIGPIPE(141)（`grep -q` 一匹配即退出关闭管道），本地按真实范围（182 提交 / 194,523 字节 / 161 处命中）跑 10 次**全部判为找到**，未复现 —— 故按 AGENTS.md 裁判规则 3 **不认定根因**。处置不依赖根因：① 去掉管道，先落盘再 grep，消掉 SIGPIPE 这个嫌疑结构（即使不是真凶，也不该留着能让判定器非确定的结构）；② 把判定用到的全部输入打出来（BASE / HEAD / 范围内提交数 / 信息字节数 / trailer 命中行数），**下次再抖时能逐字对比两次 attempt 的输入是否真的相同**，而不是又记一条「不可复现」。sha `131470d`
   · **两次 attempt 的输入逐字节相同，已机械核对，不是印象**：同一 merge ref `1b3e5ea2ebdcc5e75bb6d7b7f7bad87bc8c6a02d`；`fetch` 命令行逐字相同（`git -c protocol.version=2 fetch --prune --no-recurse-submodules origin +refs/heads/*:refs/remotes/origin/* +refs/tags/*:refs/tags/* +1b3e5ea2…:refs/remotes/pull/2/merge`）；脚本插值出的 `BASE="f689d0e7cde…"` / `HEAD="cf73d90c0dd…"` 相同；attempt 1 日志里**没有任何 `fatal:` / `error:` 行**，`##[error]Process completed with exit code 1.` 是脚本自己的 `exit 1`。**本行不给根因**，也不写「大概是因为……」。相关代码行逐字为 `if git log --format=%B "$BASE..$HEAD" | grep -q '^Gates-Change-Approved-By:'; then`，所在 step 以 `set -euo pipefail` 开头 —— **这两句是照抄的事实，不是因果断言。**
   · **后果对人是直接的，不是理论风险**：守卫落进 `main` 之后，**人做一次合法的判定器改动可能被随机挡下**（带了批准 trailer 却仍然红）。**临时处置办法：`gh run rerun --failed` 原样复跑。**
   · **为什么 loop 不自己修**：修它要改 `.github/workflows/**` 里那 118 行的脚本体，而「落地的就是 run `32533449466` 已实测那一份」是本批两个 plan 共同的承重判据（`2026-08-22-1206-1` 的 Goals 2 / Phase 1 保命闸 / 姊妹 plan 的 `--ff-only` 论证），动一个字就打掉 Phase 1 的形态判据；且要重取一次全套 CI 证据。

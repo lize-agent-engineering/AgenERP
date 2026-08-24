@@ -14,6 +14,7 @@ import pytest
 
 from agenerp import seedsite
 from agenerp.seed import checks as CH
+from agenerp.seed import generate as seed_generate
 from agenerp.seed import model as M
 from agenerp.seed import names
 from agenerp.site import SiteClient, SiteError, SiteResponse
@@ -32,6 +33,32 @@ class FakeDocSite:
         "Stock Entry": "MAT-STE-2026-{:05d}", "Sales Order": "SAL-ORD-2026-{:05d}",
         "Work Order": "MFG-WO-2026-{:05d}", "Delivery Note": "MAT-DN-2026-{:05d}",
         "Sales Invoice": "ACC-SINV-2026-{:05d}", "Purchase Invoice": "ACC-PINV-2026-{:05d}",
+        # D-12：外协四步链
+        "Purchase Order": "PUR-ORD-2026-{:05d}",
+        "Subcontracting Order": "SC-ORD-2026-{:05d}",
+        "Subcontracting Receipt": "MAT-SCR-2026-{:05d}",
+    }
+
+    # 服务端工厂方法的替身。**只回站点会回的那几个字段**，不多不少 ——
+    # 假站点越像真站点，判据越可信；多回字段会掩盖「装载器漏送必填」这类缺陷。
+    FACTORY_DRAFTS = {
+        "erpnext.buying.doctype.purchase_order.purchase_order.make_subcontracting_order": {
+            "doctype": "Subcontracting Order", "name": "new-subcontracting-order-1",
+            "supplier": M.SUPPLIER, "company": M.COMPANY, "docstatus": 0,
+            "items": [{"item_code": M.FINISHED_ITEM, "qty": M.SUBCON_QTY, "bom": names.BOM}],
+            "service_items": [{"item_code": M.SERVICE_ITEM, "qty": M.SUBCON_QTY,
+                               "rate": M.SUBCONTRACT_FEE / M.SUBCON_QTY}],
+        },
+        "erpnext.controllers.subcontracting_controller.make_rm_stock_entry": {
+            "doctype": "Stock Entry", "name": "new-stock-entry-1", "purpose": "Send to Subcontractor",
+            "docstatus": 0,
+            "items": [{"item_code": M.RAW_ITEM, "qty": M.BOM_RAW_QTY}],
+        },
+        "erpnext.subcontracting.doctype.subcontracting_order.subcontracting_order.make_subcontracting_receipt": {
+            "doctype": "Subcontracting Receipt", "name": "new-subcontracting-receipt-1",
+            "supplier": M.SUPPLIER, "company": M.COMPANY, "docstatus": 0,
+            "items": [{"item_code": M.FINISHED_ITEM, "qty": M.SUBCON_QTY}],
+        },
     }
 
     def __init__(self, fail_on: str | None = None, bom_operating_cost: float = 800.0,
@@ -45,6 +72,11 @@ class FakeDocSite:
 
     def __call__(self, request):
         self.requests.append(request)
+        if "/api/method/" in request.url:
+            method = request.url.split("/api/method/", 1)[1].split("?")[0]
+            if method not in self.FACTORY_DRAFTS:
+                return SiteResponse(200, json.dumps({}))   # 方法名写错时 Frappe 就回这个
+            return SiteResponse(200, json.dumps({"message": self.FACTORY_DRAFTS[method]}))
         from urllib.parse import parse_qs, unquote, urlparse
 
         path = unquote(urlparse(request.url).path)
@@ -77,7 +109,14 @@ class FakeDocSite:
 
     @property
     def posts(self):
-        return [r for r in self.requests if r.method == "POST"]
+        """**只数建档 POST**，不数工厂方法调用。
+
+        D-12 后工厂方法也走 POST（`/api/method/`），混在一起数会让「一步一 POST」
+        这条不变量失去意义。工厂调用次数由
+        `test_the_factory_is_not_called_when_the_document_already_exists` 单独把守。
+        """
+        return [r for r in self.requests
+                if r.method == "POST" and "/api/method/" not in r.url]
 
     @property
     def puts(self):
@@ -119,13 +158,15 @@ def test_dependency_order_is_the_one_the_site_actually_requires():
         ("期初原料入库", "原料转在制品仓（自制批）"),
         ("工单（自制批）", "原料转在制品仓（自制批）"),
         ("原料转在制品仓（自制批）", "自制批入库"),
-        ("工单（外协批）", "原料转外协仓（外协批）"),
-        ("原料转外协仓（外协批）", "外协批入库"),
+        # 外协四步链（D-12）：每一步都依赖前一步的站点回值
+        ("采购订单（外协）", "外协订单"),
+        ("外协订单", "发料到供应商仓（外协）"),
+        ("发料到供应商仓（外协）", "外协收货"),
         ("自制批入库", "发货单"),
-        ("外协批入库", "发货单"),
+        ("外协收货", "发货单"),
         ("销售订单", "发货单"),
         ("发货单", "销售发票（逾期）"),
-        ("外协批入库", "采购发票（逾期）"),
+        ("外协收货", "采购发票（逾期）"),
     ):
         assert idx(earlier) < idx(later), f"{earlier} 必须早于 {later}"
 
@@ -133,7 +174,7 @@ def test_dependency_order_is_the_one_the_site_actually_requires():
 def test_fifo_ordering_puts_the_inhouse_batch_before_the_subcontract_batch():
     """FIFO 的成立条件：自制批（¥5.00）必须**先入库**，否则发货 990 米出的就不是那一层。"""
     inhouse = _by_label("自制批入库").payload["posting_date"]
-    subcon = _by_label("外协批入库").payload["posting_date"]
+    subcon = _by_label("外协收货").payload["posting_date"]
 
     assert inhouse < subcon, f"自制批 {inhouse} 必须早于外协批 {subcon}"
     assert subcon < _by_label("发货单").payload["posting_date"]
@@ -150,14 +191,31 @@ def test_no_document_step_keys_on_name_because_the_site_ignores_explicit_name():
                if s.doctype not in ("Stock Entry Type",))
 
 
-def test_the_two_work_orders_are_told_apart_by_their_wip_warehouse():
-    """两张工单的物料与公司相同，只有在制仓不同 —— 幂等键必须靠它分开，否则第二张永远命中第一张。"""
-    inhouse = _by_label("工单（自制批）")
-    subcon = _by_label("工单（外协批）")
+def test_the_factory_is_not_called_when_the_document_already_exists():
+    """**幂等先于工厂。** 单据已在站点上时，不得再调服务端工厂方法。
 
-    assert inhouse.key["wip_warehouse"] == M.WH_WIP
-    assert subcon.key["wip_warehouse"] == M.WH_SUBCON
-    assert inhouse.key != subcon.key
+    这条守的是一个实测踩到的缺陷（2026-08-23）：把工厂调用放在 `ensure_doc`
+    之前时，重跑装载会撞 `This PO has been fully subcontracted` —— 因为工厂方法
+    **有副作用感知**，它按源单的已外协量判定，不是纯函数。幂等在它之后就太晚了。
+
+    判据取「`/api/method/` 的调用次数」，不取「装载是否报错」：报错只是这个缺陷
+    在真站点上的表现，假站点未必复现；而多调一次工厂是缺陷本身。
+    """
+    site = FakeDocSite()
+    client = _client(site)
+    seedsite.load_documents(client)
+    first_run_factory_calls = len([r for r in site.requests if "/api/method/" in r.url])
+    assert first_run_factory_calls == 3, (
+        f"外协四步链应调三次工厂方法（外协订单/发料/收货），实为 {first_run_factory_calls}"
+    )
+
+    seedsite.load_documents(client)
+    total = len([r for r in site.requests if "/api/method/" in r.url])
+
+    assert total == first_run_factory_calls, (
+        f"第二次装载又调了 {total - first_run_factory_calls} 次工厂方法 —— "
+        "幂等检查跑在工厂之后了"
+    )
 
 
 def test_stock_entry_keys_are_pairwise_distinct():
@@ -176,11 +234,15 @@ def test_every_stock_entry_sends_both_stock_entry_type_and_purpose():
 
 def test_manufacture_entries_never_send_the_finished_item_rate():
     """站点自己算成品单位成本。送 `basic_rate` 等于用本仓的数覆盖站点的数，B 半就白做了。"""
-    for label in ("自制批入库", "外协批入库"):
-        finished = next(row for row in _by_label(label).payload["items"]
-                        if row["item_code"] == M.FINISHED_ITEM)
-        assert "basic_rate" not in finished and "valuation_rate" not in finished, label
-        assert "amount" not in finished, label
+    finished = next(row for row in _by_label("自制批入库").payload["items"]
+                    if row["item_code"] == M.FINISHED_ITEM)
+    assert "basic_rate" not in finished and "valuation_rate" not in finished
+    assert "amount" not in finished
+
+    # 外协收货由工厂方法派生（D-12），本仓**一行 items 都不送** —— 比「不送
+    # basic_rate」更强的形式。站点自己算出 rm_cost_per_qty 2,960 + service_cost_per_qty
+    # 120 = rate 3,080（活站点实测）。
+    assert "items" not in _by_label("外协收货").payload
 
 
 def test_work_order_payload_does_not_carry_required_items():
@@ -197,8 +259,19 @@ def test_the_inhouse_operating_cost_is_a_placeholder_not_a_local_number():
 
 
 def test_the_subcontract_fee_is_an_input_constant_from_the_seed_package():
-    """外协服务费是 §12.1 的**输入**，从 `model.py` 取；派生费率一个都不许出现。"""
-    assert _by_label("外协批入库").payload["additional_costs"][0]["amount"] == M.SUBCONTRACT_FEE
+    """外协服务费是 §12.1 的**输入**，从 `model.py` 取；派生费率一个都不许出现。
+
+    D-12 后它的落点变了：从前塞在外协那张 `Manufacture` 分录的 `additional_costs`
+    里，现在走**外协采购订单的服务行**（`rate = 费用 / 数量`）—— 那才是 ERPNext
+    表达外协加工费的地方。收货单的估值由站点自己算（实测
+    `rm_cost_per_qty 2,960 + service_cost_per_qty 120 = rate 3,080`）。
+    """
+    service_row = _by_label("采购订单（外协）").payload["items"][0]
+
+    assert service_row["item_code"] == M.SERVICE_ITEM
+    assert service_row["qty"] * service_row["rate"] == M.SUBCONTRACT_FEE
+    # 收货单一分钱都不由本仓送 —— 送了就是用本仓的数覆盖站点的数。
+    assert "additional_costs" not in _by_label("外协收货").payload
 
 
 DERIVED_CONSTANTS = ("BACKLOG_QTY", "BACKLOG_VALUE", "COGS_VALUE", "GROSS_PROFIT",
@@ -333,7 +406,8 @@ def test_placeholders_are_bound_from_what_the_site_returned():
 
     assert delivery["items"][0]["against_sales_order"] == sales_order["name"]
     assert delivery["items"][0]["so_detail"] == sales_order["items"][0]["name"]
-    assert [d["additional_costs"][0]["amount"] for d in manufacture] == [800.0, M.SUBCONTRACT_FEE]
+        # D-12 后只剩自制批走 `Manufacture` —— 外协批走原生收货，不再伪造成制造分录。
+    assert [d["additional_costs"][0]["amount"] for d in manufacture] == [800.0]
 
 
 def test_the_operating_cost_comes_from_the_site_not_from_this_repo():
@@ -398,6 +472,15 @@ class FakeVerifySite:
                                   "company": M.COMPANY, "supplier": M.SUPPLIER,
                                   "posting_date": M.day(5)}],
         }
+        # 文档图对账（D-12）要读每一种单据的条数。默认按离线数据集**逐一对齐**，
+        # 使默认这组数是「全绿」的那组 —— 这个假站点的契约就是「默认答对的」。
+        # 不硬写条数：写死会让它与数据集脱钩，改数据集时这里静默变错。
+        dataset = seed_generate()
+        for doctype in dataset.doctypes():
+            if doctype in seedsite._DERIVED_DOCTYPES:
+                continue
+            self.data.setdefault(doctype, [{"name": f"{doctype}-{i}"}
+                                           for i in range(len(dataset.of(doctype)))])
         self.data.update(overrides)
 
     def __call__(self, request):
@@ -415,7 +498,10 @@ def test_verify_site_passes_on_the_numbers_the_plan_exists_to_prove():
     results = _verify()
 
     assert [r.label for r in results if not r.ok] == []
-    assert len(results) == 9
+    assert len(results) == 18, (
+        "9 条财务/库存口径 + 9 条文档图对账（D-12）。条数变了就必须来这里改，"
+        "不许让判据悄悄少跑"
+    )
 
 
 def test_verify_site_prints_the_actual_value_and_the_expected_value_with_its_source():

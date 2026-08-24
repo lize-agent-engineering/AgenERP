@@ -11,7 +11,6 @@ from typing import Any
 from agenerp.seed import names as N
 from agenerp.seed.model import (
     ACC_OPERATING,
-    APPROVED_LOSS_QTY,
     BOM_RAW_QTY,
     COMPANY,
     CUSTOMER,
@@ -21,11 +20,8 @@ from agenerp.seed.model import (
     INHOUSE_RATE,
     INHOUSE_VALUE,
     INVOICE_TERM_DAYS,
-    LOSS_REVIEW_NAME,
-    LOSS_REVIEW_STATUS,
     OPENING_RAW_QTY,
     OPERATION_MINUTES,
-    ORDER_QTY,
     RAW_ITEM,
     RAW_RATE,
     SALES_RATE,
@@ -47,7 +43,7 @@ Row = dict[str, Any]
 
 def _lot(rng: random.Random) -> str:
     """装饰性字段：批号后缀。**不参与任何断言**，存在只为让 `--seed` 是真参数。"""
-    return f"XM-LOT-{rng.randrange(100000, 1000000)}"
+    return f"HRD-LOT-{rng.randrange(100000, 1000000)}"
 
 
 def stock_entries(rng: random.Random) -> list[Row]:
@@ -59,7 +55,7 @@ def stock_entries(rng: random.Random) -> list[Row]:
             "company": COMPANY,
             "posting_date": day(0),
             "docstatus": 1,
-            "remarks": "XM-DEMO-OPENING",
+            "remarks": "HRD-OPENING-2026Q1",
             "items": [
                 {
                     "item_code": RAW_ITEM,
@@ -99,7 +95,7 @@ def stock_entries(rng: random.Random) -> list[Row]:
             "additional_costs": [
                 {
                     "expense_account": ACC_OPERATING,
-                    "description": "工序费用（织造/定型/成品检验）",
+                    "description": "工序费用（模组装配/BMS 调试老化/成品检验）",
                     "amount": OPERATION_MINUTES / 60 * WORKSTATION_HOUR_RATE,
                 }
             ],
@@ -144,23 +140,54 @@ def stock_entries(rng: random.Random) -> list[Row]:
 
 
 def subcontracting() -> tuple[list[Row], list[Row]]:
+    """外协批：**ERPNext v15 原生结构**（D-12）。
+
+    结构照站点实测形状写，不自造：
+    - `items` 装的是**成品**（HRD-PACK-5K，带 BOM 与收货仓），不是服务件
+    - `service_items` 才装服务件，带 `fg_item` / `fg_item_qty` 指回成品
+    - `supplied_items` 是发给供应商的原料，`reserve_warehouse` 是**原料仓**
+
+    D-12 之前这里把服务件塞进 `items`，与站点对不上；而站点侧当时压根没有这两张单
+    （装载器把外协批伪造成第二张工单）。两边现已统一到真实语义。
+    """
     order = [
         {
             "name": N.SUBCON_ORDER,
+            "purchase_order": N.SUBCON_PO,
             "supplier": SUPPLIER,
             "company": COMPANY,
             "transaction_date": day(3),
             "docstatus": 1,
             "status": "Completed",
+            "supplier_warehouse": WH_SUBCON,
             "items": [
                 {
+                    "item_code": FINISHED_ITEM,
+                    "qty": SUBCON_QTY,
+                    "warehouse": WH_FINISHED,
+                    "bom": N.BOM,
+                    "rate": SUBCONTRACT_FEE / SUBCON_QTY,
+                    "service_cost_per_qty": SUBCONTRACT_FEE / SUBCON_QTY,
+                    "amount": SUBCONTRACT_FEE,
+                }
+            ],
+            "service_items": [
+                {
                     "item_code": SERVICE_ITEM,
-                    "qty": 1,
-                    "rate": SUBCONTRACT_FEE,
+                    "qty": SUBCON_QTY,
+                    "rate": SUBCONTRACT_FEE / SUBCON_QTY,
+                    "amount": SUBCONTRACT_FEE,
                     "fg_item": FINISHED_ITEM,
                     "fg_item_qty": SUBCON_QTY,
-                    "bom": N.BOM,
-                    "warehouse": WH_FINISHED,
+                }
+            ],
+            "supplied_items": [
+                {
+                    "rm_item_code": RAW_ITEM,
+                    "required_qty": BOM_RAW_QTY,
+                    "reserve_warehouse": WH_RAW,
+                    "rate": RAW_RATE,
+                    "amount": BOM_RAW_QTY * RAW_RATE,
                 }
             ],
         }
@@ -178,15 +205,18 @@ def subcontracting() -> tuple[list[Row], list[Row]]:
                     "item_code": FINISHED_ITEM,
                     "warehouse": WH_FINISHED,
                     "qty": SUBCON_QTY,
+                    "received_qty": SUBCON_QTY,
                     "rate": SUBCON_RATE,
                     "amount": SUBCON_VALUE,
+                    # 站点实算的两段分解（实测：2,960 + 120 = 3,080）。
+                    "rm_cost_per_qty": BOM_RAW_QTY * RAW_RATE / SUBCON_QTY,
                     "service_cost_per_qty": SUBCONTRACT_FEE / SUBCON_QTY,
                 }
             ],
             "supplied_items": [
                 {
                     "rm_item_code": RAW_ITEM,
-                    "reserve_warehouse": WH_SUBCON,
+                    "reserve_warehouse": WH_RAW,
                     "consumed_qty": BOM_RAW_QTY,
                     "rate": RAW_RATE,
                     "amount": BOM_RAW_QTY * RAW_RATE,
@@ -198,23 +228,39 @@ def subcontracting() -> tuple[list[Row], list[Row]]:
     return order, receipt
 
 
-def loss_review() -> list[Row]:
-    """`LOSS-00003`：10 米**已审批**合理损耗。
+def subcontract_purchase_order() -> list[Row]:
+    """外协采购订单 —— ERPNext v15 外协链的起点（D-12）。
 
-    「990 米之谜」靠它成立——销售单 1,000 米、发货 990 米，剩下的 10 米不是欠货，
-    是一笔审批过的损耗，因此达成率是 100% 而不是 99%。
+    `Subcontracting Order` 的 `purchase_order` 是**必填**（实测 `DocField.reqd = 1`），
+    外协订单只能由它派生（`make_subcontracting_order`）。缺这一张，离线数据集与
+    站点的文档图就对不上 —— 那正是 D-12 要治理的分歧。
     """
     return [
         {
-            "name": LOSS_REVIEW_NAME,
-            "work_order": N.WORK_ORDER,
-            "sales_order": N.SALES_ORDER,
-            "input_quantity": ORDER_QTY,
-            "off_machine_quantity": ORDER_QTY,
-            "available_finished_quantity": ORDER_QTY,
-            "approved_loss_quantity": APPROVED_LOSS_QTY,
-            "actual_delivery_quantity": DELIVERY_QTY,
-            "status": LOSS_REVIEW_STATUS,
+            "name": N.SUBCON_PO,
+            "supplier": SUPPLIER,
+            "company": COMPANY,
+            "transaction_date": day(3),
+            "schedule_date": day(4),
+            "docstatus": 1,
+            "status": "Completed",
+            "is_subcontracted": 1,
+            "supplier_warehouse": WH_SUBCON,
+            # 发料仓。不设则 ERPNext 把 `reserve_warehouse` 推成采购行的收货仓
+            # （成品仓），发料时查不到电芯估值（实测 417）。
+            "set_reserve_warehouse": WH_RAW,
+            "items": [
+                {
+                    "item_code": SERVICE_ITEM,
+                    "qty": SUBCON_QTY,
+                    "rate": SUBCONTRACT_FEE / SUBCON_QTY,
+                    "amount": SUBCONTRACT_FEE,
+                    "warehouse": WH_FINISHED,
+                    "fg_item": FINISHED_ITEM,
+                    "fg_item_qty": SUBCON_QTY,
+                }
+            ],
+            "grand_total": SUBCONTRACT_FEE,
         }
     ]
 
@@ -228,8 +274,7 @@ def delivery() -> list[Row]:
             "posting_date": day(6),
             "docstatus": 1,
             "status": "Completed",
-            "po_no": "XM-DEMO-1000M",
-            "xm_loss_review": LOSS_REVIEW_NAME,
+            "po_no": "NNE-PO-2026-0117",
             "items": [
                 {
                     "item_code": FINISHED_ITEM,
@@ -260,7 +305,7 @@ def invoices() -> tuple[list[Row], list[Row]]:
             "due_date": day(6 + INVOICE_TERM_DAYS),
             "docstatus": 1,
             "status": "Overdue",
-            "po_no": "XM-DEMO-1000M",
+            "po_no": "NNE-PO-2026-0117",
             "items": [
                 {
                     "item_code": FINISHED_ITEM,
@@ -283,7 +328,7 @@ def invoices() -> tuple[list[Row], list[Row]]:
             "due_date": day(5 + INVOICE_TERM_DAYS),
             "docstatus": 1,
             "status": "Overdue",
-            "bill_no": "XM-DEMO-SUBCONTRACT",
+            "bill_no": "LGCN-2026-0043",
             "items": [
                 {
                     "item_code": SERVICE_ITEM,

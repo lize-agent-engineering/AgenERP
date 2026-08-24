@@ -61,13 +61,13 @@
 | ID | 工作项 | 前置 | 验收 | 状态源 |
 |---|---|---|---|---|
 | P0.1 | 零依赖启动（compose 语法修法） | Day 0 出口 | 🔴 `tests/gates/test_zero_dep_boot.py` | **done** 2026-08-21T07:05Z · 零依赖启动 · compose 7.4KB，门禁 `test_compose_config_valid_with_empty_env` 转绿 |
-| P0.2 | 工具契约层 v0：契约声明格式 + 10 个只读工具 | P0.1 | `pytest tests/contracts -q` 退 0（前置条件/后置断言可独立测试） | **in progress** · plan 已起草，声明面 320 行已落盘，循环执行中 |
+| P0.2 | 工具契约层 v0：契约声明格式 + 10 个只读工具 | P0.1 | `pytest tests/contracts -q` 退 0（前置条件/后置断言可独立测试） | **done** 2026-08-23 · 工具契约层 v0 · `pytest tests/contracts -q` **151 passed**|
 | P0.3 | 状态快照与 diff（任意时刻快照 + 两快照 diff + 断言 DSL） | P0.2 | 🔴 `tests/gates/test_snapshot_diff_structured.py` | **done** 2026-08-21T07:05Z · 状态快照与结构化 diff · 门禁两条 L1 转绿 |
 | P0.4 | 定制包规范化器（剥离 `modified`/`creation`/`owner`/`_comments` 并稳定排序） | P0.3 | 🔴 `tests/gates/test_normalizer_idempotent.py` | **done** 2026-08-21T07:05Z · 定制包规范化器 · 门禁三条转绿 |
-| P0.5 | 差集 apply 引擎（读包 → 求差 → **对差集执行删除**） | P0.4 | 🔴 `tests/gates/test_customization_roundtrip_delete.py` | `MD:p0-foundation` |
-| P0.6 | 种子数据：确定性程序化生成，**内置已知业务荒谬**（1,010 米积压） | P0.3 | 同种子两次生成 `diff` 为空，且断言积压场景存在：`python -m agenerp.seed --seed 42 --verify` 退 0 | `MD:p0-foundation` |
+| P0.5 | 差集 apply 引擎（读包 → 求差 → **对差集执行删除**） | P0.4 | 🔴 `tests/gates/test_customization_roundtrip_delete.py` | **done** 2026-08-23 · 差集 apply 引擎 · 门禁 `test_customization_roundtrip_delete` **4 passed**（活站点） |
+| P0.6 | 种子数据：确定性程序化生成，**内置已知业务荒谬**（1,010 台积压） | P0.3 | 同种子两次生成 `diff` 为空，且断言积压场景存在：`python -m agenerp.seed --seed 42 --verify` 退 0 | `MD:p0-foundation` |
 | P0.7 | 零依赖启动 CI（空环境变量下 config + up + healthcheck） | P0.1, W0.7 | `CI:gates` 上 `test_zero_dep_boot` 绿 | `CI:gates` |
-| P0.8 | **CP9 · P0 阶段复盘**：AGE 与 LoopX 是否续用（判据见 [04](./04-RUNBOOK.md) §7） | P0.1–P0.7 | 复盘纪要落 `docs/audits/`，两项各有明确「续用/停用」结论 | 人 |
+| P0.8 | **CP9 · P0 阶段复盘**：AGE 与 LoopX 是否续用（判据见 [04](./04-RUNBOOK.md) §7） | P0.1–P0.7 | 复盘纪要落 `docs/audits/`，两项各有明确「续用/停用」结论 | **done** 2026-08-23 · CP9 复盘：**AGE 续用**（≥4 个工作项完整走完循环，门禁误放行 0 次）/ **LoopX 停用**（跨会话恢复从未真正用上，`runs=1` 且状态文件缺失）· 纪要 `docs/audits/2026-08-23-CP9-P0-retrospective.md` |
 
 ---
 
@@ -75,7 +75,7 @@
 
 | ID | 工作项 | 前置 | 验收 | 状态源 |
 |---|---|---|---|---|
-| **P1.0** 🚪 | **入口关口实验**：重跑 L3 门禁（两跳传递闭包），补齐「门禁能否补偿模型能力」承重命题里本轮未跑完的部分 | P0.8 | 在 XM 证据栈跑：`cd $XM_PATH/spike/02-constrained-agent && python3 run.py --model ollama:qwen3:14b --probe p1_correctness --gate 3`；**结论无论正反都写进 STATE §2 与 `docs/archive/`**。⚠️ 不得据此声称门禁可替代模型能力（`REF:PBV-RESIDUAL`） | 人 |
+| **P1.0** 🚪 | **入口关口实验**：验「门禁能否补偿模型能力」—— 同一道需两跳取数的问题，在**有证据充分性门禁**与**无门禁**两种配置下各跑一遍，比对是否只有前者拿到可归因的正确答案 | P0.8 | **在本项目自己的站点、用本项目自己的 10 个只读工具跑**（D-9：不借用 XM 的 spike 代码与演示栈）。题目取种子数据集自带的固定测例：成品仓积压 1,010 台 / ¥3,110,200 —— 它需要 `Bin` → `Sales Order` 两跳且订单已被人工关闭，一跳必答错。**实验假设在跑之前逐字写死**（CP9 继承项②），结论无论正反都写进 STATE §2 与 `docs/audits/`。⚠️ 不得据此宣称任何未实测的推广结论 | 人 + `MD:p1-insight` |
 | P1.1 | 模型路由 v0：OpenAI-compatible adapter + **能力声明按任务分档** | P1.0 | `pytest tests/routing -q` 退 0；分档表落 `docs/architecture/` | `MD:p1-explain` |
 | P1.2 | 上下文层 v0：即时上下文注入 + 会话落 DocType | P1.1 | `pytest tests/context -q` 退 0 | `MD:p1-explain` |
 | P1.3 | 结构化导航工具（`system.overview`/`permission.scope`/`meta.fields`/`doc.links`），**`permission.scope` 由循环开场自动注入** | P1.2 | `pytest tests/tools/test_navigation.py -q` 退 0，且断言开场注入发生 | `MD:p1-explain` |
@@ -138,7 +138,7 @@
 
 | ID | 工作项 | 前置 | 验收 | 状态源 |
 |---|---|---|---|---|
-| P5.1 | 评测集：state-diff 判定 + 业务合理性规则；**补齐重复实验与统计显著性**（本轮所有探针每题各跑 1 次） | P4.6 | `python -m agenerp.bench run --repeat 5` 产出带方差的报告；1,010 米积压为 test case #1 | `MD:p5-eval` |
+| P5.1 | 评测集：state-diff 判定 + 业务合理性规则；**补齐重复实验与统计显著性**（本轮所有探针每题各跑 1 次） | P4.6 | `python -m agenerp.bench run --repeat 5` 产出带方差的报告；1,010 台积压为 test case #1 | `MD:p5-eval` |
 | P5.2 | 持续基准生成（随 DocType 演进自动更新） | P5.1 | `python -m agenerp.bench regen --check` 退 0 | `MD:p5-eval` |
 | P5.3 | 编排 Agent（意图路由、任务分解、跨 Agent 调度） | P5.1 | `pytest tests/agents/test_orchestrator.py -q` 退 0 | `MD:p5-eval` |
 | P5.4 | 行业包机制 v1（声明格式与分发） | P5.1 | 新增一个行业包**不改内核**即可加载：`python -m agenerp.packs add --from examples/pack-demo` 退 0 | `MD:p5-eval` |

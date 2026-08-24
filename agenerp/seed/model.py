@@ -14,36 +14,48 @@ from typing import Any
 SCOPE = "seed"
 
 # ── 硬断言：构造式常量 ────────────────────────────────────────────────
-# 这些数字来自冻结证据仓里含单价的原始记录，不是二手转述（对账见 §12.1）。
-COMPANY = "XM 演示纺织有限公司"
-CUSTOMER = "杭州春季服饰有限公司"
-SUPPLIER = "绍兴染整演示厂"
+# 样板公司为**虚构**实体（D-9：本项目与 XM 演示项目彻底切开；门禁
+# `test_no_third_party_rights` 亦禁止夹带真实品牌）。行业取储能电池包制造——
+# 离散制造、有 BOM／工单／外协三段，正好把 ERPNext 的制造闭环用满。
+# 数值口径与对账过程见 `docs/architecture/module-boundaries.md` §12.1 / §12.2。
+COMPANY = "恒锐动力科技有限公司"
+COMPANY_ABBR = "HRD"
+CUSTOMER = "北方新能源工程有限公司"
+SUPPLIER = "临港储能科技有限公司"
 
-FINISHED_ITEM = "XM-LACE-1000"
-RAW_ITEM = "XM-YARN-WHITE"
-SERVICE_ITEM = "XM-DYE-SERVICE"
+FINISHED_ITEM = "HRD-PACK-5K"      # 户用储能电池包 5 kWh，单位：台
+RAW_ITEM = "HRD-CELL-280"          # 磷酸铁锂电芯 280Ah，单位：只
+SERVICE_ITEM = "HRD-ASSY-SVC"      # 电池模组组装外协服务
 
-WH_RAW = "XM 原料仓 - XM"
-WH_WIP = "XM 在制品仓 - XM"
-WH_FINISHED = "XM 成品仓 - XM"
-WH_SUBCON = "XM 外协仓 - XM"
+UOM_FINISHED = "台"
+UOM_RAW = "只"
 
-ORDER_QTY = 1000          # 销售单量（米）
-INHOUSE_QTY = 1000        # 自制入库（米）
-SUBCON_QTY = 1000         # 外协收货（米）
-DELIVERY_QTY = 990        # 发货（米）
-APPROVED_LOSS_QTY = 10    # 已审批合理损耗（米），单据号 LOSS-00003
+WH_RAW = f"原料仓 - {COMPANY_ABBR}"
+WH_WIP = f"在制品仓 - {COMPANY_ABBR}"
+WH_FINISHED = f"成品仓 - {COMPANY_ABBR}"
+WH_SUBCON = f"外协仓 - {COMPANY_ABBR}"
 
-OPENING_RAW_QTY = 300     # 期初原料入库（Kg）
-BOM_RAW_QTY = 120         # 每 1,000 米成品的原料用量（Kg）
-RAW_RATE = 35.0           # 原料单价（元/Kg）
-OPERATION_MINUTES = 300 + 180 + 120   # 织造 + 定型 + 成品检验
-WORKSTATION_HOUR_RATE = 80.0          # 工位费率（元/小时）
-SUBCONTRACT_FEE = 2200.0              # 外协服务费（元）
-SALES_RATE = 18.8                     # 售价（元/米）
+ORDER_QTY = 1000          # 销售单量（台）
+INHOUSE_QTY = 1000        # 自制入库（台）
+SUBCON_QTY = 1000         # 外协收货（台）
+DELIVERY_QTY = 990        # 发货（台）
+SHORTFALL_QTY = 10        # 少发（台）—— 订单被人工关闭，这 10 台永远不会发
 
-LOSS_REVIEW_NAME = "LOSS-00003"
-LOSS_REVIEW_STATUS = "Approved"
+OPENING_RAW_QTY = 40000   # 期初电芯入库（只）——够两批各 16,000，余 8,000
+BOM_RAW_QTY = 16000       # 每 1,000 台成品的电芯用量（只）= 16 只/台
+RAW_RATE = 185.0          # 电芯单价（元/只）
+OPERATION_MINUTES = 25000 + 12000 + 8000   # 模组装配 + BMS 调试老化 + 成品检验（分钟/批）
+WORKSTATION_HOUR_RATE = 80.0               # 工位费率（元/小时）
+SUBCONTRACT_FEE = 120000.0                 # 外协组装服务费（元/批）= ¥120/台
+SALES_RATE = 4280.0                        # 售价（元/台）
+
+# 「990 台之谜」的原生承载物：销售订单被**人工关闭**（ERPNext 原生
+# `Sales Order.status = "Closed"`）。系统据此按完成计，达成率显示 100%，
+# 而实际只发了 990 台 —— 这就是账面全绿却仓存积压的那道缝。
+# D-9 之前这里挂的是 XM 自建的 `Loss Review` custom DocType，已弃用：
+# 原生 ERPNext 无此表，继承它等于把演示项目的定制带进生产项目。
+SALES_ORDER_STATUS = "Closed"
+SALES_ORDER_PER_DELIVERED = 99.0   # 原生字段：实发 990 / 订单 1,000
 
 # 日期一律由基准日推出，生成路径上不读时钟。「逾期 3 天」是数据不是跑出来的：
 # 数据集自带 as_of，逾期与否由 as_of 与 due_date 相比得出。
@@ -52,17 +64,17 @@ INVOICE_TERM_DAYS = 30
 OVERDUE_DAYS = 3
 
 # 账户表。名字即科目，借贷方向由分录自己给。
-ACC_RAW = "原材料 - XM"
-ACC_WIP = "在制品 - XM"
-ACC_FINISHED = "成品 - XM"
-ACC_SUBCON_STOCK = "外协物料 - XM"
-ACC_STOCK_ADJ = "库存调整 - XM"
-ACC_OPERATING = "生产费用（计入估值） - XM"
-ACC_GRNI = "已收货未开票 - XM"
-ACC_PAYABLE = "应付账款 - XM"
-ACC_RECEIVABLE = "应收账款 - XM"
-ACC_REVENUE = "主营业务收入 - XM"
-ACC_COGS = "主营业务成本 - XM"
+ACC_RAW = "原材料 - HRD"
+ACC_WIP = "在制品 - HRD"
+ACC_FINISHED = "成品 - HRD"
+ACC_SUBCON_STOCK = "外协物料 - HRD"
+ACC_STOCK_ADJ = "库存调整 - HRD"
+ACC_OPERATING = "生产费用（计入估值） - HRD"
+ACC_GRNI = "已收货未开票 - HRD"
+ACC_PAYABLE = "应付账款 - HRD"
+ACC_RECEIVABLE = "应收账款 - HRD"
+ACC_REVENUE = "主营业务收入 - HRD"
+ACC_COGS = "主营业务成本 - HRD"
 
 WAREHOUSE_ACCOUNT = {
     WH_RAW: ACC_RAW,

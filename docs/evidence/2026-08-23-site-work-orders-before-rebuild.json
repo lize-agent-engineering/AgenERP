@@ -1,0 +1,24 @@
+[
+  {
+    "name": "MFG-WO-2026-00001",
+    "item_name": "XM 经编花边布",
+    "qty": 1000.0,
+    "produced_qty": 1000.0,
+    "status": "Completed",
+    "docstatus": 1,
+    "creation": "2026-08-23 03:15:09.485206",
+    "owner": "Administrator",
+    "sales_order": null
+  },
+  {
+    "name": "MFG-WO-2026-00002",
+    "item_name": "XM 经编花边布",
+    "qty": 1000.0,
+    "produced_qty": 1000.0,
+    "status": "Completed",
+    "docstatus": 1,
+    "creation": "2026-08-23 03:15:09.932383",
+    "owner": "Administrator",
+    "sales_order": null
+  }
+]

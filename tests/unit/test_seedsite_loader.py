@@ -131,7 +131,7 @@ def test_warehouse_payload_uses_the_derived_name_field_not_name():
     step = next(s for s in seedsite.plan_steps() if s.expected_name == M.WH_RAW)
 
     assert "name" not in step.payload
-    assert step.payload["warehouse_name"] == "XM 原料仓"
+    assert step.payload["warehouse_name"] == "原料仓"
     assert step.payload["account"] == seedsite.site_name_of(M.WAREHOUSE_ACCOUNT[M.WH_RAW])
     assert step.key == {"name": M.WH_RAW}
 
@@ -186,12 +186,12 @@ def _step_the_site_will_answer_with_a_different_name() -> seedsite.Step:
     """
     return seedsite.Step(
         doctype="Account",
-        key={"name": "对账演示科目 - XM"},
+        key={"name": "对账演示科目 - HRD"},
         payload={"account_name": "对账演示科目", "company": M.COMPANY,
                  "parent_account": seedsite.PARENT_STOCK_EXPENSES,
                  "root_type": "Expense", "account_type": "", "is_group": 0},
-        expected_name="对账演示科目 - XM",
-        source_constant="对账演示科目- XM",
+        expected_name="对账演示科目 - HRD",
+        source_constant="对账演示科目- HRD",
     )
 
 
@@ -199,12 +199,12 @@ def _well_formed_step() -> seedsite.Step:
     """一条站点会原样回名的步骤：`source_constant` 与派生名相同，不该产生任何报告。"""
     return seedsite.Step(
         doctype="Account",
-        key={"name": "规整演示科目 - XM"},
+        key={"name": "规整演示科目 - HRD"},
         payload={"account_name": "规整演示科目", "company": M.COMPANY,
                  "parent_account": seedsite.PARENT_STOCK_EXPENSES,
                  "root_type": "Expense", "account_type": "", "is_group": 0},
-        expected_name="规整演示科目 - XM",
-        source_constant="规整演示科目 - XM",
+        expected_name="规整演示科目 - HRD",
+        source_constant="规整演示科目 - HRD",
     )
 
 
@@ -259,9 +259,9 @@ def test_strip_abbr_refuses_a_name_the_site_could_never_derive():
     """`strip_abbr` 的畸形输入语义是**失败即停**，不是容忍纠正（plan `2026-08-22-2325-1` D）。
 
     容忍会让下一个拼错的常量被静默改好照样往站点写；原样返回更坏 —— `site_name_of`
-    会再拼一次后缀，在站点上真建出 `X - XM - XM`。所以：不匹配即抛，一个对象都不建。
+    会再拼一次后缀，在站点上真建出 `X - HRD - HRD`。所以：不匹配即抛，一个对象都不建。
     """
-    malformed = "生产费用（计入估值）- XM"
+    malformed = "生产费用（计入估值）- HRD"
 
     with pytest.raises(ValueError) as excinfo:
         seedsite.strip_abbr(malformed)
