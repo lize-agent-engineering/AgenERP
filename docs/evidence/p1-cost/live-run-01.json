@@ -1,0 +1,652 @@
+{
+  "run": "p1-cost-live-run-01",
+  "model": "qwen3.6-plus",
+  "task_class": "explain",
+  "question": "销售订单 SAL-ORD-2026-00001 在系统里显示已经完成了，但车间反映成品仓还压着不少货。\n这是怎么回事？请说明成品仓现在的实际情况，以及造成这个情况的原因。",
+  "answer": "证据已补齐。全部 2 张使成品仓库存增加的入库凭证均已逐个 `doc.get`：\n\n- **MAT-STE-2026-00003**（Stock Entry，Manufacture 类型，2026-02-05 入库 1000 台，关联工单 MFG-WO-2026-00001）\n- **MAT-SCR-2026-00001**（Subcontracting Receipt，2026-02-07 外协入库 1000 台，关联外协订单 SC-ORD-2026-00001）\n\n---\n\n## 一、成品仓（成品仓 - HRD）当前实际库存\n\n查 Bin 表与库存流水，HRD-PACK-5K 在成品仓的完整变动如下：\n\n| 时间 | 凭证 | 类型 | 数量变动 | 变动后结存 |\n|---|---|---|---|---|\n| 2026-02-05 | MAT-STE-2026-00003 | Stock Entry（工单生产入库） | **+1000** | 1000 |\n| 2026-02-07 | MAT-SCR-2026-00001 | Subcontracting Receipt（外协入库） | **+1000** | 2000 |\n| 2026-02-08 | MAT-DN-2026-00001 | Delivery Note（发货出库） | **-990** | **1010** |\n\n**成品仓当前实际结存：1010 台 HRD-PACK-5K**（其中 10 台 reserved，1000 台自由库存）。\n\n---\n\n## 二、销售订单 SAL-ORD-2026-00001 的真实状态\n\n该订单**并未完成**：\n- 订单状态（status）：**To Deliver and Bill**\n- 发货状态（delivery_status）：**Partly Delivered**\n- 已发进度（per_delivered）：**99%**（1000 台订单仅发了 990 台，尚有 10 台未发）\n\n车间可能误把**关联工单 MFG-WO-2026-00001 的状态\"Completed\"**当成了销售订单已完成。工单\"Completed\"仅代表生产完毕，不等于销售订单已履行完毕。\n\n---\n\n## 三、成品仓压货的原因\n\n**超量入库：订单仅需 1000 台，但成品仓共入库了 2000 台。**\n\n1. **工单自产 1000 台**（MAT-STE-2026-00003）：工单 MFG-WO-2026-00001 按销售订单生产，于 2026-02-05 将 1000 台成品从在制品仓转入成品仓。\n2. **外协额外入库 1000 台**（MAT-SCR-2026-00001）：2026-02-07 通过外协收货单，又向成品仓入了 1000 台同型号成品（供应商：临港储能科技有限公司，关联外协订单 SC-ORD-2026-00001）。**这 1000 台没有对应的销售订单需求**，属于超量到货。\n3. **发货仅 990 台**（MAT-DN-2026-00001）：2026-02-08 仅按销售订单发了 990 台，还剩 10 台未发。\n\n**结果**：1000（自产）+ 1000（外协）- 990（已发）= **1010 台积压在成品仓**，其中 1000 台是外协多出的超量库存，10 台是订单尾数尚未发出。",
+  "accepted": true,
+  "stopped": "answered",
+  "usage_total_session": {
+    "prompt": 53041,
+    "completion": 5538,
+    "reasoning": 3098,
+    "total": 58579
+  },
+  "cost_ledger": {
+    "calls": 8,
+    "total": {
+      "prompt": 53041,
+      "completion": 5538,
+      "reasoning": 3098,
+      "total": 58579
+    },
+    "entries": [
+      {
+        "index": 1,
+        "model": "qwen3.6-plus",
+        "outcome": "tools",
+        "usage": {
+          "prompt": 1056,
+          "completion": 199,
+          "reasoning": 142,
+          "total": 1255
+        },
+        "endpoint_total_tokens": 1255,
+        "endpoint_reasoning_tokens": 142,
+        "total_matches_endpoint": true,
+        "reasoning_matches_endpoint": true,
+        "detail": ""
+      },
+      {
+        "index": 2,
+        "model": "qwen3.6-plus",
+        "outcome": "tools",
+        "usage": {
+          "prompt": 3280,
+          "completion": 419,
+          "reasoning": 255,
+          "total": 3699
+        },
+        "endpoint_total_tokens": 3699,
+        "endpoint_reasoning_tokens": 255,
+        "total_matches_endpoint": true,
+        "reasoning_matches_endpoint": true,
+        "detail": ""
+      },
+      {
+        "index": 3,
+        "model": "qwen3.6-plus",
+        "outcome": "tools",
+        "usage": {
+          "prompt": 3634,
+          "completion": 518,
+          "reasoning": 288,
+          "total": 4152
+        },
+        "endpoint_total_tokens": 4152,
+        "endpoint_reasoning_tokens": 288,
+        "total_matches_endpoint": true,
+        "reasoning_matches_endpoint": true,
+        "detail": ""
+      },
+      {
+        "index": 4,
+        "model": "qwen3.6-plus",
+        "outcome": "tools",
+        "usage": {
+          "prompt": 7140,
+          "completion": 161,
+          "reasoning": 41,
+          "total": 7301
+        },
+        "endpoint_total_tokens": 7301,
+        "endpoint_reasoning_tokens": 41,
+        "total_matches_endpoint": true,
+        "reasoning_matches_endpoint": true,
+        "detail": ""
+      },
+      {
+        "index": 5,
+        "model": "qwen3.6-plus",
+        "outcome": "tools",
+        "usage": {
+          "prompt": 7372,
+          "completion": 1066,
+          "reasoning": 1008,
+          "total": 8438
+        },
+        "endpoint_total_tokens": 8438,
+        "endpoint_reasoning_tokens": 1008,
+        "total_matches_endpoint": true,
+        "reasoning_matches_endpoint": true,
+        "detail": ""
+      },
+      {
+        "index": 6,
+        "model": "qwen3.6-plus",
+        "outcome": "answer",
+        "usage": {
+          "prompt": 9007,
+          "completion": 1718,
+          "reasoning": 922,
+          "total": 10725
+        },
+        "endpoint_total_tokens": 10725,
+        "endpoint_reasoning_tokens": 922,
+        "total_matches_endpoint": true,
+        "reasoning_matches_endpoint": true,
+        "detail": ""
+      },
+      {
+        "index": 7,
+        "model": "qwen3.6-plus",
+        "outcome": "tools",
+        "usage": {
+          "prompt": 9871,
+          "completion": 237,
+          "reasoning": 181,
+          "total": 10108
+        },
+        "endpoint_total_tokens": 10108,
+        "endpoint_reasoning_tokens": 181,
+        "total_matches_endpoint": true,
+        "reasoning_matches_endpoint": true,
+        "detail": ""
+      },
+      {
+        "index": 8,
+        "model": "qwen3.6-plus",
+        "outcome": "answer",
+        "usage": {
+          "prompt": 11681,
+          "completion": 1220,
+          "reasoning": 261,
+          "total": 12901
+        },
+        "endpoint_total_tokens": 12901,
+        "endpoint_reasoning_tokens": 261,
+        "total_matches_endpoint": true,
+        "reasoning_matches_endpoint": true,
+        "detail": ""
+      }
+    ]
+  },
+  "model_tool_calls": 9,
+  "execute_calls": 9,
+  "runaway_events": [],
+  "elapsed_seconds": 102.0,
+  "trace": {
+    "question": "销售订单 SAL-ORD-2026-00001 在系统里显示已经完成了，但车间反映成品仓还压着不少货。\n这是怎么回事？请说明成品仓现在的实际情况，以及造成这个情况的原因。",
+    "model": "qwen3.6-plus",
+    "task_class": "explain",
+    "opening_request_count": 8,
+    "execute_calls": 9,
+    "stopped": "answered",
+    "model_tool_calls": 9,
+    "cost_ledger": {
+      "calls": 8,
+      "total": {
+        "prompt": 53041,
+        "completion": 5538,
+        "reasoning": 3098,
+        "total": 58579
+      },
+      "entries": [
+        {
+          "index": 1,
+          "model": "qwen3.6-plus",
+          "outcome": "tools",
+          "usage": {
+            "prompt": 1056,
+            "completion": 199,
+            "reasoning": 142,
+            "total": 1255
+          },
+          "endpoint_total_tokens": 1255,
+          "endpoint_reasoning_tokens": 142,
+          "total_matches_endpoint": true,
+          "reasoning_matches_endpoint": true,
+          "detail": ""
+        },
+        {
+          "index": 2,
+          "model": "qwen3.6-plus",
+          "outcome": "tools",
+          "usage": {
+            "prompt": 3280,
+            "completion": 419,
+            "reasoning": 255,
+            "total": 3699
+          },
+          "endpoint_total_tokens": 3699,
+          "endpoint_reasoning_tokens": 255,
+          "total_matches_endpoint": true,
+          "reasoning_matches_endpoint": true,
+          "detail": ""
+        },
+        {
+          "index": 3,
+          "model": "qwen3.6-plus",
+          "outcome": "tools",
+          "usage": {
+            "prompt": 3634,
+            "completion": 518,
+            "reasoning": 288,
+            "total": 4152
+          },
+          "endpoint_total_tokens": 4152,
+          "endpoint_reasoning_tokens": 288,
+          "total_matches_endpoint": true,
+          "reasoning_matches_endpoint": true,
+          "detail": ""
+        },
+        {
+          "index": 4,
+          "model": "qwen3.6-plus",
+          "outcome": "tools",
+          "usage": {
+            "prompt": 7140,
+            "completion": 161,
+            "reasoning": 41,
+            "total": 7301
+          },
+          "endpoint_total_tokens": 7301,
+          "endpoint_reasoning_tokens": 41,
+          "total_matches_endpoint": true,
+          "reasoning_matches_endpoint": true,
+          "detail": ""
+        },
+        {
+          "index": 5,
+          "model": "qwen3.6-plus",
+          "outcome": "tools",
+          "usage": {
+            "prompt": 7372,
+            "completion": 1066,
+            "reasoning": 1008,
+            "total": 8438
+          },
+          "endpoint_total_tokens": 8438,
+          "endpoint_reasoning_tokens": 1008,
+          "total_matches_endpoint": true,
+          "reasoning_matches_endpoint": true,
+          "detail": ""
+        },
+        {
+          "index": 6,
+          "model": "qwen3.6-plus",
+          "outcome": "answer",
+          "usage": {
+            "prompt": 9007,
+            "completion": 1718,
+            "reasoning": 922,
+            "total": 10725
+          },
+          "endpoint_total_tokens": 10725,
+          "endpoint_reasoning_tokens": 922,
+          "total_matches_endpoint": true,
+          "reasoning_matches_endpoint": true,
+          "detail": ""
+        },
+        {
+          "index": 7,
+          "model": "qwen3.6-plus",
+          "outcome": "tools",
+          "usage": {
+            "prompt": 9871,
+            "completion": 237,
+            "reasoning": 181,
+            "total": 10108
+          },
+          "endpoint_total_tokens": 10108,
+          "endpoint_reasoning_tokens": 181,
+          "total_matches_endpoint": true,
+          "reasoning_matches_endpoint": true,
+          "detail": ""
+        },
+        {
+          "index": 8,
+          "model": "qwen3.6-plus",
+          "outcome": "answer",
+          "usage": {
+            "prompt": 11681,
+            "completion": 1220,
+            "reasoning": 261,
+            "total": 12901
+          },
+          "endpoint_total_tokens": 12901,
+          "endpoint_reasoning_tokens": 261,
+          "total_matches_endpoint": true,
+          "reasoning_matches_endpoint": true,
+          "detail": ""
+        }
+      ]
+    },
+    "turns": [
+      {
+        "index": 1,
+        "kind": "tools",
+        "usage": {
+          "prompt": 1056,
+          "completion": 199,
+          "reasoning": 142,
+          "total": 1255
+        },
+        "calls": [
+          "doc.get"
+        ]
+      },
+      {
+        "index": 2,
+        "kind": "tools",
+        "usage": {
+          "prompt": 3280,
+          "completion": 419,
+          "reasoning": 255,
+          "total": 3699
+        },
+        "calls": [
+          "doc.links",
+          "query.read"
+        ]
+      },
+      {
+        "index": 3,
+        "kind": "tools",
+        "usage": {
+          "prompt": 3634,
+          "completion": 518,
+          "reasoning": 288,
+          "total": 4152
+        },
+        "calls": [
+          "doc.get",
+          "doc.get",
+          "query.read"
+        ]
+      },
+      {
+        "index": 4,
+        "kind": "tools",
+        "usage": {
+          "prompt": 7140,
+          "completion": 161,
+          "reasoning": 41,
+          "total": 7301
+        },
+        "calls": [
+          "query.read"
+        ]
+      },
+      {
+        "index": 5,
+        "kind": "tools",
+        "usage": {
+          "prompt": 7372,
+          "completion": 1066,
+          "reasoning": 1008,
+          "total": 8438
+        },
+        "calls": [
+          "doc.get"
+        ]
+      },
+      {
+        "index": 6,
+        "kind": "answer",
+        "usage": {
+          "prompt": 9007,
+          "completion": 1718,
+          "reasoning": 922,
+          "total": 10725
+        }
+      },
+      {
+        "index": 7,
+        "kind": "tools",
+        "usage": {
+          "prompt": 9871,
+          "completion": 237,
+          "reasoning": 181,
+          "total": 10108
+        },
+        "calls": [
+          "doc.get"
+        ]
+      },
+      {
+        "index": 8,
+        "kind": "answer",
+        "usage": {
+          "prompt": 11681,
+          "completion": 1220,
+          "reasoning": 261,
+          "total": 12901
+        }
+      }
+    ],
+    "tool_calls": [
+      {
+        "tool": "doc.get",
+        "params": {
+          "doctype": "Sales Order",
+          "name": "SAL-ORD-2026-00001"
+        },
+        "ok": true,
+        "stage": "postconditions",
+        "reasons": [],
+        "request_count": 2,
+        "surface_id": "evidence-surface-1"
+      },
+      {
+        "tool": "doc.links",
+        "params": {
+          "doctype": "Sales Order",
+          "name": "SAL-ORD-2026-00001"
+        },
+        "ok": true,
+        "stage": "postconditions",
+        "reasons": [],
+        "request_count": 22,
+        "surface_id": "evidence-surface-1"
+      },
+      {
+        "tool": "query.read",
+        "params": {
+          "doctype": "Stock Ledger Entry",
+          "fields": [
+            "item_code",
+            "warehouse",
+            "qty_after_transaction",
+            "posting_date",
+            "posting_time",
+            "actual_qty",
+            "voucher_type",
+            "voucher_no"
+          ],
+          "filters": [
+            [
+              "warehouse",
+              "like",
+              "%成品仓%"
+            ]
+          ],
+          "limit": 50
+        },
+        "ok": false,
+        "stage": "preconditions",
+        "reasons": [
+          "前置未满足：doc.links 查出的已提交下游单据 → 必须逐张 doc.get 之后才能作答 —— 未覆盖 ['MAT-DN-2026-00001', 'MFG-WO-2026-00001']"
+        ],
+        "request_count": 0,
+        "surface_id": "evidence-surface-1"
+      },
+      {
+        "tool": "doc.get",
+        "params": {
+          "doctype": "Delivery Note",
+          "name": "MAT-DN-2026-00001"
+        },
+        "ok": true,
+        "stage": "postconditions",
+        "reasons": [],
+        "request_count": 2,
+        "surface_id": "evidence-surface-1"
+      },
+      {
+        "tool": "doc.get",
+        "params": {
+          "doctype": "Work Order",
+          "name": "MFG-WO-2026-00001"
+        },
+        "ok": true,
+        "stage": "postconditions",
+        "reasons": [],
+        "request_count": 2,
+        "surface_id": "evidence-surface-1"
+      },
+      {
+        "tool": "query.read",
+        "params": {
+          "doctype": "Stock Ledger Entry",
+          "fields": [
+            "item_code",
+            "warehouse",
+            "qty_after_transaction",
+            "posting_date",
+            "posting_time",
+            "actual_qty",
+            "voucher_type",
+            "voucher_no"
+          ],
+          "filters": [
+            [
+              "warehouse",
+              "=",
+              "成品仓 - HRD"
+            ],
+            [
+              "item_code",
+              "=",
+              "HRD-PACK-5K"
+            ]
+          ],
+          "limit": 50
+        },
+        "ok": true,
+        "stage": "postconditions",
+        "reasons": [],
+        "request_count": 1,
+        "surface_id": "evidence-surface-1"
+      },
+      {
+        "tool": "query.read",
+        "params": {
+          "doctype": "Bin",
+          "fields": [
+            "item_code",
+            "warehouse",
+            "actual_qty",
+            "projected_qty",
+            "reserved_qty",
+            "ordered_qty",
+            "stock_uom"
+          ],
+          "filters": [
+            [
+              "warehouse",
+              "=",
+              "成品仓 - HRD"
+            ],
+            [
+              "item_code",
+              "=",
+              "HRD-PACK-5K"
+            ]
+          ],
+          "limit": 10
+        },
+        "ok": true,
+        "stage": "postconditions",
+        "reasons": [],
+        "request_count": 1,
+        "surface_id": "evidence-surface-1"
+      },
+      {
+        "tool": "doc.get",
+        "params": {
+          "doctype": "Subcontracting Receipt",
+          "name": "MAT-SCR-2026-00001"
+        },
+        "ok": true,
+        "stage": "postconditions",
+        "reasons": [],
+        "request_count": 2,
+        "surface_id": "evidence-surface-1"
+      },
+      {
+        "tool": "doc.get",
+        "params": {
+          "doctype": "Stock Entry",
+          "name": "MAT-STE-2026-00003"
+        },
+        "ok": true,
+        "stage": "postconditions",
+        "reasons": [],
+        "request_count": 2,
+        "surface_id": "evidence-surface-1"
+      }
+    ],
+    "gate_checks": [
+      {
+        "turn": 6,
+        "enforced": true,
+        "surface_id": "evidence-surface-1",
+        "facts": {
+          "documents_named_in_question": [
+            "SAL-ORD-2026-00001"
+          ],
+          "doc_links_called_for": [
+            "SAL-ORD-2026-00001"
+          ],
+          "doc_get_called_for": [
+            "SAL-ORD-2026-00001",
+            "MAT-DN-2026-00001",
+            "MFG-WO-2026-00001",
+            "MAT-SCR-2026-00001"
+          ],
+          "submitted_downstream_documents": [
+            "MAT-DN-2026-00001",
+            "MFG-WO-2026-00001"
+          ],
+          "inbound_vouchers_of_quantities_in_answer": [
+            "MAT-SCR-2026-00001",
+            "MAT-STE-2026-00003"
+          ]
+        },
+        "failed": [
+          {
+            "text": "作答涉及某个仓库的库存数量 → 必须已对该库存的全部入库来源逐个 doc.get，且来源集合覆盖库存流水里每一张使数量增加的凭证",
+            "fact": "doc_get_called_for",
+            "reason": "未覆盖 ['MAT-STE-2026-00003']",
+            "missing_count": 1
+          }
+        ]
+      },
+      {
+        "turn": 8,
+        "enforced": true,
+        "surface_id": "evidence-surface-1",
+        "facts": {
+          "documents_named_in_question": [
+            "SAL-ORD-2026-00001"
+          ],
+          "doc_links_called_for": [
+            "SAL-ORD-2026-00001"
+          ],
+          "doc_get_called_for": [
+            "SAL-ORD-2026-00001",
+            "MAT-DN-2026-00001",
+            "MFG-WO-2026-00001",
+            "MAT-SCR-2026-00001",
+            "MAT-STE-2026-00003"
+          ],
+          "submitted_downstream_documents": [
+            "MAT-DN-2026-00001",
+            "MFG-WO-2026-00001"
+          ],
+          "inbound_vouchers_of_quantities_in_answer": [
+            "MAT-SCR-2026-00001",
+            "MAT-STE-2026-00003"
+          ]
+        },
+        "failed": []
+      }
+    ],
+    "forced_continues": [
+      "证据不足，还不能作答。以下规则没有满足：\n- 作答涉及某个仓库的库存数量 → 必须已对该库存的全部入库来源逐个 doc.get，且来源集合覆盖库存流水里每一张使数量增加的凭证\n  还有 1 项证据没有取到（用工具把它们查出来，不要猜）。\n请继续调工具补齐证据，补齐之后再给最终回答。"
+    ],
+    "breaker_events": [],
+    "runaway_events": []
+  }
+}

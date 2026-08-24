@@ -57,7 +57,7 @@ class ModelProfile:
     - `reasoning`（能力）：它推得动多步演绎。
     - `is_reasoning_model`（计费形态）：它的回包会计 reasoning token，
       成本必须按 reasoning 计（D-11：`qwen3.6-plus` 回两个字也烧约 195 reasoning token）。
-      P1.7 的成本上限读的是这一位。
+      P1.7 的**成本记账**读的是这一位（D-18：记账但不拦截，**没有阈值**）。
 
     一个模型可以推理很强却不计 reasoning token，反之亦然，所以不能合成一位。
     """

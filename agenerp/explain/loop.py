@@ -23,9 +23,16 @@
 等于把已经确定性化的一步交回给模型（D-15：规则能覆盖的流程不 Agent 化）」。
 残余风险：模型若需在开场包之外更新可见范围（例如换身份），本期没有这条路径 —— watch-only。
 
-⚠️ **`max_turns` 只为防跑飞，不是失控闸**（plan Non-Goals 2）：「工具调用轮数上限」
-那套判据归 P1.7，本模块不声称做过它。`usage` 同理 —— 这里只有**载体**（`ConversationSession`
-的 `usage_total`，走 `Usage.plus()`，不自己写加法），成本记账判据归 P1.7。
+⚠️ **`max_turns` 只为防跑飞，不是失控闸** —— 失控闸是**另一个**上限，`MAX_TOOL_CALLS`
+（P1.7 / D-18 已在本模块落地）：它数的是**单次解释的工具调用总数**，因为一次回复可以携带
+K 个 `tool_call`，轮数根本不设限于此。两者**必须能独立触发**，`STOP_RUNAWAY` 因此是
+**专属**停止原因，不复用 `STOP_MAX_TURNS`。判据在 `tests/unit/test_explain_runaway_guard.py`。
+
+⚠️ **成本记账也已在本模块落地**（P1.7 / D-18）：账本本体是 `agenerp/explain/ledger.py`，
+采集面是下面 `run()` 里那**唯一一个** `adapter.chat(...)` 调用点的**两条出口**。
+**记账，不拦截** —— 这里没有阈值。`ConversationSession.usage_total` 那个载体**仍然保留**
+（P1.4 的既有导出面，`ExplainResult.usage` 读它），但两者口径不同：**要算钱就读账本**
+（`ExplainResult.cost_ledger`）。分工写死在 `docs/architecture/module-boundaries.md` §7.11。
 """
 
 from __future__ import annotations
@@ -39,6 +46,7 @@ from agenerp.context import session as conversation
 from agenerp.context.session import ConversationSession, ExecutedAction, ToolCall, Turn
 from agenerp.explain import gate as evidence
 from agenerp.explain.gate import EvidenceSurface
+from agenerp.explain.ledger import CallLedger
 from agenerp.orchestration import DenialBreaker, OpeningPack, open_session
 from agenerp.routing import RoutingError, route
 from agenerp.routing.adapter import ChatAdapter, Usage
@@ -61,6 +69,25 @@ STOP_ANSWERED = "answered"
 STOP_BREAKER = "permission-breaker"
 STOP_MAX_TURNS = "max-turns"
 STOP_MODEL_ERROR = "model-error"
+# **失控闸专属**，不复用上面任何一个（D-18 逐字「两者的判据分开写，不许合并」）。
+STOP_RUNAWAY = "tool-call-runaway"
+
+# 单次解释允许模型发起多少次工具调用 —— **失控闸，不是成本闸**（P1.7 / D-18）。
+#
+# ⚠️ **它与 `MAX_TURNS` 各管一维，不许合并**：`MAX_TURNS` 限的是主循环**轮数**，
+# 而一次回复可以携带 K 个 `tool_call`，`K` 由模型决定 —— 轮数没到上限，
+# 工具调用早就可以爆到 `MAX_TURNS × K`。D-18 要挡的「调得通但陷入循环」正是后者。
+#
+# **取值 32 的两段算术，依据只能是本项目实测**（外部经验值一律不引）：
+# ① 对实测留余量：P1.4 那一次活端点解释实测 `trace.execute_calls == 8`
+#    （`docs/evidence/p1-explain/live-run-01.json`）—— 这是本项目**唯一**可引用的数字。
+#    32 = 8 × 4，给真实解释留四倍余量。
+# ② 对 `MAX_TURNS` 留余量，**严格大于**：`loop.py` 的主循环是 `range(1, max_turns + 1)`，
+#    「每轮发一次工具调用」的正常形态下第 25 轮恰好是第 25 次调用。默认值取 25 时，
+#    失控闸会**赶在 `STOP_MAX_TURNS` 之前**触发，产品默认路径上 `max-turns` 永不可达，
+#    失控闸就地退化成一个更严的 `max_turns` —— **那正是 D-18 禁止的合并**。
+#    所以下界是 `MAX_TURNS + 1 = 26`（等号处不算数），32 > 26。
+MAX_TOOL_CALLS = 32
 
 BREAKER_ACTION = "circuit.denial_breaker"
 
@@ -160,9 +187,12 @@ class ExplainTrace:
     gate_checks: list[dict] = field(default_factory=list)
     forced_continues: list[str] = field(default_factory=list)
     breaker_events: list[dict] = field(default_factory=list)
+    runaway_events: list[dict] = field(default_factory=list)
+    model_tool_calls: int = 0
     opening_request_count: int = 0
     execute_calls: int = 0
     stopped: str = ""
+    cost_ledger: CallLedger = field(default_factory=CallLedger)
 
     def as_dict(self) -> dict:
         return {
@@ -172,11 +202,14 @@ class ExplainTrace:
             "opening_request_count": self.opening_request_count,
             "execute_calls": self.execute_calls,
             "stopped": self.stopped,
+            "model_tool_calls": self.model_tool_calls,
+            "cost_ledger": self.cost_ledger.as_dict(),
             "turns": self.turns,
             "tool_calls": self.tool_calls,
             "gate_checks": self.gate_checks,
             "forced_continues": self.forced_continues,
             "breaker_events": self.breaker_events,
+            "runaway_events": self.runaway_events,
         }
 
 
@@ -195,8 +228,23 @@ class ExplainResult:
     @property
     def usage(self) -> Usage:
         """累计用量。走 `ConversationSession.usage_total`（内部逐轮 `Usage.plus()`），
-        **不自己写三项加法** —— 自己写就会与 P1.1 漂移（§7.7 逐字）。"""
+        **不自己写三项加法** —— 自己写就会与 P1.1 漂移（§7.7 逐字）。
+
+        ⚠️ **它不是成本账本，两者的权威面分工写死在落点节 §7.11**（P1.7 的 `Decision` D2）：
+        本属性答的是「**这次会话累计了多少**」（口径：成为了一轮对话的那些调用）；
+        `cost_ledger` 答的是「**这次解释一共调了几次模型、各花了多少**」
+        （口径：`adapter.chat` 发生过几次）。正常路径上两者逐项相等；
+        模型抛错那一次**没有 turn**，所以异常路径上账本 ≥ 本属性 ——
+        **要算钱就读账本**。判据钉在 `tests/unit/test_explain_cost_ledger.py`。
+        """
         return self.session.usage_total
+
+    @property
+    def cost_ledger(self) -> CallLedger:
+        """本次解释的成本账本（P1.7 / D-18）：一次模型调用一条记录。
+
+        **记账，不拦截** —— 这里没有阈值，也没有任何「超了就……」的分支。"""
+        return self.trace.cost_ledger
 
 
 class ExplainLoop:
@@ -215,6 +263,7 @@ class ExplainLoop:
         client: SiteClient,
         answer_gate_enabled: bool = True,
         max_turns: int = MAX_TURNS,
+        max_tool_calls: int = MAX_TOOL_CALLS,
         per_call_output_tokens: int = PER_CALL_OUTPUT_TOKENS,
         executors: Mapping[str, Executor] | None = None,
         doctypes: Sequence[str] | None = None,
@@ -225,6 +274,7 @@ class ExplainLoop:
         self.client = client
         self.answer_gate_enabled = answer_gate_enabled
         self.max_turns = max_turns
+        self.max_tool_calls = max_tool_calls
         self.per_call_output_tokens = per_call_output_tokens
         self.executors = executors
         self.doctypes = doctypes
@@ -276,16 +326,23 @@ class ExplainLoop:
             try:
                 reply = self.adapter.chat(messages, schemas, self.per_call_output_tokens)
             except RoutingError as exc:
+                # **异常出口照样记账**（P1.7）：账本的采集面就是这一处 `adapter.chat` 的
+                # 两条出口，一条都不许绕过去。
+                trace.cost_ledger.record_error(index, self.adapter.model, exc)
                 trace.stopped = STOP_MODEL_ERROR
                 trace.turns.append({"index": index, "kind": "model-error", "detail": str(exc)})
                 return self._result("", False, trace, session, surface, pack)
+            trace.cost_ledger.record_reply(index, reply)
 
             if reply.tool_calls:
                 session, stopped = self._run_tools(
                     reply, messages, surface, trace, session, index
                 )
-                if stopped:
+                if stopped == STOP_BREAKER:
                     return self._breaker_stop(trace, session, surface, pack)
+                if stopped == STOP_RUNAWAY:
+                    trace.stopped = STOP_RUNAWAY
+                    return self._result("", False, trace, session, surface, pack)
                 continue
 
             session = session.with_turn(
@@ -344,7 +401,9 @@ class ExplainLoop:
         trace: ExplainTrace,
         session: ConversationSession,
         index: int,
-    ) -> tuple[ConversationSession, bool]:
+    ) -> tuple[ConversationSession, str]:
+        """回第二项是**停止原因**（空串 = 继续）。三态而不是布尔：熔断与失控闸是
+        **两个不同的闸**，合成一个布尔就等于把它们的停止原因混成一个（D-18 禁止的合并）。"""
         messages.append(
             {
                 "role": "assistant",
@@ -362,6 +421,13 @@ class ExplainLoop:
                 params = {}
             if not isinstance(params, dict):
                 params = {}
+            # **失控闸的计量对象是「模型发起的工具调用数」（D3 的 B1），不是
+            # `trace.execute_calls`（B2）**：未知工具 / 被排除工具在 `_execute_one()` 里
+            # 计数之前就早返回，选 B2 的话一个不断编造工具名的跑飞模型会让计数恒为 0、
+            # 闸门永不触发 —— 那正是这个闸要挡的形态。代价照实记：B1 把「没打到站点的
+            # 调用」也算进来，闸门因此比「实际干了多少活」略严。**这是刻意的**，
+            # 它管的是「停下来」，不是「花了多少」。
+            trace.model_tool_calls += 1
             record = self._execute_one(tool, params, surface, trace)
             calls.append(ToolCall(tool=tool, params=params, ok=record["ok"]))
             messages.append(
@@ -371,6 +437,25 @@ class ExplainLoop:
                     "content": _clip(record["result"]),
                 }
             )
+            if trace.model_tool_calls >= self.max_tool_calls:
+                trace.runaway_events.append(
+                    {
+                        "turn": index,
+                        "tool_calls": trace.model_tool_calls,
+                        "limit": self.max_tool_calls,
+                    }
+                )
+                # **停机不清账**：这一轮的 usage 照样进 `ConversationSession`，
+                # 账本那一条在 `run()` 里早就记过了（不拦截 ≠ 不记账，也 ≠ 不停失控）。
+                session = session.with_turn(
+                    Turn(
+                        role=conversation.ROLE_ASSISTANT,
+                        text=reply.text,
+                        tool_calls=tuple(calls),
+                        usage=reply.usage,
+                    )
+                )
+                return session, STOP_RUNAWAY
             if self.breaker.tripped:
                 # **第 N 次之后不再发起第 N+1 次 `execute`** —— 同一批里剩下的调用也不发。
                 trace.breaker_events.append(
@@ -388,7 +473,7 @@ class ExplainLoop:
                         usage=reply.usage,
                     )
                 )
-                return self._record_breaker(session), True
+                return self._record_breaker(session), STOP_BREAKER
         session = session.with_turn(
             Turn(
                 role=conversation.ROLE_ASSISTANT,
@@ -405,7 +490,7 @@ class ExplainLoop:
                 "calls": [c.tool for c in calls],
             }
         )
-        return session, False
+        return session, ""
 
     def _execute_one(
         self, tool: str, params: dict, surface: EvidenceSurface, trace: ExplainTrace

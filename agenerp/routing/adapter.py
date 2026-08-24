@@ -48,7 +48,8 @@ class Usage:
 
     分开记的理由不是"加总",是**留住这个细分**：推理模型回两个字也能烧掉九成的
     completion（上面那次 178 里有 173 是 reasoning），reasoning 与可见输出常常不同价，
-    折掉这一位，P1.7 的成本上限就只能按"输出 178 token"去算，差一个量级。"""
+    折掉这一位，P1.7 的**成本账**就只能按"输出 178 token"去算，差一个量级
+    （D-18：P1.7 是**记账**不是设上限；账记错了将来连阈值都没法定）。"""
 
     prompt: int = 0
     completion: int = 0
@@ -136,17 +137,23 @@ class ChatAdapter:
             payload["tools"] = list(tools)
 
         body = self._send(payload)
+        # **端点已经回包 = token 已经真的花掉**，哪怕这个包不成形。下面三条失败路径
+        # 因此都把端点自报的 usage 原样挂在异常上（P1.7 / D-18：一次调用都不许漏账）。
+        # 不挂就等于把这次的 token 从账上抹掉 —— 详见 `agenerp/routing/errors.py`。
+        endpoint_usage = body.get("usage") or None
         choices = body.get("choices")
         if not isinstance(choices, list) or not choices:
             raise RoutingError(
-                f"模型回包里没有 choices：{json.dumps(body, ensure_ascii=False)[:300]}"
+                f"模型回包里没有 choices：{json.dumps(body, ensure_ascii=False)[:300]}",
+                usage=endpoint_usage,
             )
         first = choices[0]
         message = first.get("message") if isinstance(first, dict) else None
         if not isinstance(message, dict):
             raise RoutingError(
                 f"模型回包的 choices[0] 里没有成形的 message："
-                f"{json.dumps(body, ensure_ascii=False)[:300]}"
+                f"{json.dumps(body, ensure_ascii=False)[:300]}",
+                usage=endpoint_usage,
             )
 
         text = (message.get("content") or "").strip()
@@ -158,7 +165,8 @@ class ChatAdapter:
             raise RoutingError(
                 f"模型既没回文本也没回工具调用（finish_reason="
                 f"{first.get('finish_reason')!r}，usage={usage_of(body.get('usage') or {}).as_dict()}）"
-                "——**不降级成空回答**"
+                "——**不降级成空回答**",
+                usage=endpoint_usage,
             )
 
         return Reply(

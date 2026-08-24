@@ -865,6 +865,139 @@ R4 / R5 按 D3 的「收内容」出路处理：v0 不收，类别写在 D3 里�
   「只有一个行业包时，插件化机制是纯粹的复杂度」）。
 - **不实现 `anomaly.scan` / `benchmark.compare`**：它们不在十个只读契约里，新增契约是另一个交付面。
 
+### 7.11 单次解释成本账本与失控闸在本仓的落点（P1.7 · 2026-08-24）
+
+对应 plan `docs/plans/p1-insight/2026-08-24-2109-2-explain-cost-accounting.md`，
+上位裁定是 `docs/masterplan/DECISIONS.md` **D-18**（P1.7 由「成本上限」改为「成本记账」）
+与 **D-11**（推理模型回两个字也烧约 195 reasoning token）。
+
+**一条 WBS 行上有两个交付面**：**账本**（成本可观测）与**失控闸**（工具调用总数上限）。
+D-18 逐字要求「**两者的判据分开写，不许合并**」—— 判据因此落在**两个文件**里，
+但**实现落在同一个模块**，因为「失控闸停机时账仍完整」这条行为契约把两者耦合在一起。
+
+#### 三句边界（先写清楚这个模块**不是**什么）
+
+1. **记账 ≠ 拦截。** 账本里**没有阈值，也没有任何「超了就……」的分支**。
+   D-18 取消的正是阈值：没有本项目的成本分布就定阈值，定出来的是外部经验。
+   **先有数据，再谈阈值。** 判据 `test_the_ledger_never_blocks_anything` 钉住这一条。
+2. **失控闸 ≠ 成本闸。** 它管的是「**坏**」（Agent 陷入循环、无限调工具），不是「贵」。
+   它不拦成本、不改模型、不降级，只做「停下来」这一件事。
+3. **本账本 ≠ `tools/gates/check_budget.py` 那个循环日预算停机闸。**
+   后者是 7×24 循环自己的成本闸（**会真停机**），本账本是产品运行期的记账面。
+   **两者不互读、不互写。** 把它们接起来会同时造出 D-18 禁止的拦截路径、并触及
+   `tools/gates/`（红线 1）。
+
+#### 账本：采集面只有一处
+
+| 面 | 落点 |
+|---|---|
+| 账本本体 | `agenerp/explain/ledger.py` —— `CallEntry` / `CallLedger` / `CALL_TOOLS` / `CALL_ANSWER` / `CALL_ERROR` |
+| **采集面（唯一）** | `agenerp/explain/loop.py` 的 `ExplainLoop.run()` 里 `self.adapter.chat(...)` **那一个调用点的两条出口**：`except RoutingError` 分支 `record_error(...)`、正常返回后紧跟 `record_reply(...)` |
+| 导出面 | `ExplainResult.cost_ledger`（`@property`）· `ExplainTrace.cost_ledger` 字段 · `ExplainTrace.as_dict()` 的 `"cost_ledger"` 键 |
+| 判据 | `tests/unit/test_explain_cost_ledger.py`（成本组）· `tests/unit/test_explain_cost_accounting_body.py` §A（🔴 断言体） |
+| 活端点证据 | `docs/evidence/p1-cost/`（一跑，8 次调用 8/8 对上端点自报的数） |
+
+**为什么只有一份事实面**：`adapter.chat(...)` 在 `run()` 里是**唯一**调用点，
+记账写在它的紧后面（在分支判断**之前**），四条循环出口没有一条能绕过去 ——
+而不是靠「每条出口都记得写一遍」。两份账必然漂移。
+
+**为什么不挂在 `ChatAdapter` 上**：那是 P1.1 的导出面，改它会同时动 `tests/routing`
+的既有判据，且「**一次解释**」这个聚合概念根本不在那一层。
+**为什么不从 `ConversationSession` 反推**：session 只记「成为了一轮对话」的调用，
+模型抛错那一次**根本没有 turn**，反推必然漏 —— 实测该路径上 session 的 usage 记录数为 **0**。
+
+**三项 token 的口径归 P1.1，本模块一个字不重定**：`reasoning` 是 `completion` 的细分、
+不是第四个桶，`total = prompt + completion`。汇总走 `Usage.plus()`，**不自己写三项加法**。
+
+**每条记录留两组数，刻意不合并**：解析后的 `usage`（由 `usage_of()` 产出，本模块不另写解析）
++ **端点自报的原始数字** `endpoint_total` / `endpoint_reasoning`。
+理由是判据强度：`prompt + completion == total` 是恒真式，判它等于没判；
+只有拿解析后的数去对**端点自己报的那个数**，「只记 completion 不记 reasoning」与
+「把 reasoning 再加一遍」这两类假实现才打得红。
+
+#### 异常出口的记账口径（含「空回答」那条）
+
+模型调用抛错时**照样记一条**（`outcome = model-error`），分两种：
+
+- **端点确实回了包**（「空回答」「回包里没有 choices」「choices[0] 没有成形的 message」
+  三条路径）→ 记**真数**。为此给 `agenerp/routing/errors.py` 的 `RoutingError`
+  加了一个可选属性 `usage: dict | None`，由 `agenerp/routing/adapter.py` 的三处抛出点注入
+  **端点自报的原始 usage 字典**。
+  ⚠️ **只挂 `dict`，不挂 `Usage`**：`Usage` 定义在 `adapter.py`，而 `adapter.py` 自己
+  `import` `errors` —— 在 `errors.py` 里 import `Usage` 即成 adapter ↔ errors 循环，
+  `routing/__init__.py` 会当场 `ImportError`。**`errors.py` 不 import 本包任何模块**是硬约束。
+  ⚠️ 挂的是**原始 dict** 而不是 `Usage.as_dict()`：后者里的 `total` 是那个恒真式，
+  注入它会让异常路径上的「对得上端点」判了等于没判。
+  ⚠️ 该改动**动到 P1.1 的导出面**，因此 `pytest tests/routing -q` 进入本模块的验证命令清单。
+- **端点根本没回包**（连不上、配置不全）→ 三项记 0，`endpoint_*` 记 `None`
+  —— **「不知道」不写成「对得上」**，`total_matches_endpoint` 因此为 `False`。
+
+**不许悄悄不记**：不记就等于把一次真实花掉的 token 从账上抹掉，
+而 D-11 点名的推理模型正走这条路径。
+
+#### 两个数、一个权威（P1.7 的 `Decision` D2）
+
+`ExplainResult.usage`（读 `ConversationSession.usage_total`，P1.4 的既有导出面）
+**保留不动**。两者口径不同，分工写死：
+
+| | 答的是什么 | 口径 |
+|---|---|---|
+| `ExplainResult.usage` | 这次**会话**累计了多少 | 成为了一轮对话的那些调用 |
+| `ExplainResult.cost_ledger` | 这次**解释**调了几次模型、各花多少 | `adapter.chat` 发生过几次 |
+
+**要算钱就读账本。** 正常路径上两者逐项相等，异常路径上**账本 ≥ session**
+（抛错那次没有 turn）。两条关系各有判据钉死，防的是「两处各算各的」。
+
+#### 失控闸：计量对象与默认值
+
+| 项 | 取值 | 依据 |
+|---|---|---|
+| 常量 | `MAX_TOOL_CALLS = 32`（`agenerp/explain/loop.py`） | 见下两段算术 |
+| 停止原因 | `STOP_RUNAWAY = "tool-call-runaway"` —— **专属**，不复用 `max-turns` / `permission-breaker` | D-18「判据分开写，不许合并」 |
+| 计量对象 | **(B1) 模型发起的工具调用数**（`trace.model_tool_calls`） | 见下 |
+| 留痕 | `trace.runaway_events[] = {"turn", "tool_calls", "limit"}` + `trace.model_tool_calls`，均进 `as_dict()` | 停机不留痕就没法事后判它该不该停 |
+| 产品面开关 | **没有**。`explain()` 的签名里根本没有这个参数 | 照抄 P1.4 的 D7：安全闸不给产品面开关 |
+| 判据 | `tests/unit/test_explain_runaway_guard.py`（失控闸组）· `tests/unit/test_explain_cost_accounting_body.py` §B（🔴 断言体） | |
+
+**为什么是 (B1) 而不是 (B2)「实际进入 `execute()` 的次数」**：未知工具 / 被排除工具在
+`_execute_one()` 里 `trace.execute_calls += 1` **之前**就早返回 ——
+选 (B2) 的话，一个**不断编造工具名**的跑飞模型会让计数**恒为 0**、闸门**永不触发**。
+**(B1) 的代价照实记**：它把「没打到站点的调用」也算进来，闸门比「实际干了多少活」略严。
+**这是刻意的** —— 它管的是「停下来」，不是「花了多少」。
+
+**默认值 32 的两段算术**（依据只能是本项目实测，外部经验值一律不引，D-16）：
+
+1. **对实测留余量**：P1.4 那一次活端点解释实测 `execute_calls == 8`
+   （`docs/evidence/p1-explain/live-run-01.json`）—— 这是**唯一**可引用的本项目数字。
+   `32 = 8 × 4`，四倍余量。P1.7 这一跑实测 **9 次**，同样远在闸下（`docs/evidence/p1-cost/`）。
+2. **对 `MAX_TURNS` 严格大于**：`MAX_TURNS = 25`，主循环是 `range(1, max_turns + 1)`，
+   「每轮发一次工具调用」的正常形态下第 25 轮恰好是第 25 次调用。
+   **默认值取 25 时失控闸会赶在 `STOP_MAX_TURNS` 之前触发**，产品默认路径上 `max-turns`
+   永不可达，失控闸就地退化成一个更严的 `max_turns` —— **那正是 D-18 禁止的合并**。
+   下界因此是 `MAX_TURNS + 1 = 26`（**等号处不算数**），`32 > 26`，余量 6。
+
+#### 对上位文件措辞的重读（留痕，不改上位文件）
+
+D-18 与 `docs/masterplan/02-WBS.md` §4 P1.7 行都写「工具调用**轮数**上限」，
+而本期按实读把它落成「**工具调用**那一维」—— 轮数已由 `max_turns` 占用，
+且一次回复可携带 K 个 `tool_call`，轮数根本不设限于此（D-18 要挡的「调得通但陷入循环」
+正是后者）。`DECISIONS.md` 是 blocked 面，**本期一个字未改**。
+⚠️ **本期不声称满足了 WBS 的字面措辞** —— 人若按字面读作「轮数」，须回到轮数口径重做。
+
+#### 判据缺口（照实登记，不粉饰）
+
+- **WBS §4 P1.7 的两条 🔴 门禁文件未创建**（红线 1 禁止 loop 创建 `tests/gates/**`）：
+  一条**有名**（`tests/gates/test_explain_cost_accounting.py`）、一条**未命名**
+  （`02-WBS.md` 第二个 🔴 没有给文件路径）。
+  **两条的断言体都已交付**，在 `tests/unit/test_explain_cost_accounting_body.py`
+  的 §A / §B **两节**（不合并），带加载片段与交接说明。由**人**创建门禁文件、
+  按路径加载。「纯路径加载、无 live 语义是否仍满足那两个 🔴」**由人裁定**。
+- **活端点只跑了一次**：一跑证明账本可用，**不是成本分布**。多次采样属另一个 plan（D-16）。
+- **异常出口与失控闸在活端点上都没有被走到**：那两件由单测证明，不由那一跑证明
+  （`docs/evidence/p1-cost/README.md` 的「没证明什么」一节逐条列了）。
+
+---
+
 ---
 
 ## 11. 定制包与 GitOps

@@ -20,7 +20,24 @@ class RoutingError(RuntimeError):
     **绝不降级**：既不静默换一个模型，也不把失败写成一个空回答。
     空回答与"模型选择不作答"长得一样（`tools/experiments/p1_entry_gate/llm.py`
     的 `LlmError` 已经吃过这个亏），一次故障会被记成一次真实结果。
+
+    `usage` 是**端点自报的原始 usage 字典**（`{"prompt_tokens": ..., "completion_tokens": ...,
+    "total_tokens": ..., "completion_tokens_details": {...}}`），**端点确实回了包时才有**
+    （P1.7 / D-18）。「空回答」那条路径上端点已经回包、token 已经真的花掉，
+    但失败是靠异常传出去的 —— 不把这一位挂上来，那次调用的 token 就只以报错字符串的形态存在，
+    账本对该路径会**系统性偏低**，而 D-11 点名的推理模型「回两个字也烧约 195 reasoning token」
+    正走这条路径。
+
+    ⚠️ **刻意只挂 `dict`，不挂 `Usage`**：`Usage` 定义在 `agenerp/routing/adapter.py`，
+    而 `adapter.py` 自己 `from agenerp.routing.errors import RoutingError` ——
+    在本模块 import 它即成 adapter ↔ errors 循环，`routing/__init__.py` 会当场 `ImportError`。
+    本模块**不 import 本包任何模块**这一条因此是硬约束，别顺手"改成有类型的"。
+    解析归 `agenerp.routing.adapter.usage_of()` 那一处，本模块只搬运。
     """
+
+    def __init__(self, *args: object, usage: dict | None = None) -> None:
+        super().__init__(*args)
+        self.usage = usage
 
 
 class DeclarationError(RoutingError):
