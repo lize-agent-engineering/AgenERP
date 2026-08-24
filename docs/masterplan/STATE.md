@@ -259,6 +259,8 @@
 > 格式：`[状态] 日期 · 触发条件 · WBS行ID · 最后一条失败命令原文 + 退出码 · sha · 处置`
 > 状态只有 `open` / `resolved`。**resolved 的行保留不删。**
 
+- [resolved] 2026-08-24T03:27Z · **停机记录已清除，循环转 `p1-insight`**。原停机：`auth-expired`（2026-08-23T04:53:07.962585+00:00，mission `p0-foundation`），签名 `401 OAuth access token has expired`，处置写明「刷新只能由人完成」· **清除前已实测停机条件真的消失**：`claude -p "只回两个字：在线"` → `在线`（不是绕过闸，是条件不再成立）· 用户 2026-08-24T03:27Z 明示恢复 7×24 自动执行 P1 全部内容 · 新建 `missions/p1-insight.json` 与 `docs/backlog/p1-insight-roadmap.md`（10 个工作项，第 1 项为 P1.0a 工具执行层）
+
 - [resolved] 2026-08-24T03:18Z · 原「`agents-and-roles.md` §5.0 ① 的规则出处已随 D-9 失效」**已处置**：`tools_readonly.py` 的门禁前言重写，明记原案例（XM 的 `LOSS-00003`）已退役、规则 L1/L2 本身不依赖它、措辞未动；并新增 **L3**（入库来源的覆盖）。`documents.py` / `checks.py` 的 docstring 与若干 `990 米` / `¥6,450` 旧口径一并清掉。sha `3e7e53c`
 - [open] 2026-08-24T03:18Z · 触发：**`permission.scope` 的判别力在当前站点上验不出来** · P1.0a 的 T2 前置 · sha `3e7e53c` · 已探明 `frappe.client.has_permission` 在 REST 面可用（`frappe.permissions.has_permission` 回 403，不在白名单）· **但站点上只有 Administrator，它对什么都有权限，所有调用都回 `true`** —— **一个永远返回 `true` 的实现与正确实现在当前站点上长得一模一样**（CP9 继承项①的形状）· **处置**：实现该工具前必须先建一个受限用户（例如只读某几个 DocType 的「车间工人」角色），否则它的判据是空的。**这件事 loop 可以自己做，不需人定**
 

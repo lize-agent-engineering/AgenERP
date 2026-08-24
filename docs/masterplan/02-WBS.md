@@ -81,7 +81,7 @@
 | P1.2 | 上下文层 v0：即时上下文注入 + 会话落 DocType | P1.1 | `pytest tests/context -q` 退 0 | `MD:p1-explain` |
 | P1.3 | **导航的编排行为**（工具本身由 P1.0a 交付）：`permission.scope` **由循环开场自动注入**，不依赖模型想起来调用；并给导航工具补**质量**判据（能否让模型少走弯路） | P1.2, P1.0a | `pytest tests/tools/test_navigation.py -q` 退 0，且断言开场注入发生 | `MD:p1-explain` |
 | P1.4 | 解释 Agent + **证据充分性门禁** | P1.3 | 🔴 `tests/gates/test_evidence_gate_blocks_single_hop.py` | `MD:p1-explain` |
-| P1.5 | 洞察 Agent：**按行业包规则清单**巡检 | P1.4 | 🔴 `tests/gates/test_insight_rule_ablation.py` | `MD:p1-explain` |
+| P1.5 | **巡检器 + 洞察 Agent（两件东西，D-15）**：巡检器是**纯规则引擎**——按行业包清单逐条查、命中即报，不进模型；洞察 Agent 只负责命中**之后**的归因与要不要紧 | P1.4 | 🔴 `tests/gates/test_insight_rule_ablation.py`（消融：抽掉规则则查不出）+ 🔴 巡检器在**零 LLM 调用**下跑通固定测例 —— 后者不绿即说明规则被塞进了提示词 | `MD:p1-explain` |
 | P1.6 | 行业包 v0（离散制造）：业务合理性规则为首要内容，**每条带 `test_case`** | P1.5 | `python -m agenerp.packs validate --pack discrete` 退 0（无 `test_case` 的规则即失败） | `MD:p1-explain` |
 | P1.7 | 单次解释成本上限 | P1.4 | 🔴 `tests/gates/test_explain_cost_ceiling.py` | `MD:p1-explain` |
 | P1.8 | Agent 侧边栏嵌 Desk（⌘K 唤起，保留当前单据上下文） | P1.4 | `pytest -m live tests/ui/test_sidebar.py` 退 0 | `MD:p1-explain` |
