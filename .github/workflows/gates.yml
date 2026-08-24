@@ -432,7 +432,7 @@ jobs:
         run: docker compose -f docker-compose.yml down -v
 
   unit-and-contracts:
-    name: 单测与契约测试（439 条）
+    name: 单测与契约测试（全部离线判据）
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -447,6 +447,40 @@ jobs:
 
       - name: ② 契约测试（tests/contracts）
         run: python3 -m pytest tests/contracts -q
+
+      # ③–⑥ 由人补（2026-08-24）。此前 CI 只跑 unit + contracts，而
+      # tests/tools（61）· tests/routing（148）· tests/context（51）·
+      # tests/experiments（10）**共 270 条判据一条都没进 CI** ——
+      # 「本机跑过」与「CI 覆盖」是两件事，前者拦不住别人改坏。
+      # 这几个目录由 loop 写在红线外，接进 CI 属红线 2，故由人做。
+      - name: ③ 工具执行层（tests/tools）
+        run: python3 -m pytest tests/tools -q
+
+      - name: ④ 模型路由（tests/routing）
+        run: python3 -m pytest tests/routing -q
+
+      - name: ⑤ 上下文层（tests/context）
+        run: python3 -m pytest tests/context -q
+
+      - name: ⑥ 实验设施（tests/experiments）
+        run: python3 -m pytest tests/experiments -q
+
+      # 判据自身的判据：新增目录若忘了接进来，这一步会红。
+      # 不写死条数——条数会长；写死目录集合，多出目录即红。
+      - name: ⑦ 没有测试目录被漏在 CI 之外
+        run: |
+          set -euo pipefail
+          COVERED="contracts context experiments fixtures gates routing tools unit"
+          ACTUAL=$(ls -d tests/*/ | xargs -n1 basename | sort | tr '\n' ' ' | sed 's/ $//')
+          EXPECTED=$(echo $COVERED | tr ' ' '\n' | sort | tr '\n' ' ' | sed 's/ $//')
+          if [ "$ACTUAL" != "$EXPECTED" ]; then
+            echo "❌ tests/ 下的目录集合变了，但 CI 没跟着改。" >&2
+            echo "   CI 认识的： $EXPECTED" >&2
+            echo "   仓里实际的： $ACTUAL" >&2
+            echo "   新增目录必须显式接进本 job（或列入 COVERED 并说明为何不跑）。" >&2
+            exit 1
+          fi
+          echo "✅ 测试目录集合与 CI 一致"
 
   seed-selfverify:
     name: 种子生成器自验（agenerp.seed --verify）
@@ -482,8 +516,10 @@ jobs:
       # 作用域三个目录逐字照抄 docs/context/project-context.md 的 Lint / static check 一行，
       # 一个字不加不减 —— 尤其不扩到 tests/gates（pyproject.toml 的 [tool.ruff] exclude 已排除它，
       # 理由是免得 lint 逼着去改裁判）。
-      - name: ruff check（agenerp / tests/unit / tests/contracts）
-        run: ruff check agenerp tests/unit tests/contracts
+      # tests/gates 由 pyproject 的 exclude + force-exclude 挡在外面（红线内，
+      # 免得 lint 逼着去改裁判）。其余目录一律扫。
+      - name: ruff check（agenerp + tests/ 全部非门禁目录）
+        run: ruff check agenerp tests/unit tests/contracts tests/tools tests/routing tests/context tests/experiments
 
   # 集合判据（plan 2026-08-23-0337-2，见 docs/architecture/system-baseline.md §14.8）。
   # 与上面的 expected-red-ratchet 并存、判据不同：那个数行数，这个比条目集合。
