@@ -12,8 +12,10 @@
 from __future__ import annotations
 
 import ast
+import importlib.util
 import inspect
 import pathlib
+import sys
 
 import pytest
 
@@ -370,3 +372,70 @@ def test_the_rubric_criteria_are_the_frozen_p10_ones():
 def test_an_empty_answer_is_not_a_legal_input():
     with pytest.raises(JudgingError):
         judge_one("   ", models=fx.models(), config=fx.config(), transport=fx.RecordingTransport())
+
+
+# -- M12 · 泄漏判据也要盖住**产出证据的那条路** ------------------------------
+#
+# 独立关闭审计（2026-08-25）指出的一处缺口：H7 ② 只跑过
+# `answer_judge_fixture.judge_row`，而 `docs/evidence/p1-answer-judge/` 里那三份
+# 被采信的证据是 `tools/experiments/p1_answer_judge/run.py` 跑出来的 —— **另一条调用点**，
+# 且 `tools/` 既无判据覆盖也不在 ruff 作用域内。审计实读确认当时**没有发生泄漏**，
+# 但没有任何东西挡住后来的人把 `row["label"]` 拼进活跑的题面。
+# 本条把 H7 ② 那条谓词**原样抬到实验设施上**：真行 vs 噪声行，`messages` 逐字节相同。
+
+
+def _load_experiment_harness():
+    """按路径加载实验脚本。**它不在 `tests/` 里，也不是产品包** —— 按路径加载，不改 `sys.path`。"""
+    target = REPO_ROOT / "tools/experiments/p1_answer_judge/run.py"
+    assert target.is_file(), f"实验设施不在了：{target}"
+    spec = importlib.util.spec_from_file_location("_p1_answer_judge_run", target)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+class _HarnessFixture:
+    """喂给 `run_all` 的最小夹具面：只换 `rows()`，别的照旧。
+
+    `meets_acceptance` 在这里恒为假 —— **本判据不判口径**，只判「送进去的东西有没有泄漏」。
+    """
+
+    def __init__(self, rows: list[dict]) -> None:
+        self._rows = [dict(r) for r in rows]
+
+    def rows(self) -> list[dict]:
+        return [dict(r) for r in self._rows]
+
+    def row_by_id(self, run_id: str) -> dict:
+        return next(r for r in self.rows() if r["run_id"] == run_id)
+
+    def fixture_sha256(self) -> str:
+        return fx.fixture_sha256()
+
+    def meets_acceptance(self, pairs) -> bool:
+        return False
+
+
+def _harness_messages(monkeypatch, rows: list[dict]) -> list:
+    """离线跑一趟 `run_all`，把它**实际送出去的** `messages` 逐条收下来。"""
+    harness = _load_experiment_harness()
+    monkeypatch.setattr("agenerp.routing.router.config_from_env", fx.config)
+    transport = fx.RecordingTransport()
+    harness.run_all(_HarnessFixture(rows), transport=transport)
+    return [p["messages"] for p in transport.payloads]
+
+
+def test_m12_the_experiment_harness_never_leaks_the_label_or_reason_either(monkeypatch):
+    """**M12 的靶子**：实验设施把该行的 `label` / `reason` 拼进活跑题面时，这一条红。"""
+    real_rows = fx.rows()
+    real = _harness_messages(monkeypatch, real_rows)
+    noised = _harness_messages(monkeypatch, [fx.noise_row(r) for r in real_rows])
+
+    assert len(real) == len(real_rows), "24 行要真的各送出去一次，否则这条判据是空的"
+    assert real == noised, "实验设施送出去的 messages 随行的 label/reason 变了 —— 泄漏在入口"
+
+    sent = repr(real)
+    for row in real_rows:
+        assert row["reason"] not in sent
+        assert f'"这条的答案是 {row["label"]}"' not in sent

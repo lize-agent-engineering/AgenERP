@@ -362,6 +362,8 @@
 > 格式：`[状态] 日期 · 触发条件 · WBS行ID · 最后一条失败命令原文 + 退出码 · sha · 处置`
 > 状态只有 `open` / `resolved`。**resolved 的行保留不删。**
 
+- [resolved] 2026-08-24T20:34Z · **第二次 `auth-expired` 停机已清除，循环重启**。停机于 2026-08-24T20:33，签名 `401 OAuth access token has expired` · **清除前实测停机条件已消失**：`claude -p "只回两个字：在线"` → `在线`（不是绕过闸，是条件不再成立）· ⚠️ 这是同一条件今天第二次触发（首次 08-23）—— **OAuth token 会周期性过期，而刷新只能由人在交互式终端完成**。7×24 守护挡不住这一条：launchd 能重拉进程，但重拉起来的进程照样认证失败。**这是当前无人值守能力的真实上限，照实记着**
+
 - [open] 2026-08-24T21:40Z · 触发：**P1.6 已把行业包交付到盘上，`rule.lookup` 的接线需人裁定** · P1.6/工作项 8 · `python3 -m agenerp.packs validate --pack discrete` → **exit 0**（本条不是失败命令，是「做到这一步就停」的边界） · sha `6682b68` · **loop 不替人选，两条出路的代价照实列**：
   **(a) 人以 `Gates-Change-Approved-By:` 改那条门禁并接线** —— 代价：`tests/gates/test_tool_execution_live.py:119`（裁判）与它委派进去的 `tests/tools/test_live_conformance.py:157` 都钉着 `rule.lookup` 的**现行报错行为**（`ok is False`、reasons 含「行业包」，且上下文已声称 `industry_pack_loaded: True`）；接线会让这条 L2 门禁由绿转红，改它就是改裁判，只有人能做。收益：`rule.lookup` 真的能查到规则，`anomaly.scan` 之类才有地基。
   **(b) 人裁定 `rule.lookup` 维持报错，把「重开事件」改写到更后面的阶段** —— 代价：`agenerp/tools_readonly.py` 里那条契约的 `rules_carry_provenance` 后置断言长期没有真实调用面（今天出处已经落到 `Hit.pack_id` 上，但工具面够不着它）；`docs/masterplan/02-WBS.md` 与 owner doc 里「重开事件是 P1.6 交付第一个行业包」这句话得由人改写。收益：门禁面零改动。
@@ -535,3 +537,12 @@
   · **本行只追加，不改写本节任何已有行**（红线 5）。
 
 - 2026-08-25T04:20Z · **P1.8 下半 · plan `2026-08-25-0119-1-desk-sidebar-carrier-and-explain-request-surface.md` 收口 sha 回填** · `git log -1 --format=%H` → **exit 0** · **落地 sha `5b675a30ce23f3ad40e7d6980511107b0f16045c`** · 本行只回填 sha，实现与停机结论在上一条 `04:05Z` 证据行；回填提交只改本文件与 `docs/logs/2026/08-25.md` 两个文件，**不改写本节任何已有行**（红线 5）· 下一项：**无自动下一项** —— 卡在 `[open] 2026-08-25T04:05Z`（`sid` 接缝需重新裁定）与同日两条 `[open] 02:10Z`（激活需人批 / WBS 拆行）三条人批上，**loop 一条都不代做**
+
+- 2026-08-25T05:10Z · **P1.4 第 2 个交付面 · 答案判定器 v0 · plan `2026-08-25-0225-1-answer-judge-v0.md` 收口** · 工作项 6（`docs/backlog/p1-insight-roadmap.md` 第 46 行那一行 ⚠️ 点名的判据缺口）· 八条基线命令**全部 exit 0**：`python3 tools/gates/check_expected_red.py`（`门禁 11 项：预期红 0，绿 11，跳过 0`）· `python3 -m pytest tests/unit -q`（**598 passed**，基线 540 → +58）· `python3 -m pytest tests/contracts -q`（`151 passed`）· `python3 -m pytest tests/tools -q`（`81 passed, 12 skipped`）· `python3 -m pytest tests/routing -q`（**167 passed, 1 skipped**，基线 164 → +3，恰是三个新产品模块）· `python3 -m pytest tests/context -q`（`53 passed`）· `python3 -m pytest tests/experiments -q`（`10 passed`）· `ruff check agenerp tests/unit tests/contracts tests/tools tests/routing tests/context tests/experiments`（`All checks passed!`）· **落地 sha `45bb8c3c7f364ad38efda45558c376b69c09e8a1`** · 处置：
+  · **交付**：`agenerp/judging/` 三个产品模块 + `tests/unit/answer_judge_fixture.py` + `tests/unit/test_answer_judge.py`（58 条离线判据）+ `tools/experiments/p1_answer_judge/run.py` + 证据 `docs/evidence/p1-answer-judge/` + 落点节 `module-boundaries.md` §7.15（纯新增）+ `model-management.md` §12.5 落点指针（**5 增 0 删**）。
+  · **活端点（本机，CI 未覆盖）**：`--all` **第 1 轮 24/24 逐条一致**（负例三分类精确 5/5、正例 19/19）⇒ `meets_acceptance = true`，**修订 0 次、全量 1 轮**，plan 起草期写死的停机分支**未触发**；`--stability` 6 条 × 3 次 **6/6 一致**；`--controls` H5 **3/3 `truncated`**。**累计 48 次调用**（§5.2 上限 72），账本 **24 条 == `chat()` 次数**，`total_matches_endpoint` **24/24**。
+  · **变异自查 M1–M10（含 M2b / M9b）逐条被打红**；⚠️ **M7 的行为面守卫第一轮是无效的**（前后取 sha 的写法顺序依赖：同一会话里更早的判据已经写过文件，前后一比反而相等），已就地补 `PRISTINE_SHA256`（模块导入那一刻的指纹）断言并复跑确认，登记为 **M11**。
+  · ⚠️ **未声称、也不得被读成的三件事**：① **没有留出集**（D7，5 条负例分不动）；② **集子之外没有能区分「判断」与「匹配」的证据** —— 唯一的集子外判据 H5（截断）能被 `len<300 → truncated` 这个公认不做判断的假实现原样通过（**这句措辞是独立评审实测后要求改准的**）；③ **已验证适用范围只有 P1.0 那一道题**，跨题族按 D-16 只能写「待复验」。另：判定器**评了自己写的 6 条**（自评按集子构造躲不掉），逐条结果已按产出模型分组落账，不做加权、不做剔除。
+  · ⚠️ **verification scope limited**：活端点三个子命令**只在本机跑过，CI 未覆盖**；CI 复跑得到的只有那 58 条离线判据。`tests/routing` / `tests/tools` 不在 `commands.test` 里那两条既有缺口**不因本轮落地而消失**，本轮不重复登记、不代人处置。
+  · ⚠️ **照实记一处提交面偏差**：落地提交用 `git add -A`，把同批第 2 个 plan 文件 `docs/plans/p1-insight/2026-08-25-0225-2-insight-attribution-live-run.md`（本轮开工前就已存在的未跟踪文件）一并扫了进去。**不属红线路径**，**内容一个字未改**，照实记在这里而不是事后拆分历史。
+  · **本行只追加，不改写本节任何已有行**（红线 5）。⚠️ **与既有偏差同款**：追加落在文件末尾、落进 §3 的尾部而不是 §2 —— 归位需要删除已有行，红线 5 不允许，**只记不动**。
