@@ -113,11 +113,21 @@ plan [`2026-08-24-1601-2`](../plans/p1-insight/2026-08-24-1601-2-navigation-orch
 | 终止时给出什么 | 固定文案「你的权限不足以回答这个问题」+ **所需权限清单**（形如 `read:GL Entry`，**指名 DocType**） |
 | 两处 403 口径的一致性 | 靠一条**行为级**断言绑定：拿 `FakeSite` 驱动 `doctypes_with_data` 两次（403 那次进 `unreadable`、非 403 那次原样抛出），断言编排层对同样两种输入给出相同分类。**不比源码文本** |
 
-⚠️ **接到真实控制循环上是 P1.4 的动作，本期没做。** 本期能证明的是
-「喂 `DenialBreaker` N 次权限拒绝，它会刹车、会给出所需权限清单」，
-**不是**「真实会话里它一定被调用到」——循环本体归 P1.4（plan §3 Non-Goals 1）。
-⚠️ **本节的「写入审计，标记为权限探测事件」那一行本期未落地**：审计写入面属控制循环，
-与上一条同因。
+~~⚠️ **接到真实控制循环上是 P1.4 的动作，本期没做。**~~
+✅ **已接线（2026-08-24，P1.4）**：`agenerp/explain/loop.py` 的 `ExplainLoop._execute_one()`
+在**每一次** `execute` 之后喂 `DenialBreaker.record(result, doctype=...)`，`tripped` 为真即
+**停止再发工具调用**（同一批里剩下的调用也不发）并返回 `report()`。
+「真实会话里它一定被调用到」由 `tests/unit/test_explain_loop.py::test_breaker_stops_the_loop_after_five_consecutive_denials`
+判定：判据数的是**循环发起的 `execute` 次数**（不是站点收到的 HTTP 请求数），
+剧本一批给 6 个调用、实测只发出 5 个。落点节见 §7.8。
+
+~~⚠️ **本节的「写入审计，标记为权限探测事件」那一行本期未落地**~~
+✅ **已落地，但含义要说准（2026-08-24，P1.4，`Decision` D4）**：熔断事件作为一条
+`ExecutedAction`（`tool="circuit.denial_breaker"`）进 `ConversationSession` 的已执行动作档，
+与工具调用轨迹同一份载体，可 diff、可回放。
+⚠️ **这不是站点侧审计**：会话轨迹今天落在 `JsonFileSessionStore`（P1.2 的零依赖内置实现），
+**会话 DocType 在活站点上尚未建表**。本期「写入审计」的含义是**本地可回放的轨迹**，
+不得读成「审计已入站点」。写进站点是**写操作**，与 ②端只读冲突，本期不做。
 
 ⚠️ **「35 次」是 Spike 01 在别的站点上对真模型的实测**，不是本仓的数字。
 本仓自己量出的导航数字见 §7.6a，**两者不是同一个量，不得互相引用为佐证**（D-16）。
@@ -202,7 +212,7 @@ sha `35313cb`）：十条契约各有执行体，且**只有一个执行入口**
   **2026-08-24 已不成立**：执行器已落地（见上表），十个工具在活站点上各跑过一次并守约
   （`tests/tools/test_live_conformance.py`，带凭据实跑 exit 0）。
   ~~§7.4 的**权限拒绝熔断**（N=5）仍未做——它是**控制循环**的行为，不是工具的，归 P1.0 的控制循环。~~
-  **2026-08-24 两处均已改准**：① P1.0 交付的是**实验设施**（`tools/experiments/`，模块头逐字「不进 `agenerp/`」）且已 `done`，熔断从来没有在它名下被做过——那是一条**责任人空缺的悬空条目**，不是别人的欠账；② 熔断已由 **P1.3** 落地在 `agenerp/orchestration/circuit.py`，落点见 §7.4 末尾与 §7.6a。**但它尚未接到任何真实控制循环上**，接线归 P1.4。
+  **2026-08-24 两处均已改准**：① P1.0 交付的是**实验设施**（`tools/experiments/`，模块头逐字「不进 `agenerp/`」）且已 `done`，熔断从来没有在它名下被做过——那是一条**责任人空缺的悬空条目**，不是别人的欠账；② 熔断已由 **P1.3** 落地在 `agenerp/orchestration/circuit.py`，落点见 §7.4 末尾与 §7.6a。~~**但它尚未接到任何真实控制循环上**，接线归 P1.4。~~ **2026-08-24 已接线（P1.4）**：`agenerp/explain/loop.py` 的 `ExplainLoop`，落点节见 §7.8。
 
 **执行面落地时实测出来的三条限制，照实记在这里**（2026-08-24，活站点 `frontend`）：
 
@@ -267,8 +277,10 @@ owner doc 是 `docs/design/agents-and-roles.md` §5.1（`permission.scope`「由
   否决 (A) 并进 `agenerp/context/`（P1.2 的 Non-Goals 3 把控制循环排除在上下文层之外，
   塞进去等于让 P1.2 收口后的结果面被悄悄扩写）；否决 (C) 塞进 `agenerp/tools/runtime.py`
   （那是**工具执行入口**这一个咽喉，让工具层知道循环的事方向反了）。
-  **残余风险**：本层与 P1.4 循环本体的接缝**只有单侧**（本层提供，P1.4 消费），
-  未被任何真实循环验证过。
+  ~~**残余风险**：本层与 P1.4 循环本体的接缝**只有单侧**（本层提供，P1.4 消费），
+  未被任何真实循环验证过。~~
+  **2026-08-24 已改准（P1.4）**：接缝**两侧都在**了 —— `agenerp/explain/loop.py` 是消费侧，
+  开场注入与熔断在循环里各有一个真实调用点，判据见 §7.8。
 - **D2 §7.4 熔断进不进本期** —— 选定「进」。它是**责任人空缺的悬空条目**（见 §7.6 那条已改准的归属）、
   是**确定性规则**（D-15）、且与开场注入同源（注入是主路径，熔断是兜底，
   分在两个 plan 里会让「主路径失效时会怎样」没有归属）。**残余风险**见 §7.4 末尾的 ⚠️。
@@ -474,6 +486,93 @@ P1.1 里没有这个概念，也不该有 —— 所以聚合归本层。
 `missions/**` 与 `.github/workflows/**` 都在红线内，loop 无权自己补。
 代偿控制：变异自查（plan Phase 3 的 M1–M8）+ 独立关闭审计 + STATE §3 的 needs-human 行。
 **不得因为本层测试自己是绿的就说「已被门禁覆盖」。**
+
+### 7.8 解释 Agent 控制循环在本仓的落点（P1.4 · 2026-08-24）
+
+plan [`2026-08-24-1755-1`](../plans/p1-insight/2026-08-24-1755-1-explain-agent-and-evidence-gate.md)。
+owner doc 是 `docs/design/agents-and-roles.md` §5.0 ①（三条证据规则）与 §5.1（开场注入）。
+
+**本节结清了两笔挂在别处的欠账**：§7.4 末尾那两条 ⚠️（熔断接线、审计写入）与
+§7.6 那句「尚未接到任何真实控制循环上」。五处失效归属已就地改准，不另起新行。
+
+#### 各文件职责
+
+| 文件 | 职责 | 不做什么 |
+|---|---|---|
+| `agenerp/explain/__init__.py` | 导出面：**只有** `explain` 与 `ExplainResult` | 不导出循环类、事实采集面、工具 schema —— 导出面一旦泄开就收不回来 |
+| `agenerp/explain/gate.py` | 证据充分性门禁的**事实采集面**：把五条事实凑齐交给 `EVIDENCE_GATE` 求值 | **一个字都不复述规则**（复述之后判的就成了这份复述）；不判「答得对不对」 |
+| `agenerp/explain/loop.py` | 控制循环本体：开场 → 模型 → `execute` → 回注 → 作答 → 门禁 → 强制续跑 | 不自己发 HTTP、不自己挑模型、不自己写 `Usage` 加法 |
+
+四个零件是**换掉的**，不是新写的 —— 循环形状继承 `tools/experiments/p1_entry_gate/loop.py`
+（P1.0 的实验设施，**一行没动、一个文件没复制**）：模型侧换成 `agenerp.routing.route()`、
+开场侧换成 `agenerp.orchestration.open_session()`、会话侧换成 `agenerp.context.session`、
+熔断侧接上 `agenerp.orchestration.DenialBreaker`。
+
+#### 两处门禁求值的分工（`Decision` D2）
+
+**两处不是重复，各卡各的：**
+
+| | 卡什么 | 在哪 | 谁做的 |
+|---|---|---|---|
+| ① 工具前置 | 「作答类工具能不能**被调用**」 | `QUERY_READ` / `SNAPSHOT_READ` 的 `preconditions` | P1.0a，本 plan 一个字不改 |
+| ② 作答前 | 「这个 answer 能不能**被接受**」 | `ExplainLoop._judge()` | 本 plan 新增 |
+
+只有 ② 拦得住「模型不调作答类工具、直接凭 `doc.get` 的返回值报数字」——
+那正是 Spike 02 实测到的失败形态（§5.0 ①：只调一次 `doc.get` 就下结论）。
+**两处求的是同一个事实字典**：同一个 `EvidenceSurface` 实例，`surface_id` + `uses` 留痕
+让「同源」可被断言而不是靠人复核。
+
+#### 七个 `Decision`
+
+| # | 选定 | 主要否决项 |
+|---|---|---|
+| D1 | 模型侧走 `agenerp.routing.route()` 取 `ChatAdapter` | 否决复用实验设施的 `llm.py`（它自己的模块头写着「不是产品代码」，且绕过 P1.1 的能力分档校验） |
+| D2 | 两处求值并存，**事实采集面只有一份** | 否决「只保留 ①」（拦不住 Spike 02 那条路）；否决「只保留 ②」（要改 P1.0a 已收口的契约） |
+| D3 | `permission.scope` **不进模型可见的工具面** | 开场注入已由 P1.3 确定性化，再让模型自己调一次等于把它交回给模型（D-15） |
+| D4 | 熔断事件落进**会话轨迹** | 否决写进站点审计表（那是**写操作**，与 ②端只读冲突）；否决继续留白（owner doc 已归本 plan） |
+| D5 | 判据落 `tests/unit/`，假站点**按路径加载** `tests/tools/conftest.py` | 否决新建 `tests/<目录>`（CI 步骤 ⑦ 必红，改 workflow 是红线）；否决在 `tests/unit` 另写一份假站点（两份会各自漂移） |
+| D6 | 熔断 `doctype` 取 `params["doctype"]`，**没有该参数的按工具名兜底** | 否决让 `execute` 回填（要改 P1.0a 已收口的执行面） |
+| D7 | ② 门禁的消融**只在判据侧构造**（直接 new `ExplainLoop`） | 否决在产品入口加 `gate=on/off` 开关（在一道安全闸上给产品面开关，调用方一行就能关掉） |
+
+#### 判据缺口与验证范围，照实记
+
+**判据落点**：`tests/unit/test_evidence_gate_single_hop_body.py`（H1 三条 + H2 两条）与
+`tests/unit/test_explain_loop.py`（11 条）。`tests/unit` 是今天**唯一**同时进
+`missions/p1-insight.json` 的 `commands.test`（`GATE_VERIFY` 复跑得到）与 CI 的目录 ——
+**这是本层相对 §7.6a / §7.7 那两条「复跑不到」缺口的加严项**，不是又一条缺口。
+
+**四条残余风险，逐条立着**：
+
+1. **D6 的兜底口径只满足一半「指名 DocType」**。没有 `doctype` 参数的工具
+   （`system.overview` / `schema.search` 一类）按**工具名**记，清单里给出的是
+   `read:system.overview` 而不是 `read:<DocType>` 形状。§7.4 表第二行的「指名 DocType」
+   对这一类**只成立一半**。兜底存在的理由是让清单**不为空**，不是假装它总是 DocType。
+2. **D7 的消融开关只在判据侧**，因此 H1 的「门禁关」那一侧测的是**判据侧构造出来的对象**，
+   不是产品默认路径。缓解是 H1 多一条断言（产品默认路径下 ② 门禁确实是开的，
+   且 `explain()` 签名里根本没有这个参数）；**风险不消除**。
+3. **L3 有一个已知逃逸口**：只描述「积压」而**不报数字**的回答 escape 得掉 L3
+   （规则原文要的是「作答涉及某个仓库的库存**数量**」）。本层**不擅自扩大 L3 的口径**——
+   改规则措辞属 owner doc 与人的裁定面。这条原样带自 `tools/experiments/p1_entry_gate/gate.py`。
+4. **`lineage` 档今天会放行 `qwen3.6-plus`**，而它在本项目两跳题上是 1/6
+   （`docs/masterplan/STATE.md` §3 `[open] 2026-08-24T07:50Z`）。那条 `[open]`
+   **不因本层落地而消失**，本层也不代人处置它。
+
+**活端点验证范围（H4）**：2026-08-24 跑过**一次**，轨迹在
+[`docs/evidence/p1-explain/`](../evidence/p1-explain/README.md)。它证明的是「循环在活站点 +
+活端点上跑得通、token 账目对得上端点自报的数、L3 在真实数据上抓到了那张外协入库单」。
+它**没有**证明「门禁拦得住单跳」（那一跑模型第一次作答就已取证充分，`forced_continues` 为空），
+也**没有**证明熔断被触发（Administrator 身份不撞 403）。那两件由上面的 `tests/unit` 判据证明。
+**单次实跑不做多次采样**（成本量级见 plan §8 风险 ⑤），正确率归 P1.0，本层不产出正确率数字。
+
+**WBS §4 P1.4 的 🔴 验收本层交付不了**：`tests/gates/test_evidence_gate_blocks_single_hop.py`
+在红线 1 内，loop 不得创建。本层交付它的**断言体**
+`tests/unit/test_evidence_gate_single_hop_body.py` 与交接说明（写在该文件的模块头），
+按 P1.0a 的先例（`tests/gates/test_tool_execution_live.py`，`Gates-Change-Approved-By: lize`）
+由**人**按路径加载。⚠️ **收口时不得声称该验收已满足。**
+⚠️ 该门禁是**纯路径加载、无 live 语义**的（断言体是假 transport + 假站点，全程不依赖活站点，
+**没有 skip 可以收严**，P1.0a 那次的「skip → fail」在这里不适用）——
+**这一句要人复核**，loop 不替人拍板它算不算满足那个 🔴。
+
 ---
 
 ## 11. 定制包与 GitOps
