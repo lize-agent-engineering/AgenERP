@@ -298,8 +298,27 @@ jobs:
             echo "✅ 未触及判定器"; exit 0
           fi
           echo "本次改动触及判定器："; echo "$CHANGED"
-          # 人工批准是唯一放行方式：提交信息里带 trailer
-          if git log --format=%B "$BASE..$HEAD" | grep -q '^Gates-Change-Approved-By:'; then
+
+          # ── 判据自身的可诊断性（2026-08-23）───────────────────────────
+          # 本出口曾在**同一 sha、同一输入**上一红一绿（run 32570942284 attempt 1 exit 1
+          # / attempt 2 exit 0）。根因**未证实**：怀疑过 `git log | grep -q` 在
+          # `pipefail` 下吃 SIGPIPE(141)，但本地 10/10 未复现，故按 AGENTS.md 裁判
+          # 规则 3 不认定根因。
+          #
+          # 处置不依赖根因，做两件事：
+          #   ① **去掉管道**——先落盘再 grep，消掉 SIGPIPE 这个嫌疑面（即使它不是真凶，
+          #      也不该留着一个能让判定器非确定的结构）。
+          #   ② **把判定用到的全部输入打出来**——下次再抖时能逐字对比两次 attempt 的
+          #      输入是否真的相同，而不是又记一条「不可复现」。
+          echo "── 判定输入（用于诊断，勿删）──"
+          echo "   BASE=$BASE"
+          echo "   HEAD=$HEAD"
+          git log --format=%B "$BASE..$HEAD" > /tmp/range-messages.txt
+          echo "   范围内提交数=$(git rev-list --count "$BASE..$HEAD")"
+          echo "   提交信息字节数=$(wc -c < /tmp/range-messages.txt)"
+          echo "   trailer 命中行数=$(grep -c '^Gates-Change-Approved-By:' /tmp/range-messages.txt || true)"
+
+          if grep -q '^Gates-Change-Approved-By:' /tmp/range-messages.txt; then
             echo "✅ 找到人工批准 trailer，放行"; exit 0
           fi
           echo "❌ 改动了门禁判定器却没有人工批准。"
