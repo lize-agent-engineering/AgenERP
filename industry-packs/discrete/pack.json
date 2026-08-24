@@ -1,0 +1,140 @@
+{
+  "pack_id": "discrete",
+  "version": "0",
+  "requires_doctypes": [
+    "Stock Ledger Entry",
+    "Sales Order",
+    "Sales Order Item",
+    "Subcontracting Order",
+    "Subcontracting Order Item",
+    "Subcontracting Receipt Item"
+  ],
+  "rules": [
+    {
+      "rule_id": "discrete/finished-goods-backlog",
+      "statement": "产出远大于销出：某物料在某仓库累计入库减去累计出库之后，剩下的存货仍与该物料的订单量同一量级 —— 多出来的这些没有道理",
+      "doctype": "Stock Ledger Entry",
+      "group_by": ["item_code", "warehouse"],
+      "exclude": [{"field": "is_cancelled", "operator": "truthy"}],
+      "measures": [
+        {"name": "received", "operator": "sum_positive", "field": "actual_qty"},
+        {"name": "issued", "operator": "sum_negative_abs", "field": "actual_qty"},
+        {"name": "on_hand", "operator": "difference", "left": "received", "right": "issued"},
+        {
+          "name": "ordered",
+          "operator": "related_sum",
+          "doctype": "Sales Order Item",
+          "parent": "Sales Order",
+          "field": "qty",
+          "match": [["item_code", "item_code"]]
+        }
+      ],
+      "trigger": {
+        "measure": "on_hand",
+        "operator": "at_least_fraction_of",
+        "reference": "ordered",
+        "value": 0.5
+      },
+      "quantity": "on_hand",
+      "test_case": {
+        "name": "入库远多于出库、剩余与订单量同量级 → 命中；卖光了的那个物料 → 不命中",
+        "rows": {
+          "Stock Ledger Entry": [
+            {"item_code": "spindle", "warehouse": "wh-east", "actual_qty": 240},
+            {"item_code": "spindle", "warehouse": "wh-east", "actual_qty": -40},
+            {"item_code": "bracket", "warehouse": "wh-east", "actual_qty": 75},
+            {"item_code": "bracket", "warehouse": "wh-east", "actual_qty": -75}
+          ],
+          "Sales Order Item": [
+            {"item_code": "spindle", "qty": 300},
+            {"item_code": "bracket", "qty": 75}
+          ]
+        },
+        "expect_hit": true,
+        "expect_quantity": 200
+      }
+    },
+    {
+      "rule_id": "discrete/subcontracting-issued-not-received",
+      "statement": "外协发出去的活迟迟收不回来：某张未作废的外协订单，委外数量减去已收货数量之后仍有缺口 —— 料在厂外，账面上却看不出缺了什么",
+      "doctype": "Subcontracting Order",
+      "group_by": ["name"],
+      "exclude": [{"field": "docstatus", "operator": "equals", "value": 2}],
+      "measures": [
+        {
+          "name": "issued",
+          "operator": "related_sum",
+          "doctype": "Subcontracting Order Item",
+          "parent": "Subcontracting Order",
+          "field": "qty",
+          "match": [["name", "parent"]]
+        },
+        {
+          "name": "received",
+          "operator": "related_sum",
+          "doctype": "Subcontracting Receipt Item",
+          "parent": "Subcontracting Receipt",
+          "field": "received_qty",
+          "match": [["name", "subcontracting_order"]]
+        },
+        {"name": "outstanding", "operator": "difference", "left": "issued", "right": "received"}
+      ],
+      "trigger": {"measure": "outstanding", "operator": "greater_than", "value": 0},
+      "quantity": "outstanding",
+      "test_case": {
+        "name": "未作废的外协单收不齐 → 命中；已作废的那张 → 排除在外（作废的排不掉时它会先命中，数就对不上）",
+        "rows": {
+          "Subcontracting Order": [
+            {"name": "sco-a-cancelled", "docstatus": 2},
+            {"name": "sco-b-open", "docstatus": 1}
+          ],
+          "Subcontracting Order Item": [
+            {"parent": "sco-a-cancelled", "qty": 700},
+            {"parent": "sco-b-open", "qty": 400}
+          ],
+          "Subcontracting Receipt Item": [
+            {"subcontracting_order": "sco-b-open", "received_qty": 150}
+          ]
+        },
+        "expect_hit": true,
+        "expect_quantity": 250
+      }
+    },
+    {
+      "rule_id": "discrete/closed-order-short-delivered",
+      "statement": "订单被人工关闭，实发却少于订单量：状态写着完成，缺口既没发也没记欠货 —— 每个字段都是绿的，缺的那部分不在任何字段上",
+      "doctype": "Sales Order",
+      "group_by": ["name"],
+      "exclude": [{"field": "status", "operator": "not_equals", "value": "Closed"}],
+      "measures": [
+        {"name": "ordered", "operator": "sum_positive", "field": "total_qty"},
+        {
+          "name": "delivered",
+          "operator": "related_sum",
+          "doctype": "Sales Order Item",
+          "parent": "Sales Order",
+          "field": "delivered_qty",
+          "match": [["name", "parent"]]
+        },
+        {"name": "shortfall", "operator": "difference", "left": "ordered", "right": "delivered"}
+      ],
+      "trigger": {"measure": "shortfall", "operator": "greater_than", "value": 0},
+      "quantity": "shortfall",
+      "test_case": {
+        "name": "已关闭却少发 → 命中；还在交付中的那张 → 排除在外（排不掉时它会先命中，数就对不上）",
+        "rows": {
+          "Sales Order": [
+            {"name": "so-a-in-progress", "status": "To Deliver", "total_qty": 500},
+            {"name": "so-b-closed", "status": "Closed", "total_qty": 300}
+          ],
+          "Sales Order Item": [
+            {"parent": "so-a-in-progress", "delivered_qty": 100},
+            {"parent": "so-b-closed", "delivered_qty": 180}
+          ]
+        },
+        "expect_hit": true,
+        "expect_quantity": 120
+      }
+    }
+  ]
+}

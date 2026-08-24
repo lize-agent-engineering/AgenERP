@@ -122,12 +122,24 @@ _VOLATILE_KEYS = {"modified", "creation", "owner", "modified_by", "_comments", "
 
 
 def rule_lookup(session: Session, params: Mapping[str, Any]) -> Outcome:
-    """行业包业务合理性规则。**本期没有行业包，因此它的完整正确行为就是指名报错。**
+    """行业包业务合理性规则。**它的完整正确行为仍然是指名报错**，但理由变了。
 
     前置条件「行业包必须已装载」不满足时，`runtime.execute` 在第 ① 步就中止，
     一个请求都不发。走到这里只有一种情形：调用方**声称**装载过。
     那就把缺的东西指名说出来——**不伪造一个空包**，返回空会被读成「查过了，没有规则」。
-    重开事件是 P1.6 交付第一个行业包（P1.0a §9）。
+
+    ⚠️ **P1.6 已经交付第一个行业包，原先那个重开事件已经发生，但翻转被裁判挡住了。**
+    今天的三件事逐条说清：
+    ① **包在盘上**：`industry-packs/discrete/pack.json`（三条规则各带 `test_case`），
+       装载面与校验器在 `agenerp/packs/`，落点节 `docs/architecture/module-boundaries.md` §7.10；
+    ② **未接线**：本函数**没有**去读那个包，工具面上「行业包已装载」依然不成立；
+    ③ **接线为什么要人裁定**：三处判据钉着本函数的现行报错行为 ——
+       `tests/gates/test_tool_execution_live.py:119`（裁判）· 它委派进去的
+       `tests/tools/test_live_conformance.py:157` · `tests/tools/test_executors.py:290`。
+       接线会让那条 L2 门禁由绿转红，复绿只能改裁判或改它委派的断言体，两者都在红线内。
+       两条出路与各自代价见 `docs/masterplan/STATE.md` §3 的 needs-human。
+
+    **本 docstring 只改说法，报错消息的行为一个字没改**（上面三处判据都钉着它）。
     """
     scope = params.get("doctype") or params.get("scenario") or "<未指定场景>"
     raise ToolError(

@@ -1,0 +1,31 @@
+{
+  "pack_id": "missing-test-case",
+  "version": "0",
+  "requires_doctypes": ["Stock Ledger Entry"],
+  "rules": [
+    {
+      "rule_id": "broken/has-a-test-case",
+      "statement": "这条是好的：它带着自己的测例",
+      "doctype": "Stock Ledger Entry",
+      "group_by": ["item_code"],
+      "measures": [{"name": "received", "operator": "sum_positive", "field": "actual_qty"}],
+      "trigger": {"measure": "received", "operator": "greater_than", "value": 0},
+      "quantity": "received",
+      "test_case": {
+        "name": "有入库就命中",
+        "rows": {"Stock Ledger Entry": [{"item_code": "cog", "actual_qty": 5}]},
+        "expect_hit": true,
+        "expect_quantity": 5
+      }
+    },
+    {
+      "rule_id": "broken/no-test-case",
+      "statement": "这条没有 test_case —— 整份包必须一起拒载，不许装上好的那条、悄悄丢掉这条",
+      "doctype": "Stock Ledger Entry",
+      "group_by": ["item_code"],
+      "measures": [{"name": "issued", "operator": "sum_negative_abs", "field": "actual_qty"}],
+      "trigger": {"measure": "issued", "operator": "greater_than", "value": 0},
+      "quantity": "issued"
+    }
+  ]
+}

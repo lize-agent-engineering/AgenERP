@@ -46,6 +46,10 @@ SUBCON_VOUCHER_TYPE = "Subcontracting Receipt"
 # 巡检器实际会查的两张表；其余种子表照搬进假站点只是为了让站点自洽。
 LEDGER = "Stock Ledger Entry"
 ORDER_ITEM = "Sales Order Item"
+# P1.6 的外协规则查的两张子表。种子把子表内嵌在父单里，而 Frappe 的 REST 面上
+# 子表是独立资源 —— 与 `Sales Order Item` 同一招派生，**不手写一行数据**。
+SUBCON_ORDER_ITEM = "Subcontracting Order Item"
+SUBCON_RECEIPT_ITEM = "Subcontracting Receipt Item"
 
 # DocType **元数据**（不是数据行）。巡检器只查前四张；后面几张是给 Phase 2 的归因用的
 # —— 取证要 `doc.get` 那两张入库凭证、`doc.links` 那个物料，缺元数据会红在站点自洽性上。
@@ -54,6 +58,9 @@ _DOCTYPES = {
     "Bin": doctype(module="Stock", fields=[]),
     "Sales Order": doctype(is_submittable=1, fields=[]),
     ORDER_ITEM: doctype(istable=1, fields=[]),
+    "Subcontracting Order": doctype(module="Subcontracting", is_submittable=1, fields=[]),
+    SUBCON_ORDER_ITEM: doctype(istable=1, fields=[]),
+    SUBCON_RECEIPT_ITEM: doctype(istable=1, fields=[]),
     "Item": doctype(module="Stock", fields=[]),
     "Warehouse": doctype(module="Stock", fields=[]),
     "Stock Entry": doctype(module="Stock", is_submittable=1, fields=[]),
@@ -92,18 +99,18 @@ def _retimed(row: dict[str, Any], inhouse: float, subcon: float, delivery: float
     return row
 
 
-def _order_items(orders: tuple[dict, ...]) -> list[dict]:
-    """`Sales Order Item` 由销售订单的子表派生 —— 种子把子表内嵌在父单里，
+def _child_items(parents: tuple[dict, ...], parenttype: str) -> list[dict]:
+    """把父单内嵌的 `items` 摊成独立子表行 —— 种子把子表内嵌在父单里，
     而 Frappe 的 REST 面上子表是独立资源（v15 需点名 `parent`）。"""
     rows = []
-    for order in orders:
-        for index, item in enumerate(order.get("items") or (), start=1):
+    for parent in parents:
+        for index, item in enumerate(parent.get("items") or (), start=1):
             rows.append(
                 {
                     **item,
-                    "name": f"{order['name']}-item-{index}",
-                    "parent": order["name"],
-                    "parenttype": "Sales Order",
+                    "name": f"{parent['name']}-item-{index}",
+                    "parent": parent["name"],
+                    "parenttype": parenttype,
                 }
             )
     return rows
@@ -139,7 +146,13 @@ def seed_site(
     }
     rows[LEDGER] = ledger
     rows["Bin"] = _bins(ledger, dataset.of("Bin"))
-    rows[ORDER_ITEM] = _order_items(dataset.of("Sales Order"))
+    rows[ORDER_ITEM] = _child_items(dataset.of("Sales Order"), "Sales Order")
+    rows[SUBCON_ORDER_ITEM] = _child_items(
+        dataset.of("Subcontracting Order"), "Subcontracting Order"
+    )
+    rows[SUBCON_RECEIPT_ITEM] = _child_items(
+        dataset.of("Subcontracting Receipt"), "Subcontracting Receipt"
+    )
     # 种子的行里没有 `doctype` 键（它是站点回包的形状，不是数据集的一部分），
     # 而 `doc.get` 的契约把 `doctype` 列进了 `must_keep`。补上是**对齐站点形状**，
     # 不是补数据 —— 值由表名给出，没有任何一处是手抄的。
@@ -151,15 +164,20 @@ def seed_site(
     return FakeSite(doctypes=dict(_DOCTYPES), rows=rows)
 
 
+def synthetic_site(rows: dict[str, list[dict]]) -> FakeSite:
+    """一个**自成一套**的合成站点（不从种子派生）。阴性对照用它：
+    与那个陷阱无关的数据上还叫，才叫误报。"""
+    return FakeSite(doctypes=dict(_DOCTYPES), rows=rows)
+
+
 def unrelated_site() -> FakeSite:
     """一条**与积压陷阱无关**的合成轨迹：两个物料都是产多少卖多少，订单也都交清了。
 
     它不是种子数据集的变形，就是要与那个陷阱**无关** —— H3 判的是
     「规则口径有没有被放宽到在正常数据上也叫」。
     """
-    return FakeSite(
-        doctypes=dict(_DOCTYPES),
-        rows={
+    return synthetic_site(
+        {
             LEDGER: [
                 {"name": "sle-a", "item_code": "bolt", "warehouse": "wh-north",
                  "actual_qty": 400, "voucher_type": "Stock Entry", "is_cancelled": 0},
@@ -174,5 +192,5 @@ def unrelated_site() -> FakeSite:
                 {"name": "soi-a", "item_code": "bolt", "qty": 400, "parent": "so-a"},
                 {"name": "soi-b", "item_code": "washer", "qty": 250, "parent": "so-b"},
             ],
-        },
+        }
     )

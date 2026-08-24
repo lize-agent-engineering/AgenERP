@@ -25,7 +25,9 @@ from typing import Any, Protocol
 from agenerp.inspection.rules import (
     AT_LEAST_FRACTION_OF,
     DIFFERENCE,
+    EXCLUDE_EQUALS,
     EXCLUDE_FALSY,
+    EXCLUDE_NOT_EQUALS,
     EXCLUDE_TRUTHY,
     GREATER_THAN,
     RELATED_SUM,
@@ -90,6 +92,12 @@ class Hit:
 
     `subject` 是分组键的取值（例如物料 + 仓库），不是单据号：规则不照单号写，
     命中也不按单号报。
+
+    `pack_id` 是**出处**（P1.6 的 `Decision` D5）：命中要回答得了「这是哪个包的哪条规则报的」。
+    它**不来自 `rule_id`、也不在 `Rule` 里** —— 同一条 `rule_id` 可以挂在两个包下，
+    出处必须跟着包走，所以来源那一层是包（`agenerp.packs.Pack.pack_id`）
+    经 `run()` / `inspect_site()` 的 `pack_id` 形参传进来。默认空串 =「不属于任何包」
+    （引擎自带的最小规则集就是这一类，它**不是**行业包制品）。
     """
 
     rule_id: str
@@ -98,9 +106,11 @@ class Hit:
     quantity_name: str
     quantity: float
     measures: tuple[tuple[str, float], ...]
+    pack_id: str = ""
 
     def as_dict(self) -> dict[str, Any]:
         return {
+            "pack_id": self.pack_id,
             "rule_id": self.rule_id,
             "statement": self.statement,
             "subject": dict(self.subject),
@@ -136,12 +146,30 @@ def _num(value: Any) -> float:
         return 0.0
 
 
+def _same(value: Any, literal: Any) -> bool:
+    """`equals` / `not_equals` 的比较口径。**两侧都是数字时按数字比，否则按字符串比** ——
+    站点 REST 面回来的 `docstatus` 可能是 `1` 也可能是 `"1"`，按字符串硬比会静默失效。"""
+    numeric = (int, float)
+    if (
+        isinstance(value, numeric)
+        and not isinstance(value, bool)
+        and isinstance(literal, numeric)
+        and not isinstance(literal, bool)
+    ):
+        return float(value) == float(literal)
+    return str("" if value is None else value) == str("" if literal is None else literal)
+
+
 def _excluded(row: Mapping[str, Any], rule: Rule) -> bool:
     for item in rule.exclude:
         value = row.get(item.field)
         if item.operator == EXCLUDE_TRUTHY and value:
             return True
         if item.operator == EXCLUDE_FALSY and not value:
+            return True
+        if item.operator == EXCLUDE_EQUALS and _same(value, item.value):
+            return True
+        if item.operator == EXCLUDE_NOT_EQUALS and not _same(value, item.value):
             return True
     return False
 
@@ -184,7 +212,7 @@ def _fires(rule: Rule, values: Mapping[str, float]) -> bool:
     return False
 
 
-def _evaluate(rule: Rule, source: RowSource) -> list[Hit]:
+def _evaluate(rule: Rule, source: RowSource, pack_id: str = "") -> list[Hit]:
     rows = source.rows(rule.doctype, _primary_fields(rule))
     groups: dict[tuple[tuple[str, str], ...], list[Mapping[str, Any]]] = {}
     for row in rows:
@@ -220,6 +248,7 @@ def _evaluate(rule: Rule, source: RowSource) -> list[Hit]:
             continue
         hits.append(
             Hit(
+                pack_id=pack_id,
                 rule_id=rule.rule_id,
                 statement=rule.statement,
                 subject=key,
@@ -231,13 +260,18 @@ def _evaluate(rule: Rule, source: RowSource) -> list[Hit]:
     return hits
 
 
-def run(rules: Iterable[Rule], source: RowSource) -> InspectionReport:
+def run(rules: Iterable[Rule], source: RowSource, pack_id: str = "") -> InspectionReport:
     """在给定行源上跑一遍清单。**清单是唯一的发现力来源** ——
-    抽掉一条规则，它能发现的东西就跟着消失（消融判据）。"""
+    抽掉一条规则，它能发现的东西就跟着消失（消融判据）。
+
+    `pack_id` 只做一件事：把出处**原样**盖进每条命中（D5）。它不参与求值，
+    也不校验规则属不属于那个包 —— 出处是调用方（包的装载面）声明的事实，
+    引擎不猜。
+    """
     listed = tuple(rules)
     hits: list[Hit] = []
     for rule in listed:
-        hits.extend(_evaluate(rule, source))
+        hits.extend(_evaluate(rule, source, pack_id))
     return InspectionReport(
         rule_ids=tuple(rule.rule_id for rule in listed),
         hits=tuple(hits),
@@ -245,9 +279,11 @@ def run(rules: Iterable[Rule], source: RowSource) -> InspectionReport:
     )
 
 
-def inspect_site(rules: Iterable[Rule], client: SiteClient) -> InspectionReport:
+def inspect_site(
+    rules: Iterable[Rule], client: SiteClient, pack_id: str = ""
+) -> InspectionReport:
     """产品入口：在一个站点上跑一遍巡检。**零 LLM、零写操作。**"""
-    return run(rules, SiteRows(client))
+    return run(rules, SiteRows(client), pack_id)
 
 
 @dataclass(frozen=True)

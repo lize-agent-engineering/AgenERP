@@ -582,8 +582,10 @@ owner doc 是 `docs/design/agents-and-roles.md` §5.0 ②（巡检器存在的�
 ⚠️ **先把最容易读错的一件事写在最前面：巡检规则 ≠ 行业包制品。**
 `agenerp/inspection/minimal.py` 里那**一条**规则是**引擎自带的判据夹具**，用来证明
 「发现力来自规则清单」这件事本身；**行业包 v0（`pack_id` + `rule_id` 的来源、每条带
-`test_case` 的完整清单）归 P1.6，本仓今天没有**。因此 `agenerp/tools/queries.py` 的
-`rule.lookup` **仍然指名报错**，那不是过期漂移，是两件事：一件是引擎，一件是内容。
+`test_case` 的完整清单）由 P1.6 交付**，落点见 **§7.10**（制品在 `industry-packs/discrete/`，
+装载面与校验器在 `agenerp/packs/`）。因此 `agenerp/tools/queries.py` 的
+`rule.lookup` **仍然指名报错**，那不是过期漂移，是两件事：一件是引擎，一件是内容 ——
+⚠️ **P1.6 之后理由又变了一次**：不是「没有包」，是「**包在盘上、未接进工具面**」（§7.10）。
 另外，`agenerp/pack.py` 的「包」是**定制包**（Custom Field / Property Setter 的导出与 apply，
 见 §11），与行业规则包毫无关系 —— 命名消歧见下面的 `Decision` D2。
 
@@ -671,6 +673,197 @@ D-15 逐字：「按清单逐条查、命中即报**是代码，不是 Agent**�
 `request_count = 5`）。它证明的是「规则表达在真站点的 REST 面上跑得通、
 子表按 `parent` 取得到、命中与离线一致」。**归因那一半没有在活端点上跑过**
 （本层不需要，也不声称跑过）。
+
+### 7.10 行业包 v0（离散制造）在本仓的落点（P1.6 · 2026-08-24）
+
+plan [`2026-08-24-2109-1`](../plans/p1-insight/2026-08-24-2109-1-industry-pack-v0-discrete.md)。
+owner doc 是 `docs/design/agents-and-roles.md` §5.1；决策依据是
+`docs/masterplan/DECISIONS.md` **D-15 / D-12**（只读，本节不改它们一个字）。
+
+⚠️ **消歧一：本节的 `Decision` D1–D5 与 §7.9 的 D1–D4 不同源、不同编号空间**，
+两处不许互相引用编号。§7.9 定的是「引擎怎么做」，本节定的是「内容长什么样、谁来判它」。
+
+⚠️ **消歧二：仓里有三个「包」，本节只管第三个。**
+`agenerp/pack.py` = **定制包**（Custom Field / Property Setter 的导出与 apply，见 §11）·
+`agenerp/inspection/minimal.py` = **引擎自带的判据夹具**（一条规则，不是制品）·
+`industry-packs/` + `agenerp/packs/` = **行业包制品与它的校验器**（本节）。
+
+⚠️ **消歧三（本节最容易被读错的一句）：包在盘上 ≠ 包已接进 `rule.lookup`。**
+本期交付的是「制品在盘上、校验器判得动它」，**不是**「行业包已装载进工具面」。
+`agenerp/tools/queries.py` 的 `rule_lookup` **仍然指名报错**，理由从「没有包」
+变成「包在盘上、未接线，接线待人裁定」——`tests/gates/test_tool_execution_live.py`
+钉着它的现行行为，翻转会让一条 L2 门禁由绿转红（详见下面「未接线」一段）。
+
+#### 制品与代码的落点
+
+| 东西 | 位置 |
+|---|---|
+| 行业包制品 | `industry-packs/discrete/pack.json`（`pack_id` / `version` / `requires_doctypes` / `rules[]`） |
+| 装载面 + 校验器 | `agenerp/packs/loader.py`（`load_pack` / `validate_pack` / `Pack`） |
+| CLI | `agenerp/packs/__main__.py` —— `python3 -m agenerp.packs validate --pack discrete` |
+| 判据 | `tests/unit/test_industry_pack.py`（39 条）· 坏包夹具 `tests/unit/pack_fixtures/` |
+
+包 v0 收三条规则，**每条都带 `test_case`，且每条都有阳性 / 阴性两侧对照**：
+
+| rule_id | 它找的异常 | 固定测例上 |
+|---|---|---|
+| `discrete/finished-goods-backlog` | 产出远大于销出（成品积压） | **命中 1,010**（= `agenerp/seed/checks.py` 的 `EXPECTED_BACKLOG_QTY`） |
+| `discrete/subcontracting-issued-not-received` | 外协发出去的活收不回来（D-12 点名的一类） | **零命中，且那个零命中是正确行为**（见下） |
+| `discrete/closed-order-short-delivered` | 订单被人工关闭却实发少于订单量（账面全绿陷阱） | **命中 10**（= `EXPECTED_SHORTFALL_QTY`） |
+
+#### 五条 `Decision`
+
+- **D1 · 判据表达取 §7.9 的 `Rule` 形状，不取 D01 建议的 `query` + `assert`。**
+  被否决的是证据仓 `spike/D01-decisions/FINDINGS.md` §D-3 建议的「裸 SQL 查询 + 自然语言断言」：
+  本仓取数走站点 REST 只读端点（`agenerp/inspection/engine.py` 的 `SiteRows`），**根本没有 SQL 面**；
+  自然语言 `assert` 不可执行，落地必然退回「让模型理解规则」，与 D01 自己的第 2 条原则
+  （「判据必须可独立执行、可断言，不依赖 LLM 判断」）和 §7.9 的选择同时冲突。
+  **残余风险**：本仓格式与 D01 建议格式不一致，将来要吃外部按 D01 写的包需要一个转换层 ——
+  本期没有输入，登记为 deferred。
+- **D2 · 包文件用 JSON，不用 YAML**（`constrained choice`）。
+  理由是实读出来的硬约束：`.github/workflows/gates.yml` **五处** `pip install pytest certifi`
+  （`:104` / `:176` / `:241` / `:451` / `:505`）**没有 PyYAML**，而 `.github/workflows/**` 在红线内，
+  本期无权加装依赖；`agenerp/contracts.py:9-11` 已有同一条先例。
+  **代价照实记**：JSON 写不了注释，规则的「为什么」只能进 `statement` 字段；
+  D01 建议的 YAML 形态因此**未采纳**。
+- **D3 · 扩两个行过滤算子（`equals` / `not_equals`），其余缺口收内容。**
+  由 Explore E1 的实测驱动（结论见下面「E1」一段）。判定口径：**只有语义能有限枚举、
+  且写得出自己的拒载判据的算子才许新增**；任何要「传一段表达式 / 谓词 / SQL 进来」的方案一律否决。
+  两个新算子各带一个字面量（`ROW_FILTER_KEYS` 加一位 `value`），
+  并同时交付三样：有限键集里的登记 · 求值判据 · **拒载判据**（未知算子名、缺字面量、
+  `truthy`/`falsy` 夹带 `value`、非标量字面量，四种都拒载）。
+  ⚠️ **日期算术（「逾期 N 天」）明确不在本期**：它要引入时间基准与时区口径，属另一个交付面。
+  外协那条 v0 因此按「**已发料 − 已收货 > 0**」这种**不含时间**的形态表达。
+  **本期表达不了的规则类别（D3 的产物，照实列）**：
+  ① 需要**触发侧合取**的（如「入库为零**且**出库大于零」）—— 现有 `trigger` 只有一条，没有 `and`；
+  ② 需要**按组计数**的（如「同一物料在多个仓库重复堆积」）—— 度量算子里没有 `count`；
+  ③ 需要**日期算术**的（如「逾期 N 天未收」）。三类都**没有**先写进包里、判据以后补。
+- **D4 · 包落在仓库根 `industry-packs/<pack_id>/pack.json`**，不是 `agenerp/packs/data/`。
+  ⚠️ **权衡只用本仓今天可判的口径写**：仓里**没有 `MANIFEST.in`**、`pyproject.toml` **没有
+  `[tool.setuptools.package-data]`**、CI 与 `tools/` 里**没有任何 wheel 构建步骤** ——
+  所以「随 wheel 打包」与「wheel 装不到」**两条今天都不可验证，不许拿来当理由**。
+  可判的两条是：① **路径解析方式** —— `agenerp/packs/loader.py` 的 `packs_root()`
+  由本文件位置上溯两级到仓库根，`--packs-dir` 是显式覆盖口；
+  ② **它自己的判据** —— 解析不到时抛 `PackNotFound`，CLI 退 `3`（不是「校验通过」）。
+  选它的理由：包是**制品**不是代码，与「生态伙伴独立提供行业包」同一个方向，
+  且和 `agenerp/pack.py`（定制包）在目录上就分得开。
+  被否决的 (B) `agenerp/packs/data/` 的代价：包躺在 Python 包目录里，
+  「制品」与「代码」在路径上读不出区别。
+  **残余风险（写成假设，不写成事实）**：*假如*将来做 wheel 分发，仓库根的
+  `industry-packs/` 大概率不在 wheel 里 —— 这**今天不可验证**，`--packs-dir` 是它的逃生口。
+- **D5 · 出处（`pack_id`）落在 `Hit` 上，来源那一层是包。**
+  §7.9 交付的 `Hit` **没有** `pack_id`，而 `rule.lookup` 契约的 `must_keep` 含它
+  （`agenerp/tools_readonly.py:238`，后置断言叫 `rules_carry_provenance`）。
+  选定 (A)：给 `Hit` **加**一个带默认值的 `pack_id` 字段，
+  **来源那一层点名**是 `Pack.pack_id` → `engine.run()` / `inspect_site()` 的 `pack_id` 形参。
+  它**不进 `Rule` / `RULE_KEYS`**：规则声明不该知道自己在哪个包里。
+  被否决 (B)「在包这一层包一层 `rule_id → pack_id` 映射」：命中记录本身仍答不出出处，
+  出了引擎就丢。被否决 (C)「把 `pack_id` 编进 `rule_id` 前缀」：出处与身份混成一个字符串，
+  `rule_id` 一改出处就变，且「同一 `rule_id` 挂两个包」这条判据在它上面**根本构造不出来**。
+  **残余风险**：`pack_id` 默认空串 —— 引擎自带的最小规则集报出来的出处是空的。
+  这是想要的（它不是行业包制品），并由 `test_h7_the_engines_own_minimal_rules_claim_no_pack` 钉住。
+
+#### Explore E1：算子缺口的实测结论（与开工前写死的预测逐格对照）
+
+| # | 候选规则 | 预测 | 实测 | 对照 |
+|---|---|---|---|---|
+| R1 | 产出远大于销出 | 够 | 够，原样表达 | **吻合** |
+| R2 | 外协已发料、迟迟未收 | 不够 · 缺按字段值相等筛行（判「逾期」还缺日期算术） | 确实缺：`docstatus == 2` 的作废单排不掉（`truthy` 会把 `docstatus == 1` 一起排掉）→ 新增 `equals`。日期那一维本期不做 | **吻合** |
+| R3 | 订单已关闭但实发少于订单量 | 不够 · 同上（按 `status` 相等筛行）；方向不缺 | 缺的是**反向**那一个：`exclude` 的语义是「命中即排除」，「只看 `status == "Closed"`」要写成「排除 `status != "Closed"`」→ 新增 `not_equals`。方向确实不缺（`difference` + `greater_than` 反写即可） | **部分吻合（预测缺 `equals`，实际缺的是同一族的 `not_equals`）** |
+| R4 | 某物料入库为零却有出库 | 不够 · 缺触发侧的合取 | 确实缺：`trigger` 只有一条，`{"and": …}` 被未知键拒载 | **吻合** |
+| R5 | 同一物料在多个仓库重复堆积 | 不够 · 缺按组计数 | 确实缺：`count` 不在 `MEASURE_OPERATORS` 里，被有限算子集拒载 | **吻合** |
+
+⚠️ 上表是**开工前写死、事后逐格对照**的产物，预测错了照实记，**不回头改预测**。
+R4 / R5 按 D3 的「收内容」出路处理：v0 不收，类别写在 D3 里。
+
+#### 校验器的四种处置（互相分得开）
+
+`python3 -m agenerp.packs validate --pack <id>` 的退出码口径 **(i)**：不同退出码，
+**并且**消息指名到具体对象。
+
+| 输入 | 退出码 | 消息指名到 |
+|---|---|---|
+| 健康包 | `0` | 包 id、版本、路径、逐条 `rule_id` 与测例名 |
+| `--pack` 拼错 / 包目录不存在 | `3` | 那个 `--pack` 取值、查过的目录、该目录下现有的包 |
+| 某规则缺 `test_case`（或形状不合） | `4` | 那条 `rule_id` |
+| 某规则的 `test_case` 跑不过 | `5` | 那条 `rule_id`、测例名、期望与实测 |
+
+`2` 留给 argparse 的用法错误，不复用。
+⚠️ **三个非零码分开不是洁癖**：合成同一个「非零」时，「查无此包」会被读成「这个包有问题」,
+而 `--pack` 打错一个字母的人拿不到任何线索 —— 那是最贵的一种假绿。
+
+**校验器真的跑测例，不是只检查那个键存在**：`validate_pack` 走
+`agenerp.inspection.engine.check_test_cases`，逐条在内存行集上真跑。
+判据把「翻转 `expect_hit`」与「摘掉 `test_case`」两种变异**逐条各施加一次（含最后一条）**——
+只变异第一条时，一个「只校验第一条就返回」的假校验器是绿的。
+坏包夹具放 `tests/unit/pack_fixtures/`（静态两份）与 `tmp_path`（逐条派生），
+**不放进 `industry-packs/`**：产品制品目录里不许躺着故意写坏的包。
+
+#### 判别力是怎么证明的（以及消融判据为什么不算数）
+
+⚠️ **消融判据（抽掉规则 → 它那条异常查不出来）在 `without()` + `run()` 的实现下接近恒真**：
+规则没了自然没有它的命中。它证明的是「引擎读清单」，**不证明「规则有判别力」**。
+本节保留它，但**降级为附带断言**。
+
+主判据是**每条规则一对阳性 / 阴性对照**：
+阳性 = 含该异常的数据上必须命中，且命中里的**数是算出来的**；
+阴性 = 三种异常一个都没有的健康数据上**必须零命中**。
+另加**第二个数据集**（换掉 `INHOUSE_QTY` / `SUBCON_QTY` / `DELIVERY_QTY` 三个构造参数、
+期望值在判据里写死一个 `!= 1010` 的字面量），证明那个数**随数据集变**。
+
+**不许照答案写规则**：包的序列化形态里不出现单号字面量、不出现 `1010` / `2000` / `990`、
+不出现夹具的物料号与仓库名，**源声明与装载后两侧都判**（只判装载后那一侧时，
+一条把答案写在装载器不认识的键里的声明会被丢弃、序列化里看不见，可它明晃晃写在源码里）。
+`test_case` 整块是这条判据的**显式例外**（合成行本来就要写具体数据），
+但测例的取值**不许照抄固定测例的数**，这一条也有自己的断言。
+
+#### 外协那条规则：验的是「它不误报」，不是「它已在真实数据上验证过命中」
+
+⚠️ **逐字声明：外协那条规则未在真实数据上验证过命中。**
+种子数据集的外协链是**完整的**（`agenerp/seed/documents.py:147-236`：
+`Subcontracting Order.status = "Completed"`，收货 `qty` / `received_qty` 都等于订单量），
+即发出去多少收回来多少 —— 所以它在固定测例与活站点上**都零命中，而那个零命中是正确行为**。
+种子被 `tests/gates/test_seed_dataset_absurdity.py`（裁判）钉着，**不许为了给它造阳性对照
+往种子里加一个新异常**。
+它的**阳性对照落在自己的 `test_case`**（合成行，这正是 `test_case` 存在的理由），
+固定测例上判的是**它不误报**，且那个零命中必须是**算出来的零**
+（委外量与收货量都得非零，否则「没数据」也会静静地绿）。
+
+#### 活站点验证范围（H4 · 2026-08-24）
+
+在本地活站点（`frontend@http://127.0.0.1:18080`）用 `industry-packs/discrete/` 跑过**一次**
+整份包（9 次只读请求），与离线固定测例逐字比对，**结论是「部分一致」，照实记**：
+
+- `discrete/finished-goods-backlog`：**两侧逐字一致**（`item_code=HRD-PACK-5K` /
+  `warehouse=成品仓 - HRD` / `quantity=1010.0`）。命中集合非空且含它 —— H4 的防伪前提成立
+  （否则「两个空集相等」也叫「逐字一致」）。
+- `discrete/subcontracting-issued-not-received`：两侧**都零命中**，与上一段一致，是正确行为。
+- `discrete/closed-order-short-delivered`：**离线命中 10，站点零命中** ——
+  ⚠️ **这正是 D-12 预言的失败形态被抓到了，不是本包的缺陷。**
+  可复现的观测（复跑一次结果相同）：站点上 `Sales Order.status` 是 `"To Deliver and Bill"`，
+  而 `agenerp/seed/model.py:57` 的 `SALES_ORDER_STATUS` 是 `"Closed"`；
+  `agenerp/seedsite.py` 全文没有写这个 `status` 的地方。
+  **规则一个字没改去迁就站点**（那是照答案写规则）。归属不在本节的交付面 ——
+  已记 `docs/bugs/02-…`，并在 `docs/masterplan/STATE.md` §3 追加了 needs-human。
+
+#### 未接线：`rule.lookup` 为什么还在报错
+
+三处判据钉着 `rule_lookup` 的**现行报错行为**：
+`tests/gates/test_tool_execution_live.py:119`（**裁判**，红线内一个字不许动）·
+它委派进去的 `tests/tools/test_live_conformance.py:157`（裁判的实际断言面）·
+`tests/tools/test_executors.py:290`（离线同形态）。
+把行业包接进 `rule.lookup` 会让那条 L2 门禁**由绿转红**，而让它复绿只有两条路 ——
+改裁判，或改它委派的断言体（等价于间接改裁判）。**两条都在红线内，loop 不许走。**
+→ 接线**交给人裁定**，两条出路与各自代价见 `docs/masterplan/STATE.md` §3 的 needs-human。
+
+#### 本期显式不做的（定界，不是遗漏）
+
+- **不做 `thresholds` / `terminology` 两个顶层块**（D01 建议格式里的另外两块）：
+  它们服务的是呈现与检索（P2 的术语层），本期没有消费者 ——
+  **没有消费者的声明块就是没有守卫的字符串**。
+- **不做行业包的分发/插件化机制**（D01 与 `open-questions.md` #5 都放 P5：
+  「只有一个行业包时，插件化机制是纯粹的复杂度」）。
+- **不实现 `anomaly.scan` / `benchmark.compare`**：它们不在十个只读契约里，新增契约是另一个交付面。
 
 ---
 

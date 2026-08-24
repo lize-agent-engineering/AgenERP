@@ -1,0 +1,22 @@
+{
+  "pack_id": "failing-test-case",
+  "version": "0",
+  "requires_doctypes": ["Stock Ledger Entry"],
+  "rules": [
+    {
+      "rule_id": "broken/quantity-does-not-add-up",
+      "statement": "形状完全合法、test_case 也在 —— 但那个测例跑出来的数与它自己声明的期望对不上",
+      "doctype": "Stock Ledger Entry",
+      "group_by": ["item_code"],
+      "measures": [{"name": "received", "operator": "sum_positive", "field": "actual_qty"}],
+      "trigger": {"measure": "received", "operator": "greater_than", "value": 0},
+      "quantity": "received",
+      "test_case": {
+        "name": "入库 7，却声称期望 70",
+        "rows": {"Stock Ledger Entry": [{"item_code": "cog", "actual_qty": 7}]},
+        "expect_hit": true,
+        "expect_quantity": 70
+      }
+    }
+  ]
+}

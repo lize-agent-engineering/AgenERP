@@ -148,7 +148,11 @@ D-15 把「洞察」拆成了两件东西 —— **巡检（按清单逐条查�
 ⚠️ 上表洞察行里的 **`anomaly.scan` 与 `benchmark.compare` 仍未实现**：
 它们不在十个只读契约里（`agenerp/tools_readonly.py` 逐字给了排除理由「依赖行业包规则」），
 P1.5 也没有新增契约。⚠️ `agenerp/inspection/` 自带的最小规则集**不是行业包制品** ——
-行业包 v0 归 P1.6，`rule.lookup` 因此仍然指名报错。
+行业包 v0 由 **P1.6 交付**（`industry-packs/discrete/pack.json`，三条规则各带 `test_case`，
+校验器与 CLI 在 `agenerp/packs/`，落点节 `docs/architecture/module-boundaries.md` **§7.10**）。
+⚠️ **`rule.lookup` 仍然指名报错**，但理由变了：不再是「本仓没有行业包」，
+而是「**包在盘上、尚未接线**」—— 接线会让 `tests/gates/test_tool_execution_live.py` 的一条由绿转红，
+复绿只能改裁判或改它委派的断言体，两者都在红线内，**接线由人裁定**（见 `docs/masterplan/STATE.md` §3）。
 
 **`lineage.trace` 的硬约束**：ERPNext 的单据关联大量挂在**子表**上（如 `Delivery Note Item.against_sales_order`）。只扫主表 Link 字段的血缘实现会返回空结果——实测中 21 个指向 Sales Order 的 Link 字段里，14 个在子表。血缘工具必须同时扫主表级与子表级并回溯父单据。
 

@@ -18,12 +18,21 @@
 | 位置 | 算子 | 语义 |
 |---|---|---|
 | 行过滤 | `truthy` / `falsy` | 该字段为真 / 为假的行被排除 |
+| 行过滤 | `equals` / `not_equals` | 该字段**等于 / 不等于**给定字面量的行被排除 |
 | 度量 | `sum_positive` | 组内该字段所有**正值**之和 |
 | 度量 | `sum_negative_abs` | 组内该字段所有**负值**的绝对值之和 |
 | 度量 | `difference` | 两个**已声明过的**度量相减 |
 | 度量 | `related_sum` | 另一个 DocType 里按 `match` 对上的行的字段之和 |
 | 触发 | `greater_than` | 度量 > 字面量 |
 | 触发 | `at_least_fraction_of` | 参照量 > 0 **且** 度量 ≥ 比例 × 参照量 |
+
+`equals` / `not_equals` 是 **P1.6 的 `Decision` D3** 加进来的（落点节
+`docs/architecture/module-boundaries.md` §7.10）：离散制造的两类规则（外协发出未收、
+订单已关闭却少发）都要「只看某个状态值的那些行」，而 `truthy` / `falsy` 表达不出
+「`docstatus == 2` 的排掉、`docstatus == 1` 的留下」。判定口径是「语义能有限枚举、
+且写得出自己的拒载判据」—— 这两个算子各带一个字面量，不带表达式，符合该口径。
+**比较口径写死**：两侧都是数字（`bool` 除外）时按 `float` 比，否则按字符串比，
+`None` 视作空串 —— 站点 REST 面回来的 `docstatus` 可能是 `1` 也可能是 `"1"`。
 
 `at_least_fraction_of` 的「参照量 > 0」不是实现细节而是语义的一部分：参照量为 0 时
 「多出来的有没有道理」这个问题问不出来（没卖过的东西谈不上「产出远大于销出」），
@@ -44,7 +53,13 @@ from typing import Any
 # 行过滤算子
 EXCLUDE_TRUTHY = "truthy"
 EXCLUDE_FALSY = "falsy"
-EXCLUDE_OPERATORS = (EXCLUDE_TRUTHY, EXCLUDE_FALSY)
+EXCLUDE_EQUALS = "equals"
+EXCLUDE_NOT_EQUALS = "not_equals"
+EXCLUDE_OPERATORS = (EXCLUDE_TRUTHY, EXCLUDE_FALSY, EXCLUDE_EQUALS, EXCLUDE_NOT_EQUALS)
+# 这两个算子**要一个字面量**，另外两个**不许带**：带了就拒载。
+# 少了这条，`{"field": "docstatus", "operator": "truthy", "value": 2}` 会被读成
+# 「排除 docstatus == 2」，实际排掉的是所有非零 docstatus —— 静默放宽。
+VALUED_EXCLUDE_OPERATORS = (EXCLUDE_EQUALS, EXCLUDE_NOT_EQUALS)
 
 # 度量算子
 SUM_POSITIVE = "sum_positive"
@@ -77,7 +92,7 @@ MEASURE_KEYS = frozenset(
 )
 TRIGGER_KEYS = frozenset({"measure", "operator", "reference", "value"})
 TEST_CASE_KEYS = frozenset({"name", "rows", "expect_hit", "expect_quantity"})
-ROW_FILTER_KEYS = frozenset({"field", "operator"})
+ROW_FILTER_KEYS = frozenset({"field", "operator", "value"})
 
 
 class RuleLoadError(ValueError):
@@ -87,13 +102,20 @@ class RuleLoadError(ValueError):
 
 @dataclass(frozen=True)
 class RowFilter:
-    """一条行过滤：`field` 上 `operator` 成立的行**被排除**在汇总之外。"""
+    """一条行过滤：`field` 上 `operator` 成立的行**被排除**在汇总之外。
+
+    `equals` / `not_equals` 带一个字面量 `value`；`truthy` / `falsy` 不带。
+    """
 
     field: str
     operator: str
+    value: Any = None
 
-    def as_dict(self) -> dict[str, str]:
-        return {"field": self.field, "operator": self.operator}
+    def as_dict(self) -> dict[str, Any]:
+        payload: dict[str, Any] = {"field": self.field, "operator": self.operator}
+        if self.operator in VALUED_EXCLUDE_OPERATORS:
+            payload["value"] = self.value
+        return payload
 
 
 @dataclass(frozen=True)
@@ -224,7 +246,24 @@ def _row_filter(declaration: Mapping[str, Any], where: str) -> RowFilter:
         operator in EXCLUDE_OPERATORS,
         f"{where}：行过滤算子 {operator!r} 不在有限算子集 {list(EXCLUDE_OPERATORS)} 里",
     )
-    return RowFilter(field=_text(declaration, "field", where), operator=operator)
+    value = declaration.get("value")
+    if operator in VALUED_EXCLUDE_OPERATORS:
+        _require(
+            "value" in declaration,
+            f"{where}：{operator} 需要一个字面量 `value`",
+        )
+        _require(
+            isinstance(value, (str, int, float)) and not isinstance(value, bool),
+            f"{where}：{operator} 的 `value` 必须是字符串或数字（布尔用 truthy / falsy）",
+        )
+    else:
+        _require(
+            "value" not in declaration,
+            f"{where}：{operator} 不接受 `value`（要按字面量筛行请用 "
+            f"{list(VALUED_EXCLUDE_OPERATORS)}）",
+        )
+        value = None
+    return RowFilter(field=_text(declaration, "field", where), operator=operator, value=value)
 
 
 def _measure(declaration: Mapping[str, Any], seen: tuple[str, ...], where: str) -> Measure:
