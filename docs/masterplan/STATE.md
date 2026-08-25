@@ -523,7 +523,7 @@
   · **一条对下半有约束力的实读**：`frappe/model/sync.py` 的 `IMPORTABLE_DOCTYPES` 含 `("custom","client_script")` 与 `("core","server_script")` ⇒ **一个「合规的」自建 app 能把 `Client Script` / `Server Script` 当 fixture 带进站点**。管道合规不豁免承载物；下半的 app 里不得出现这两类 fixture（已写进 §7.13 的 D3 ⑥）。
   · **loop 不代人批、不试探、不绕道**。plan §6 的对称护栏已逐格答过：(A) 六格全不触发，故 D1 出了结论；卡住的只有**激活**这一步。
 
-- [open] 2026-08-25T02:10Z · 触发：**工作项 10 的 plan 预算已用满表规 3 的 2 个，而 WBS 验收命令交不出来 —— 拆行只有人能做** · 工作项 10 / `02-WBS.md` §4 P1.8 行（验收 `pytest -m live tests/ui/test_sidebar.py` 退 0）· plan `docs/plans/p1-insight/2026-08-24-2311-2-desk-embed-carrier-decision.md` · **最后一条失败命令：无**（本 plan 未创建也未声称满足 `tests/ui/test_sidebar.py`）· 基线 sha `e804143` · 处置：
+- [resolved] 2026-08-25T02:28Z · 原「工作项 10 的 plan 预算已用满，拆行只有人能做」**已由人拆行** · 查证：两个 plan（`2311-2` completed / `0119-1` deferred）**都只做了选型与探测，没落地任何承载面** —— **不是做不动，是撞上一个从未写明的前提**：Agent 跑在 ERPNext 里面还是外面。D-19 已裁定「外面」 · 据此拆成两行，各自有预算：**P1.8a 解释服务的 HTTP 面**（`agenerp/explain/` 今天只是 Python 类，没有任何东西在监听端口；要包成进程、接进 compose、nginx 加 `location` 反代）· **P1.8b Desk 侧边栏**（调 P1.8a 的面）· WBS 第 87 行与 roadmap 工作项 10 同步改，P1.9 前置改为 P1.1–P1.8b · ⚠️ P1.8a 的验收特意加了一条容易漏的：**零依赖启动门禁须仍绿** —— 新服务必须在「一个 AI 变量都不配」时也起得来
   · **账**：`02-WBS.md` 表规 3 逐字「一个工作项 = **1–2 个 plan**（超过就拆行）」。工作项 10 的两个 plan 是：本 plan（P1.8 上半 · 承载面选型）+ **P1.8 下半**（按 D1 落地承载面 + ⌘K + `tests/ui/test_sidebar.py`）。**2 个，刚好用满。**
   · **问题**：D1 的结论是「(A)，但激活需人批」（上一条 `open`）。若人批不下来或迟迟不批，P1.8 下半就卡在激活上，`tests/ui/test_sidebar.py` **跑不起来** ⇒ **工作项 10 将在 2 个 plan 内交不出 `02-WBS.md` 的验收命令**。
   · **两个出口，都只有人能选**：① 人批准激活（处置上一条 `open`），下半照常做；② 人在 `02-WBS.md` 把 P1.8 拆成两行（上半选型 / 下半落地），各自绑自己的验收。**② 是 `docs/masterplan/` 编辑，红线 5，loop 一个字不改，也不代改 `docs/backlog/` 的对应行。**
