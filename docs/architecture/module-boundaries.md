@@ -2967,3 +2967,222 @@ M9 把它改坏而判据一个字不动时**必须红**（实测 2 failed）。
 | M7 | 把 `rule_ids` 排除在比对面之外 | `test_rule_ids_drift_with_identical_hits_is_judged_different` · `test_rule_ids_are_compared_with_their_order`（2 failed）|
 | M8 | 在 `parity.py` 里 `import agenerp.routing` 并在链上碰一次 `ChatAdapter` | **两个可观测量各红一条**：`test_h7a_importing_the_comparator_never_pulls_in_the_model_face`（子进程导入图）· `test_h7b_the_whole_parity_chain_makes_zero_model_calls`（替身计数 0 → 1）|
 | M9 | 改坏出货的 `parity.py`，**判据文件一个字不动** | 判据 ③④ 两条（2 failed）⇒ **判据测的确实是出货那份，不是自己的副本** |
+
+### 7.20 解释服务的 HTTP 面（进程 + 端点 + `sid` 认人）在本仓的落点（P1.8a 第 1 个 plan · 2026-08-25）
+
+plan `docs/plans/p1-insight/2026-08-25-1159-1-explain-http-service.md`（D-19 的第一半）。
+**本节记的是「进程与请求面本身」**；compose 接线、nginx 同源反代、`02-WBS.md` §4 P1.8a 的
+验收命令**不在本节**，它们是同一工作项第 2 个 plan 的全部内容。
+
+前置节：`sid` 认证模式本身见 **§7.14**（`SiteClient` 那一层，本节不重做）；
+① 即时上下文见 **§7.12**；四项 token 账的口径见 **§7.11 / §7.17**（本节一个字不重定）。
+
+#### `D-a-1` 传输栈：标准库 `http.server`，不引框架
+
+`ThreadingHTTPServer` + `BaseHTTPRequestHandler`。两个备选逐条记：
+
+- **引 `flask` / `fastapi`** → **否决**。`pyproject.toml` 的 `dependencies` 今天只有
+  `certifi>=2024.2.2`（且它进来的理由写在文件里）。引框架不只是多一个包，它会把
+  P1.8a 验收里那条「**零依赖启动门禁须仍绿**」的判据面直接撑大。
+- **自己写 socket 循环** → **否决**。重造 HTTP 解析，且更易错。
+
+⚠️ **残余风险照实记，不假装它是生产形态**：`ThreadingHTTPServer` **每连接一线程**，
+没有连接池、没有请求超时、没有限流、没有 TLS。本期服务只绑 `127.0.0.1`、不出宿主，
+这个形态够用；**它一旦要对本机之外提供，这一条就必须重开**。
+
+#### `D-a-2` 端点集合：两条，前缀 `/agenerp`
+
+| 方法 · 路径 | 认人？ | 碰 LLM？ | 碰站点？ |
+|---|---|---|---|
+| `GET  /agenerp/health` | **否** | **否** | **否** |
+| `POST /agenerp/explain` | **是** | 可能 | 是 |
+
+**前缀字面值 `/agenerp` 在本节定稿** —— 第 2 个 plan 的 nginx `location` 必须与它逐字一致。
+
+**不加第三条。** 被否决的备选是「加一条 `GET /agenerp/whoami` 方便调试」：
+它是**第二个认人面**，判据要跟着翻倍（401 的每一格都要在两处各判一次），
+而它的全部调试价值已经由 `/explain` 的 401 分支覆盖。
+
+`/health` 的**不做什么**比做什么重要：它**不读任何 `AGENERP_LLM_*`**、不打站点、不认人，
+恒 200。这正是「AI 未配置 ≠ 服务坏了」在响应上可区分的那一半
+（`docker-compose.yml` 文件头规则 ②：外部能力缺失是**未配置**状态，不是错误状态）。
+
+#### `D-a-3` ① 即时上下文的权限缺口：选 (iii)，字段表由服务端用调用者自己的 `sid` 现取
+
+承接 `STATE.md` §3 `[open] 2026-08-25T00:35Z` 第 ① 项。三个备选逐条：
+
+- **(i) 请求体直接给字段表** → **否决**。`agenerp/context/immediate.py` 模块头规矩 1 逐字
+  「这一层不打站点、不查权限」，`explain()` 的 docstring 逐字「字段表是不是当前身份有权看的，
+  **由调用方负责**」。一旦调用方是浏览器，(i) 就等于**让外部输入把任意字段表送进模型**——
+  那正是这条缺口的最坏形态。
+- **(ii) 干脆不接受 ①** → 可行，但把 P1.8b「保留当前单据上下文」整条堵死。
+- **(iii) 请求体只给 `doctype` + `name`，字段表由服务端用调用者自己的 `sid` 现取** → **选它**。
+  权限由 Frappe 判（与 D-19「权限仍由 Frappe 判」同向）；调用者读不到的单据，
+  那次 `GET /api/resource/<doctype>/<name>` 就会被站点拒掉，模型永远看不到它。
+  **活站点实测支撑**见 `docs/analysis/2026-08-25-1159-explain-service-sid-probe.md` 第 h 行。
+
+⚠️ **选定不等于那条 `[open]` 自动消失。** (iii) 关掉的是**本服务这个入口**上的缺口；
+`agenerp/context/immediate.py` 那一层「不查权限」的事实**一个字没变**，别的调用方仍可绕过。
+收口时按实际关闭程度在 `STATE.md` 追加**事实行**，`[open]` 的处置权仍在人。
+
+#### `D-a-3b` `assemble()` 六个入参的出处，逐个点名
+
+`assemble(doctype, name, fields, role, view, actions)`（`agenerp/context/immediate.py:113-121` 实读）。
+**六格一个不留白**：
+
+| 入参 | 格 | 出处 | 为什么 |
+|---|---|---|---|
+| `doctype` | **请求体** | 调用者给 | 它是**指名要读哪份单据**，不是权限声明。给错了下一步就被 Frappe 拒 |
+| `name` | **请求体** | 调用者给 | 同上 |
+| `fields` | **(A)** | 服务端用同一个 `sid` 客户端 `GET /api/resource/<doctype>/<name>` 现取 | `D-a-3` (iii) 本体 |
+| `role` | **(A)** | 服务端把 `frappe.auth.get_logged_user` 解析出的**那个人**放进去 | ⚠️ **它的字面就是身份词。** 调用方自称的 role 与 `sid` 解析出的人**不是同一件事**，因此它**绝不落 (B)**。请求体给了 `role` → **400**，不是忽略 |
+| `view` | **(C)** | 服务端写死常量 `"explain-service"` | 服务面只有一个视图（就是它自己）。请求体给了 `view` → **400** |
+| `actions` | **(C)** | 服务端写死 `()`（空） | ② 档是「**已执行动作的审计记录**」（§8.2 / `immediate.py` 的 `TIER_ACTIONS`，**不可压缩**）。让调用方声明「我已经执行过什么」＝**让外部输入伪造一份审计记录喂给模型**。本期服务不执行任何动作 ⇒ 它按构造就该是空 |
+
+⚠️ **`role` 落 (A) 的残余风险照实记**：放进去的是 **`sid` 解析出的用户名**，
+**不是 Frappe 的角色表**。本节不假装它是后者。要真角色表就得再打一次站点
+（读调用者自己的 `User` 文档），那会多一条失败面（非 System User 读不到自己的 `User` 文档时
+整个请求要怎么处置，本期没有实测依据）⇒ **本期不做**，重开事件是「P1.8b 或第 2 个 plan
+出现了必须按角色分叉的具体需求」。
+
+⚠️ **`view` / `actions` 落 (C) 的残余风险**：P1.8b 的侧边栏大概率想把真实的 Desk 视图名
+（`form` / `list` / `report`）带进来。**那时必须重新裁定**，并且要回答一个本期没回答的问题：
+一个调用方自报的视图名进模型，为什么不构成越权。本期不预支那个答案。
+
+**六格与判据的对应**在 Phase 2 判据⑦，一格一条。
+
+#### `D-a-4` 失败到状态码的映射表
+
+**每一格都有判据，没有判据的格子不在表里。**
+
+| 情形 | 码 | 判据 | 回什么 |
+|---|---|---|---|
+| 请求根本没有 `Cookie` 头 / 有但没有 `sid` / `sid` 是空白 | **401** | ② | 本仓固定文案，**不打站点** |
+| `sid` 有值但站点认不出人（`SiteError`） | **401** | ③ | 本仓固定文案，**不透传站点原文** |
+| 请求体不是 JSON / 不是对象 / 缺 `question` / `question` 不是非空字符串 / `doctype` 与 `name` 只给了一个 / `task_class` 不在 `TASK_CLASSES` 里 / **出现允许清单以外的键**（含 `fields` / `role` / `view` / `actions` / `user`） | **400** | ⑥⑦ | 指名是哪个键 |
+| ② 取当前单据字段表时 `SiteError`（Frappe 判无权，或单据不存在） | **403** | ⑦ | 指名 `doctype` / `name`，**不透传站点原文** |
+| LLM 未配置（取配置那一步抛 `RoutingError`） | **503** | ⑤ | **消息里含缺失的变量名**（`AGENERP_LLM_BASE_URL` / `_API_KEY` / `_MODEL`）|
+| 其它 `RoutingError`（模型能力不满足、模型侧调不通、回包不成形） | **502** | ⑤ | 异常文本 |
+| 未知路径 | **404** | ① | — |
+| 已知路径、方法不对（`POST /health` · `GET /explain`） | **405** | ① | — |
+
+⚠️ **两条执行期的补格，照实记（起草期的 `D-a-4` 六格未覆盖）**：
+
+1. **403 那一行是执行期加的。** 起草期的表里没有「取字段表被拒」这一格。
+   不加它的话，那次 `SiteError` 只能塞进 401，而 401 的含义是「你没登录 / 重新登录」——
+   把「Frappe 判你无权看这份单据」说成「你没登录」是**误导**，且会让调用方去做无用的重登录。
+2. **`task_class` 不在 `TASK_CLASSES` 里落 400，不落 502。** 依据是执行期实读：
+   未知类目抛的是 `DeclarationError`（`capabilities.py:123`），而它是 `RoutingError` 的**子类**
+   （`errors.py` 逐字）—— 若不在请求层先判，它会顺着「其它 `RoutingError`」掉进 502，
+   把一个**调用方写错了参数**说成**上游坏了**。⇒ 请求层用 `TASK_CLASSES` 白名单先判。
+
+**503 与 502 的分法是结构性的，不是字符串嗅探**：服务面**先显式取一次配置**
+（`config_from_env()`），这一步抛 `RoutingError` 就是 503；配置取到了之后再进 `explain()`，
+那之后抛的 `RoutingError` 就是 502。不靠读异常文本猜。
+
+#### `D-a-5` 服务端口用新变量 `AGENERP_SERVE_PORT`，默认 `8330`
+
+**不复用 `AGENERP_HTTP_PORT`。** 后者实读在 `agenerp/site.py:68`，
+`DEFAULT_HTTP_PORT = "8080"`，**它是 Frappe 站点的端口**（证据命令里以
+`AGENERP_HTTP_PORT=18080` 的形式在用，指的是要**打谁**）。复用 = 一个变量同时决定
+「打谁」和「监听谁」，**配错时的失败形态是静默的**：服务会去监听站点的端口，
+或者去打自己的端口，两种都不会报「你配错了」。
+
+⇒ 新变量 **`AGENERP_SERVE_PORT`**，默认 **`8330`**，
+监听地址**写死 `127.0.0.1`**（不从环境读，本期不出宿主）。
+第 2 个 plan 的 nginx `proxy_pass` 用同一个数。
+
+⚠️ **残余风险照实记**：默认端口 `8330` 可能与本机别的进程撞。
+**不发明探测/重试逻辑** —— 撞了就是 `OSError: Address already in use` 当场起不来，
+那是可见的失败；自动换端口才是不可见的失败（nginx 还指着旧端口）。
+
+#### `D-a-6` 本 plan 的风险档自评：**L0**，不落 L3
+
+对照 `docs/design/agents-and-roles.md` §9 的四档定义逐条（**该表一行未改**，
+`No owner-doc update required`）：
+
+- **不建 DocType（无 DDL）· 不改权限 · 不改 Workflow** ⇒ **不落 L3**。
+- **对活站点零写** ⇒ 不落 L2。服务面只暴露读路径，`SiteClient` 的四个写方法
+  （`create_doc` / `ensure_doc` / `submit_doc` / `delete_custom_field`）与 `post_method`
+  **一个都不进服务面**，判据⑩ 用 AST 扫这一条。
+- **不落定制包、不动 Workspace、不加 Custom Field** ⇒ 不落 L1。
+- ⇒ **L0（只读，无副作用）**。
+
+⚠️ **自评落在 L0 不等于「①/② 的判断已经安全」。** 风险档答的是「要不要人批」；
+「外部输入会不会把不该进模型的东西送进去」由 `D-a-3` / `D-a-3b` 各自承担，
+两者不是同一个问题，不许互相当挡箭牌。
+
+#### 交付的形状：三个模块 + 十条判据（Phase 2）
+
+| 文件 | 是什么 |
+|---|---|
+| `agenerp/serve/app.py` | 请求处理器 + `build_server(...)` 工厂。**全部外部依赖可注入**（站点客户端工厂、站点传输、模型档案、端点配置工厂、模型传输、`explain` 本身、日志出口）|
+| `agenerp/serve/__main__.py` | `python3 -m agenerp.serve` 起进程 |
+| `agenerp/serve/__init__.py` | 导出面 |
+| `tests/unit/test_explain_service.py` | 十条判据 |
+| `tests/unit/serve_fakes.py` | 一个**认 `sid`** 的假站点（`explain_fakes` → `tests/tools/conftest.py` 的 `FakeSite` 上再套一层）|
+
+**依赖注入不是为了好看，是为了让判据能指着默认值说话**：不注入的话判据只能打补丁，
+而打补丁之后「产品路径上真正走的那条」在代码里就没人验了 —— 判据⑧ 的后半条
+（`ServiceDeps.client_factory is client_from_sid`）判的正是**默认值**。
+
+**十条判据与可观测量**（每一条都不是「函数存在」）：
+
+| 判据 | 可观测量 |
+|---|---|
+| ① | `http.client` 在内核分配的真端口上拿到的状态码与回包（含 404 / 405 / 不回显路径）|
+| ② | 401 的状态码 **+ 假站点的请求条数为 0**（「不打站点」这半条排除了「先拿别的凭据问一次」）|
+| ③ | 401 + 文案是本仓固定文案（站点原文一个字不透传）|
+| ④ | **传给 `explain()` 的实参** `user`，两个 `sid` 参数化 ⇒ 随 `sid` 变 |
+| ⑤ | 503 的消息里逐个含三个变量名；502 与 503 分格 |
+| ⑥ | 三变量全空时真 socket 上的 `/health` 200 + `do_GET` 的 AST 里读不到任何 `AGENERP_LLM_*` |
+| ⑦ | 传给 `explain()` 的 `ImmediateContext` 六个字段 + 站点实际被打的路径与其 `Cookie` |
+| ⑧ | AST + 字面量双扫 `agenerp/serve/**` **全部** `.py`（按目录遍历，新模块自动进扫描面）|
+| ⑨ | 回包字节 + 日志行（含带 query 的请求）|
+| ⑩ | AST 扫写零件 **+** 一次完整解释里站点上的动词与方法名 |
+
+⚠️ **判据⑨ 判的是 `sid` 的值，不是「sid」这三个字母。** 400 的文案里有一句
+「一律由服务端按调用者自己的 `sid` 产出」—— 那是**说明**，不是泄漏。
+把字面词也禁掉会逼着把话说含糊，对调用方是净损失。
+
+⚠️ **`call_method()` 一律走 POST**（`site.py:312` 逐字），所以**动词本身分不出读写**。
+判据⑩ 因此按方法名逐个点名只读白名单（今天两个：`frappe.auth.get_logged_user` 与
+`frappe.client.has_permission`），名单之外的非 `GET` 一律算写。
+**这份名单会随工具层增长而需要跟着长** —— 它长了而这里没跟上，判据会红，那是对的。
+
+#### 一处执行期确认的引用漂移，已一并改直
+
+`client_from_sid()` 的 docstring（`agenerp/site.py:499`）与
+`tests/unit/test_site_client_sid.py:301` **两处**都指向
+`tests/unit/test_explain_service.py` **判据⑩**，而服务面的凭据 AST 扫是**判据⑧**
+（⑩ 是「零写方法」）。文件在本 plan 之前不存在，编号也是错的 ⇒
+**文件名与编号一起改直**，不是只把文件建出来就算数。
+
+#### 变异自查 M1–M11：逐条施加一次、记红点、复原（Phase 3）
+
+**一条都没跳过，也没有一条需要现补断言。** 每条只改 `agenerp/serve/app.py`，
+跑 `python3 -m pytest tests/unit/test_explain_service.py -q`，记下打红的判据，随即复原
+（复原后逐字节比对源文件，`RESTORED OK`）。
+
+| 变异 | 打红条数 | 打红的判据（族） |
+|---|---|---|
+| M1 `client_from_sid` → `client_from_env` | **16** | ⑧ 两条（含「唯一构造路径」那条）+ ③④⑤⑦⑩ 十四条 |
+| M2 缺 `sid` 时不 401 照常跑 | 2 | ② |
+| M3 `SiteError` 被吞掉后继续 | 2 | ③ 两条 |
+| M4 账里只记 `completion` 不记 `reasoning` | 2 | ①（真 socket 那条的列集合）· ④ |
+| M5 `/health` 读 AI 变量 | 5 | ①⑥ 三条 + ⑨ 两条 |
+| M6 未配置时回 200 空回答 | 1 | ⑤ |
+| M7 请求体字段表直接透传 | 7 | ⑦ 三族 + ⑨ |
+| M8 响应回显 `sid` | 1 | ⑨ |
+| M9 未知路径回 200 | 3 | ①（三格参数化） |
+| M10 `user` 从请求体取而不是从 `sid` 解析 | 1 | ⑦（允许清单那条） |
+| M11 身份链换成 `SiteClient(site, admin_password=credential_from_env(ADMIN_PASSWORD_ENV))` | **16** | ⑧ 两条 + ③④⑤⑦⑩ 十四条 |
+
+**M11 是这张表里最值得看的一行**：它**一个 `client_from_env` 都不用**，
+走的是等价凭据回退。只禁 `client_from_env` 的名单挡不住它 ——
+挡住它的是「取件的函数与四个 `*_ENV` 常量一并禁」外加「服务面不许自己构造 `SiteClient`」。
+
+⚠️ **M10 只打红一条，照实记。** 它之所以只有一条，是因为「请求体给 `user`」在**请求解析
+那一层**就被允许清单挡掉了，根本走不到身份链。这不是判据面薄，是**拒绝发生得更早** ——
+但也意味着「允许清单」这一条一旦松了，M10 的防线就只剩判据④ 的实参断言那一条。
+两条是串联不是并联，**这一点不粉饰**。

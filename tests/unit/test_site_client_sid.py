@@ -298,8 +298,8 @@ def test_client_from_sid_body_contains_zero_credential_parts():
 
     挡的假实现：在工厂函数里加一句「`sid` 没给就 `client_from_env` 兜底」——
     那是回退链最省事的藏法，而且行为反测抓不到它（那些用例里 `sid` 总是给了的）。
-    与 `tests/unit/test_explain_service.py` 的判据⑩ 是同一条道理的两侧：
-    ⑩ 扫服务面，本条扫工厂函数。
+    与 `tests/unit/test_explain_service.py` 的判据⑧ 是同一条道理的两侧：
+    ⑧ 扫服务面（`agenerp/serve/**` 全文），本条扫工厂函数。
 
     ⚠️ 这条与 ①②③ **不重复**：那三条判「这一次没回退」，本条判「代码里根本没有回退所需的零件」。
     """

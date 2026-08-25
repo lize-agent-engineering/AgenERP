@@ -496,7 +496,7 @@ def client_from_sid(site: str, sid: str, *, transport: Transport | None = None) 
     这个函数体里**一个凭据零件都不许出现**（`credential_from_env` / `os.environ` /
     三个 `*_ENV` 常量 / `client_from_env`）—— 凭据回退最省事的藏法就是藏在工厂函数里，
     因此 `tests/unit/test_site_client_sid.py` 判据⑧ 用 AST 扫这个函数体，
-    `tests/unit/test_explain_service.py` 判据⑩ 再扫一次。落点见 §7.14。
+    `tests/unit/test_explain_service.py` 判据⑧ 再扫一次（服务面那一侧）。落点见 §7.14 / §7.20。
 
     `base_url` 走 `default_base_url()`（站点基址不是凭据），站点名由调用方给。
     """
