@@ -695,7 +695,7 @@ Exit Criteria:
 - [x] no in-scope item downgraded to deferred/follow-up（§1.6 那处 `Fix` 已按 `Fix` 做完：`D-b-5` + 判据⑦ + 变异 M7；`Follow-up` 一条也没有）
 - [x] independent draft review completed and recorded（§9 两轮，两个独立子代理）
 - [x] text consistency verified: status, phases, gates, and log all agree
-- [ ] closure audit was independent —— ⚠️ **留白**：本轮执行环境不具备独立子代理，执行者自己复跑不算独立审计（处置同 P1.4–P1.7 先例）
+- [x] closure audit was independent —— **2026-08-25 由独立收口审计者补做**（fresh session，非本 plan 的起草者与执行者，基线 sha `1d852a5`）。逐条实读 + 全套判据原样复跑，结论见 `## Closure` 的「独立收口审计（补做）」段；⚠️ **该段同时登记了一处收口后被人推翻的证据**，不是无条件放行
 - [x] closure evidence exists in files（§7.21 · `STATE.md` §2 · `docs/logs/2026/08-25.md` · roadmap 工作项 10）
 - [x] 红线自证：`git status --porcelain -- tests/gates/ .github/workflows/ missions/ docs/masterplan/DECISIONS.md` → **无输出**；
       `git diff --numstat -- docs/masterplan/STATE.md` → **`16  0`（删除行数 0）**；`tools/gates/expected-red.txt` **一个字未改**；
@@ -757,9 +757,9 @@ Status Note: **三个 Phase 全部执行完毕，全绿收口。** 交付「活�
 
 Closure Audit Evidence:
 
-- Auditor / Agent: ⚠️ **独立审计未做** —— 本轮执行环境不具备独立子代理，
-  执行者自己复跑**不算**独立审计。Closure Gate `closure audit was independent` **留白**，
-  处置同 P1.4–P1.7 的先例（由后续一轮补做）。
+- Auditor / Agent: ⚠️ **收口当轮的独立审计未做** —— 当轮执行环境不具备独立子代理，
+  执行者自己复跑**不算**独立审计，Closure Gate 当时**留白**（处置同 P1.4–P1.7 先例）。
+  **该 gate 已于 2026-08-25 由独立收口审计者补做**，见下方「独立收口审计（补做）」段。
 - Evidence（命令原文 + 退出码 + commit sha）:
   - `AGENERP_HTTP_PORT=18080 docker compose -f docker-compose.yml down -v` → exit **0**
   - `AGENERP_HTTP_PORT=18080 docker compose -f docker-compose.yml up -d --wait --wait-timeout 900` → exit **0**（墙钟 **100 秒**）
@@ -775,6 +775,47 @@ Closure Audit Evidence:
     ⇒ **§1.11 的预测被人自己那份门禁逐字证实**；本 plan 交付的那一半（五条转绿）**逐条可复核**。
     ⚠️ 那份门禁由**人**在 `f09b8f0` 提交，本 plan **一个字未碰、未 `git add`** —— **运行一份判据不是修改它**。
   - ⚠️ **verification scope limited**：未跑整仓 `pytest tests -q -m "not live"`，**未经 CI 服务端复跑**，**未做浏览器侧验证**。
+
+独立收口审计（补做，2026-08-25）:
+
+- **审计者**：独立收口审计子代理（fresh session，**既不是本 plan 的起草者、也不是执行者**），
+  基线 sha **`1d852a5`**，工作树 `git status --porcelain` **无输出**。
+- ⚠️⚠️ **审计首先要登记的不是「全绿」，而是收口证据被推翻过一次** ——
+  本 plan 的 Status Note 写「全绿收口」，而**人在收口后当天原样做了一次冷起栈复跑**
+  （`4e9e74d`，`docker compose down -v && docker compose up -d --wait`）：
+  `frontend` **无限 `Restarting (1)`**，逐字 `[emerg] host not found in upstream`。
+  ⇒ **Phase 3 第一条（`down -v` → `up -d --wait` exit 0）当时的实测值不具备可复现性**，
+  且成因就在本 plan Phase 2 交付的那一跳里（`upstream` 块在**加载配置那一刻**解析主机名 +
+  `frontend.depends_on.agenerp-serve`）。**这是一处由本 plan 引入的活缺陷，不是环境噪声。**
+  - **处置已完成，落在本 plan 之外的后继提交 `1d852a5`**（§7.21 新增 **`D-b-8`**）：
+    nginx 侧删 `upstream` 块改 `resolver` + 变量形式 `proxy_pass`（每次请求时解析）；
+    compose 侧删掉 `frontend.depends_on.agenerp-serve`。新增判据 **⑩ / ⑩b**，变异扩到 **M11**。
+  - **审计判定**：本 plan 的结果面（同源那一跳 + 活栈 + 断言体实测）在 sha `1d852a5` 上**成立且有判据守着**，
+    因此**不退回 EXECUTE**；但「全绿收口」这四个字**只对收口当轮的那一次测量成立**，
+    已在本节逐字改直，**Status Note 原文不改写**（追加式账本）。
+- **审计实读复核**（每条都在活仓上重新验，不信 `[x]`）：
+  - `docs/architecture/module-boundaries.md:3192` **§7.21** 存在，`D-b-1`…`D-b-7` 七条齐全（`D-b-8` 为后继追加）
+  - `docs/architecture/system-baseline.md:1632` **§14.11** 存在（`D-b-7` 裁定的落点）
+  - `docker-compose.yml:275` `agenerp-serve` 服务存在，**无 `ports:` 块**；`:377` 逐字记着「刻意没有 `agenerp-serve`」
+  - `tools/nginx/frappe.conf.template:78` `location /agenerp/`、`:70-71` `resolver` + 变量、`:87` `proxy_pass`
+  - `agenerp/serve/__main__.py:24` `HOST_ENV = "AGENERP_SERVE_HOST"`、`:49` `resolve_host()`、`:63` 默认回 `LOOPBACK`、`:68` 非法值当场失败
+  - `tests/unit/test_explain_same_origin.py` 判据 ①–⑩b 逐族存在且**都被收集执行**（非空壳、无 `return None` 占位、无吞异常）
+- **审计原样复跑的命令（原文 + 退出码）**：
+  - `python3 tools/gates/check_expected_red.py` → exit **0**（`门禁 26 项：预期红 0，绿 26，跳过 0`）
+  - `python3 -m pytest tests/unit -q` → exit **0**（`779 passed, 6 skipped`）
+  - `python3 -m pytest tests/contracts tests/tools tests/routing tests/context -q` → exit **0**（`456 passed, 13 skipped`）
+  - `ruff check agenerp tests/unit tests/contracts tests/tools tests/routing tests/context tests/experiments` → exit **0**
+  - `env -i PATH=$PATH docker compose config -q` → exit **0**
+  - 红线自证：`git status --porcelain -- tests/gates/ .github/workflows/ missions/ docs/masterplan/DECISIONS.md` → **无输出**；
+    `git diff --numstat -- docs/masterplan/STATE.md` → **无输出**（工作树干净，本 plan 的追加已入库）
+  - ⚠️ **审计侧未跑活栈**（无 Docker 起栈取证），因此「冷起栈 exit 0」这条**审计只复核了记录，未独立复现** ——
+    照实记，不写成已复现。
+- **审计对文档同步的复核**：`docs/logs/2026/08-25.md` 有本 plan 的四条（Phase 1 / 2 / 3 + 补测 + `D-b-8`）·
+  `STATE.md` §2 证据行与 §3 三条 `[needs-human]` 在位且**只追加** ·
+  `docs/backlog/p1-insight-roadmap.md` 工作项 10 状态词为**人**改回的 `todo`，
+  **loop 未再翻**，其下追加了本 plan 与 `D-b-8` 的实测记录 —— 与本 plan 的 Deferred 逐条对得上。
+- **审计结论**：`approved`。五点一致（Plan Status / 三个 Phase Status / 各 Phase Exit Criteria /
+  Closure Gates / Closure 证据）在本节改直后成立；无在场缺陷被藏进 `Deferred` 或 `Follow-up`。
 
 Follow-up:
 
