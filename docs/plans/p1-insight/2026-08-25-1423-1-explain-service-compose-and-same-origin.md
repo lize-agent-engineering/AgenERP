@@ -1,6 +1,6 @@
 # P1.8a 第 2 个 plan · 解释服务接进 compose + nginx 同源反代（活体验收那一半）
 
-> Plan Status: active
+> Plan Status: completed
 > Mission: p1-insight
 > Work Item: 10. **解释服务的 HTTP 面**（P1.8a，见 D-19）—— **本 plan 是它的第 2 个 plan**（表规 3 的 1–2 个，本 plan 用掉最后一格）
 > Last Reviewed: 2026-08-25
@@ -383,17 +383,17 @@ nginx **不报错**：容器内实测逐字 `[warn] conflicting server name … 
 
 | # | 预测 | 怎么验（命令原文） | **执行期实测** |
 |---|---|---|---|
-| **H1** | 新服务进 compose 后，空环境下 `docker compose config -q` **仍退 0** | `env -i PATH=$PATH HOME=$HOME docker compose -f docker-compose.yml config -q; echo $?` | |
-| **H2** | 冷起栈后**全部长期运行服务 healthy**，其中包含 `agenerp-serve` | `docker compose ps --format '{{.Service}}\t{{.Health}}'` | |
-| **H3** | 经 `frontend` 对外端口 `GET /agenerp/health` → **200**，且 body 里 `service == "agenerp-explain"` | `curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:<实测端口>/agenerp/health` | |
-| **H4** | **不带任何 cookie** 打 `POST /agenerp/explain` → **401** | 同上路径，`-X POST` | |
-| **H5** | **伪造 `sid`** 打 `POST /agenerp/explain` → **401**，且回包里**不出现**那个伪造值 | 断言体第 3 条 | |
-| **H6** | **真 `sid`** 打 `POST /agenerp/explain` → **200 或 503**；在**未配 AI** 的栈上走的是 **503** 分支，且**在 30 秒内返回**（断言体 `TIMEOUT = 30`） | 断言体第 4 条 | |
-| **H7** | 断言体实测 **5 passed, 1 skipped** —— skip 的**必须是且只能是**第 4 条（`test_the_user_in_the_answer_is_the_person_the_real_sid_resolves_to`），理由是它 503 分支上**自带**的 `pytest.skip`（§1.11）。**若实测 6 passed**，说明环境配了 AI 变量，按 K5 记；**若 skip 的是别的条**，说明同源那一跳没通，按 §5 的回退义务处置 | `AGENERP_SERVE_BASE=… AGENERP_SITE=frontend AGENERP_ADMIN_PASSWORD=admin python3 -m pytest tests/unit/test_explain_service_body.py -q -rs` | |
-| **H8** | 服务在容器里**绑的不是回环**（否则 nginx 到不了），而**默认值仍是回环** —— 两句同时成立 | 离线判据 + `docker compose exec agenerp-serve …` 实读监听地址 | |
-| **H9** | `pyproject.toml` 的 `dependencies` **一个字未变** | `git diff -- pyproject.toml` → 无输出 | |
-| **H10** | 本 plan **新增**的 `agenerp/**/*.py` 文件数 **为 0**（只改既有文件的一格监听地址，不新增模块） | `git ls-files --others --exclude-standard -- 'agenerp/**/*.py'` → **0 行**（⚠️ **不用** `git status --porcelain -- 'agenerp/**'`：它把计划内的 `M` 行也报出来，永远不会是「无输出」，量不出「新增几个」） | |
-| **H11** | `tests/gates/**` 与 `.github/workflows/**` 的 `git status --porcelain` **无输出** | 同左 | |
+| **H1** | 新服务进 compose 后，空环境下 `docker compose config -q` **仍退 0** | `env -i PATH=$PATH HOME=$HOME docker compose -f docker-compose.yml config -q; echo $?` | ✅ **吻合**。exit **0** |
+| **H2** | 冷起栈后**全部长期运行服务 healthy**，其中包含 `agenerp-serve` | `docker compose ps --format '{{.Service}}\t{{.Health}}'` | ✅ **吻合**。`down -v` → `up -d --wait --wait-timeout 900` 退 **0**，墙钟 **100 秒**。十个长期运行服务全 `running`，其中 `agenerp-serve` / `backend` / `db` / `frontend` / `redis-cache` / `redis-queue` / `websocket` 七个 `healthy`，`queue-long` / `queue-short` / `scheduler` 三个无探针（与基线同，按 `conftest.services()` 口径折算）|
+| **H3** | 经 `frontend` 对外端口 `GET /agenerp/health` → **200**，且 body 里 `service == "agenerp-explain"` | `curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:<实测端口>/agenerp/health` | ✅ **吻合**。实测端口 **18080**。`curl -H 'Host: frontend' …/agenerp/health` → **200**，body 逐字 `{"status": "ok", "service": "agenerp-explain"}`。**旁证**：同一跳 `/api/method/ping` 仍 **200** —— 加的前缀 location 没遮住既有路由 |
+| **H4** | **不带任何 cookie** 打 `POST /agenerp/explain` → **401** | 同上路径，`-X POST` | ✅ **吻合**。**401**，body 逐字 `{"error": "未认到人：请求里没有可用的 sid，或站点不认它"}` |
+| **H5** | **伪造 `sid`** 打 `POST /agenerp/explain` → **401**，且回包里**不出现**那个伪造值 | 断言体第 3 条 | ✅ **吻合**。**401**，`grep -c deadbeef` → **0**；断言体第 3 条 `PASSED` |
+| **H6** | **真 `sid`** 打 `POST /agenerp/explain` → **200 或 503**；在**未配 AI** 的栈上走的是 **503** 分支，且**在 30 秒内返回**（断言体 `TIMEOUT = 30`） | 断言体第 4 条 | ✅ **吻合**。**503**，墙钟 **0.02 秒**（远在 30 秒内）。body 逐字指名缺哪几个变量：`模型端点配置不全，缺：['AGENERP_LLM_BASE_URL', 'AGENERP_LLM_API_KEY']…`。回包里**不含**真 `sid`。⚠️ **一处照实记的偏差**：缺的变量名实测是 `AGENERP_LLM_BASE_URL`，而 §1.11 / `x-ai-env` 锚点里写的是 `AGENERP_LLM_ENDPOINT` —— 仓根 `.env` 里有 `AGENERP_LLM_MODEL=qwen3.6-plus`，故三缺二。**本 plan 不改这处命名分歧**（不在结果面内），只记 |
+| **H7** | 断言体实测 **5 passed, 1 skipped** —— skip 的**必须是且只能是**第 4 条（`test_the_user_in_the_answer_is_the_person_the_real_sid_resolves_to`），理由是它 503 分支上**自带**的 `pytest.skip`（§1.11）。**若实测 6 passed**，说明环境配了 AI 变量，按 K5 记；**若 skip 的是别的条**，说明同源那一跳没通，按 §5 的回退义务处置 | `AGENERP_SERVE_BASE=… AGENERP_SITE=frontend AGENERP_ADMIN_PASSWORD=admin python3 -m pytest tests/unit/test_explain_service_body.py -q -rs` | ✅ **逐字吻合**。**`5 passed, 1 skipped`**，exit **0**。`-v` 实读 skip 的**正是第 4 条** `test_the_user_in_the_answer_is_the_person_the_real_sid_resolves_to`，其余五条 `PASSED`。skip 理由逐字 `活栈上一个 AI 变量都没配 —— 503 已判，答案面留给配了的那次跑`，位置 **`tests/unit/test_explain_service_body.py:223`**（起草期实读 `:201`，⚠️ **行号漂了 22 行** —— 本 plan 的 `D-b-5` 改写了文件头交接说明，**那条 `skip` 本身一个字未动**）。**M8 之后原样复跑一次，逐字相同。****另跑一次不给 `AGENERP_SERVE_BASE`、只给 `AGENERP_SITE_URL`**（模拟 `gates-l2-live` 的形状）→ 同样 `5 passed, 1 skipped` ⇒ `D-b-5` 的第二级解析在 CI 那种形状上成立 |
+| **H8** | 服务在容器里**绑的不是回环**（否则 nginx 到不了），而**默认值仍是回环** —— 两句同时成立 | 离线判据 + `docker compose exec agenerp-serve …` 实读监听地址 | ✅ **两句都成立**。容器内 `/proc/net/tcp` 实读 `00000000:208A` ⇒ **LISTEN 0.0.0.0:8330**；服务自报日志逐字 `agenerp explain service listening on http://0.0.0.0:8330`。默认那半由离线判据④ 承担（`resolve_host({}) == "127.0.0.1"`，`1 passed`）。**旁证**：宿主上 `curl http://127.0.0.1:8330/agenerp/health` → **connection refused（curl exit 7）**，且 `docker compose ps` 里发布到宿主的只有 `db` / `frontend` / `redis-cache` / `redis-queue`，**没有 `agenerp-serve`** ⇒ 「绑 0.0.0.0 ≠ 对本机之外提供」这句有实测支撑，不只是论证 |
+| **H9** | `pyproject.toml` 的 `dependencies` **一个字未变** | `git diff -- pyproject.toml` → 无输出 | ✅ **吻合**。**0 行** |
+| **H10** | 本 plan **新增**的 `agenerp/**/*.py` 文件数 **为 0**（只改既有文件的一格监听地址，不新增模块） | `git ls-files --others --exclude-standard -- 'agenerp/**/*.py'` → **0 行**（⚠️ **不用** `git status --porcelain -- 'agenerp/**'`：它把计划内的 `M` 行也报出来，永远不会是「无输出」，量不出「新增几个」） | ✅ **吻合**。**0 行**。本 plan 对 `agenerp/**` 的改动只有 `serve/__main__.py` 一个文件的一格监听地址 |
+| **H11** | `tests/gates/**` 与 `.github/workflows/**` 的 `git status --porcelain` **无输出** | 同左 | ✅ **吻合**。**无输出**。⚠️ 基线时它**有**一行 `?? tests/gates/test_explain_service_live.py`，那是**人**放的；人已于 `f09b8f0` 自行提交，故执行期真的是无输出（见 §0.1 第 1 行的展开）|
 
 ⚠️ **H6 的两半必须分开读**：「200 或 503」是断言体自己的口径（它不判答案对不对）；
 「未配 AI 时走 503」是**本 plan 的预测**。若实测走的是 200，说明执行环境**配了 AI 变量** ——
@@ -542,28 +542,28 @@ Exit Criteria:
 
 ### Phase 3 — 活栈实证 + 变异自查 + 交接
 
-Status: planned
+Status: completed
 Targets: 活栈（不改代码）· `docs/masterplan/STATE.md`（**只追加**）· `docs/architecture/module-boundaries.md` §7.21
 Skill: `none`
 
 - Item Types: `Proof | Follow-up`
 - Prereqs: Phase 2 全绿；**活栈可起**（起不来按 §5 写死的分支停，不猜）
 
-- [ ] `Proof` **从干净状态冷起栈**（`down -v` → `up -d --wait`），
+- [x] `Proof` **从干净状态冷起栈**（`down -v` → `up -d --wait`），
       记**命令原文 + 退出码 + 墙钟秒数**；`docker compose ps` 逐服务健康状态落进 §7.21（**H1 / H2**）
-- [ ] `Proof` **同源那一跳的四条实测**（**H3 / H4 / H5 / H6**），命令原文与状态码逐条记
-- [ ] `Proof` **跑断言体六条**（**H7**）：
+- [x] `Proof` **同源那一跳的四条实测**（**H3 / H4 / H5 / H6**），命令原文与状态码逐条记
+- [x] `Proof` **跑断言体六条**（**H7**）：
       `AGENERP_SERVE_BASE=… AGENERP_SITE=frontend AGENERP_ADMIN_PASSWORD=… python3 -m pytest tests/unit/test_explain_service_body.py -q`
       → 目标 **5 passed, 1 skipped**（§1.11：skip 的必须是且只能是第 4 条，
       理由是它 503 分支自带的 `pytest.skip`）。⚠️ **skip 的若是别的条，一律算没做到** ——
       那说明同源那一跳没通，按 §5 的回退义务处置。
       ⚠️ **那一条 skip 不许被本 plan「顺手修掉」**（§5.1 第 10 条）
-- [ ] `Proof` **`client_from_sid()` 的活体那一半**（承接第 1 个 plan 的 Deferred 第二条）：
+- [x] `Proof` **`client_from_sid()` 的活体那一半**（承接第 1 个 plan 的 Deferred 第二条）：
       逐字记明它在活站点上**认出了谁**，以及**认的是不是发请求那个人**。
       ⚠️ **真 `sid` 不落盘、不进日志、不进提交信息**（§5.1 第 8 条）
-- [ ] `Proof` **`agenerp-serve` 容器内实读监听地址**（**H8** 的另一半），
+- [x] `Proof` **`agenerp-serve` 容器内实读监听地址**（**H8** 的另一半），
       与离线判据④ 的「默认是回环」**两句一起记**
-- [ ] `Proof` **变异自查 M1–M10，逐条施加一次、记红点、复原**。
+- [x] `Proof` **变异自查 M1–M10，逐条施加一次、记红点、复原**。
       **一个都不许跳过；某条打不红就当场补断言并登记为新编号（Mn+1），不许改预测**：
       M1 把 nginx 的 `location` 前缀改成别的字面量 → 预测：判据② 打红 ·
       M2 把 nginx 上游端口改掉 → 判据③ 打红 ·
@@ -579,7 +579,7 @@ Skill: `none`
       运行时 `/agenerp/health` 回 **404** —— 这正是「配置测试全绿、反代根本不存在」）·
       **M10** 把 `agenerp-serve` 的 `command:` 换成一段自造的应答脚本，
       或把 nginx 上游指向 `backend:8000` → **判据⑨ 打红**
-- [ ] `Proof` **在 `STATE.md` §3 追加**（**只追加，不改写任何既有行**；
+- [x] `Proof` **在 `STATE.md` §3 追加**（**只追加，不改写任何既有行**；
       这是无条件的在场工作、没有触发条件，因此**不标 `Follow-up`**）：
       ① 本 plan 的证据行（命令原文 + 退出码 + sha）；
       ② `[needs-human]` —— **人现在可以把 `tests/unit/test_explain_service_body.py`
@@ -588,7 +588,7 @@ Skill: `none`
       **逐字写明本 plan 已经把它加载后需要的环境准备到哪一步**；
       ③ `[needs-human]` —— **§1.11 那条 skip 与零 skip 契约的冲突**，
       两条出路（补 `AGENERP_LLM_*` 进 `gates-l2-live` / 改 503 分支的口径）**逐条列出、不预选**
-- [ ] `Add` **更新 `docs/backlog/p1-insight-roadmap.md` 工作项 10 那一行**
+- [x] `Add` **更新 `docs/backlog/p1-insight-roadmap.md` 工作项 10 那一行**
       （**不是 `docs/masterplan/`，不触红线 5**）：逐字写明本 plan 交付了 WBS 验收的**哪一半**
       （活栈 + 同源 + 断言体实测）、**没交付哪一半**
       （`tests/gates/test_explain_service_live.py` 本体归人，红线 1；§1.11 那条 skip 归人），
@@ -596,18 +596,18 @@ Skill: `none`
       ⚠️ **表规 3 的账在同一行写死**：工作项 10 **2/2 已满**，
       出处是**人**做的 WBS 拆行 commit `ec74161`（`docs(wbs): P1.8 拆成 a/b 两行`，author `lize`）；
       此后的后继**只能由人拆行**（红线 5）
-- [ ] `Proof` **§6 的 H1–H11 逐条填实测**，不吻合的照实记、预测原文不改
+- [x] `Proof` **§6 的 H1–H11 逐条填实测**，不吻合的照实记、预测原文不改
 
 Exit Criteria:
 
-- [ ] H1–H11 十一格逐条有实测值（不可复现的照实写「不可复现」，不猜根因）
-- [ ] M1–M10 逐条有红点记录（补出来的新编号一并记）
-- [ ] 断言体 **5 passed, 1 skipped** 有命令原文与退出码，
+- [x] H1–H11 十一格逐条有实测值（不可复现的照实写「不可复现」，不猜根因）
+- [x] M1–M10 逐条有红点记录（补出来的新编号一并记）
+- [x] 断言体 **5 passed, 1 skipped** 有命令原文与退出码，
       且那 1 条 skip 的**行号与原文**逐字记进 §7.21
-- [ ] `STATE.md` 只追加（`git diff -- docs/masterplan/STATE.md` 的删除行数为 **0**）
-- [ ] §7.21 收口段写清**本 plan 没做到什么**（至少：`tests/gates/` 那份仍不存在、
+- [x] `STATE.md` 只追加（`git diff -- docs/masterplan/STATE.md` 的删除行数为 **0**）
+- [x] §7.21 收口段写清**本 plan 没做到什么**（至少：`tests/gates/` 那份仍不存在、
       未经 CI 服务端复跑、未做浏览器侧验证）
-- [ ] `docs/logs/` 更新
+- [x] `docs/logs/` 更新
 
 ## 8. 风险
 
@@ -685,20 +685,21 @@ Exit Criteria:
 
 ## 10. Closure Gates
 
-- [ ] in-scope behavior is complete
-- [ ] relevant docs are aligned（§7.21 落地；`system-baseline.md` 按 `D-b-7` 的裁定处理）
-- [ ] verification has run：`python3 tools/gates/check_expected_red.py` ·
+- [x] in-scope behavior is complete
+- [x] relevant docs are aligned（§7.21 落地；`system-baseline.md` 按 `D-b-7` 的裁定新增 **§14.11**）
+- [x] verification has run：`python3 tools/gates/check_expected_red.py` ·
       `python3 -m pytest tests/unit -q` · `python3 -m pytest tests/contracts tests/tools tests/routing tests/context -q` ·
       `ruff check …` · `docker compose up -d --wait --wait-timeout 900` · 活栈那一组（**H1–H8**）
-- [ ] scoped verification is not conflated with full verification —— 若未跑整仓 / 未经 CI 服务端复跑，
-      **逐字写明 "verification scope limited"**
-- [ ] no in-scope item downgraded to deferred/follow-up（§1.6 那处 `Fix` 尤其不许降级）
-- [ ] independent draft review completed and recorded
-- [ ] text consistency verified: status, phases, gates, and log all agree
-- [ ] closure audit was independent
-- [ ] closure evidence exists in files
-- [ ] 红线自证：`git status --porcelain -- tests/gates/ .github/workflows/ missions/ docs/masterplan/DECISIONS.md` 无输出；
-      `STATE.md` 只追加；证据仓 `XM_PATH` 未写入；未生成任何运行时 Server Script
+- [x] scoped verification is not conflated with full verification —— **verification scope limited**：
+      未跑整仓 `pytest tests -q -m "not live"`、**未经 CI 服务端复跑**、**未做浏览器侧验证**（三处均已逐字写进 §7.21 收口段、`STATE.md` §2 与 roadmap）
+- [x] no in-scope item downgraded to deferred/follow-up（§1.6 那处 `Fix` 已按 `Fix` 做完：`D-b-5` + 判据⑦ + 变异 M7；`Follow-up` 一条也没有）
+- [x] independent draft review completed and recorded（§9 两轮，两个独立子代理）
+- [x] text consistency verified: status, phases, gates, and log all agree
+- [ ] closure audit was independent —— ⚠️ **留白**：本轮执行环境不具备独立子代理，执行者自己复跑不算独立审计（处置同 P1.4–P1.7 先例）
+- [x] closure evidence exists in files（§7.21 · `STATE.md` §2 · `docs/logs/2026/08-25.md` · roadmap 工作项 10）
+- [x] 红线自证：`git status --porcelain -- tests/gates/ .github/workflows/ missions/ docs/masterplan/DECISIONS.md` → **无输出**；
+      `git diff --numstat -- docs/masterplan/STATE.md` → **`16  0`（删除行数 0）**；`tools/gates/expected-red.txt` **一个字未改**；
+      证据仓 `XM_PATH` 未写入；未生成任何运行时 Server Script
 
 ## 11. Deferred But Adjudicated
 
@@ -749,13 +750,30 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: <执行期填>
+Status Note: **三个 Phase 全部执行完毕，全绿收口。** 交付「活栈 + 同源那一跳 + 断言体活体实测」；
+**未交付**「WBS §4 P1.8a 那条验收命令退 0」—— 那条被 §1.11 的 skip 挡着，两条出路都归人。
+⚠️ **执行途中人在 `main` 上提交了两次**（`f09b8f0` 自行创建门禁文件、`24529ec` 撤回 `expected-red.txt`
+那 6 行并追加 `[open]`「就让它红着」），逐条照实记进 §0.1，本 plan 未碰其中任何一处。
 
 Closure Audit Evidence:
 
-- Auditor / Agent: <独立审计者，执行期填>
-- Evidence（命令原文 + 退出码 + commit sha）: <执行期填>
+- Auditor / Agent: ⚠️ **独立审计未做** —— 本轮执行环境不具备独立子代理，
+  执行者自己复跑**不算**独立审计。Closure Gate `closure audit was independent` **留白**，
+  处置同 P1.4–P1.7 的先例（由后续一轮补做）。
+- Evidence（命令原文 + 退出码 + commit sha）:
+  - `AGENERP_HTTP_PORT=18080 docker compose -f docker-compose.yml down -v` → exit **0**
+  - `AGENERP_HTTP_PORT=18080 docker compose -f docker-compose.yml up -d --wait --wait-timeout 900` → exit **0**（墙钟 **100 秒**）
+  - `AGENERP_SERVE_BASE=http://127.0.0.1:18080 AGENERP_SITE=frontend AGENERP_ADMIN_PASSWORD=admin python3 -m pytest tests/unit/test_explain_service_body.py -q -rs` → exit **0**（`5 passed, 1 skipped`）
+  - `python3 tools/gates/check_expected_red.py` → exit **0**（`门禁 26 项：预期红 0，绿 26，跳过 0`）
+  - `python3 -m pytest tests/unit -q` → exit **0**（`777 passed, 6 skipped`）
+  - `python3 -m pytest tests/contracts tests/tools tests/routing tests/context -q` → exit **0**（`456 passed, 13 skipped`）
+  - `ruff check agenerp tests/unit tests/contracts tests/tools tests/routing tests/context tests/experiments` → exit **0**
+  - commit sha：Phase 1 `ac2d456` · Phase 2 `b669cbf` · Phase 3 见收尾提交
+  - ⚠️ **verification scope limited**：未跑整仓 `pytest tests -q -m "not live"`，**未经 CI 服务端复跑**，**未做浏览器侧验证**。
 
 Follow-up:
 
-- <执行期填；确认的缺陷不得出现在这里>
+- **无。** 本 plan 确认的两处缺陷都**没有**被降级到这里：
+  §1.6 那处默认基址漂移已按 `Fix` 做完（`D-b-5` + 判据⑦ + 变异 M7）；
+  §1.11 那条 skip 与零 skip 契约的冲突**不是本 plan 能处置的**，
+  它作为 `Deferred But Adjudicated` 的一条交出去，承接者是**人**（见 §11 与 `STATE.md` §3 的三条 `[needs-human]`）。

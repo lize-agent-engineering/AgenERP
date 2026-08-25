@@ -3556,3 +3556,121 @@ Phase 2 判据⑥ 在**服务块粒度**上再判一次（既有那条是全局�
 - `git diff -- pyproject.toml` → **0 行**（**H9**，零新增依赖）·
   `git ls-files --others --exclude-standard -- 'agenerp/**/*.py'` → **0 行**（**H10**，零新增模块）·
   `git status --porcelain -- tests/gates/ .github/workflows/ missions/ docs/masterplan/DECISIONS.md` → **无输出**（**H11**）
+
+#### 活栈实证：H1–H11 十一格 + M1–M10 变异（Phase 3）
+
+**冷起栈**（`down -v` → `up -d --wait --wait-timeout 900`，`AGENERP_HTTP_PORT=18080`）：
+`DOWN_EXIT=0` · `UP_EXIT=0` · **墙钟 100 秒**（含从零建站）。
+`docker compose ps` 十个长期运行服务全 `running`，七个有探针的全 `healthy`（含 `agenerp-serve`），
+`queue-long` / `queue-short` / `scheduler` 三个无探针（与基线同）。
+⇒ **D-19 那条「新服务必须也能在『一个 AI 变量都不配』时起得来」在一次真正的冷起上成立。**
+
+**同源那一跳的实测**（`frontend` 实测发布口 **18080**，`Host: frontend`）：
+
+| # | 命令 | 实测 |
+|---|---|---|
+| H3 | `GET /agenerp/health` | **200**，body 逐字 `{"status": "ok", "service": "agenerp-explain"}` |
+| — | `GET /api/method/ping`（旁证） | **200** —— 加的前缀 location **没遮住**既有路由 |
+| H4 | `POST /agenerp/explain`，无 cookie | **401** |
+| H5 | `POST /agenerp/explain`，伪造 `sid` | **401**，回包里那个伪造值出现 **0** 次 |
+| H6 | `POST /agenerp/explain`，真 `sid` | **503**，**0.02 秒**返回，body 指名缺哪几个变量 |
+| H7 | 断言体六条 | **`5 passed, 1 skipped`**，exit **0**；skip 的**正是第 4 条** |
+
+**H7 那一条 `skip` 的行号与原文，逐字记下**（收口 Exit Criteria 点名要求）：
+
+- 位置：**`tests/unit/test_explain_service_body.py:223`**
+- 原文：`pytest.skip("活栈上一个 AI 变量都没配 —— 503 已判，答案面留给配了的那次跑")`
+- ⚠️ 起草期实读的是 **`:201`**，**行号漂了 22 行** —— 成因是本 plan 的 `D-b-5` 改写了文件头那段交接说明
+  （删掉 `DEFAULT_SERVE_BASE` 常量、重写「为什么现在还不能加载」与「加载后跑什么」两节）。
+  **那条 `skip` 本身一个字未动**（§5.1 第 10 条）。
+- 命令原文：`AGENERP_SERVE_BASE=http://127.0.0.1:18080 AGENERP_SITE=frontend AGENERP_ADMIN_PASSWORD=admin python3 -m pytest tests/unit/test_explain_service_body.py -q -rs` → exit **0**
+- **另跑一次不给 `AGENERP_SERVE_BASE`、只给 `AGENERP_SITE_URL`**（模拟 `gates-l2-live` 的形状）
+  → 同样 `5 passed, 1 skipped` ⇒ `D-b-5` 的第二级解析在 CI 那种形状上成立，
+  **`gates-l2-live` 不需要加任何一行 env**（红线 2 未被触碰）。
+| H8 | 容器内 `/proc/net/tcp` | `00000000:208A` ⇒ **LISTEN 0.0.0.0:8330**；宿主上打 8330 **connection refused** |
+
+#### `client_from_sid()` 的活体那一半：**证到了什么、没证到什么**
+
+承接 §7.20 那个 plan 的 `Deferred But Adjudicated` 第二条。**分清观测与推断**：
+
+**观测到的**：
+
+1. 同一个真 `sid` 交给站点自己的 `frappe.auth.get_logged_user` → **`Administrator`**（HTTP 200）。
+2. 同一个真 `sid` 交给 `/agenerp/explain` → **503**（不是 401）。
+3. 伪造 `sid` 交给 `/agenerp/explain` → **401**。
+4. 回包**逐字节不含**那个真 `sid`（断言体第 5 条 `PASSED`，四条路径各判一次）。
+
+⇒ 2 与 3 的**差别**证明：服务确实拿调用者带上来的 `sid` 去站点认了一次人，
+认成了才往下走到取模型配置那一步。**这是 `client_from_sid()` 在活站点上第一次被证明认得出人。**
+
+**没证到的，逐字写明，不含糊**：
+
+- **服务把它解析成了「谁」，本轮没有直接观测到。** 那个用户名只出现在 200 分支的
+  `payload["user"]` 里，而未配 AI 的栈走的是 503 —— 断言体第 4 条正是为此 `skip` 的那一条。
+  「服务解析出的人 == 站点解析出的人」目前是**推断**（同一个 `sid`、同一个站点、同一个只读白名单方法），
+  **不是本轮的实测**。**不写成「已证明认的就是发请求那个人」。**
+- 把它变成实测只需要一次配了 AI 变量的跑，而那件事与门禁那条零 skip 契约是同一格 —— **归人**。
+- ⚠️ **真 `sid` 全程只在进程内存里**：不落盘、不进日志、不进任何断言消息、不进提交信息（§5.1 第 8 条）。
+
+#### 变异自查 M1–M10：逐条施加一次、记红点、复原
+
+**一条都没跳过；一条都不需要现补断言**（复原后源文件 `sha256` 逐字节比对 `RESTORED OK`）。
+
+| 变异 | 施加的改动 | 目标判据 | 实测 |
+|---|---|---|---|
+| **M1** | nginx `location /agenerp/` → `/agenerpX/` | ② | exit **1**（`1 failed`）|
+| **M2** | nginx 上游端口 `8330` → `9999` | ③ | exit **1** |
+| **M3** | 给 `agenerp-serve` 加 `ports: - "127.0.0.1:8330:8330"` | ① | exit **1** |
+| **M4** | `resolve_host()` 的默认值 → `0.0.0.0` | ④ | exit **1** |
+| **M5** | 非法值分支由 `raise` 改成 `return LOOPBACK`（静默回退）| ⑤ | exit **1**（`5 failed`，五个参数化全红）|
+| **M6** | 把 `AGENERP_LLM_ENDPOINT` 塞进新服务的 healthcheck | ⑥ | exit **1** |
+| **M7** | 断言体默认基址改回写死的 `http://127.0.0.1:18080` | ⑦ | exit **1**（`4 failed, 1 passed`）|
+| **M8** | `/agenerp/health` 改成认人（活栈变异，改后 `restart` 容器）| **H3** | **401**（预期 200）；断言体第 1 条 exit **1**；容器探针转 `starting` |
+| **M9** | 把那段 `location` 挪进**第二个**同 `listen` 同 `server_name` 的 server 块 | ⑧ | exit **1** |
+| **M10a** | `agenerp-serve` 的 `command:` 换成一段自造应答脚本 | ⑨a | exit **1** |
+| **M10b** | nginx 上游指向 `backend:8000` | ⑨b | exit **1** |
+
+⚠️ **M7 只打红五个参数化里的四个，照实记。** 没被打红的那一个是
+`{AGENERP_HTTP_PORT: "18080"}` —— 那台机器上写死的 `18080` **恰好等于**正确答案。
+这不是判据薄，而是**把 §1.6 那条「默认值只对起草者那台机器成立」在判据内部又复现了一次**：
+同一处漂移在**恰好匹配的环境里就是看不见的**。判据靠**另外四个参数化**（含空环境与 `9999`）打红它，
+**这正是那条判据要参数化而不是只跑一次的理由**。
+
+⚠️ **M8 之后出现一次未能复现的故障，照实记、不猜根因**（裁判规则 3）：
+复原 `app.py` 并 `docker compose restart agenerp-serve` 之后，`frontend` 进入重启循环，
+日志逐字 `[emerg] host not found in upstream "backend:8000" in /etc/nginx/conf.d/frappe.conf:22`。
+**按裁判规则 3 原样复跑那条命令**（`up -d --wait --wait-timeout 900`）→ **exit 0**，
+全部服务恢复 `healthy`，`/agenerp/health` 回 **200**，断言体复跑仍是 `5 passed, 1 skipped`。
+⇒ 记为「**不可复现**」。可确定的只有一件事：报错指名的上游是 **`backend:8000`**，
+那是**上游模板自己那一行**（生成后的第 22 行），**不是**本仓加的 `agenerp-serve` 上游；
+`docker-compose.yml` 里 `frontend` 的 `depends_on` 注释早已登记过这个失败形态。
+**再往下的成因不猜。**
+
+#### 收口：本 plan **没做到**什么
+
+**逐条写明，不含糊**（Closure Gate「scoped verification is not conflated with full verification」）：
+
+1. **`tests/gates/test_explain_service_live.py` 不是本 plan 建的，本 plan 也一个字没碰**（红线 1）。
+   ⚠️ **执行途中人已自行把它提交进仓**（`f09b8f0`，87 行，`Gates-Change-Approved-By: lize`）。
+   ⇒ §7.20 那个 plan 的 Deferred 第一条**由人自己结清了**，不是本 plan 结清的。
+2. ⚠️⚠️ **那份门禁在本 plan 之后仍然是红的，红因收窄但没消失。** 本 plan 让它的
+   **五条转绿**（H3/H4/H5 + 不回显 `sid` + 自带上下文被拒），
+   但**第 4 条会 `skip`**（`test_explain_service_body.py:223` 那条自带的 `pytest.skip`），
+   而 `gates-l2-live` 的契约逐字是「全部绿、零 red、零 skip」⇒ **仍红**。
+   两条出路（给 `gates-l2-live` 补 `AGENERP_LLM_*` = 红线 2 / 改 503 分支的判定口径）
+   **都归人**，本 plan 不选、不试探、不预选。
+3. **`STATE.md` 那条 `[open] 2026-08-25T07:24Z`（人 2026-08-25 追加，「就让它红着」）本 plan 不翻状态** ——
+   改写 STATE 已有行是红线 5。本 plan 只在 §3 **追加**事实行与 needs-human。
+4. **服务解析出的用户名本身没有直接观测到**（见上一节「没证到的」）。
+5. **未经 CI 服务端复跑。** 全部实测都在本机一台 macOS/Docker Desktop 上；
+   `gates-l2` / `gates-l2-live` / `gates-l2-seed` 三个 job 在 GitHub runner 上的行为**本轮无任何数据**。
+   ⚠️ 特别是 `gates-l2-seed` 那块 job 级 `env:` 的继承问题（`D-b-3` ③）——
+   本 plan 用**字面写死**堵死了它，但**没有在那个 job 上实际跑过一次**。
+6. **未做任何浏览器侧验证。** `sid` 是 `HttpOnly` 且按同源发送这件事，
+   本轮全部用 `http.client` / `curl` 手工带 `Cookie` 头模拟 ——
+   **真浏览器会不会把 `sid` 带到 `/agenerp/*` 上，本仓仍无实证**。那是工作项 11（P1.8b）的面。
+7. **未做 TLS / 限流 / 连接池 / 异步回包**（§7.20 `D-a-1` 残余风险原样继承）。
+   nginx 侧那条 `proxy_read_timeout 300` 是**唯一**新增的时长保护，且**没有在一次真实的长解释上验证过**
+   （本轮所有 `/explain` 都在 503 分支上 0.02 秒返回）。
+8. **`system-baseline.md` §14.11 的规则 ④ 只覆盖四个值**，不是「所有 compose 值」。
+9. **`docs/context/codebase-map.md` 整份仍是模板占位符**（从 §7.20 那个 plan 继承，条件一个字未改松）。
