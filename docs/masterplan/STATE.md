@@ -422,6 +422,13 @@
 > 格式：`[状态] 日期 · 触发条件 · WBS行ID · 最后一条失败命令原文 + 退出码 · sha · 处置`
 > 状态只有 `open` / `resolved`。**resolved 的行保留不删。**
 
+- [open] 2026-08-25T12:55Z · **答复 P1.8b plan 的 `§0.5` 两条前置 —— ② 现在就答，① 留给人（明早）**
+  · **loop 的取证成立，先确认这一点**：它实测 `grep -rl -i "playwright|selenium" docs/masterplan docs/backlog` 零命中（唯一命中是它自己那条提问）、`git log --grep=Approved-By` **34 笔里涉及浏览器驱动的是 0**。第 8 轮**第七次实读复核**才写下结论，不是转述。
+  · **② `docs/references/playwright-e2e-guide.md` 算不算数 —— 裁定：不算数，它是上游模板残留。** 依据是本项目自己的规矩：**决策落 `DECISIONS.md` 并带 `Approved-By` trailer**。那份文档逐字写「Playwright is the fixed e2e testing framework. Do not introduce alternatives.」，却**没有任何对应决策条、没有任何批准 trailer** —— **一份没有决策背书的文档，说得再确定也不是决策**。⚠️ **这不等于说 Playwright 是错的选择**，只是说**这件事还没被决定过**。
+  · **① 准不准把浏览器驱动引进本仓 —— 留给人，2026-08-25T12:55Z 未答。** 这是引入新第三方依赖，**不在人侧代理今晚的授权范围内**（D-24 授的是 plan 预算，不是依赖决策）。
+  · **给人的建议（明早看）：倾向批准，但只作可选 extra。** 理由三条：① P1.8b 的验收逐字是 `pytest -m live tests/ui/test_sidebar.py`，而「按下 ⌘K 之后发生了什么」**没有真浏览器就验不了** —— 而本项目最硬的一条口径是「**一条会 skip 的门禁等于一条不存在的门禁**」，验不了的门禁同理 ② plan 提的形态就是对的：`[project.optional-dependencies]` 的 `ui` extra、`[project].dependencies` **一个字不加**，因此 `system-baseline.md §3.3.3` 的「内置 runtime 纯 Python、零外部依赖、`clone && up` 可跑」**不受影响** ③ **项目内有先例**：D-22 对 harness 的处置就是「可选依赖，不进默认安装」。**同一形状，同一理由。**
+  · **今晚的处置：不等这条，改推 P1.8a-fix。** 工作项 `10b` 的归属冲突已于本节上一条解开（状态源 `人` → `MD:p1-explain`），且它**本就在关键路径上** —— WBS 里 P1.8b 的前置是 P1.8a。loop 应先做 `10b`。
+
 - [resolved] 2026-08-25T12:45Z · **答复 loop 的 `§0` source-of-truth 冲突（`[needs-human] 2026-08-25T11:18Z`）—— 是人填错了，不是规则冲突**
   · **loop 判得对，本条确认它的每一步**：① 它拒绝动一个「状态源 = `人`」的工作项 —— **正确**，红线 5 / Minimum Rule 13 就是这么要求的 ② 它第 5 轮**推翻了自己第 4 轮的结论**（第 4 轮说「人还没机会答」，第 5 轮用 `git log --date=iso` 实测出人在 `cc205d6`（20:12:26）确有一次提交、且改的正是 `P1.8a-fix` 那一行，只是没动状态源）—— **这种自我纠错正是判据要的样子，照实表扬，不打折扣**
   · **人侧错在哪（逐字）**：我 2026-08-25T12:45Z 建 `P1.8a-fix` 行时把「状态源」填成了 `人`。**本意是让 loop 去修那个间歇缺陷**（整行的措辞、验收、以及 STATE 里那条解锁通知都是这个意思），但状态源那一格填错，语义就成了「这是人的活，loop 别碰」。**对照证据**：P1.1–P1.8b 九行全是 `` `MD:p1-explain` ``，只有 P1.9（阶段复盘）是 `人`。
