@@ -398,6 +398,14 @@
 
 ---
 
+- 2026-08-25T07:55Z · P1.8a/工作项 10（收尾提交之后的补测，**本行只追加**） · `AGENERP_LIVE=1 AGENERP_HTTP_PORT=18080 AGENERP_SERVE_BASE=http://127.0.0.1:18080 AGENERP_SITE=frontend AGENERP_SITE_URL=http://127.0.0.1:18080 AGENERP_ADMIN_PASSWORD=admin python3 -m pytest -m live tests/gates/test_explain_service_live.py -q -rs` → **exit 1**，**`1 failed, 5 passed`** · sha `6d5b2ae`（Phase 3 收尾提交；Phase 1 `ac2d456` / Phase 2 `b669cbf`。⚠️ **本行同时把上一条证据行与 §3 那三条 needs-human 里的 `<Phase 3 收尾提交>` 占位符解析成 `6d5b2ae`** —— 那几行已入库，改写它们是红线 5，故在此追加解析而不是回改）
+  · **人那份门禁真跑了一次**（`tests/gates/test_explain_service_live.py` 由人在 `f09b8f0` 提交，本 plan **一个字未碰、未 `git add`**；**运行它不是修改它**）。**那 1 条红的是且只是**：`E  Failed: 活栈上一个 AI 变量都没配 —— 503 已判，答案面留给配了的那次跑` —— 门禁那份自己的 `skip → fail` 收严（`:70` 的 `_skip_is_a_failure_here`）把断言体 `:223` 那条 `pytest.skip` 翻译成了红。
+  · ⇒ **§1.11 的预测被人自己那份门禁逐字证实**：红因**从「六条全红（连不上 / 反代不存在）」收窄成「五条转绿、第 4 条红在那条 skip 上」**，**但 job 仍然是红的**。**对照**：栈没起来时同一条命令是 **`6 failed`**，六条全红在 `127.0.0.1:18080 够不到（Connection refused）—— 同源前端没在跑`。
+  · ⇒ **上面 §3 第一条 `[needs-human]` 现在有了直接实证**，不再只是推演。人裁定两条出路（补 `AGENERP_LLM_*` 进 `gates-l2-live` = 红线 2 / 改 503 分支的判定口径）时可直接引用本行的实测。
+  · ⚠️ **一处更正**：收尾提交里记为「不可复现」的 `frontend` 重启循环（`[emerg] host not found in upstream "backend:8000"`）**补测期间又出现一次**，共两次，**两次都在原样复跑 `up -d --wait --wait-timeout 900` 后 exit 0 完全恢复**。新增的可确定事实：① **本仓那份 nginx 模板不在嫌疑里** —— 拿它在一次性容器里跑上游 entrypoint，`nginx -t` **exit 0**（`test is successful`），同网络里 `backend`(172.25.0.10) 与 `agenerp-serve`(172.25.0.7) **两个名字都解析得出**；② 报错指名的第 22 行属 `upstream backend-server`，**不是**本仓加的那个上游，而 nginx 按文件顺序解析、DNS 整体不可用时总是先报第一个 ⇒ 这条报错**区分不出是哪个上游**；③ 第二次发生时 `backend` 与 `agenerp-serve` 的 `RestartCount=0` 而 `StartedAt` 是同一秒 ⇒ 它们是被**重新创建**的，那一刻有**本 plan 之外的某个动作**在这台机器上跑过一次 `docker compose up`，**不猜那是什么**；④ `tests/gates/conftest.py` 不在嫌疑里（无 import 期 compose 调用，`compose_stack` 非 autouse 且那份门禁不请求它）。**根因仍未确定，仍然不猜**（裁判规则 3）。⚠️ **不写成「与本 plan 无关」**：本 plan 确实给 `frontend` 加了一条 `depends_on` 与一处挂载，**没有证据表明相关，也没做过能排除它们的实验** —— 照实停在这里。
+  · **本行只追加，不改写本节任何已有行**（红线 5）。
+
+
 ## §3 needs-human 队列
 
 > 📦 已处置（`resolved`）的 9 条已整段归档到 [archive/STATE-2026-08-22.md](./archive/STATE-2026-08-22.md)。**`open` 的一条没动** —— 待办必须留在眼前。

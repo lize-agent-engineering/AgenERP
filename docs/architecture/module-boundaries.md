@@ -3674,3 +3674,62 @@ Phase 2 判据⑥ 在**服务块粒度**上再判一次（既有那条是全局�
    （本轮所有 `/explain` 都在 503 分支上 0.02 秒返回）。
 8. **`system-baseline.md` §14.11 的规则 ④ 只覆盖四个值**，不是「所有 compose 值」。
 9. **`docs/context/codebase-map.md` 整份仍是模板占位符**（从 §7.20 那个 plan 继承，条件一个字未改松）。
+
+#### 收口后补测：**人那份门禁真跑了一次** —— `1 failed, 5 passed`
+
+⚠️ **本节是 Phase 3 收尾提交之后补做的一次观测，比上面那些间接证据都硬。**
+`tests/gates/test_explain_service_live.py` 由**人**在 `f09b8f0` 提交进仓（本 plan 一个字未碰、未 `git add`）。
+它**运行**它、**不修改**它 —— 跑一次判据不是改判据。
+
+```
+AGENERP_LIVE=1 AGENERP_HTTP_PORT=18080 AGENERP_SERVE_BASE=http://127.0.0.1:18080 \
+  AGENERP_SITE=frontend AGENERP_SITE_URL=http://127.0.0.1:18080 AGENERP_ADMIN_PASSWORD=admin \
+  python3 -m pytest -m live tests/gates/test_explain_service_live.py -q -rs
+```
+
+→ exit **1**，**`1 failed, 5 passed`**。
+
+**那 1 条红的是且只是**：
+`E  Failed: 活栈上一个 AI 变量都没配 —— 503 已判，答案面留给配了的那次跑`
+—— 即门禁那份自己那段 `skip → fail` 收严（`test_explain_service_live.py:70` 的
+`_skip_is_a_failure_here`）把断言体 `:223` 那条 `pytest.skip` **翻译成了红**。
+
+⇒ **§1.11 的预测被逐字证实，且是被人自己那份门禁证实的**：
+本 plan 交付之后，那个 job 的红因**从「六条全红（连不上 / 反代不存在）」收窄成「五条转绿、第 4 条红在那条 skip 上」**，
+**但 job 仍然是红的**。拆它的两条出路（补 `AGENERP_LLM_*` 进 `gates-l2-live` = 红线 2 /
+改 503 分支的判定口径）**都归人**，本 plan 不选。
+
+**对照**：同一条命令在栈没起来时跑，是 **`6 failed`**，六条全红在
+`Failed: 127.0.0.1:18080 够不到（[Errno 61] Connection refused）—— 同源前端没在跑`。
+**五条的转绿是本 plan 交付的那一半，逐条可复核。**
+
+#### 上面那条「不可复现」的**更正**：同一形态出现了**两次**，两次都在原样复跑后恢复
+
+⚠️ **前面写「不可复现」时只观测到一次；补测期间又出现一次，此处按新证据更正，不改写原记录。**
+两次的形态逐字相同：`frontend` 进入重启循环，日志
+`[emerg] host not found in upstream "backend:8000" in /etc/nginx/conf.d/frappe.conf:22`。
+
+**新增的可确定事实**（都是观测，不是推断）：
+
+1. **本仓那份模板不在嫌疑里。** 用它在一次性容器里跑一遍上游 entrypoint：
+   `nginx -t` → **`syntax is ok` / `test is successful`**，exit **0**；
+   同一网络里 `backend`（172.25.0.10）与 `agenerp-serve`（172.25.0.7）**两个名字都解析得出来**。
+2. **报错指名的是上游模板自己那一行** —— 生成后第 22 行是 `server backend:8000 fail_timeout=0;`，
+   属 `upstream backend-server` 块，**不是**本仓加的 `upstream agenerp-serve-upstream`。
+   nginx 按文件顺序解析上游，容器内 DNS 整体不可用时**总是先报第一个**
+   ⇒ 这条报错**区分不出**「哪个上游有问题」，只说明「那一刻该容器解析不了名字」。
+3. **第二次发生时，`backend` 与 `agenerp-serve` 的 `RestartCount` 都是 0 而 `StartedAt` 是同一秒**
+   ⇒ 它们是被**重新创建**的，不是重启的 —— 那一刻有**本 plan 之外的某个动作**在这台机器上
+   跑了一次 `docker compose up`。**本 plan 不猜那是什么。**
+4. **`tests/gates/conftest.py` 不在嫌疑里**：它没有任何 import 期的 compose 调用，
+   `compose_stack` 是 `scope="session"` 的**非 autouse** fixture，而那份门禁**不请求它**。
+5. **两次都按裁判规则 3 原样复跑** `up -d --wait --wait-timeout 900` → 两次都 **exit 0**、
+   全部服务 `healthy`、`/agenerp/health` 回 **200**、门禁复跑回到 `1 failed, 5 passed`。
+
+⇒ **根因仍未确定，仍然不猜。** 能写下的结论只有两条：
+① **不是本仓那份 nginx 模板**（第 1 点是正面实证）；
+② 这个失败形态**在本 plan 之前就已登记在 `docker-compose.yml` 的 `frontend` `depends_on` 注释里**
+（逐字 `host not found in upstream "backend:8000"`，且写明会「陷入重启循环」）——
+**本 plan 没有引入它，也没有消除它。**
+⚠️ **本 plan 不把这条写成「与我无关」**：本 plan 确实给 `frontend` 加了一条 `depends_on`
+与一处挂载，**没有证据表明它们相关，也没有做过能排除它们的实验**。照实停在这里。

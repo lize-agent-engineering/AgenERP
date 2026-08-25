@@ -768,7 +768,12 @@ Closure Audit Evidence:
   - `python3 -m pytest tests/unit -q` → exit **0**（`777 passed, 6 skipped`）
   - `python3 -m pytest tests/contracts tests/tools tests/routing tests/context -q` → exit **0**（`456 passed, 13 skipped`）
   - `ruff check agenerp tests/unit tests/contracts tests/tools tests/routing tests/context tests/experiments` → exit **0**
-  - commit sha：Phase 1 `ac2d456` · Phase 2 `b669cbf` · Phase 3 见收尾提交
+  - commit sha：Phase 1 `ac2d456` · Phase 2 `b669cbf` · Phase 3 `6d5b2ae` · 补测收口见下一条
+  - **收口后补测（比上面任何一条都硬）**：`AGENERP_LIVE=1 AGENERP_HTTP_PORT=18080 AGENERP_SERVE_BASE=http://127.0.0.1:18080 AGENERP_SITE=frontend AGENERP_SITE_URL=http://127.0.0.1:18080 AGENERP_ADMIN_PASSWORD=admin python3 -m pytest -m live tests/gates/test_explain_service_live.py -q -rs` → exit **1**，**`1 failed, 5 passed`**。
+    那 1 条红的**是且只是**门禁自己的 `skip → fail` 收严把断言体 `:223` 那条 `pytest.skip` 翻译成的红
+    （`Failed: 活栈上一个 AI 变量都没配 —— 503 已判…`）。**对照**：栈没起来时同一条命令是 **`6 failed`**（六条全红在 `Connection refused`）。
+    ⇒ **§1.11 的预测被人自己那份门禁逐字证实**；本 plan 交付的那一半（五条转绿）**逐条可复核**。
+    ⚠️ 那份门禁由**人**在 `f09b8f0` 提交，本 plan **一个字未碰、未 `git add`** —— **运行一份判据不是修改它**。
   - ⚠️ **verification scope limited**：未跑整仓 `pytest tests -q -m "not live"`，**未经 CI 服务端复跑**，**未做浏览器侧验证**。
 
 Follow-up:
