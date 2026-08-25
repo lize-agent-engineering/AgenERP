@@ -374,11 +374,11 @@ services:
       # 不踩这个坑，正是因为它们各自被依赖着。
       bootstrap-homepage:
         condition: service_completed_successfully
-      # 反代的上游必须先在。service_healthy 而不是 service_started：与上面两条同一条理由 ——
-      # nginx 在上游主机名还解析不出来时启动会逐字报 `host not found in upstream` 并陷入重启循环。
-      # 这条边是**单向**的：agenerp-serve 的 depends_on 里没有 frontend，故不成环（§7.21 D-b-3 ①）。
-      agenerp-serve:
-        condition: service_healthy
+      # ⚠️ **这里刻意没有 agenerp-serve** —— 曾经有过，实测是个缺陷，已删（§7.21 `D-b-8`）。
+      # 加它挡不住那个失败形态（depends_on 只管 `up` 的次序，不管 `restart: on-failure`
+      # 触发的重启），却把 frontend 的可用性绑在一个它其实不需要的服务上。
+      # 真正的修法在 nginx 侧：resolver + 变量形式的 proxy_pass，改成**每次请求时**解析
+      # ⇒ agenerp-serve 不在时只有 /agenerp/ 那一条回 502，Frappe 本身照常对外。
 
 volumes:
   db-data:

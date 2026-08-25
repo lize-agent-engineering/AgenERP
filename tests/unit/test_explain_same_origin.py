@@ -224,22 +224,44 @@ def test_nginx_location_prefix_equals_route_prefix():
 
 # --- 判据③ nginx 上游端口 ↔ compose 侧端口，且两边都不是插值形式 ---------------------
 
-_UPSTREAM_SERVER = re.compile(r"^\s*server\s+(?P<host>[^\s:;]+):(?P<port>[^\s;]+)", re.M)
+# 运行期解析的形状（§7.21 `D-b-8`）：主机名放变量、端口跟在 `proxy_pass` 后面。
+_SET_HOST = re.compile(r"^\s*set\s+\$(?P<var>\w+)\s+(?P<host>[^\s;]+)\s*;", re.M)
+_PROXY_PASS = re.compile(r"^\s*proxy_pass\s+http://\$(?P<var>\w+):(?P<port>[^\s/;]+)\s*;", re.M)
+
+
+def _agenerp_location_body() -> str:
+    """取那段 `location /agenerp/` 的块正文（已剔注释）。"""
+    text = _strip_nginx_comments(_nginx_text())
+
+    def walk(nodes):
+        for node in nodes:
+            if node["directive"] == f"location {ROUTE_PREFIX}/":
+                start, end = node["span"]
+                return text[start:end]
+            found = walk(node["children"])
+            if found is not None:
+                return found
+        return None
+
+    body = walk(_nginx_tree())
+    assert body is not None, f"nginx 模板里没有 `location {ROUTE_PREFIX}/` 块"
+    return body
 
 
 def _agenerp_upstream() -> tuple[str, str]:
-    """从 nginx 模板里取「解释服务那个 upstream 块」的 `host` 与 `port`（原始文本）。"""
-    upstreams = [
-        node
-        for node in _nginx_tree()
-        if node["directive"].startswith("upstream ") and SERVICE in node["directive"]
-    ]
-    assert len(upstreams) == 1, f"指向 {SERVICE} 的 upstream 块应当有且只有一个，实际 {len(upstreams)} 个"
-    start, end = upstreams[0]["span"]
-    body = _strip_nginx_comments(_nginx_text())[start:end]
-    match = _UPSTREAM_SERVER.search(body)
-    assert match, f"upstream 块里没有 `server <host>:<port>` 那一行：{body!r}"
-    return match.group("host"), match.group("port")
+    """从 nginx 模板里取解释服务上游的 `host` 与 `port`（原始文本）。
+
+    **形状是「`set $var <host>;` + `proxy_pass http://$var:<port>;`」，不是 `upstream` 块** ——
+    理由见 §7.21 `D-b-8`：`upstream` 块里的名字由 nginx 在**加载配置那一刻**解析，
+    解析不出来就 `[emerg]` 退出，而 `frontend` 是 `restart: on-failure` ⇒ 整个前端陷入重启循环。
+    """
+    server_body = _strip_nginx_comments(_nginx_text())
+    passes = _PROXY_PASS.findall(_agenerp_location_body())
+    assert len(passes) == 1, f"`location {ROUTE_PREFIX}/` 里应当有且只有一条变量形式的 proxy_pass，实际：{passes}"
+    var, port = passes[0]
+    hosts = [h for v, h in _SET_HOST.findall(server_body) if v == var]
+    assert len(hosts) == 1, f"`set ${var} <host>;` 应当有且只有一条，实际：{hosts}"
+    return hosts[0], port
 
 
 def test_nginx_upstream_port_equals_compose_serve_port():
@@ -478,4 +500,71 @@ def test_nginx_upstream_host_equals_the_compose_service_name():
     assert "${" not in nginx_host, f"nginx 侧上游主机名写成了插值：{nginx_host!r}"
     assert nginx_host == SERVICE, (
         f"nginx 上游主机名是 {nginx_host!r}，而 compose 里那个服务叫 {SERVICE!r}"
+    )
+
+
+# --- 判据⑩ 反代那一跳不得让 nginx 的**启动**依赖上游在不在 --------------------------
+
+
+def test_the_reverse_proxy_does_not_make_nginx_startup_depend_on_the_upstream():
+    """⑩ `/agenerp/` 那一跳必须是**运行期解析**：`resolver` + 变量形式的 `proxy_pass`，
+    且**不许**为解释服务声明 `upstream` 块。
+
+    ⚠️ **这一条是从一个真实缺陷里长出来的，不是预防性洁癖**（§7.21 `D-b-8`）：
+    nginx 在**加载配置那一刻**解析所有 `upstream` 块里的主机名，解析不出来就
+    `[emerg] host not found in upstream` 并**退出、不重试**。而 `frontend` 是
+    `restart: on-failure` ⇒ 只要 `agenerp-serve` 那一刻不在（重启中 / 还没起 / 被停掉），
+    **整个 frontend 陷入重启循环，连 Frappe 本身都对外不可用**。
+    实测复现逐字：
+        docker compose stop agenerp-serve
+        docker compose up -d --force-recreate --no-deps frontend
+        → [emerg] host not found in upstream "agenerp-serve:8330"，frontend `restarting`
+
+    这是**本仓加的那一跳把 frontend 的可用性绑在了一个它不需要的服务上** ——
+    一个新服务不该有能力拖垮整个前端。
+
+    失败意味着：那格脆弱性回来了。`docker compose up -d --wait` 会在三个 CI job 的
+    **第一步**上红，而红因看起来是 nginx 的报错、与解释服务毫无关系。
+    """
+    text = _strip_nginx_comments(_nginx_text())
+
+    upstream_blocks = [
+        node["directive"]
+        for node in _nginx_tree()
+        if node["directive"].startswith("upstream ") and SERVICE in node["directive"]
+    ]
+    assert not upstream_blocks, (
+        f"给 {SERVICE} 声明了 upstream 块：{upstream_blocks}。"
+        "upstream 里的名字由 nginx 在加载配置那一刻解析，解析不出来整个 frontend 就起不来。"
+    )
+
+    body = _agenerp_location_body()
+    assert not re.search(rf"proxy_pass\s+http://{re.escape(SERVICE)}", body), (
+        f"proxy_pass 直接写了主机名 {SERVICE} —— 那同样是启动期解析"
+    )
+    assert _PROXY_PASS.search(body), (
+        f"`location {ROUTE_PREFIX}/` 里没有变量形式的 proxy_pass（`proxy_pass http://$var:<port>;`）"
+    )
+    assert re.search(r"^\s*resolver\s+\S+", text, re.M), (
+        "没有 `resolver` 指令 —— 变量形式的 proxy_pass 需要它才能在运行期解析"
+    )
+
+
+def test_the_compose_front_does_not_depend_on_the_explain_service():
+    """⑩b `frontend` 的 `depends_on` 里**不许**出现 `agenerp-serve`。
+
+    与⑩ 是同一条防线的另一半。加那条边**挡不住**⑩ 描述的失败形态
+    （`depends_on` 只管 `up` 的次序，管不到 `restart: on-failure` 触发的重启），
+    却把 `frontend` 的可用性绑在一个它其实不需要的服务上 —— 代价真、收益假。
+
+    失败意味着：有人用「加一条 depends_on」当作⑩ 的修法。那不是修法。
+    """
+    depends = _sub_block(_service_block("frontend"), "depends_on")
+    # 只看**指令行**，不看注释 —— 那一格现在正由一条注释占着，写明它为什么刻意是空的。
+    directives = "\n".join(
+        line for line in depends.splitlines() if not line.lstrip().startswith("#")
+    )
+    assert SERVICE not in directives, (
+        f"frontend 的 depends_on 里出现了 {SERVICE}：\n{directives}\n"
+        "挡不住那个失败形态，却把前端的可用性绑在解释服务上。真正的修法在 nginx 侧（判据⑩）。"
     )

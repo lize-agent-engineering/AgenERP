@@ -3733,3 +3733,84 @@ AGENERP_LIVE=1 AGENERP_HTTP_PORT=18080 AGENERP_SERVE_BASE=http://127.0.0.1:18080
 **本 plan 没有引入它，也没有消除它。**
 ⚠️ **本 plan 不把这条写成「与我无关」**：本 plan 确实给 `frontend` 加了一条 `depends_on`
 与一处挂载，**没有证据表明它们相关，也没有做过能排除它们的实验**。照实停在这里。
+
+#### `D-b-8` 反代那一跳改成**运行期解析** —— 一个被实测抓到的缺陷，`D-b-1` 的落地形态就地修正
+
+⚠️⚠️ **本节记的是一个真缺陷，不是优化。它由人先发现（`4e9e74d`），loop 复现并定位。**
+
+**人的报告**（`fix(roadmap): P1.8a 由 done 改回 todo —— 实测栈起不来`）：
+`docker compose down -v && docker compose up -d --wait` → `frontend` 无限 `Restarting (1)`，
+逐字 `[emerg] host not found in upstream "backend:8000" in frappe.conf:22`。
+人同时排除了三项（`backend` 当时 healthy · 同网络 DNS 正常 · `agenerp-serve` 自身 healthy），
+并给了**方向建议而不是结论**。
+
+**loop 的复现与定位**（决定性实验，30 秒，不靠冷起栈的随机性）：
+
+```
+docker compose stop agenerp-serve
+docker compose up -d --force-recreate --no-deps frontend
+```
+→ 逐字 `[emerg] host not found in upstream "agenerp-serve:8330" in /etc/nginx/conf.d/frappe.conf:35`，
+`frontend` 进入 `restarting`。**这次报的是本仓加的那个上游，缺陷就此坐实。**
+
+**成因（nginx 的一条固有性质，不是配错）**：`upstream` 块里的主机名由 nginx 在
+**加载配置那一刻**解析，解析不出来就 `[emerg]` **退出且不重试**。
+而 `frontend` 是 `restart: on-failure` ⇒ 只要 `agenerp-serve` 在那一刻不在
+（重启中 / 还没起 / 被停掉），**整个 `frontend` 陷入重启循环，连 Frappe 本身都对外不可用**。
+
+⇒ **`D-b-1` 选 (A) 是对的，但它的落地形态错了**：本仓加的那一跳
+**把 `frontend` 的可用性绑在了一个它其实不需要的服务上**。
+一个新服务不该有能力拖垮整个前端 —— 这与 D-19「代价照实记」是同一条线：
+代价可以有，但不能是「前端跟着一起死」。
+
+**修法（两处，一处治本一处去伪）**：
+
+| # | 改动 | 理由 |
+|---|---|---|
+| 1 | **删掉 `upstream agenerp-serve-upstream` 块**，改成 `resolver 127.0.0.11 valid=10s ipv6=off;` + `set $agenerp_serve_host agenerp-serve;` + `proxy_pass http://$agenerp_serve_host:8330;` | `proxy_pass` 里带变量时 nginx 改成**每次请求时**解析 ⇒ 启动不再依赖上游在不在。`127.0.0.11` 是 docker 的内嵌 DNS，compose 网络内固定，字面写死 |
+| 2 | **删掉 `frontend` 的 `depends_on: agenerp-serve`** | ⚠️ **它挡不住这个失败形态**：`depends_on` 只管 `up` 的次序，管不到 `restart: on-failure` 触发的重启。留着它是**代价真、收益假** —— 把前端的可用性绑在一个它不需要的服务上，却换不到任何保护 |
+
+**修后实测**（同一条决定性实验，`agenerp-serve` 仍是 `exited`）：
+`frontend` **`running` / `healthy`**，`RestartCount=0`；
+`/api/method/ping` → **200**（**Frappe 本身照常对外**）；
+`/agenerp/health` → **502**，日志逐字 `agenerp-serve could not be resolved (3: Host not found)`。
+⇒ **降级是局部的、可观测的，正是要的形态。**
+恢复 `agenerp-serve` 之后：`/agenerp/health` → **200**，断言体 `5 passed, 1 skipped`，
+人那份门禁 `1 failed, 5 passed`（红的仍是且只是那条 skip）。
+**冷起栈**（`down -v` → `up -d --wait --wait-timeout 900`）→ **exit 0**，
+全部服务 `healthy`，`frontend RestartCount=0`，两个端点都 200。
+
+**新增两条判据把这一格钉死**（`tests/unit/test_explain_same_origin.py`，**21 → 23 条**）：
+
+- **判据⑩** `test_the_reverse_proxy_does_not_make_nginx_startup_depend_on_the_upstream`
+  —— 不许给解释服务声明 `upstream` 块、不许 `proxy_pass` 直写主机名、必须有 `resolver`
+  与变量形式的 `proxy_pass`；
+- **判据⑩b** `test_the_compose_front_does_not_depend_on_the_explain_service`
+  —— `frontend` 的 `depends_on` **指令行**里不许出现 `agenerp-serve`
+  （只看指令行、不看注释：那一格现在正由一条注释占着，写明它为什么刻意是空的）。
+  **这一条挡的是「用一条 `depends_on` 当修法」** —— 那不是修法。
+
+**变异自查同步扩到 M11**（M1–M11 共 **12 次**施加，逐条打红、逐条 `RESTORED OK`）：
+`M11a` 把 `proxy_pass` 改回直写主机名 → 判据⑩ 打红；
+`M11b` 把 `agenerp-serve` 加回 `frontend` 的 `depends_on` → 判据⑩b 打红。
+⚠️ `M2` / `M10b` 的施加方式随形态一并改直（改 `proxy_pass` 的端口 / 改 `set` 的主机名）。
+
+**残余风险，照实记**
+
+- **运行期解析多一次 DNS 往返**（`valid=10s` 做了缓存）。相对于单次解释 9.7 万–12.8 万 token
+  的量级，这个开销不值得再优化，但它**确实存在**，不假装没有。
+- **`127.0.0.11` 是 docker 内嵌 DNS 的地址，写死了就绑定在 compose 这一种编排上**。
+  换编排（k8s / 裸机）时这一行必须重定。**这是本节自愿付的代价**，因为本仓的部署面就是 compose。
+- **人报告的那个 `backend:8000` 变体没有被本节直接修掉**：那是**上游模板自己那一行**，
+  同一条 nginx 性质、但改它等于改上游文件的内容、把副本与上游的差集撑大（K3）。
+  ⚠️ **本节只保证「本仓加的那一跳不再有能力拖垮 frontend」，不保证「frontend 再也不会因为
+  上游解析失败而重启循环」** —— 后者是上游模板的既有性质，`docker-compose.yml` 的
+  `frontend.depends_on` 注释早已登记过它。**两件事不混为一谈。**
+- ⚠️ **本机 Docker 在这一轮里另外表现出两处不稳定，与本仓无关但影响了取证，照实记**：
+  ① 有**另一个 compose 项目**（项目名 `docker`）的 `frontend-1` 占着宿主 `0.0.0.0:8080`
+  ⇒ 不带 `AGENERP_HTTP_PORT` 的 `up` 会直接死在
+  `Bind for 0.0.0.0:8080 failed: port is already allocated`，**与本 plan 无关**
+  （`tests/gates/conftest.py::_port_occupant` 正是为这种情况写的）；
+  ② 冷起栈两次中途报 `Error response from daemon: No such container: <id>`，
+  **容器在守护进程里凭空消失**。第二次按裁判规则 3 复跑 `up -d --wait` 即 exit 0。
+  **这两处都不猜根因**，只说明：**本轮的冷起栈取证是在一台不稳定的机器上做的。**

@@ -406,6 +406,15 @@
   · **本行只追加，不改写本节任何已有行**（红线 5）。
 
 
+- 2026-08-25T08:05Z · P1.8a/工作项 10 · **人 `4e9e74d` 报的缺陷已复现、已定位、已修、已实测；工作项 10 的状态词仍是人改回去的 `todo`，loop 不擅自再翻** · `docker compose stop agenerp-serve && docker compose up -d --force-recreate --no-deps frontend` → 修前 `[emerg] host not found in upstream "agenerp-serve:8330"`、frontend `restarting`；**修后 frontend `running`/`healthy`、`RestartCount=0`、`/api/method/ping` → 200、`/agenerp/health` → 502** · `AGENERP_HTTP_PORT=18080 docker compose down -v && docker compose up -d --wait --wait-timeout 900` → **exit 0**，全部 `healthy`，`frontend RestartCount=0`，两个端点都 200 · sha `<本条随修复提交入库>` · 落点节 `module-boundaries.md` **§7.21 `D-b-8`**
+  · **缺陷坐实**（决定性实验 30 秒，不靠冷起栈的随机性）：nginx 在**加载配置那一刻**解析 `upstream` 块里的主机名，解析不出来就 `[emerg]` **退出且不重试**；而 `frontend` 是 `restart: on-failure` ⇒ 只要 `agenerp-serve` 那一刻不在，**整个 frontend 陷入重启循环，连 Frappe 本身都对外不可用**。⇒ **`D-b-1` 选 (A) 是对的，落地形态错了** —— 本仓加的那一跳把 frontend 的可用性绑在了一个它不需要的服务上。
+  · **修法两处**：① nginx 侧删掉 `upstream` 块，改 `resolver 127.0.0.11 valid=10s ipv6=off;` + `set $agenerp_serve_host agenerp-serve;` + `proxy_pass http://$agenerp_serve_host:8330;`（**每次请求时**解析）；② compose 侧**删掉** `frontend.depends_on.agenerp-serve` —— ⚠️ **它挡不住这个失败形态**（`depends_on` 只管 `up` 的次序，管不到 `restart: on-failure` 触发的重启），留着是**代价真、收益假**。
+  · **新增判据⑩ / ⑩b**（`tests/unit/test_explain_same_origin.py` **21 → 23 条**，`tests/unit` **777 → 779**），**变异扩到 M11**（M1–M11 共 **12 次**施加，逐条打红、逐条 `RESTORED OK`）。判据⑩b 专门挡「用一条 `depends_on` 当修法」。
+  · ⚠️ **人报的那个 `backend:8000` 变体没有被直接修掉**：那是**上游模板自己那一行**，同一条 nginx 性质，改它等于改上游文件内容、把副本与上游的差集撑大（K3）。**本次只保证「本仓加的那一跳不再有能力拖垮 frontend」，不保证「frontend 再也不会因为上游解析失败而重启循环」** —— 后者是上游既有性质，`docker-compose.yml` 的 `frontend.depends_on` 注释早已登记。**两件事不混为一谈。**
+  · ⚠️ **本机 Docker 另有两处不稳定，与本仓无关但影响取证，照实记**：① **另一个 compose 项目**（项目名 `docker`）的 `frontend-1` 占着宿主 `0.0.0.0:8080` ⇒ 不带 `AGENERP_HTTP_PORT` 的 `up` 会死在 `Bind for 0.0.0.0:8080 failed: port is already allocated`（**这正是人那条复现命令在本机的另一种死法**，与本 plan 无关）；② 冷起栈两次中途报 `Error response from daemon: No such container: <id>`，**容器在守护进程里凭空消失**，按裁判规则 3 复跑即 exit 0。**两处都不猜根因。**
+  · **工作项 10 的状态词**：人已在 `4e9e74d` 改回 `todo`，**loop 不擅自再翻回 `done`** —— 那是人基于实测做的裁定，改它要人自己来。roadmap 那一行已追加本次修复的实测记录，**状态词一个字未动**。
+  · **本行只追加，不改写本节任何已有行**（红线 5）。
+
 ## §3 needs-human 队列
 
 > 📦 已处置（`resolved`）的 9 条已整段归档到 [archive/STATE-2026-08-22.md](./archive/STATE-2026-08-22.md)。**`open` 的一条没动** —— 待办必须留在眼前。

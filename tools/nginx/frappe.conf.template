@@ -26,16 +26,6 @@ upstream socketio-server {
 	server ${SOCKETIO} fail_timeout=0;
 }
 
-# >>> AgenERP —— 解释服务的上游（§7.21 `D-b-1` / `D-b-2`）
-# 主机名 `agenerp-serve` 与 docker-compose.yml 里的**服务名**逐字相同；
-# 端口 8330 与那个服务的 AGENERP_SERVE_PORT 逐字相同。两者都**字面写死**、
-# 不经插值：判据（tests/unit/test_explain_same_origin.py 的 ③⑨）比的就是这两个字面值，
-# 而仓根的 .env 能在 `docker compose config` 时把插值改掉、判据看不见。
-upstream agenerp-serve-upstream {
-	server agenerp-serve:8330 fail_timeout=0;
-}
-# <<< AgenERP
-
 # Parse the X-Forwarded-Proto header - if set - defaulting to $scheme.
 map $http_x_forwarded_proto $proxy_x_forwarded_proto {
 	default $scheme;
@@ -58,7 +48,7 @@ server {
 	real_ip_header ${UPSTREAM_REAL_IP_HEADER};
 	real_ip_recursive ${UPSTREAM_REAL_IP_RECURSIVE};
 
-	# >>> AgenERP —— 同源那一跳（§7.21 `D-b-1`）
+	# >>> AgenERP —— 同源那一跳（§7.21 `D-b-1` / `D-b-8`）
 	# 前缀 `/agenerp/` 必须与 agenerp/serve/app.py 的 ROUTE_PREFIX 逐字一致，
 	# 判据②从两个文件各读一次再比，不在判据里写第三个字面量。
 	#
@@ -66,6 +56,19 @@ server {
 	# 另起一个同 listen 同 server_name 的 server 块时，nginx 实测只 warn
 	# （`conflicting server name ... ignored`）而 `nginx -t` 退 0 ——
 	# 配置测试全绿、反代根本不存在。判据⑧ 守的就是这一格。
+	#
+	# ⚠️⚠️ **为什么是 resolver + 变量，而不是一个 upstream 块**（§7.21 `D-b-8`，实测出来的）：
+	# nginx 在**加载配置那一刻**解析所有 `upstream` 里的主机名，解析不出来就
+	# `[emerg] host not found in upstream` 并**退出**（不重试）。而 frontend 是
+	# `restart: on-failure` ⇒ 一旦 agenerp-serve 那一刻不在（重启中 / 还没起 / 被停掉），
+	# **整个 frontend 陷入重启循环**，连 Frappe 本身都对外不可用。
+	# 实测复现：`docker compose stop agenerp-serve && docker compose up -d --force-recreate --no-deps frontend`
+	# → 逐字 `[emerg] host not found in upstream "agenerp-serve:8330"`，frontend `restarting`。
+	# 把名字放进**变量**并给一个 `resolver`，nginx 就改成**每次请求时**解析：
+	# 启动不再依赖它在不在，它不在时这一条 location 回 502，**其余路由一律不受影响**。
+	# 127.0.0.11 是 docker 的内嵌 DNS（compose 网络内固定），字面写死。
+	resolver 127.0.0.11 valid=10s ipv6=off;
+	set $agenerp_serve_host agenerp-serve;
 	#
 	# proxy_read_timeout 显式给 300：单次解释实测 9.7 万–12.8 万 token，
 	# 上游模板给 @webserver 的那个读超时变量（compose 侧给 120）对它不够，
@@ -81,7 +84,7 @@ server {
 		proxy_send_timeout 300;
 		proxy_redirect off;
 
-		proxy_pass http://agenerp-serve-upstream;
+		proxy_pass http://$agenerp_serve_host:8330;
 	}
 	# <<< AgenERP
 
