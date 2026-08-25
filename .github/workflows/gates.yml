@@ -185,7 +185,26 @@ jobs:
       # --wait-timeout 取 900 而不是本机的 300：口径依据没变（system-baseline.md §14.2 的
       # 「interval × retries + start_period 必须小于 wait-timeout」，本仓最大值约 120 秒），
       # 放大的那部分只覆盖 runner 上更慢的拉镜像与建站，不放松任何判定。
-      - name: 起栈（一个 AI 变量都不配）
+      # ⚠️ **这个 job 刻意配 AI 变量，与「零依赖启动」那个 job 相反。**
+      #
+      # 两个 job 测的是**两条不同的路径**，缺一不可：
+      #   · `L2 慢门禁（零依赖启动）` —— 一个 AI 变量都不配，验降级路径
+      #     （首页说「AI 能力未配置」、解释服务回 503 并指名缺哪个变量）
+      #   · 本 job —— 配上变量，验**答案面**真的走得通
+      # 把两者合成一个会让其中一条永远测不到。
+      #
+      # 用 `qwen3.7-flash` 而不是更强的档：一次解释中位 **11 万 token**
+      #（P1.0 第二轮 12 次实测），而百炼免费额度是 1,000,000/模型 ——
+      # **约 9 次 CI 就烧光一个模型的额度**。CI 这一格要证明的是「答案面通不通」，
+      # 不是「答得多好」，用 flash 足够。选它还因为它满额且到期最早（D-17）。
+      #
+      # ⚠️ fork 提交的 PR **拿不到 Secrets**（GitHub 的默认安全行为），
+      # 那种 run 上本 job 会红在缺变量上 —— 这是预期，不是故障。
+      - name: 起栈（配上 AI 变量，验答案面）
+        env:
+          AGENERP_LLM_ENDPOINT: ${{ secrets.AGENERP_LLM_ENDPOINT }}
+          AGENERP_LLM_API_KEY: ${{ secrets.DASHSCOPE_API_KEY }}
+          AGENERP_LLM_MODEL: ${{ secrets.AGENERP_LLM_MODEL }}
         run: docker compose -f docker-compose.yml up -d --wait --wait-timeout 900
 
       # 这条门禁只取 compose_stack、不取 live_site，因此不需要 AGENERP_SITE / AGENERP_SITE_URL。
@@ -282,6 +301,12 @@ jobs:
           # 工具执行层门禁的 permission.scope 判别力那条要以受限身份登录。
           # 缺它那条会红（**不是 skip** —— 门禁里没有 skip 这个出口）。
           AGENERP_WORKER_PASSWORD: ${{ secrets.AGENERP_WORKER_PASSWORD || 'worker-ci-only' }}
+          # 解释服务门禁的「答案面」那条要真调模型。缺它时服务回 503，
+          # 断言体在 503 分支上 skip —— 而 live 契约是「零 skip」，那一条会让整个
+          # job 退 1。配上之后它走答案面，与起栈步同一套变量。
+          AGENERP_LLM_ENDPOINT: ${{ secrets.AGENERP_LLM_ENDPOINT }}
+          AGENERP_LLM_API_KEY: ${{ secrets.DASHSCOPE_API_KEY }}
+          AGENERP_LLM_MODEL: ${{ secrets.AGENERP_LLM_MODEL }}
         run: python3 tools/gates/check_expected_red.py
 
       - name: 取证 —— 服务状态
