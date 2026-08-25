@@ -2,9 +2,12 @@
 
 > Plan Status: draft
 > Review Hold: §0.5 的两条前置只有人能答（① 准不准把浏览器驱动引进本仓 —— 前一个 plan 逐字保留给人的依赖决策；
-> ② `docs/references/playwright-e2e-guide.md` 算不算数）。第 3 轮独立评审**实读复核过、不是转述**：
-> `docs/masterplan/STATE.md:868-870` 是 `[needs-human]` 而非 `[resolved]`，`git log --grep=Approved-By` 无一条涉及浏览器驱动。
+> ② `docs/references/playwright-e2e-guide.md` 算不算数）。第 4 轮独立评审**实读复核过、不是转述**：
+> `docs/masterplan/STATE.md:867-871` 是 `[needs-human]` 而非 `[resolved]`（全文 872 行，其后无覆盖行），
+> `git log --grep=Approved-By` 的 20 条里无一条涉及浏览器驱动。
 > ⇒ Phase 1 停机分支 4 仍是 100% 触发 ⇒ 不具备「可执行契约」，**不转 `active`**。人答完第 ① 条即可转。
+> ⚠️ **另有一件不拦转 `active`、但执行期第一步就要看的**：评审期工作树里
+> `.github/workflows/gates.yml` 与 `docker-compose.yml` **有人侧未提交改动**（红线 2 面）—— 处置写死在 **§0.6**。
 > Last Reviewed: 2026-08-25
 > Source: `docs/backlog/p1-insight-roadmap.md` 工作项 11（P1.8b）· `docs/masterplan/02-WBS.md` §4 第 88 行 ·
 > 前一个 plan `2026-08-25-1615-1` §11 第一条写死的后继指派（重开事件「该 plan 转 `completed`」已于 2026-08-25 触发）
@@ -30,6 +33,10 @@
 4. `python3 -c "import playwright, pytest_playwright"` + `python3 -m pip list | grep -iE 'playwright|selenium'` +
    `ls ~/Library/Caches/ms-playwright` —— 浏览器驱动在本机到底装没装、装的是哪一版。
    **取不到就走 §7 Phase 1 的停机分支 ①**，不许改成「用 curl 凑合」（那撞硬约束①）。
+5. ⚠️ **重取本文件引用的每一处 `gates.yml` / `project-context.md` 行号**（第 4 轮独立评审补，理由见 §0.6）：
+   `grep -n "COVERED=\|ruff check agenerp\|作用域三个目录\|判据自身的判据：跳过就是没跑\|配上之后它走答案面\|把判据调整到迁就环境\|这几个目录由 loop 写在红线外\|pip install pytest certifi" .github/workflows/gates.yml`
+   —— **按那几句注释原文定位，不认本文件写的行号**。工作树里那份 `gates.yml` 已有人侧未提交改动（§0.6），
+   行号一定对不上；**对不上不是本 plan 的错，硬按行号走才是。**
 
 ## 0.5 ⚠️ 本 plan 为什么停在 `draft` —— 一件只有人能做的裁定卡在最前面
 
@@ -73,6 +80,39 @@ loop 不许顺势把它当批准用** —— 那正是「用一份自己找来�
 
 **这两条已由本轮 mission-driver 追加进 `docs/masterplan/STATE.md` §3 的 needs-human 队列**（只追加，不改写已有行）。
 **人答完之前，本文件的 `Plan Status` 保持 `draft`，不执行。**
+
+## 0.6 ⚠️ 评审期实测：工作树里有**人侧未提交**的改动，落在两个本 plan 依赖的文件上
+
+第 4 轮独立评审跑 `git status --porcelain` 打出来的（**不是推演**，`HEAD` = `d02b208`）：
+
+```
+ M .github/workflows/gates.yml
+ M docker-compose.yml
+```
+
+`git diff` 实读，两处是**同一件事**：人正在把 `AGENERP_LLM_BASE_URL` 这条线接通 ——
+`docker-compose.yml` 的 `x-ai-env` 加了 `AGENERP_LLM_BASE_URL: ${AGENERP_LLM_BASE_URL:-${AGENERP_LLM_ENDPOINT:-}}`
+（注释逐字：「此前整条链只传 ENDPOINT 不传 BASE_URL，**服务因此永远拿不到端点**；
+症状是『五条不需要真 `sid` 的门禁照过、只有答案面那条红』」），
+`gates.yml` 把 AI 变量从 `gates-l2` 的起栈步挪到 `gates-l2-live` 的起栈步上。
+⇒ **这正是 §1.8b 里「工作项 10 仍敞着的那条红（①）」人侧正在修的动作。**
+
+**本 plan 对此写死三条**：
+
+1. **一个字节都不碰这两个文件。** `.github/workflows/**` 是红线 2；`docker-compose.yml` 不在红线内，
+   但**它上面有别人未提交的活**，动它就是覆盖别人的工作。**也不许 `git checkout` / `git stash` 掉它们**
+   —— 那是删别人还没落盘的东西。
+2. **不许把它们一并 commit。** 本 plan 的每一次提交都必须**显式列路径**，
+   绝不用 `git commit -a` / `git add -A`。
+3. ⚠️ **本文件里所有 `gates.yml:<行号>` 的引用都是按 `HEAD` `d02b208` 记的**，
+   工作树那份已经漂移，且人侧改动落盘后还会再漂。
+   ⇒ 执行期**按 §0 第 5 条重取**，**按名字（job 名 / step 名 / 那句注释原文）定位，不认行号**。
+
+⚠️ **对 `H7` / §1.7 的影响，照实说**：人侧这一改一旦落盘，`gates-l2-live` 起栈时**就不再是「一个 AI 变量都不配」**。
+§1.7 已经写死「**不许把 503 钉死进断言**」、`H7` 已经写死「**不许清环境重跑**」
+⇒ **本 plan 的判据形态对这次变化是免疫的，不需要改**。
+但 §1.7 那句「`gates-l2-live` 起栈时一个 AI 变量都不配」是**按 `HEAD` 说的**，
+**人侧改动落盘之后它就过期了** —— 执行期重读，不许把它当活事实引。
 
 ## 1. Current Baseline
 
@@ -165,6 +205,32 @@ ACTUAL=$(ls -d tests/*/ | xargs -n1 basename | sort | tr '\n' ' ' | sed 's/ $//'
    （本地会被真扫，因为 `[tool.ruff]` 的 `exclude` 只排除 `tests/gates`）。
    ⇒ 交接必须**逐件写清人要做的四件**（§7 Phase 3 交接项），不能只写一句「归人」了事，
    **更不能写成「加一行 `COVERED` 就好了」——那句话是错的。**
+
+### 1.4b ⚠️ 第二处正面冲突（第 4 轮独立评审实读新提）：断言体住进 `tests/unit/` 会在 **runner 上炸**，而且**不是** §1.4 那条红
+
+`.github/workflows/gates.yml`（`HEAD` `d02b208` 的 `:530`）逐字 `- run: pip install pytest certifi`
+—— `unit-and-contracts` 这个离线 job **只装 pytest 与 certifi**，
+其第 ① 步（同 `HEAD` `:532-533`）跑 `python3 -m pytest tests/unit -q`。
+⚠️ **行号按 `HEAD` 记；执行期按 §0.6 重取**（评审期工作树里那份 `gates.yml` 有人侧未提交改动，行号已漂移）。
+⇒ **runner 上没有 `playwright`、也没有 `pytest-playwright`。**
+
+⇒ 断言体 `tests/unit/test_desk_sidebar_body.py` 一旦**用了 `pytest-playwright` 插件提供的 fixture**
+（`page` / `browser` / `context` / `browser_type` …）或**在模块顶层 `import playwright`**，
+runner 上的结果是 **`fixture 'page' not found` / `ModuleNotFoundError` —— 那是 `error`，不是 `skip`**
+⇒ **今天绿着的 `unit-and-contracts` 会红。**
+
+⚠️ **这与 §1.4 那条红是两件事，不许混成一件**：§1.4 那条是「判据自身的判据」按设计报警、由人接进 CI 即消；
+这一条是**本 plan 自己把一个绿 job 弄红**，没有任何守卫要求它发生，**属于纯回归**。
+而 §1.4 的三重代价 (i)(ii)(iii) 与 §11 第一条**都没有覆盖它**。
+
+⇒ **写死约束（`D-d-3` ④ 与 Phase 3 落实）**：
+1. 断言体**不许**依赖 `pytest-playwright` 提供的任何 fixture，也不许依赖它的任何 CLI 选项（`--headed` / `--browser` …）；
+2. 浏览器的启动与关闭由**断言体自己的 fixture** 承担，`import playwright` **写在那个 fixture 体内**；
+   `ImportError` 在 `tests/unit` 那一轮 `skip`、经加载器收严后在 `tests/ui` 那一轮 `fail`（`D-d-3` ②）；
+3. **可执行验证（不是承诺，是一条命令）**：
+   `python3 -m pytest tests/unit/test_desk_sidebar_body.py -q -p no:playwright`
+   —— `-p no:playwright` 关掉该插件，**等价模拟 runner 上没装它**；
+   **必须 exit 0、全部 `skipped`、零 `error`**。这条进 Phase 3 的 Proof、Exit Criteria 与 §10。
 
 ### 1.5 浏览器驱动在本机的实读（起草期实测，**执行期须按 §0 第 4 条重取**）
 
@@ -259,6 +325,8 @@ roadmap 工作项 10 与 11 各记过一次同一条空缺：「**真浏览器�
    **零 skip**（§1.6），且**不需要任何 AI 变量**（§1.7）。
 4. **第一次直接观测**「浏览器把 `HttpOnly` 的 `sid` 自动带到 `/agenerp/*`」（§1.8）。
 5. **不回归**：零依赖启动门禁仍绿 · `check_expected_red.py` 仍退 0 · `tests/unit` 只增不减 ·
+   ⚠️ **`unit-and-contracts` 在「只装 `pytest certifi`」的 runner 上仍全绿**（§1.4b —— 断言体住进 `tests/unit/`
+   却依赖驱动时，那里出的是 `error` 不是 `skip`；这一条由 `-p no:playwright` 那条命令实证，不靠承诺）·
    `agenerp-serve` 停掉时 `frontend` 仍 `healthy`（§7.21 `D-b-8` 的不回归）· 既有资产判据那**四格**仍绿 ——
    `tests/unit/test_desk_asset_route.py` 的 `:165` `len(text) > 200` · `:166` `"agenerpDesk" in text` ·
    `:167` `"Object.freeze" in text` · `:168` `endswith(")();")`。
@@ -329,6 +397,7 @@ Minimum Rule 4 原文同时禁止 over-split（「共享同一行为契约与闭
 |---|---|---|---|
 | `H1` | `ls -d tests/*/` 与 `gates.yml` 第 ⑦ 步 `COVERED` 逐字比对（**落目录之前**跑一次） | 两边**相等**（八个目录），即这一步今天是绿的 | 已经不相等 ⇒ 说明有人先动了，**停下来重读 §1.4 再决定**，不许直接往上叠 |
 | `H2` | `python3 -c "import playwright, pytest_playwright"` + 启一次 chromium headless | 都成功；能起 chromium | ⇒ **Phase 1 停机分支 ①**：驱动不可用是一次**需人拍板的依赖决策**，交人，不自选替代品 |
+| `H2b` | ⚠️ **浏览器怎么够到那个站点**（第 4 轮独立评审新提）：compose 栈**按 Host 分站**（`docker-compose.yml:333` `FRAPPE_SITE_NAME_HEADER: frontend`，nginx `server_name ${FRAPPE_SITE_NAME_HEADER}` + `proxy_set_header Host $host`），而 `tests/unit/test_explain_service_body.py:114` 逐字「**站点名决定 Host 头，compose 栈按 Host 分站**」并显式发 `Host: frontend`。**浏览器访问 `http://127.0.0.1:18080/app` 发出的 Host 是 `127.0.0.1:18080`，且 Chromium 不允许用 `set_extra_http_headers` 覆盖 `Host`** ⇒ 这一跳到底落不落到 `frontend` 站，**本仓无实证**。探法：真浏览器打开 `http://127.0.0.1:18080/login`，看拿到的是登录页还是站点解析失败 | 落到 `frontend`（Frappe 在 Host 不匹配任何站点目录时回落到 `currentsite.txt` 的默认站，而 `create-site` 用了 `--set-default`，`docker-compose.yml:186/205` 记着这一点） | ⚠️ **回落不成立时的出路现在就写死，不留执行期自选**：启浏览器时加 Chromium 参数 `--host-resolver-rules="MAP frontend 127.0.0.1"` 并把基址改成 `http://frontend:18080` —— 这样浏览器发出的 Host 就是 `frontend`，**与既有断言体那一跳同口径**，且**不改本机 `/etc/hosts`、不碰站点配置、不碰 nginx**。两条都不成立 ⇒ 照实记进探测记录并交人（**不许**改 compose / nginx 去迁就判据，那是 `gates.yml:275-279` 点名禁止的同一族动作） |
 | `H3` | Frappe v15 Desk **自己**有没有占用 `Cmd/Ctrl+K`：真登录进 `/app`，按下该组合键，观测有无原生响应 | **不确定，这正是要测的**。倾向：Frappe 的 awesomebar 走 `Ctrl+G`，`K` 很可能空着 | 已被占用 ⇒ **不抢**（抢了就是破坏 Desk 既有行为）。**次选键现在就写死：`Cmd/Ctrl+Shift+K`**（不留执行期自选的口子），并把「WBS 那行写的是 ⌘K」这处偏差**显式登记**到 §11 + `STATE.md`，由人裁 |
 | `H4` | 当前单据上下文从哪儿取最稳：URL 路径解析 · `frappe.get_route()` · `cur_frm?.doc`，三者在同一张单据页上各取一次 | 三者**都能取到**且 `doctype`/`name` 一致 | **优先级现在就写死：URL 路径 > `frappe.get_route()` > `cur_frm.doc`**（理由：URL 是浏览器地址栏里看得见的、不依赖任何 Frappe 内部对象，升级 Frappe 时最不容易悄悄变形；后两者是内部 API）。不一致 ⇒ 按该优先级取，并把不一致照实记进落点节；三者**都取不到**（例如在 Workspace 页而非单据页）⇒ 那是**合法的「无单据上下文」态**，请求体**不带** `doctype`/`name`（§1.3 逐字「必须同时给或同时不给」） |
 | `H5` | 带真登录会话 `GET /app/<某真单据>`，看注入的 `<script src="/agenerp/desk.js">` 在不在、几次 | 在，**恰好 1 次**，且在 `</body>` 之前 | 不在 ⇒ 第 1 个 plan 的接缝回归了，**先修回归再往下**，不许绕过去 |
@@ -390,14 +459,38 @@ Skill: `none`
       ⇒ **模块级的 skip 收不严** —— `Skipped` 在 `exec_module()` 里就抛出来了，收严那一行**还没执行**，
       结果是**门禁退 0 且 `1 skipped`：一条绿着的、不存在的门禁**，正是 §1.6 要挡的那件事。
 
-      **裁定写死三条**：
+      **裁定写死六条**（①②③ 起草期已有；④⑤⑥ 是第 4 轮独立评审实读先例后补的 —— 起草期那三条**接不上**，
+      理由逐条写在下面，不是加码）：
       ① **加载器在 `exec_module()` 之前自己 `import playwright`**，失败即 `pytest.fail`（不是 skip、不是 `importorskip`）；
       ② **断言体里禁用模块级 `pytest.importorskip` 与模块级 `pytest.skip`** —— 驱动导入与活栈探活
-      **一律放进 fixture**，在 fixture 里 `pytest.skip(...)`，这样才落在收严的作用域内；
+      **一律放进 fixture**，在 fixture 里**只调 ④ 那个间接层**，这样才落在收严的作用域内；
       ③ **`tests/unit/` 那份允许 skip、`tests/ui/` 那份必须 fail，这个取舍差是有意的**
       （日常那一轮不该因为没起 docker 就整轮红），**必须在落点节 §7.23 写清楚，不许含糊成「都一样」**。
-      ⚠️ 顺带照实记一条**只记不改**的观测：先例那种 `_BODY.pytest.skip = ...` 的赋值改的是**全局 `pytest` 模块**，
-      属进程级污染；**本 plan 不去改那份先例**（红线 1），但自己这一份**不复制该写法**，改用上面 ①②。
+
+      ④ ⚠️ **收严到底怎么做，现在就写死 —— 起草期这里是个洞**：③ 要求「`tests/ui` 那份必须 fail」，
+      而 ①② 只管「skip 落在导入之后」，**根本没给出把 skip 变成 fail 的机制**；
+      同一条 `D-d-3` 又把先例那个机制（`_BODY.pytest.skip = ...`）判为**不复制**
+      ⇒ 起草期的三条**互相接不上**，执行期会被逼回去抄那个被自己否掉的写法。
+      **补死**：断言体在**模块级**暴露一个**自己的**间接名（形如 `_unavailable(reason)`），
+      默认实现就是 `pytest.skip(reason)`；**断言体里所有「跑不了」的出口一律只调它，不许直调 `pytest.skip`**；
+      加载器在 `exec_module()` 之后**只重绑这一个名字**（`_BODY._unavailable = pytest.fail`）。
+      ⚠️ **重绑的是断言体模块自己的属性，不是 `pytest` 模块的属性** ——
+      先例那种 `_BODY.pytest.skip = ...` 改的是**全局 `pytest` 模块**、属进程级污染
+      （**本 plan 不去改那份先例**，红线 1）；本形态没有这个副作用，且**新增的 skip 出口自动受管**
+      （与先例同一条好处，写在那份的注释里）。
+      ⑤ ⚠️ **加载器必须把断言体里的测试函数逐个重绑进自己的模块命名空间** —— 实读先例
+      `tests/gates/test_explain_service_live.py` 结尾**逐条列了六个** `test_... = _BODY.test_...`，
+      **起草期把这一步整个漏了**。漏掉的后果不是少跑几条，是
+      **`pytest -m live tests/ui/test_sidebar.py` 一条都收集不到 ⇒ 退出码 5**（`no tests collected`），
+      而 Exit Criteria 写的是「exit 0」⇒ **必然红在一个与实现无关的地方**。
+      配套守卫写死（离线、进 CI）：**加载器重绑的名字集合，必须等于断言体里 `test_` 开头的函数名集合**，
+      缺一即红 —— 落在 `tests/unit/test_desk_sidebar_static.py`（Phase 3 追加），**不是靠人眼数**。
+      ⑥ ⚠️ **断言体不许依赖 `pytest-playwright` 插件的任何 fixture**（`page` / `browser` / `context` /
+      `browser_type` …）与它的任何 CLI 选项 —— 完整理由与那条可执行验证命令见 **§1.4b**
+      （runner 上只装 `pytest certifi`，用了就是 `error` 不是 `skip`，**今天绿着的 `unit-and-contracts` 会红**）。
+      ⚠️ 这一条与 ② 是**两件事**：② 管「skip 出现在什么时机」，⑥ 管「fixture 从哪来」；
+      ② 满足了 ⑥ 照样能违反（自己写的 fixture 里 `import playwright` 是对的，
+      **函数签名里写 `page` 参数就是错的**）。
       - Skill: `none`
 - [ ] **`D-d-4` 快捷键**（`Decision`，依赖 `H3` 的实际值）：`Cmd/Ctrl+K` 与 Desk 原生绑定是否冲突、
       冲突时选谁。**不抢已被占用的键**（见 `H3` 的「不吻合怎么办」）。
@@ -501,6 +594,7 @@ Exit Criteria:
 
 Status: planned
 Targets: `tests/ui/test_sidebar.py`（新建，加载器）· `tests/unit/test_desk_sidebar_body.py`（新建，断言体）·
+**`tests/unit/test_desk_sidebar_static.py`（Phase 2 建的那份，本 Phase **追加**四条源码级守卫；第 4 轮独立评审补）** ·
 `pyproject.toml`（`ui` extra）· `docs/evidence/p1-desk-sidebar/README.md`（新建）·
 **`docs/context/project-context.md`（第 52 行 Lint / static check 那一格的作用域漂移，`Fix`，见本 Phase 交接项 (5) 下方；
 第 3 轮独立评审补 —— 前两轮把这件事写进了正文却漏进 Targets）**
@@ -511,13 +605,40 @@ Skill: `closure-audit-prompt.md`（仅收口那一步）
 
 - [ ] **`Add`** 断言体 `tests/unit/test_desk_sidebar_body.py`：真浏览器、真登录、真 Desk 页面，
       覆盖 `H6` / `H7` / `H8` / `H8b` / `H8c` / `H9` 六格。
-      **驱动取不到或活栈够不到 ⇒ 在 fixture 里 skip**，**模块级一律不 skip、不 `importorskip`**（`D-d-3` ①②）。
+      **驱动取不到或活栈够不到 ⇒ 在 fixture 里调 `D-d-3` ④ 那个间接层**（默认 `pytest.skip`），
+      **模块级一律不 skip、不 `importorskip`**（`D-d-3` ①②④）。
+      ⚠️ **不许出现 `pytest-playwright` 的 fixture 名（`page` / `browser` / `context` / `browser_type`）
+      作为测试函数或 fixture 的参数**（`D-d-3` ⑥ / §1.4b）—— 浏览器由**本文件自己的 fixture** 起，
+      `import playwright` 写在那个 fixture 体内。⚠️ 顺带写死：`H2b` 若判定要走
+      `--host-resolver-rules`，那个参数也在这个自建 fixture 里给。
       ⚠️ `H6` 与 `M5` 的证据**只能取自那一次「未打桩」的真请求**（`page.expect_response`）——
       `page.route` 打桩的请求到不了服务端，从它们身上取不到「服务端看到了 `sid`」。
       - Skill: `none`
 - [ ] **`Add`** 加载器 `tests/ui/test_sidebar.py`：`pytestmark = pytest.mark.live`；
       **先自己 `import playwright`（失败即 `pytest.fail`），再按路径加载断言体**，
-      随后把体里的 `skip` 收严成 `fail`（`D-d-3` ①②③）。⚠️ **零 skip 分支**（§1.6）。
+      随后**重绑断言体的 `_unavailable` 间接层为 `pytest.fail`**（`D-d-3` ④ —— **不动 `pytest` 模块本身**），
+      **再把断言体里每一个 `test_` 函数逐条重绑进本模块命名空间**（`D-d-3` ⑤ ——
+      **漏了这一步就是 `no tests collected` / 退出码 5**）。⚠️ **零 skip 分支**（§1.6）。
+      ⚠️ **basename 必须与断言体那份不同**（本 plan 是 `test_sidebar.py` vs `test_desk_sidebar_body.py`，**已不同**）
+      —— `tests/` 下没有 `__init__.py`，同名 basename 会让整轮 `pytest` `import file mismatch` 收集失败
+      （`tests/unit/test_explain_service_body.py` 文件头逐字记着这条，第 4 轮独立评审实读带回，**只是钉住现状，不需要改名**）。
+      - Skill: `none`
+- [ ] **`Add`** 给 `tests/unit/test_desk_sidebar_static.py` **追加四条源码级守卫**（离线、零浏览器、零 JS 运行时；
+      第 4 轮独立评审补，全部是**纯文本判定**，与该文件既有口径同族）：
+      ① 断言体源码里 **`pytest.skip(` 与 `pytest.importorskip` 零命中**（出口只许走 `_unavailable`，`D-d-3` ②④）；
+      ② 断言体**模块顶层**没有 `import playwright` / `from playwright`（`D-d-3` ⑥ / §1.4b）；
+      ③ 断言体里没有以 `page` / `browser` / `context` / `browser_type` 命名的**测试函数或 fixture 参数**
+      （挡「顺手用了 `pytest-playwright` 的 fixture」）；
+      ④ **加载器重绑的名字集合 == 断言体里 `test_` 开头的函数名集合**（`D-d-3` ⑤ ——
+      挡「漏重绑 ⇒ `no tests collected`」与「漏重绑一条 ⇒ 静默少跑」）。
+      ⚠️ **同 Phase 2 判据④ 的口径：这四条是文本下限，不证运行时行为。**
+      运行时那一半由本 Phase 的 `-p no:playwright` 实跑与 `M13`–`M15` 承担，**这一份不承担、也不假装承担。**
+      - Skill: `none`
+- [ ] **`Proof`** ⚠️ **模拟 runner 上没装驱动**（§1.4b 那条可执行验证）：
+      `python3 -m pytest tests/unit/test_desk_sidebar_body.py -q -p no:playwright`
+      ⇒ **必须 exit 0、全部 `skipped`、零 `error`**。命令原文与退出码入证据文件。
+      **这条不退 0 ⇒ 今天绿着的 `unit-and-contracts` 会在下一次推送时红，而那是纯回归、不是设计内的代价**
+      （与 §1.4 那条红分开算，见 §1.4b）。
       - Skill: `none`
 - [ ] **`Add`** `pyproject.toml` 加 `[project.optional-dependencies]` 的 `ui` extra
       （`D-d-2` 裁定的形态）。⚠️ **`[project].dependencies` 与 `[tool.pytest.ini_options]` 的
@@ -530,8 +651,8 @@ Skill: `closure-audit-prompt.md`（仅收口那一步）
 - [ ] **`Proof`** 不回归三条：`H10`（停 `agenerp-serve` 后 frontend 仍 healthy）· `H11`（`down -v` 冷起 exit 0）·
       零依赖启动门禁 `tests/unit/test_compose_zero_dep.py` 全绿**且一条未改松**。
       - Skill: `none`
-- [ ] **`Proof`** **变异自查**：至少 `M1`–`M12` 十二条，逐条施加、逐条确认**被打红**、逐条复原并 `sha256` 校验 `RESTORED OK`。
-      写死的十二条：`M1` 删掉快捷键注册 · `M2` 把 503 分支渲染成空字符串 · `M3` 把 401 与 503 渲染成同一句话 ·
+- [ ] **`Proof`** **变异自查**：至少 `M1`–`M15` 十五条，逐条施加、逐条确认**被打红**、逐条复原并 `sha256` 校验 `RESTORED OK`。
+      写死的十五条：`M1` 删掉快捷键注册 · `M2` 把 503 分支渲染成空字符串 · `M3` 把 401 与 503 渲染成同一句话 ·
       `M4` 请求体里偷偷加一个 `user` 键 · `M5` 把 `credentials` 改成 `omit`（`sid` 不再自动带）·
       `M6` 把请求路径改成 `/agenerp/explain2` · `M7` 把加载器里的 `skip→fail` 收严去掉 ·
       `M8` 把 `window.agenerpDesk` 标记删掉 · **`M9` 删掉渲染状态机的兜底分支**（`H8b` 那格必须打红）·
@@ -541,6 +662,13 @@ Skill: `closure-audit-prompt.md`（仅收口那一步）
       面板空白，而所有打桩判据全绿」）·
       **`M12` 把资产结尾从 `)();` 改成 `})();\n// end`**（`test_desk_asset_route.py:168` 必须打红 ——
       现有 `M1`–`M11` 没有一条守它）。
+      **`M13` 把断言体改成用 `pytest-playwright` 的 `page` fixture**（或在模块顶层 `import playwright`）
+      ⇒ 上面那条 `-p no:playwright` 必须打红，且源码守卫 ②③ 必须打红
+      —— 专挡「本机绿、runner 上 `unit-and-contracts` 红」这个纯回归（§1.4b）·
+      **`M14` 从加载器里删掉任意一条 `test_` 重绑** ⇒ 源码守卫 ④ 必须打红
+      —— 专挡「漏重绑 ⇒ `no tests collected` / 静默少跑」（`D-d-3` ⑤）·
+      **`M15` 在断言体里直调一次 `pytest.skip(...)` 绕过 `_unavailable`** ⇒ 源码守卫 ① 必须打红
+      —— 专挡「收严间接层被绕过 ⇒ 门禁上又出现 skip」（`D-d-3` ④）。
       ⚠️ **`M5` 与 `H6` 同理**：`credentials: "omit"` 只有在**未打桩的那条真请求断言**上才打得红，
       打桩那批对它无感 —— **变异表里写死这一句，免得事后把「没打红」解释成「不需要」。**
       ⚠️ **打不红的照实记在表里**，当场补断言后复跑；补不出来就**保留「这条守不住」的记录**，不许改成「全打红」。
@@ -548,34 +676,57 @@ Skill: `closure-audit-prompt.md`（仅收口那一步）
 - [ ] **`Fix | Follow-up` 交接**：往 `docs/masterplan/STATE.md` §3 **追加**（只追加）一条 needs-human。
       ⚠️ **起草期把它写成「加一行 `COVERED` 就好了」是错的**（独立评审实读打回）——
       `check_expected_red.py:73-74` 的判定面写死 `tests/gates`，加 `COVERED` **只让第 ⑦ 步不红，
-      不会让这条门禁在 CI 上跑起来一次**。交接必须**逐件写清人要做的五件**：
+      不会让这条门禁在 CI 上跑起来一次**。交接必须**逐件写清人要做的六件**
+      （第 4 轮独立评审把原第 (5) 件拆成 (5a)(5b)，理由见该件下方）：
       **(1)** 把 `ui` 加进 `unit-and-contracts` 第 ⑦ 步的 `COVERED`（否则那一步红）；
       **(2)** 在 `gates-l2-live` 里装 `ui` extra 并 `playwright install --with-deps chromium`；
       **(3)** 在 `gates-l2-live` 里加一条 `python3 -m pytest -m live tests/ui/test_sidebar.py` 的 step
       —— **没有这一步，新门禁在 CI 上零覆盖**；
       **(4)** 那条 step 照抄 `gates.yml:492-495` 既有的**零 skip 断言**形态（否则 skip 又变成静默出口）；
-      **(5)** `lint` job（`gates.yml:609`）的 ruff 参数是七个目录的字面量 ⇒ 加上 `tests/ui`，否则它在 CI 上零 lint 覆盖。
+      **(5a)** `lint` job（`gates.yml:609`）的 ruff 参数是七个目录的字面量 ⇒ 加上 `tests/ui`，否则它在 CI 上零 lint 覆盖；
+      **(5b)** `gates.yml:603` 那句注释逐字写着「**作用域三个目录**逐字照抄 `docs/context/project-context.md` 的
+      Lint / static check 一行」—— 「三个目录」今天就已经是错的（`:609` 是七个），本 plan 把真相源改准成八个之后**更错**。
+      ⇒ 那句注释要跟着改准。**它在 `.github/workflows/**` 里，红线 2，loop 不碰。**
       ⚠️ **交接项 (5) 有一件邻接活是 loop 自己该做的，不许一起推出去**（独立评审 iteration 2 指出）：
       `gates.yml:603` 逐字声明 lint 作用域「照抄 `docs/context/project-context.md` 的 Lint / static check 一行」，
       而那一行（`project-context.md:52`）**今天还是三个目录、`gates.yml:609` 已经是七个 —— 本就已漂移**
       （行号经第 3 轮独立评审实读改准，原写 `:604`）。
       ⇒ **本 plan 就地把 `project-context.md` 那一行改准成七个目录并加上 `tests/ui`**（它不在任何红线内），
       否则交接项 (5) 没有真相源可照抄。**这是 `Fix`，不是 follow-up。**
+      ⚠️ **但改完之后「漂移」并没有消除，照实说**（第 4 轮独立评审打回一句假陈述）：
+      `gates.yml:603` 逐字写的是「**作用域三个目录**逐字照抄……」，改完之后那句「三个目录」**仍然是错的**；
+      且真相源变成**八个**目录而 `:609` 是**七个**，两边**仍然不等**。
+      ⇒ **交接项 (5) 因此是两件事，一并交人**：(5a) 把 `:609` 的 ruff 参数加上 `tests/ui`；
+      (5b) 把 `:603` 那句注释里的「三个目录」改准。**两处都在红线 2，loop 一个字节都不碰。**
       **再加一件需人裁的**：`D-d-4` 若因 `H3` 冲突改成 `Cmd/Ctrl+Shift+K`，与 WBS 第 88 行「⌘K」字面的偏差归人。
-      ⚠️ **五件全部落在 `.github/workflows/**` 里 ⇒ 红线 2，本 plan 一个字节都不碰，只写清楚交出去。**
+      ⚠️ **六件全部落在 `.github/workflows/**` 里 ⇒ 红线 2，本 plan 一个字节都不碰，只写清楚交出去。**
+      ⚠️ **交出去之前先读 §0.6**：评审期工作树里那份 `gates.yml` 已有**人侧未提交**的改动，
+      交接文字里的行号必须**执行期按注释原文重取**（§0 第 5 条），不许照抄本文件写的数字。
       **同时往 §3 追加一条 `[Proof]` 证据行**（本 plan 的落地 sha + 命令原文 + 退出码）。
       - Skill: `none`
 
 Exit Criteria:
 
-- [ ] `AGENERP_LIVE=1 … pytest -m live tests/ui/test_sidebar.py -q -rs` → **exit 0，零 skip**（命令原文 + 退出码入证据文件）
+- [ ] `AGENERP_LIVE=1 … pytest -m live tests/ui/test_sidebar.py -q -rs` → **exit 0，零 skip**（命令原文 + 退出码入证据文件），
+      **且收集到的条数 > 0 并等于断言体里 `test_` 函数的条数**（`D-d-3` ⑤ —— `no tests collected` 退 5，
+      「零 skip」这句话在一条都没跑的情况下也成立，**必须由条数把它钉住**）
+- [ ] `python3 -m pytest tests/unit/test_desk_sidebar_body.py -q -p no:playwright` → **exit 0、全 `skipped`、零 `error`**
+      （§1.4b —— 证明 `unit-and-contracts` 在无驱动 runner 上不会被本 plan 弄红）
 - [ ] `H6` 有**直接观测值**：浏览器发出的请求带上了 `sid`（回的不是 401）—— 本仓第一次
-- [ ] 变异表 `M1`–`M12` 逐条有结论（打红 / 未打红 + 处置），全部 `RESTORED OK`
+- [ ] `H2b` 有**实际值**：浏览器到底怎么够到 `frontend` 站（默认站回落 / `--host-resolver-rules`），落进探测记录
+- [ ] 变异表 `M1`–`M15` 逐条有结论（打红 / 未打红 + 处置），全部 `RESTORED OK`
 - [ ] 不回归三条全绿；`check_expected_red.py` exit 0；`tests/unit` 只增不减
 - [ ] `docs/context/project-context.md` 第 52 行的 Lint / static check 作用域**已改准**：
       从今天的 `ruff check agenerp tests/unit tests/contracts`（三个目录，**实读确认**）
-      改成与 `gates.yml:609` 一致的七个目录 **加上 `tests/ui`**；改后 `gates.yml:603` 那句「逐字照抄」重新成立
+      改成 `gates.yml:609` 那七个目录 **加上 `tests/ui`**（共八个）
       —— 这是 `Fix` 不是 follow-up，**不许跟着交接一起推给人**
+- [ ] ⚠️ **同一格里那句「改后 `gates.yml:603` 的『逐字照抄』重新成立」已删除，因为它是假的**
+      （第 4 轮独立评审实读打回）：`gates.yml:603` 逐字是「**作用域三个目录**逐字照抄……一个字不加不减」，
+      改完之后 ① 那句「三个目录」仍然错、② 文档八个 vs `:609` 七个**仍然不等**。
+      ⇒ **残余的两处都落在 `.github/workflows/**`（红线 2）**，
+      本 plan **不修、也不假装修好了**，逐字写进交接项 (5) 交人；
+      收口文字里**不许**出现「照抄重新成立 / 漂移已消除」这类说法。
+      **本 plan 只负责把真相源（`project-context.md:52`）摆正**，让人有得照抄
 - [ ] `STATE.md` §3 两条**追加**（needs-human + `[Proof]`），**已有行零改写**（`git diff` 证）
 - [ ] `docs/evidence/p1-desk-sidebar/README.md` 落盘；`docs/logs/2026/08-25.md` 追加 Phase 3 条目
 
@@ -592,6 +743,11 @@ Exit Criteria:
   它比的是「服务发出的」与「仓里那份」两个源，改内容不该打破它；**但若打破了，那是真回归，必须修不许改判据。**
 - **R5 · `proxy_read_timeout 300` 仍未在真实长解释上验证**（§7.21 记着，本 plan Non-Goals 6 明确不做）。
   ⇒ 侧边栏在一次**真**长解释上会不会被反代掐断，**本 plan 之后仍然不知道**。登记在 §11。
+- **R7 · 工作树里有别人未提交的活，落在 `.github/workflows/gates.yml` 与 `docker-compose.yml` 上**（§0.6，第 4 轮实测）。
+  ⇒ 三条真风险：一并 commit（撞红线 2）· 为了让红线自证干净而 `checkout` 掉别人的改动 · 照抄本文件的 `gates.yml` 行号。
+  处置全部写死在 §0.6 与 §0 第 5 条；收口时按 §10 那两格自证。
+  ⚠️ **它不拦本 plan 转 `active`**（人答完 §0.5 第 ① 条即可转），但**执行第一步就要看**。
+
 - **R6 · 本机 Docker 已知两处不稳定**（另一个 compose 项目占 `8080`；冷起偶发 `No such container`）。
   ⇒ 活体取证是在一台不稳定的机器上做的，**照实记，不粉饰**；遇失败按裁判规则 3 原样复跑。
 
@@ -685,14 +841,45 @@ Exit Criteria:
   **Anti-Slacking 禁用词全文零命中**（`optional` 的四处全是 TOML 键名 `[project.optional-dependencies]`，非含糊语）；
   **红线合规面**逐项核过三个 Phase 的 `Targets` 与 §10 六条自证，**没找出必然越线的藏步**。
 
-- **本轮收敛结论：不转 `active`。** 两轮共 14 条阻塞已全部改进本文件，
+- **Independent draft review iteration 4: `needs revision`（已就地修完）+ 维持 `可以转 active: no`**
+  （mission-driver 评审步，2026-08-25）—— 复核前三轮的 17 条阻塞是否真落地，并**不受前三轮结论约束**地重审全文。
+
+  **对前三轮的复核**：逐条实读活仓确认已落进本文件。§0.5 的两条实测证据**本轮第三次重跑**：
+  `git log --grep=Approved-By` 打出 20 条，**无一条**涉及浏览器驱动；
+  `docs/masterplan/STATE.md` 全文 872 行、`:867` 那条的状态词是 `[needs-human]`，
+  其后**没有任何 `[resolved]` 行**覆盖它 ⇒ **停在 `draft` 的裁定成立，本轮维持。**
+
+  **本轮新提 5 条（2 Blocker + 3 Major），全部已就地修完**：
+
+  | # | 级别 | 新发现 | 改在哪 |
+  |---|---|---|---|
+  | 1 | **Blocker** | 断言体 `tests/unit/test_desk_sidebar_body.py` 一旦用 `pytest-playwright` 的 fixture（而 `H6`/`H8`/`H8b` 全文都在写 `page.route` / `page.expect_response`，执行期必然这么写），在 CI 上就炸：`gates.yml`（`HEAD` `:530`）逐字 `pip install pytest certifi`，runner 上**没有** playwright ⇒ `fixture 'page' not found` 是 **`error` 不是 `skip`** ⇒ **今天绿着的 `unit-and-contracts` 被本 plan 弄红**。这与 §1.4 那条「守卫按设计报警」**不是一件事**，是**纯回归**，而 §1.4 的三重代价与 §11 第一条**都没覆盖它** | 新增 **§1.4b**（写死约束 + 那条可执行验证 `pytest … -p no:playwright`）· `D-d-3` **新增 ⑥** · Goal 5 补一条不回归 · Phase 3 断言体项补约束 + **新增一条 Proof 项** · Phase 3 **新增 Exit Criteria** · §10 verification 七条→**八条** · 变异 **新增 `M13`** |
+  | 2 | **Blocker** | `D-d-3` 起草期那三条**互相接不上**：③ 要求 `tests/ui` 那份「必须 fail」，但 ①② 只管「skip 落在导入之后」，**没给出把 skip 变成 fail 的机制**；同一条又把先例那个机制（`_BODY.pytest.skip = …`）判为「不复制」⇒ 执行期只能回去抄被自己否掉的写法。**且**实读先例发现它结尾**逐条重绑了六个 `test_` 函数**，而本 plan 全文没提这一步 ⇒ 加载器**一条都收集不到、退出码 5**，而 Exit Criteria 写的是 exit 0 | `D-d-3` 三条→**六条**：**新增 ④**（断言体自持 `_unavailable` 间接层，加载器**只重绑它**、不动 `pytest` 模块）· **新增 ⑤**（逐条重绑 `test_` 函数 + 条数守卫）· Phase 3 加载器项重写 · Phase 3 **新增源码级守卫项**（四条，落在已进 CI 的离线判据里）· Phase 3 Exit 补「收集条数 > 0 且等于断言体条数」· 变异 **新增 `M14`/`M15`** |
+  | 3 | **Major** | **工作树里有人侧未提交改动**（`git status --porcelain` 实测：`M .github/workflows/gates.yml` · `M docker-compose.yml`，人正在接通 `AGENERP_LLM_BASE_URL`）。全文**零处提及** ⇒ 执行期有三个真风险：把别人的改动一并 commit（撞红线 2）、为了让红线自证第 2 条干净而 `checkout` 掉别人的活、以及**本文件所有 `gates.yml:<行号>` 引用已经对不上工作树** | 新增 **§0.6**（写死三条：不碰 / 不一并 commit / 行号按名字重取）· §0 **新增第 5 条**（按注释原文重取行号）· §10 红线自证那格补「这条 `git diff` 会非空且不是本 plan 干的」的正确判法 · §10 **新增一格**提交隔离自证 · Phase 3 交接项补一句 |
+  | 4 | **Major** | Phase 3 那条 Exit Criteria 写「改后 `gates.yml:603` 那句『逐字照抄』重新成立」——**这是假的**：`:603` 逐字是「**作用域三个目录**逐字照抄……」，改完之后「三个目录」仍错，且真相源变八个、`:609` 仍是七个，两边仍不等。一条**判不成立**的 Exit Criteria 就是收口时的一个洞 | Exit Criteria 就地改准并**新增一格**写明残余的两处都在红线 2、**不修也不假装修好** · 交接项 (5) 拆成 **(5a)(5b)**（五件→**六件**）· §11 第一条「五件」→「六件」 |
+  | 5 | **Major** | **浏览器怎么够到那个站点，全文没写**：compose 栈按 Host 分站（`FRAPPE_SITE_NAME_HEADER: frontend`），既有断言体 `tests/unit/test_explain_service_body.py:114` 逐字「站点名决定 Host 头」并显式发 `Host: frontend`；而浏览器访问 `127.0.0.1:18080` 发的 Host 是 `127.0.0.1:18080`，**Chromium 不允许用 `set_extra_http_headers` 覆盖 `Host`** ⇒ `H3`/`H5` 的「真登录进 `/app`」这一步可能直接走不通，而**没有写死的出路** | §6 **新增 `H2b`**（含写死的出路：Chromium `--host-resolver-rules="MAP frontend 127.0.0.1"` + 基址改 `http://frontend:18080`，**不改本机 hosts、不碰 compose / nginx**）· Phase 3 Exit 补 `H2b` 实际值 · Phase 3 断言体项写明这个参数落在自建 fixture 里 |
+
+  ⚠️ **本轮实跑复核过的活仓事实**（不采信 plan 自报）：`ls -d tests/*/` 八个目录 = `gates.yml:560` 的 `COVERED`（`H1` 预测仍成立）·
+  `check_expected_red.py:73-74` 判定面写死 `tests/gates` · `gates.yml:530` 只装 `pytest certifi` · `:532-533` 跑 `tests/unit` ·
+  `:603` 三个目录 / `:609` 七个目录 / `project-context.md:52` 三个目录（漂移坐实）·
+  `agenerp/serve/app.py` 实读出的服务端码恰好是 `400/401/403/404/405/500/502/503` **八种**（§1.3 计数口径成立）·
+  `test_desk_asset_route.py:165-168` 四格逐字如 Goal 5 所引 · `module-boundaries.md` 现存最末节仍是 **§7.22** ·
+  `pyproject.toml` 已注册 `live` marker、`testpaths = ["tests"]`、`exclude = ["tests/gates"]` ·
+  `pytest-playwright` 的插件名实测为 `playwright`（⇒ `-p no:playwright` 这条命令有效）。
+
+  ⚠️ **本轮也复核了三件「不该改」**：**Minimum Rule 4 不该拆**（与前三轮同结论）·
+  **Anti-Slacking 禁用词全文零命中**（`optional` 的命中全是 TOML 键名）·
+  **红线合规面**逐项核过三个 Phase 的 `Targets`、§10 六条自证与本轮新增的四处改动，**没找出必然越线的藏步**。
+
+- **本轮收敛结论：不转 `active`。** 四轮共 22 条阻塞已全部改进本文件，
   但 §0.5 那两条**只有人能答**的前置未答之前，这份 plan 不具备**可执行**契约
   （指南 Plan Status Flow：`active` 的含义是「独立评审已收敛成可执行契约」——
   一份 100% 会在 Phase 1 停机的 plan 不满足「可执行」）。
   ⇒ **`Plan Status` 保持 `draft`**，前置见 §0.5 与 front matter 的 `> Review Hold:` 行。
   人答完第 1 条即可转 `active`（第 2 条影响的是 `D-d-0` 的写法，不影响可执行性）。
-  ⚠️ **第 3 轮独立评审维持这一裁定**：三轮共 17 条阻塞已全部改进本文件，
-  剩下的**不是文本质量问题，是一件红线内、只有人能做的裁定** —— 再评一轮也不会变。
+  ⚠️ **第 4 轮独立评审维持这一裁定**，且本轮的 5 条新发现说明**继续评审仍在产出真问题**
+  （2 条 Blocker 都是「执行期第一天就会撞上、且撞上时长得像别的毛病」的那种）——
+  但剩下的门槛**不是文本质量问题，是一件红线内、只有人能做的裁定**。
 
 ## 10. Closure Gates
 
@@ -707,14 +894,21 @@ Exit Criteria:
 - [ ] relevant docs are aligned（`module-boundaries.md` §7.23 · **`docs/context/project-context.md:52` 的 lint 作用域** ·
       `docs/logs/2026/08-25.md` · `docs/evidence/p1-desk-sidebar/`）；
       对 `docs/design/agents-and-roles.md` §9 风险档表 **`No owner-doc update required`**（理由见 §4）
-- [ ] verification has run —— 至少这七条，命令原文 + 退出码入 `## Closure`：
+- [ ] verification has run —— 至少这**八**条，命令原文 + 退出码入 `## Closure`：
       `python3 tools/gates/check_expected_red.py` ·
       `python3 -m pytest tests/unit -q` ·
       `python3 -m pytest tests/contracts tests/tools tests/routing tests/context -q` ·
       `ruff check agenerp tests/unit tests/ui tests/contracts tests/tools tests/routing tests/context tests/experiments` ·
       `AGENERP_LIVE=1 … python3 -m pytest -m live tests/ui/test_sidebar.py -q -rs` ·
+      **`python3 -m pytest tests/unit/test_desk_sidebar_body.py -q -p no:playwright`**（§1.4b，
+      **必须 exit 0、全 `skipped`、零 `error`** —— 无驱动 runner 上 `unit-and-contracts` 不被弄红的唯一实证）·
       `docker compose up -d --wait --wait-timeout 900`（冷起）·
       `git diff -- .github/workflows tests/gates docs/masterplan/DECISIONS.md docs/masterplan/02-WBS.md` → **0 行**
+      ⚠️ **这一条在本 plan 上有一个已知陷阱，写死**（§0.6）：评审期工作树里 `.github/workflows/gates.yml` 与
+      `docker-compose.yml` **已有人侧未提交改动** ⇒ 这条 `git diff` 会**非空**，而那**不是本 plan 干的**。
+      ⇒ 收口时**改用 `git diff --stat <本 plan 基线 sha>..HEAD -- <路径>` 判自己的提交**，
+      并**逐字记下工作树里那两处别人的未提交改动仍在**（`git status --porcelain` 原文入 `## Closure`）。
+      **不许为了让这条变干净去 `checkout` / `stash` 掉别人的改动。**
 - [ ] scoped verification is not conflated with full verification —— 若未跑整仓 `pytest tests -q -m "not live"`
       或未经 CI 服务端复跑，**逐条写明 `verification scope limited`**
 - [ ] no in-scope item downgraded to deferred/follow-up
@@ -723,6 +917,9 @@ Exit Criteria:
       `grep -B5 "\- \[ \]" <本文件> | grep "Status: completed"` → **空**
 - [ ] closure audit was independent（独立子代理或人，**执行者自己复跑不算**）
 - [ ] closure evidence exists in files
+- [ ] ⚠️ **红线 2 / 别人未提交改动的隔离自证**（第 4 轮独立评审补）：本 plan 的每一次提交都**显式列路径**，
+      `git show --stat <每个提交>` 里**不出现** `.github/workflows/**` 与 `docker-compose.yml`；
+      `git log --oneline <基线sha>..HEAD` 与每个提交的文件清单入 `## Closure`
 
 ### 红线自证（收口时逐条实跑，结果入 `## Closure`）
 
@@ -740,7 +937,7 @@ Exit Criteria:
 ### `tests/ui/` 接进 CI（`gates.yml` 第 ⑦ 步与 `gates-l2-live` 的驱动安装）
 
 - Classification: `watch-only residual`
-- Why Not Blocking Closure: 五件落点**全部**在 `.github/workflows/**`，**红线 2，loop 一个字节都不许改**
+- Why Not Blocking Closure: 六件落点**全部**在 `.github/workflows/**`，**红线 2，loop 一个字节都不许改**
   （独立评审 iteration 2 逐件核过，无一件是 loop 能自己做的）。
   本仓已有同形态先例（`tests/tools` / `tests/routing` / `tests/context` / `tests/experiments` 均由人接进 CI）。
   ⚠️ **代价不是「第 ⑦ 步红」一条，是「第 ⑦ 步红 + 新门禁在 CI 上零覆盖 + `tests/ui` 零 lint 覆盖」三条**（§1.4）。
