@@ -101,6 +101,8 @@ P1 的目标一句话：**让 Agent 能看懂这套 ERP，并且能证明它真�
     **未做任何浏览器验证** —— 本轮证到「HTML 里确实有那个 `<script src>`、且那个 URL 真回 200 JS」，
     ⚠️ **「HTML 里有 `<script>` 标签」≠「浏览器执行了它」**，那是第 2 个 plan 的面 ·
     「真实静态 HTML 附件会不会被损坏」本栈 `files/` 为空且 Non-Goals 3 禁止上传取证 ⇒ `not observed on this stack`。
+  - **◆ 独立收口审计已补做（`closure audit was independent` 由留白转满足）** —— 由 mission-driver 任务 `2026-08-25-135246-mission-driver` 派发的**独立收口审计步骤**执行，审计者**不是该 plan 的执行者**，逐条对活仓复跑取证：`check_expected_red.py` → exit **0**（`门禁 26 项：预期红 0，绿 26，跳过 0`）· `pytest tests/unit -q` → exit **0**（`801 passed, 6 skipped`）· `pytest tests/unit/test_desk_asset_route.py tests/unit/test_desk_injection_static.py -q` → exit **0**（`22 passed`，新增判据**确实在跑**）· `ruff check …` → exit **0**。**反空壳实读**：`agenerp/serve/app.py:301-303` ⇒ `_respond_asset()`（`:341-360`）真读文件真写 `wfile`，非空壳。逐条结论见 plan `## Closure`。
+    ⚠️ **边界照实记**：审计轮复跑的是**离线那一半**；**活栈那一半（`H5`–`H11`、冷起、变异表 `M1`–`M12`）审计轮未二次复跑**，采信执行期落盘的 `docs/evidence/p1-desk-seam/README.md` ⇒ 这一段仍是 `verification scope limited`，**不谎称全绿复跑**。
 
 ## 已经就绪的前置（不要重做）
 

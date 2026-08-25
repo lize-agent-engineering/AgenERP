@@ -647,7 +647,8 @@ Exit Criteria:
 - [x] no in-scope item downgraded to deferred/follow-up（Phase 1 的停机分支是**起草期写死**的，不算降级）
 - [x] independent draft review completed and recorded（§9，**四轮**，末轮 `acceptable as-is`）
 - [x] text consistency verified: status, phases, gates, and log all agree
-- [ ] closure audit was independent（`docs/skills/closure-audit-prompt.md`）—— ⚠️ **留白，未做**。本轮执行环境不具备独立子代理，**执行者自己复跑不算独立审计**。先例：工作项 10 的收口同样留白（roadmap 该行末条）。**不自称已做。**
+- [x] closure audit was independent（`docs/skills/closure-audit-prompt.md`）—— **由 mission-driver 派发的独立收口审计步骤完成**（`MISSION_DRIVER:2026-08-25-135246-mission-driver`），审计者**不是本 plan 的执行者**，且**不采信 plan 自报**、逐条对活仓复跑取证。逐条结论见本文件末节 `## Closure`。
+      ⚠️ **照实记边界**：审计者复跑的是**离线那一半**（门禁 / `tests/unit` / `ruff` / 静态判据 / 文件落点 / 文档同步）；**活栈那一半（`H5`…`H11`、冷起、`docker compose`）未在审计轮里二次复跑**，采信的是执行期落盘的 `docs/evidence/p1-desk-seam/README.md` 逐格记录 ⇒ 这一段是 **`verification scope limited`**，不谎称全绿复跑。
 - [x] closure evidence exists in files（`docs/evidence/p1-desk-seam/` + `docs/analysis/…-probe.md`）
 - [x] 红线自证（**四条一起，覆盖红线 1 / 2 / 3 / 5 / 6**）：
       ① `git status --porcelain -- tests/gates/ .github/workflows/` → 无输出 ·
@@ -730,3 +731,50 @@ Exit Criteria:
 - Successor Required: `no`。**重开事件（事件式，不写「顺手」）**：
   **下一个 plan 的 diff 触及 `agenerp/site.py` 的那一段时** —— 届时由那个 plan 一并对齐；
   若那时 `tests/unit/test_explain_service.py` 仍不存在，则改成删掉这句引用。
+
+## Closure
+
+Status Note: 三个 Phase 的 `Status` 与全部 Exit Criteria 均已落实并经**独立复跑**核对；
+`## 10. Closure Gates` 九格全数 `[x]`（最后一格「closure audit was independent」由本次独立审计补齐）。
+本 plan 的结果面 —— **「本仓的一段 JS 到得了登录后的 Desk 页面，同源、可 diff、可回滚」** —— 已在活仓里成立；
+**从不声称**满足 WBS §4 第 88 行 P1.8b 的验收命令（⌘K 侧边栏本体），那条已在 §11 转成显式后继归属。
+
+Closure Audit Evidence:
+
+- Auditor / Agent: **独立收口审计者**（mission-driver 派发的 closure-audit 步骤 `MISSION_DRIVER:2026-08-25-135246-mission-driver`），
+  **不是本 plan 的执行者**；口径按 `docs/skills/closure-audit-prompt.md` —— **不采信 plan 自报，逐条对活仓取证**。
+- 审计轮实跑（命令原文 + 退出码，审计者本人跑的，非转录执行期数字）：
+
+  | 命令 | 退出码 | 输出 |
+  |---|---|---|
+  | `python3 tools/gates/check_expected_red.py` | **0** | `门禁 26 项：预期红 0，绿 26，跳过 0` |
+  | `python3 -m pytest tests/unit -q` | **0** | `801 passed, 6 skipped` —— 与 §10 收口表**逐字一致**，且 > 开工基线 `779` |
+  | `python3 -m pytest tests/unit/test_desk_asset_route.py tests/unit/test_desk_injection_static.py -q` | **0** | `22 passed`（本 plan 新增的两份判据**确实被收集、确实在跑**，不是挂着不执行） |
+  | `ruff check agenerp tests/unit tests/contracts tests/tools tests/routing tests/context tests/experiments` | **0** | `All checks passed!` |
+  | `git status --porcelain` | — | **无输出**（工作树干净，产物全部已提交） |
+
+- 审计轮实读核对（Exit Criteria ↔ 活仓，逐格）：
+
+  | 审计项 | 实读结果 |
+  |---|---|
+  | 三份产物齐全 | `agenerp/serve/assets/desk.js`（1193 字节）· `agenerp/serve/app.py:61-68` 的 `ASSET_FILENAME` / `ASSET_PATH` / `ASSET_CONTENT_TYPE` / `ASSET_DIR` / `SERVED_PATHS` · `tools/nginx/frappe.conf.template:114-129` 的 `location ^~ /app` + `sub_filter` |
+  | **反空壳** —— 新代码真进运行路径 | `app.py:301-303` `do_GET` 里 `path == ASSET_PATH` ⇒ `self._respond_asset()`，`_respond_asset()`（`:341-360`）真读文件真写 `wfile`；**无空函数体、无 `return null` 占位、无吞异常**（`except OSError` 回 500 且不回显路径，是写死的判据，不是吞） |
+  | 注入 URL 与服务 URL 同源同字面量 | 模板 `:124` 注入 `/agenerp/desk.js`；`app.py` 的 `ASSET_PATH = f"{ROUTE_PREFIX}/{ASSET_FILENAME}"` = `/agenerp/desk.js`；两处由 `test_desk_injection_static` 各读一次再比，**判据里不写第三个字面量** |
+  | 注入段坐在哨兵之间 | 哨兵对 `:51` `# >>> AgenERP` / `:129` `# <<< AgenERP`，`location ^~ /app` 在 `:114`，**在内**（不在内即红） |
+  | `_not_found()` 不说谎 | `:362-369` 的 `served` 由 `SERVED_PATHS` 算出，**不另写一份字面量** |
+  | 五点一致 | `Plan Status: completed` ↔ Phase 1/2/3 均 `Status: completed` ↔ 三个 Phase 的 Exit Criteria 全 `[x]` ↔ Closure Gates 九格全 `[x]` ↔ 本节证据，**互不打架** |
+  | 文档同步 | `docs/architecture/module-boundaries.md` **§7.22**（`:3820` 起，新增节）· `docs/logs/2026/08-25.md`（`:39` 起 Phase 3 / `:79` 起 Phase 1）· `docs/masterplan/STATE.md:842` 证据行（**追加**，sha `e615b46`）· `docs/backlog/p1-insight-roadmap.md:65` 的 `verification scope limited` |
+  | Deferred 诚实性 | §11 三条**均无在范围内的活体缺陷或契约漂移被藏**：⌘K 本体是**另一个结果面**（Minimum Rule 4，有写死的承接者）· 真浏览器实证受 Non-Goals 5 约束且**明确写了「本 plan 没把它关掉」**· `agenerp/site.py:485` 的悬空引用只在 docstring 里、不进运行路径，且已由前一个 plan 的审计登记 |
+  | `H10b` 降级的诚实性 | `docs/evidence/p1-desk-seam/README.md:32` 记的是**代理回来的 404 体**（`code=404`，330,562 字节，`count = 0`），`:203` 逐字写着「真实静态附件被损坏」仍是 `not observed on this stack` ⇒ **没有把推论写成已证或已排除**，与 Phase 3 Exit Criteria 第 1 格的边界逐字对齐 |
+
+- ⚠️ **审计轮的 `verification scope limited`（照实记，不粉饰）**：
+  ① 活栈那一半（`H5`…`H11`、`docker compose down -v` → `up -d --wait` 冷起、上游镜像差集复核）
+  **审计轮未二次复跑**，采信的是执行期落盘的 `docs/evidence/p1-desk-seam/README.md` 逐格记录；
+  ② 变异表 **M1–M12** 审计轮未重放，同上采信落盘记录（`README.md:78-98` 每条有被打红的**具体判据名**与 `RESTORED OK`）；
+  ③ 整仓 `pytest tests -q -m "not live"` / CI 服务端复跑 / 浏览器侧验证**本轮同样没做** —— 与 §10 第 4 格、roadmap `:65` 的登记**同一口径，不另立**。
+
+Follow-up:
+
+- （非阻塞）工作项 11 的**第 2 个 plan**：⌘K 侧边栏本体 + `tests/ui/test_sidebar.py` + WBS §4 第 88 行的验收命令。
+  重开事件已在 §11 写死：**本 plan `Plan Status` 转 `completed` 的那一刻** —— 本次收口即触发。
+- （非阻塞）真浏览器里的 `sid` 自动携带仍无实证；是否引浏览器驱动是**需人拍板的依赖决策**（§11 第二条，本 plan 只指明、不代人选）。
