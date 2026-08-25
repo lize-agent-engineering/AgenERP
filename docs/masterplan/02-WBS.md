@@ -95,6 +95,7 @@
 | ID | 工作项 | 前置 | 验收 | 状态源 |
 |---|---|---|---|---|
 | **P2.0** 🚪 | **入口关口实验：Spike 11 · Workspace 升级覆盖**（判据见 `REF:ROADMAP-SPIKE1112`） | P1.9 | 在 XM 演示栈上跑完四步，结论决定「视图产物落 Workspace 还是落 AgenERP 自有表」，写进 `docs/architecture/` | 人 |
+| **P2.0R** 🔴 | **schema 检索可用性 —— P2 头号技术风险**（详见本节下方风险块）| — | 🔴 `tests/gates/test_schema_retrieval_recall.py`：在本站点真实 DocType 上，自然语言问句 → 目标字段的 **Top-5 命中率 ≥ 90%**（今日基线 75%，Spike 07）| 人 |
 | P2.1 | 视图 DSL v0（`list`/`detail`/`metric`/`chart`/`explain` 五种块） | P2.0 | `pytest tests/dsl -q` 退 0 | `MD:p2-views` |
 | P2.2 | 渲染器（frappe-ui）：**未支持的一律落回 Desk** | P2.1 | `pytest -m live tests/render -q` 退 0 | `MD:p2-views` |
 | P2.3 | 视图 Agent：自然语言 → DSL（含 `dsl.validate`/`dsl.preview`） | P2.2 | `pytest tests/agents/test_view_agent.py -q` 退 0 | `MD:p2-views` |
@@ -103,6 +104,25 @@
 | P2.6 | 角色首页（②③端按角色渲染） | P2.2 | 🔴 `tests/gates/test_no_empty_workspace.py` | `MD:p2-views` |
 | P2.7 | 术语层（LLM 生成 label，绕开社区翻译） | P2.2 | `pytest tests/i18n -q` 退 0 | `MD:p2-views` |
 | P2.8 | CP9 · P2 阶段复盘 | P2.1–P2.7 | 纪要落 `docs/audits/` | 人 |
+
+> ### 🔴 P2 头号技术风险 · schema 检索（人 2026-08-25 立）
+>
+> **风险陈述**：`open-questions.md` **U6「schema 向量检索能找对字段」实测结论是「不成立」—— 最好 Top-5 = 75%**（Spike 07）。
+> 本站点有一千多个 DocType、上万个字段；用户说一句自然语言，系统要知道他指的是哪个字段。**今天四分之一找不对。**
+>
+> **为什么它是头号**：**P2.3（视图 Agent：自然语言 → DSL）与整个 P3（操作 Agent，③端写入）都建立在它之上。**
+> 检索不准，下游全是空中楼阁 —— 视图生成会画错字段，写入 Agent 会改错单据。**后者是脏账，不是错答案。**
+>
+> **必须写清的一点：这个风险与 agent harness 无关。**
+> 换任何 harness（Deep Agents / LangGraph / 自研）都不会让 Top-5 从 75% 变成 90% —— 它们不知道
+> `Stock Entry` 和 `Stock Reconciliation` 的区别。**这是本项目自己的 ERP 领域问题**（D-22.4）。
+>
+> **§8.1 已把向量检索降级为兜底召回**，但「主召回用什么」至今没有定论 —— 这正是 P2.0R 要解决的。
+> 候选方向（**均未在本仓实测，不是候选清单**）：结构化召回（按 DocType 关系图 + Link 字段收敛）、
+> 术语层辅助（P2.7 的 label 层反向索引）、行业包约束（P1.6 的声明式规则缩小搜索域）。
+>
+> ⚠️ **不得在没有实测的情况下选路。** D-16：本项目的结论以本项目实测为准。
+
 
 ---
 
