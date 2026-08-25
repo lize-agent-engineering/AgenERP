@@ -117,5 +117,25 @@ while true; do
     log "退出码 2 但无停机记录（引擎超限终止），继续下一趟"
   fi
 
+    # ---- 闸 6：起草步不收敛就停（2026-08-25 加）----
+    #
+    # 实测踩到：P1.8 被需人裁决的卡点挡着，引擎的「起草 plan」步连续 18 轮
+    # 跑出同一结论「本轮无 plan 可派」，跨三小时。**loop 的行为本身没问题** ——
+    # 它每轮换一个不同入口穷举（WBS / backlog / 审计 / bugs / Follow-up 小节…），
+    # 并逐条写明「已登记的卡点不重复登记、不代人处置」：**它在等人，
+    # 而且每轮都在证明自己确实该等**。
+    #
+    # 但代价是实的：每轮一次完整 opus 调用，产出全是「确认无事可做」，
+    # 无人值守时会一直烧配额。**等人是对的，无限盘点不是。**
+    #
+    # 判据取 git 而不是引擎内部状态：监督器只看得到退出码，看不到「起草步
+    # 说了什么」。而「连续 N 趟只产出盘点提交」在 git 上是可判的。
+    STUCK_LIMIT="${AGENERP_DRAFT_STUCK_LIMIT:-4}"
+    RECENT=$(git -C "$ROOT" log --format=%s -"$STUCK_LIMIT" 2>/dev/null | grep -c "起草步.*盘点" | awk '{s+=$1} END{print s+0}')
+    if [ "$RECENT" -ge "$STUCK_LIMIT" ] 2>/dev/null; then
+      log "闸 6：最近 $STUCK_LIMIT 趟全是起草步盘点 —— 无 plan 可派且不收敛，落停机记录等人"
+      halt_with "draft-not-converging" "起草步连续 $STUCK_LIMIT 轮无 plan 可派。需人清掉 STATE §3 里阻塞该工作项的裁决项；清完删除本文件重启。不要靠继续盘点解决 —— 那只会烧配额。"
+      exit 0
+    fi
   sleep "$PASS_PAUSE"
 done
