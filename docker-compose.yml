@@ -53,6 +53,16 @@ x-backend-defaults: &backend_defaults
 # AI 能力：全部空默认值。缺失 = 「未配置」，不是错误。
 # 这些变量只做环境注入，**不出现在任何 healthcheck 或 command 的成败路径上**。
 x-ai-env: &ai_env
+  # ⚠️ **两个名字都要传，它们不是一回事**（2026-08-25 实测踩出来的）：
+  #  · `AGENERP_LLM_BASE_URL` —— **解释服务真正读的那个**
+  #    （`agenerp/routing/config.py` 要 BASE_URL / API_KEY / MODEL 三件套）。
+  #    缺它时 `/agenerp/explain` 回 503 且逐字指名「缺 ['AGENERP_LLM_BASE_URL']」。
+  #  · `AGENERP_LLM_ENDPOINT` —— **只给引导脚本决定写哪一版首页文案用**（:183），
+  #    不在成败路径上。
+  #  此前整条链只传 ENDPOINT 不传 BASE_URL，**服务因此永远拿不到端点**；
+  #  症状是「五条不需要真 sid 的门禁照过、只有答案面那条红」，很容易误判成
+  #  「模型答错了」。BASE_URL 没显式给时回落到 ENDPOINT，省一次重复配置。
+  AGENERP_LLM_BASE_URL: ${AGENERP_LLM_BASE_URL:-${AGENERP_LLM_ENDPOINT:-}}
   AGENERP_LLM_ENDPOINT: ${AGENERP_LLM_ENDPOINT:-}
   AGENERP_LLM_API_KEY: ${AGENERP_LLM_API_KEY:-}
   AGENERP_LLM_MODEL: ${AGENERP_LLM_MODEL:-}

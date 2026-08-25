@@ -193,18 +193,10 @@ jobs:
       #   · 本 job —— 配上变量，验**答案面**真的走得通
       # 把两者合成一个会让其中一条永远测不到。
       #
-      # 用 `qwen3.7-flash` 而不是更强的档：一次解释中位 **11 万 token**
-      #（P1.0 第二轮 12 次实测），而百炼免费额度是 1,000,000/模型 ——
-      # **约 9 次 CI 就烧光一个模型的额度**。CI 这一格要证明的是「答案面通不通」，
-      # 不是「答得多好」，用 flash 足够。选它还因为它满额且到期最早（D-17）。
-      #
-      # ⚠️ fork 提交的 PR **拿不到 Secrets**（GitHub 的默认安全行为），
-      # 那种 run 上本 job 会红在缺变量上 —— 这是预期，不是故障。
-      - name: 起栈（配上 AI 变量，验答案面）
-        env:
-          AGENERP_LLM_ENDPOINT: ${{ secrets.AGENERP_LLM_ENDPOINT }}
-          AGENERP_LLM_API_KEY: ${{ secrets.DASHSCOPE_API_KEY }}
-          AGENERP_LLM_MODEL: ${{ secrets.AGENERP_LLM_MODEL }}
+      # 本 job 只跑 `test_zero_dep_boot.py`（零依赖启动），**不碰 LLM**，
+      # 因此这一步**有意不配 AI 变量** —— 配了也没人用，白烧额度。
+      # 需要 AI 变量的是下面 `gates-l2-live` 的起栈步，不是这里。
+      - name: 起栈
         run: docker compose -f docker-compose.yml up -d --wait --wait-timeout 900
 
       # 这条门禁只取 compose_stack、不取 live_site，因此不需要 AGENERP_SITE / AGENERP_SITE_URL。
@@ -266,7 +258,30 @@ jobs:
           docker compose version
 
       # --wait-timeout 沿用 gates-l2 已实证的 900，口径依据见 system-baseline.md §14.2。
-      - name: 起栈（一个 AI 变量都不配）
+      #
+      # ⚠️⚠️ **AI 变量必须配在这一步，不能只配在下面的 pytest 步上。**
+      # `test_explain_service_live.py` 的答案面那条查的是**服务容器自己的环境**
+      # （`agenerp-serve` 读 `AGENERP_LLM_*`），不是 pytest 进程的环境 ——
+      # 配错地方的表现是：服务回 503「一个 AI 变量都没配」，五条不需要真 `sid`
+      # 的门禁照过，**只有答案面那一条红**。本行就是被这个坑过之后写的
+      # （2026-08-25，人侧实测：本机 `agenerp-serve` 容器里 `AGENERP_LLM_ENDPOINT`
+      # 与 `AGENERP_LLM_API_KEY` 双双为空，而 `AGENERP_LLM_MODEL` 有值 —— 症状一致）。
+      #
+      # 用 `qwen3.7-flash` 而不是更强的档：一次解释中位 **11 万 token**
+      #（P1.0 第二轮 12 次实测），而百炼免费额度是 1,000,000/模型 ——
+      # **约 9 次 CI 就烧光一个模型的额度**。CI 这一格要证明的是「答案面通不通」，
+      # 不是「答得多好」，用 flash 足够。选它还因为它满额且到期最早（D-17）。
+      #
+      # ⚠️ fork 提交的 PR **拿不到 Secrets**（GitHub 的默认安全行为），
+      # 那种 run 上答案面那条会红在 503 上 —— 这是预期，不是故障。
+      - name: 起栈（配上 AI 变量 —— 答案面那条门禁要的是服务容器的环境）
+        env:
+          # `AGENERP_LLM_BASE_URL` 才是解释服务读的那个名字，`ENDPOINT` 只喂引导脚本。
+          # Secret 沿用已配好的 `AGENERP_LLM_ENDPOINT`（名字是仓库侧的，改不改都行）。
+          AGENERP_LLM_BASE_URL: ${{ secrets.AGENERP_LLM_ENDPOINT }}
+          AGENERP_LLM_ENDPOINT: ${{ secrets.AGENERP_LLM_ENDPOINT }}
+          AGENERP_LLM_API_KEY: ${{ secrets.DASHSCOPE_API_KEY }}
+          AGENERP_LLM_MODEL: ${{ secrets.AGENERP_LLM_MODEL }}
         run: docker compose -f docker-compose.yml up -d --wait --wait-timeout 900
 
       # AGENERP_HTTP_PORT 不设：走 compose 默认 127.0.0.1:8080，runner 上已实证空闲。
