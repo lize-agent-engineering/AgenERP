@@ -877,14 +877,23 @@ Exit Criteria:
 - [x] scoped verification is not conflated with full verification —— **逐字写明：verification scope limited**。未跑 `pytest tests -q -m "not live"`（整仓一次性），也未拿到 CI 服务端复跑；上面八条是**逐目录**跑的 —— 若未跑
       `pytest tests -q -m "not live"` 或未过 CI 服务端复跑，**逐字写「verification scope limited」**。
       ⚠️ **另有一条必须逐字写清的作用域限制**：⑥ 的 `ruff` 作用域**不含 `tools/`**，
-      而本 plan 的比对脚本正落在那里（§1.4 / R5 的已登记缺口）
+      而本 plan 的比对脚本正落在那里（§1.4 / R5 的已登记缺口）。
+      **事后补记（独立收口审计，2026-08-25）**：整仓一次性那条**已由审计者补跑** ——
+      `python3 -m pytest tests -q -m "not live"` → **exit 0** · `1186 passed, 12 skipped, 21 deselected`。
+      ⚠️ **「verification scope limited」这句话仍然成立、不撤销**：**CI 服务端复跑仍未拿到**，
+      且 `ruff` 作用域不含 `tools/` 这条**一个字没变**
 - [x] no in-scope item downgraded to deferred/follow-up —— **零降级**：H1 成立（`Closed` / `99.0`），**停机分支未触发**，Phase 1–5 五个 phase 全部照常做完 ——
       ⚠️ **若 H1 不成立触发了停机分支，这一格要逐字说清**：转 Deferred 的是
       **Phase 4 活跑与 Phase 5 的漂移 B 两项**，且那是**起草期写死的分支被实测触发**，
       不是执行期缩范围；**漂移 A（Phase 2）与整条比对链（Phase 3）零降级**
 - [x] independent draft review completed and recorded（§9，六轮，第六轮 `acceptable as-is`）
 - [x] text consistency verified: status, phases, gates, and log all agree（`Plan Status: completed` · 五个 phase 全 `Status: completed` 且无 `[ ]` 遗留 · `docs/logs/2026/08-25.md` 四条条目 · §6 九格全填）
-- [ ] closure audit was independent —— ⚠️ **未做**：本轮由单一执行器完成，**没有独立子代理做收口审计**。照实记为**未满足**，不修饰成「已自查」
+- [x] closure audit was independent —— **已做**：由**独立收口审计器**（`2026-08-25-084253-mission-driver`，
+      fresh session，**不带执行期上下文**）在 `65971aa` 落盘之后独立复跑并核对，记录见
+      §Closure 的「**独立收口审计（事后补做，2026-08-25）**」一节。
+      ⚠️ **时序照实记，不修饰**：执行期落盘时这一格是**空的** ——
+      `65971aa` 的提交信息与 `docs/logs/2026/08-25.md` 都逐字记着「未做」。
+      本格是**事后**由独立审计者补满的，**不是执行期就有的**
 - [x] closure evidence exists in files（`docs/evidence/p1-pack-parity/` 三份 JSON + README · `docs/masterplan/STATE.md` §3 的 `[Proof] 2026-08-25T11:41Z` 证据行 · `docs/architecture/module-boundaries.md` §7.10 第二次核对与 §7.19）
 - [x] **红线自证**（逐条实跑，见下）：`git status --porcelain -- tests/gates/ .github/workflows/ missions/
       docs/masterplan/DECISIONS.md docker-compose.yml industry-packs/ agenerp/
@@ -949,7 +958,7 @@ Exit Criteria:
   与 `agenerp/seed/checks.py` 各自负责，不是比对器的活。
 - Successor Required: `no`。重开事件：**出现一条「数据集本身把业务建模错了」的实测**。
 
-## 12. Closure
+## Closure
 
 ### Status Note
 
@@ -980,12 +989,16 @@ Exit Criteria:
    判据 ② 那条测例两侧条数是 2 vs 1，纯条数比对照样发红，所以它在 M2 下**仍绿**。
    预期表写的是「② **或** ③」，红的是 ③ ⇒ **吻合**，但差别照实记下来。
 
-**⚠️ 一条未满足的 Closure Gate，不修饰**：`closure audit was independent` —— **未做**。
-本轮由单一执行器完成，没有独立子代理做收口审计。
+**⚠️ `closure audit was independent` 的时序照实记，不修饰**：
+**执行期落盘（`65971aa`）时这一格是空的** —— 当时由单一执行器完成，没有独立子代理做收口审计，
+提交信息与 `docs/logs/2026/08-25.md` 都逐字记着「未做」。
+该 gate 由**事后**的独立收口审计补满（记录见下「独立收口审计（事后补做，2026-08-25）」），
+**不是执行期就有的**。
 
-**⚠️ verification scope limited**：未跑 `pytest tests -q -m "not live"`（整仓一次性），
-也未拿到 CI 服务端复跑；八条验证命令是**逐目录**跑的。
-另一条作用域限制：⑥ 的 `ruff` **不含 `tools/`**，而本 plan 的比对脚本正落在那里。
+**⚠️ verification scope limited（仍然成立，不撤销）**：八条验证命令是**逐目录**跑的；
+整仓一次性那条**已由事后的独立审计者补跑**（`pytest tests -q -m "not live"` → exit 0 ·
+`1186 passed, 12 skipped, 21 deselected`），但 **CI 服务端复跑仍未拿到**。
+另一条作用域限制**一个字没变**：⑥ 的 `ruff` **不含 `tools/`**，而本 plan 的比对脚本正落在那里。
 
 ### Closure Audit Evidence
 
@@ -1034,10 +1047,52 @@ Exit Criteria:
 **逐字声明**：本 plan **零新增产品代码**，**未接线** `rule.lookup`，**未改任何一条规则**，
 **未对活站点做任何写**，**一个模型都没调**。
 
-### Follow-up
+### 独立收口审计（事后补做，2026-08-25）
 
-- **`closure audit was independent` 未满足** —— 需要一次独立收口审计。
-  这不是能力问题，是本轮没有第二个审计者。**照实留在这里，不当作已满足。**
+- **Auditor / Agent**：独立收口审计器 `2026-08-25-084253-mission-driver` ——
+  **fresh session，不带执行期上下文**，按 `docs/plans/00-plan-authoring-and-execution-guide.md`
+  的「When Closing」逐条核。
+- **它不是冷读，是复跑**：审计者**自己重跑**了下列各项，**未采信执行期的转述**：
+  - **八条验证命令逐条自跑** → **八条全部 exit 0**，输出与上表**逐字相同**：
+    `门禁 26 项：预期红 0，绿 26，跳过 0` + `697 passed` · `151 passed` ·
+    `81 passed, 12 skipped` · `167 passed, 1 skipped` · `54 passed` ·
+    `All checks passed!` · `packs validate --pack discrete` 三条规则全过 ·
+    `共校验 35 条引用，断链 0 条`。
+  - **补跑整仓一次性**：`python3 -m pytest tests -q -m "not live"` → **exit 0** ·
+    `1186 passed, 12 skipped, 21 deselected`（执行期未跑的那条，审计期补上）。
+  - **自己重施了一条变异（M1）**：把出货的 `parity.py` 里
+    `if len(empty) == len(SIDES):` 改成 `if False:`（文件级 `cp` 备份，**全程未用 `git checkout`**，
+    未触碰任何红线路径）→ `python3 -m pytest tests/unit/test_pack_parity_harness.py -q` →
+    **`2 failed, 23 passed`**，红点是 `test_two_empty_sides_are_incomparable_not_identical` ·
+    `test_two_empty_sides_stay_incomparable_even_when_rule_ids_match` ——
+    **与变异表记录逐字相同**；随后按备份还原，`git status --porcelain -- tools/` → **无输出**。
+    ⇒ **判据确实钉在出货那份 `parity.py` 上**（R5 的缓解为真，不是一句写着好看的话）。
+  - **自己复算了结论**：按证据 README「怎么复算」一节原样执行 ——
+    把 `offline-hits.json` 与 `live-hits.json` 重新喂给出货的 `compare()`，
+    输出与 `parity.json` **逐字相等** → **exit 0**。
+  - **逐处核对落盘的文档**：`module-boundaries.md` §7.10 的「第二次核对（2026-08-25）」
+    与 §7.19（四条契约 · 两条残余 · 一条边界 · 一条已知缺口 · M1–M9 红点记名）**均在案**；
+    `docs/bugs/02-…:3` 状态行已是「**已由人修复**（`484c123`）」；
+    `docs/masterplan/STATE.md:770` 的 `[Proof] 2026-08-25T11:41Z` 证据行在案；
+    `docs/logs/2026/08-25.md` 四条条目在案。
+  - **红线独立复核**（按 `git show --name-only 65971aa` 的实际改动清单，不看执行期的自述）：
+    该提交触碰的 12 个文件里**没有一个**落在 `tests/gates/**` · `.github/workflows/**` ·
+    `missions/**` · `docs/masterplan/DECISIONS.md` · `agenerp/**` · `industry-packs/**` ·
+    `tests/unit/inspection_fakes.py`；`git show 65971aa -- docs/masterplan/STATE.md | grep -c '^-[^-]'`
+    → **0**（只追加）；`git show 65971aa -- docs/architecture/module-boundaries.md | grep '^-[^-]'`
+    → **恰 3 行**，逐行落在 §7.10「活站点验证范围」小节内，**与 Phase 5 Exit 的自查逐字吻合**；
+    `find agenerp -name '*.py' | wc -l` → **56**；
+    `ls tests/` → `context contracts experiments fixtures gates routing tools unit`（未新增顶级目录）。
+- **审计结论**：`accept` —— 五点一致性成立（`Plan Status: completed` · 五个 phase 全
+  `Status: completed` 且无 `[ ]` 遗留 · 各 phase Exit Criteria 全 `[x]` ·
+  Closure Gates 全 `[x]` · Closure 证据在文件里可查），**没有发现被藏进 Deferred 的在场缺陷或契约漂移**：
+  H5 的 `10 vs 9`、`tools/` 无 `ruff`/CI 覆盖、变异 M2 红点落在 ③④ 而非 ② ——
+  **三处都在正文里逐字记着，不是藏起来的**。
+- ⚠️ **审计者没有做、因此不声称的两件事**：① **未拿到 CI 服务端复跑**（本机复跑不等于 CI）；
+  ② **未重新对活站点跑一次比对**（那需要活栈；本次比对的活站点侧数据由审计者
+  **从落盘证据复算**核对，不是重新观测一次站点）。
+
+### Follow-up
 - §11 的四条 Deferred **一条未动**，重开事件逐条如原文。
   ⚠️ **工作项 8 的 plan 预算此后 `2/2` 满**（表规 3）：其中任何一条要重开，
   须由**人**在 `02-WBS.md` 拆行/加行（红线 5，loop 无权）。
