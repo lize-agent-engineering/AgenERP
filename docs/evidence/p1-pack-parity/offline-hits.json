@@ -1,0 +1,42 @@
+{
+  "rule_ids": [
+    "discrete/finished-goods-backlog",
+    "discrete/subcontracting-issued-not-received",
+    "discrete/closed-order-short-delivered"
+  ],
+  "request_count": 10,
+  "hits": [
+    {
+      "pack_id": "discrete",
+      "rule_id": "discrete/finished-goods-backlog",
+      "statement": "产出远大于销出：某物料在某仓库累计入库减去累计出库之后，剩下的存货仍与该物料的订单量同一量级 —— 多出来的这些没有道理",
+      "subject": {
+        "item_code": "HRD-PACK-5K",
+        "warehouse": "成品仓 - HRD"
+      },
+      "quantity_name": "on_hand",
+      "quantity": 1010.0,
+      "measures": {
+        "issued": 990.0,
+        "on_hand": 1010.0,
+        "ordered": 1000.0,
+        "received": 2000.0
+      }
+    },
+    {
+      "pack_id": "discrete",
+      "rule_id": "discrete/closed-order-short-delivered",
+      "statement": "订单被人工关闭，实发却少于订单量：状态写着完成，缺口既没发也没记欠货 —— 每个字段都是绿的，缺的那部分不在任何字段上",
+      "subject": {
+        "name": "SAL-ORD-2026-00001"
+      },
+      "quantity_name": "shortfall",
+      "quantity": 10.0,
+      "measures": {
+        "delivered": 990.0,
+        "ordered": 1000.0,
+        "shortfall": 10.0
+      }
+    }
+  ]
+}

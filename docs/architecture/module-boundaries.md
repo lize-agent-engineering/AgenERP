@@ -836,8 +836,12 @@ R4 / R5 按 D3 的「收内容」出路处理：v0 不收，类别写在 D3 里�
 
 #### 活站点验证范围（H4 · 2026-08-24）
 
-在本地活站点（`frontend@http://127.0.0.1:18080`）用 `industry-packs/discrete/` 跑过**一次**
-整份包（9 次只读请求），与离线固定测例逐字比对，**结论是「部分一致」，照实记**：
+⚠️ **本小节是追加式账本**：2026-08-24 那次的观测**逐字保留在下面**，
+2026-08-25 的新结论**追加在其后**（`#### 活站点验证范围的第二次核对`），**不覆盖、不抹掉**。
+
+**第一次核对（2026-08-24）**：在本地活站点（`frontend@http://127.0.0.1:18080`）用
+`industry-packs/discrete/` 跑过**一次**整份包（9 次只读请求），与离线固定测例逐字比对，
+**结论是「部分一致」，照实记**：
 
 - `discrete/finished-goods-backlog`：**两侧逐字一致**（`item_code=HRD-PACK-5K` /
   `warehouse=成品仓 - HRD` / `quantity=1010.0`）。命中集合非空且含它 —— H4 的防伪前提成立
@@ -849,7 +853,54 @@ R4 / R5 按 D3 的「收内容」出路处理：v0 不收，类别写在 D3 里�
   而 `agenerp/seed/model.py:57` 的 `SALES_ORDER_STATUS` 是 `"Closed"`；
   `agenerp/seedsite.py` 全文没有写这个 `status` 的地方。
   **规则一个字没改去迁就站点**（那是照答案写规则）。归属不在本节的交付面 ——
-  已记 `docs/bugs/02-…`，并在 `docs/masterplan/STATE.md` §3 追加了 needs-human。
+  已记 `docs/bugs/02-…`；交给人的那条 needs-human **已闭环**，
+  见 `docs/masterplan/STATE.md` §3 `:389` `[resolved] 2026-08-25T02:02Z`：
+  人于 `484c123` 在**种子装载面**（`agenerp/seedsite.py`，提交后调
+  `update_status` 关单，放在发货单之后）处置，并把判据判给**站点侧对账**
+  （`_trap_precondition_checks` 两条），**逐字「不是行业包」**。
+  ⚠️ **这条修复消掉的是上面那个成因，不等于两侧现在一致** ——
+  一致与否见下一小节的 2026-08-25 追记。
+
+#### 活站点验证范围的第二次核对（2026-08-25）—— **结论：逐字一致**
+
+出处：plan `docs/plans/p1-insight/2026-08-25-1026-1-industry-pack-live-parity.md`；
+证据 `docs/evidence/p1-pack-parity/`（三份 JSON + README）；比对链与它的四条契约见 **§7.19**。
+
+在同一个活站点上把整份 `industry-packs/discrete/` 又跑了**一次**，与离线固定测例
+（`tests/unit/inspection_fakes.py` 的 `seed_site()`，由 `agenerp.seed.generate()` 派生）
+的两份 `InspectionReport.as_dict()` 逐字比对，**`verdict: identical`**：
+
+- `discrete/finished-goods-backlog`：两侧**各 1 条**，`on_hand = 1010.0`
+  （`= agenerp/seed/checks.py` 的 `EXPECTED_BACKLOG_QTY`）。
+- `discrete/subcontracting-issued-not-received`：两侧**各 0 条**（种子外协链完整，零命中是正确行为）。
+- `discrete/closed-order-short-delivered`：**两侧各 1 条**，`shortfall = 10.0`
+  （`= EXPECTED_SHORTFALL_QTY`）—— 上一次「离线命中 10、站点零命中」那条差异**已消失**，
+  成因由人在 `484c123` 的装载面修掉。
+- `rule_ids` 两侧逐字相同（三条、同序）；命中集合两侧**都非空**，
+  **非空断言写在比对之前** —— 「两个空集相等」不会被叫作「逐字一致」。
+
+**照实记两处与预期不同的观测**（都不是异常，也都没有为了凑数改任何一条规则或巡检器）：
+
+- 站点侧 `InspectionReport.request_count` 实测 **10**，而上一次记的是 **9**。
+  本 plan **不猜根因**（复跑优先于分析）。传输层实录 11 条 HTTP：
+  `GET` 10 条 + `POST /api/method/login` 1 条（登录换会话不经 `SiteRows`，不计进 `request_count`）。
+- 比对器**按契约把 `request_count` 排除在一致性判定之外**（`"judged": false`），
+  理由与取舍见 §7.19。
+
+**这次核对没有证明的事（逐字写清，不许被引用成别的）**：
+
+- **这是一次跑，不是分布。** 前后两次读回只排除掉「本轮自己写了」，
+  **排除不掉「别人在同一分钟写了」**。
+- **两侧一致证明的是「站点装载忠实于数据集」，不证明数据集本身对**
+  （后者归 `tests/gates/test_seed_dataset_absurdity.py` 与 `agenerp/seed/checks.py`）。
+- **一致不等于规则表达对** —— 两侧跑的是同一份规则，写错了会一起错；
+  规则表达由它自己的 `test_case` 与阳性/阴性对照证明。
+- 外协那条两侧都零命中 ⇒ **这次仍未给它一次真实数据上的阳性对照**
+  （它的重开事件是「出现一份真实存在外协欠收的数据集或站点」）。
+
+**本小节判的是「命中集合是否逐字一致」；`agenerp/seedsite.py` 的
+`_trap_precondition_checks` 判的是「站点上有没有那个可查的事实」——两者不是同一件事。**
+混成一句话，就是把「前提事实在」说成「包在真站点上验证过」。
 
 #### 未接线：`rule.lookup` 为什么还在报错
 
@@ -2816,3 +2867,103 @@ owner doc 的**内容面**是 [`model-management.md`](./model-management.md) §1
 裁定所需的全部材料已备齐（四列并置、各自钉死、差异逐格量化），**缺的只有裁定** ——
 已在 `STATE.md` §3 追加一条 needs-human。人裁定之后要做的只有一件：
 把 §12.3 那张表按裁定收敛，**判据形状不变**。
+
+### 7.19 行业包**离线↔活站点命中集合比对链**在本仓的落点（P1.6 第 2 个 plan · 2026-08-25）
+
+plan `docs/plans/p1-insight/2026-08-25-1026-1-industry-pack-live-parity.md`。
+本节记的是**产出 §7.10 第二次核对结论的那条链**，不是结论本身（结论在 §7.10）。
+
+#### 制品与代码的落点
+
+| 落点 | 是什么 |
+|---|---|
+| `tools/experiments/p1_pack_parity/parity.py` | **纯比对器**：两份 `InspectionReport.as_dict()` 进、结构化差异出。**零仓内 import** |
+| `tools/experiments/p1_pack_parity/run.py` | **只做编排**：装包 / 建两侧行源 / 调比对器 / 落盘。离线侧按路径加载 `tests/unit/inspection_fakes.py` |
+| `tests/unit/test_pack_parity_harness.py` | 那条链的**离线判据**（25 条，全部假两侧、零站点、零 LLM）。**按路径加载出货的那两份脚本** |
+| `docs/evidence/p1-pack-parity/` | 三份 JSON + README |
+
+**零新增产品代码**：`agenerp/**` 与 `industry-packs/**` 一个字节未改
+（`find agenerp -name '*.py' | wc -l` 开工与收口同为 **56**）。
+
+#### 比对器的四条契约
+
+1. **比对面是两份报告的全部三个键**（`rule_ids` / `request_count` / `hits`），
+   `hits` 逐条比 `Hit.as_dict()` 的**全部七个键**。键集合**逐字写死并强制校验** ——
+   报告多一键少一键**当场抛**（`ParityInputError`），不降级成「判不一致」：
+   降级会把「比对面失效了」和「数据不同」混成一件事。
+2. **`request_count` 只记录、不参与一致性判定**（`"judged": false`）。
+   ⚠️ **这是一条取舍，不是最佳实践。** 实测依据：离线侧 `request_count = 10`，
+   §7.10 第一次核对记的活站点侧是 **9**（第二次核对实测也是 10）——
+   两侧的取数路径本来就不同；把它算进判定会让比对**永远不一致**，
+   而**恒红与恒绿一样没有判别力**。
+   两个被否决的备选：「算进判定」（恒红）·「归一化后再判（例如只判两侧都 > 0）」
+   （发明一个本仓没有依据的口径，且挡不住任何一种要挡的假实现 —— 假实现照样会打请求）。
+3. **比对前先断言两侧命中集合非空。** 两侧都空 ⇒ `incomparable`（「比不了」），
+   **不是** `identical` —— 否则「两个空集相等」也叫「逐字一致」。
+   ⚠️ 恰好一侧空是**另一件事**：那时两侧显然不同，判 `different` 更强，且不许崩。
+   这一条的价值不在于它是一条独立的预测（`H2①` 成立时「各 ≥ 1」就是它的算术推论），
+   而在于它**逼出了一个实现约束**：非空检查必须写在任何比对之前 ——
+   一个先比后判的实现在两侧都空时会返回「一致」。
+4. **输出是结构化差异，不是布尔**：哪条 `rule_id`、哪个 `subject`、两侧各是什么、
+   差在七个键里的哪几个（`differing_keys`），都要读得出来。
+   **顺序不是判别面**：`hits` 按内容做多重集比对，一侧倒序仍判一致
+   （否则比对器在测排序不是在测内容）；`rule_ids` 相反，按「同一份包、同一个顺序」比含序列表。
+
+#### 两条残余，照实登记
+
+- **把某个键排除在判定之外这件事，只有一半有守卫。**
+  有守卫的那一半：将来给 `InspectionReport.as_dict()` 加第三个键，比对器会**当场抛**
+  （契约 1 的键集合强制校验，判据 `test_a_report_with_an_extra_key_is_rejected_not_silently_compared`）。
+  **没有守卫的那一半**：有人主动把新键加进排除清单 —— 那时比对器不会有任何反应。
+  今天挡它的只有判据 ①–⑧ 逐键写死这一点，**那不是一条通用规则**。
+- **「两侧一致」不等于「数据集本身对」**（也不等于「规则表达对」）。
+  本链证的是**站点装载忠实于数据集**；数据集本身由
+  `tests/gates/test_seed_dataset_absurdity.py`（裁判）与 `agenerp/seed/checks.py` 负责，
+  规则表达由每条规则自带的 `test_case` 与阳性/阴性对照负责。**都不是比对器的活。**
+
+#### 一条边界：本链判命中集合，站点侧对账判前提事实
+
+`agenerp/seedsite.py` 的 `_trap_precondition_checks`（人于 `484c123` 交付）判的是
+「**站点上有没有那个可查的事实**」（订单状态为 `Closed`、交付缺口为 10）。
+**本链判的是另一件事**：「**整份包的命中集合，两侧是否逐字一致**」。
+⚠️ **两者混成一句话，就是把「前提事实在」说成「包在真站点上验证过」。**
+本 plan 不重复、不改、不在旁边再写一份那条对账判据。
+
+#### 一条已知缺口：`tools/` 既没有 `ruff` 也没有 CI 覆盖
+
+出处 `docs/backlog/tools-dir-has-no-static-check-coverage.md`（`Status: deferred`，
+处置者是**人**，理由是本仓已就同一处裁定过「明确不扩面」，**重开别人的裁定只有人能做**）。
+⚠️ **两文件拆分之后，「脚本只做编排」这句话不成立** —— 判定逻辑就在 `parity.py` 里，
+也就是在那个没覆盖的目录里。**真正的缓解是判据 ⑩ + 变异 M9**：
+判据文件**按路径加载出货的那份 `parity.py`**（纯 `importlib`，且**源文件没了就是红**），
+M9 把它改坏而判据一个字不动时**必须红**（实测 2 failed）。
+⇒ 那份脚本虽不在 `ruff`/CI 的作用域里，**却有一条在 CI 里跑的判据钉着它的行为**。
+⚠️ **这是缓解不是消除**：`ruff` 仍然扫不到它（风格与未用变量一类问题无人看管）。
+
+#### 零模型接缝的主张，**主语只能是比对器**
+
+判据在**全新解释器**里 `import` `parity.py` 之后断言
+`agenerp.routing` 不在 `sys.modules`（且 `agenerp` 一个模块都不在）。
+⚠️ **`run.py` 担不起这个主张，照实分开、不假装它干净**：它按路径加载
+`tests/unit/inspection_fakes.py`，而那条链 `:39` → `explain_fakes` → `agenerp.routing`
+**会**把 routing 拉进 `sys.modules`（起草期与执行期各实测一次）。
+**把主语写成「整个脚本」按构造为假，本仓不提出那个主张，也不靠删依赖去凑它。**
+活跑那一次自己的零模型证据是另外两项（凭据前置检查 + **由观测方装的** `ChatAdapter`
+构造面替身计数 `0`），见 `docs/evidence/p1-pack-parity/README.md`。
+
+#### 变异自查 M1–M9 的红点逐条记名
+
+逐条施加 → 复跑 `python3 -m pytest tests/unit/test_pack_parity_harness.py -q` → 还原；
+基线 **25 passed**，**九条无一留在绿**。
+
+| # | 变异 | 红在哪 |
+|---|---|---|
+| M1 | 两侧都空判为一致 | `test_two_empty_sides_are_incomparable_not_identical` · `…_stay_incomparable_even_when_rule_ids_match`（2 failed）|
+| M2 | 只比命中条数 | `test_a_one_point_zero_quantity_drift_is_judged_different` · `test_measures_drift_with_an_unchanged_quantity_is_judged_different`（2 failed）|
+| M3 | 只比 `rule_id`，不比 `quantity` | 同 M2 两条（2 failed）|
+| M4 | 只比 `quantity`，不比 `measures` | `test_measures_drift_with_an_unchanged_quantity_is_judged_different`（1 failed）|
+| M5 | 一侧缺失的规则静默跳过 | `test_a_hit_missing_on_one_side_is_named_by_rule_id_and_subject` 等（3 failed）|
+| M6 | 按列表下标比（顺序敏感） | `test_reversing_one_sides_hit_list_is_still_identical`（靶心）等（6 failed）|
+| M7 | 把 `rule_ids` 排除在比对面之外 | `test_rule_ids_drift_with_identical_hits_is_judged_different` · `test_rule_ids_are_compared_with_their_order`（2 failed）|
+| M8 | 在 `parity.py` 里 `import agenerp.routing` 并在链上碰一次 `ChatAdapter` | **两个可观测量各红一条**：`test_h7a_importing_the_comparator_never_pulls_in_the_model_face`（子进程导入图）· `test_h7b_the_whole_parity_chain_makes_zero_model_calls`（替身计数 0 → 1）|
+| M9 | 改坏出货的 `parity.py`，**判据文件一个字不动** | 判据 ③④ 两条（2 failed）⇒ **判据测的确实是出货那份，不是自己的副本** |

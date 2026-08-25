@@ -1,0 +1,35 @@
+{
+  "verdict": "identical",
+  "reason": "",
+  "empty_sides": [],
+  "rule_ids": {
+    "offline": [
+      "discrete/finished-goods-backlog",
+      "discrete/subcontracting-issued-not-received",
+      "discrete/closed-order-short-delivered"
+    ],
+    "live": [
+      "discrete/finished-goods-backlog",
+      "discrete/subcontracting-issued-not-received",
+      "discrete/closed-order-short-delivered"
+    ],
+    "equal": true
+  },
+  "hits": {
+    "equal": true,
+    "matched": 2,
+    "count": {
+      "offline": 2,
+      "live": 2
+    },
+    "only_offline": [],
+    "only_live": [],
+    "differing": []
+  },
+  "request_count": {
+    "offline": 10,
+    "live": 10,
+    "judged": false,
+    "note": "契约 ②：只记录、不参与一致性判定。两侧本来就不同（离线侧走假站点行源、活站点侧走 REST），算进判定会让比对恒红 —— 恒红与恒绿一样没有判别力。"
+  }
+}
