@@ -1,0 +1,170 @@
+# ┌──────────────────────────────────────────────────────────────────────────┐
+# │ AgenERP · 这是上游 frappe/erpnext:v15.119.3 里                            │
+# │ /templates/nginx/frappe.conf.template 的**副本**，加了两段本仓自己的东西。│
+# │ 落点节：docs/architecture/module-boundaries.md §7.21 `D-b-1`（候选 A）。 │
+# │                                                                          │
+# │ 本仓加的两段一律用成对哨兵注释围起来（见下文那两对 AgenERP 哨兵行）。    │
+# │ 升级镜像 tag 时**必须**跑这条，期望差集只有那两段：                      │
+# │   docker run --rm --entrypoint cat frappe/erpnext:<新 tag> \             │
+# │     /templates/nginx/frappe.conf.template | diff - tools/nginx/frappe.conf.template
+# │ 多出任何一行都要人判断要不要跟进 —— 副本与上游的分叉是**静默的**，       │
+# │ nginx -t 不会报，栈照样起。K3 的全部对冲就是 tag 钉死 + 这条 diff。       │
+# │                                                                          │
+# │ ⚠️ 上游 entrypoint 的 envsubst 只替换八个名字（BACKEND / SOCKETIO /      │
+# │    UPSTREAM_REAL_IP_ADDRESS / UPSTREAM_REAL_IP_HEADER /                  │
+# │    UPSTREAM_REAL_IP_RECURSIVE / FRAPPE_SITE_NAME_HEADER /                │
+# │    PROXY_READ_TIMEOUT / CLIENT_MAX_BODY_SIZE）。                          │
+# │    本仓加的两段里不许出现这八个之外的 compose 风格插值：写了不会被替换，  │
+# │    nginx 配置。nginx 自己的 $host / $remote_addr 等不受影响，正是要的。   │
+# └──────────────────────────────────────────────────────────────────────────┘
+
+upstream backend-server {
+	server ${BACKEND} fail_timeout=0;
+}
+
+upstream socketio-server {
+	server ${SOCKETIO} fail_timeout=0;
+}
+
+# >>> AgenERP —— 解释服务的上游（§7.21 `D-b-1` / `D-b-2`）
+# 主机名 `agenerp-serve` 与 docker-compose.yml 里的**服务名**逐字相同；
+# 端口 8330 与那个服务的 AGENERP_SERVE_PORT 逐字相同。两者都**字面写死**、
+# 不经插值：判据（tests/unit/test_explain_same_origin.py 的 ③⑨）比的就是这两个字面值，
+# 而仓根的 .env 能在 `docker compose config` 时把插值改掉、判据看不见。
+upstream agenerp-serve-upstream {
+	server agenerp-serve:8330 fail_timeout=0;
+}
+# <<< AgenERP
+
+# Parse the X-Forwarded-Proto header - if set - defaulting to $scheme.
+map $http_x_forwarded_proto $proxy_x_forwarded_proto {
+	default $scheme;
+	https https;
+}
+
+server {
+	listen 8080;
+	server_name ${FRAPPE_SITE_NAME_HEADER};
+  absolute_redirect off;
+	root /home/frappe/frappe-bench/sites;
+
+	proxy_buffer_size 128k;
+	proxy_buffers 4 256k;
+	proxy_busy_buffers_size 256k;
+
+	include /etc/nginx/snippets/security_headers.conf;
+
+	set_real_ip_from ${UPSTREAM_REAL_IP_ADDRESS};
+	real_ip_header ${UPSTREAM_REAL_IP_HEADER};
+	real_ip_recursive ${UPSTREAM_REAL_IP_RECURSIVE};
+
+	# >>> AgenERP —— 同源那一跳（§7.21 `D-b-1`）
+	# 前缀 `/agenerp/` 必须与 agenerp/serve/app.py 的 ROUTE_PREFIX 逐字一致，
+	# 判据②从两个文件各读一次再比，不在判据里写第三个字面量。
+	#
+	# 这段必须坐在**这个** server 块里（唯一那个 listen 8080 的）。放进 conf.d/ 下
+	# 另起一个同 listen 同 server_name 的 server 块时，nginx 实测只 warn
+	# （`conflicting server name ... ignored`）而 `nginx -t` 退 0 ——
+	# 配置测试全绿、反代根本不存在。判据⑧ 守的就是这一格。
+	#
+	# proxy_read_timeout 显式给 300：单次解释实测 9.7 万–12.8 万 token，
+	# 上游模板给 @webserver 的那个读超时变量（compose 侧给 120）对它不够，
+	# 而这里刻意不复用那个变量 —— 解释请求的时长与 Frappe 页面请求的时长是两件事，
+	# 共用一个旋钮时调其中一个必然误伤另一个。
+	# ⚠️ 这是**服务端**读超时；断言体自己的 TIMEOUT = 30 是**客户端**侧，两者别混。
+	location /agenerp/ {
+		proxy_http_version 1.1;
+		proxy_set_header Host $host;
+		proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+		proxy_set_header X-Forwarded-Proto $proxy_x_forwarded_proto;
+		proxy_read_timeout 300;
+		proxy_send_timeout 300;
+		proxy_redirect off;
+
+		proxy_pass http://agenerp-serve-upstream;
+	}
+	# <<< AgenERP
+
+	location /assets {
+		try_files $uri =404;
+	}
+
+	location ~ ^/protected/(.*) {
+		internal;
+		try_files /${FRAPPE_SITE_NAME_HEADER}/$1 =404;
+	}
+
+	location /socket.io {
+		proxy_http_version 1.1;
+		proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+		proxy_set_header X-Forwarded-Proto $proxy_x_forwarded_proto;
+		proxy_set_header Upgrade $http_upgrade;
+		proxy_set_header Connection "upgrade";
+		proxy_set_header X-Frappe-Site-Name ${FRAPPE_SITE_NAME_HEADER};
+		proxy_set_header Origin $proxy_x_forwarded_proto://${FRAPPE_SITE_NAME_HEADER};
+		proxy_set_header Host $host;
+
+		proxy_pass http://socketio-server;
+	}
+
+	location / {
+		rewrite ^(.+)/$ $1 permanent;
+		rewrite ^(.+)/index\.html$ $1 permanent;
+		rewrite ^(.+)\.html$ $1 permanent;
+
+		location ~ ^/files/.*.(htm|html|svg|xml) {
+			include /etc/nginx/snippets/security_headers.conf;
+			add_header Content-disposition "attachment";
+			try_files /${FRAPPE_SITE_NAME_HEADER}/public/$uri @webserver;
+		}
+
+		try_files /${FRAPPE_SITE_NAME_HEADER}/public/$uri @webserver;
+	}
+
+	location @webserver {
+		proxy_http_version 1.1;
+		proxy_set_header X-Forwarded-For $remote_addr;
+		proxy_set_header X-Forwarded-Proto $proxy_x_forwarded_proto;
+		proxy_set_header X-Frappe-Site-Name ${FRAPPE_SITE_NAME_HEADER};
+		proxy_set_header Host $host;
+		proxy_set_header X-Use-X-Accel-Redirect True;
+		proxy_read_timeout ${PROXY_READ_TIMEOUT};
+		proxy_redirect off;
+
+		proxy_pass  http://backend-server;
+	}
+
+	# optimizations
+	sendfile on;
+	keepalive_timeout 15;
+	client_max_body_size ${CLIENT_MAX_BODY_SIZE};
+	client_body_buffer_size 16K;
+	client_header_buffer_size 1k;
+
+	# enable gzip compression
+	# based on https://mattstauffer.co/blog/enabling-gzip-on-nginx-servers-including-laravel-forge
+	gzip on;
+	gzip_http_version 1.1;
+	gzip_comp_level 5;
+	gzip_min_length 256;
+	gzip_proxied any;
+	gzip_vary on;
+	gzip_types
+		application/atom+xml
+		application/javascript
+		application/json
+		application/rss+xml
+		application/vnd.ms-fontobject
+		application/x-font-ttf
+		application/font-woff
+		application/x-web-app-manifest+json
+		application/xhtml+xml
+		application/xml
+		font/opentype
+		image/svg+xml
+		image/x-icon
+		text/css
+		text/plain
+		text/x-component;
+		# text/html is always compressed by HttpGzipModule
+}

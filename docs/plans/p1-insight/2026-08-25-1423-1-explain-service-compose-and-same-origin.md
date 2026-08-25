@@ -89,6 +89,42 @@
      —— 那 6 行没有把本地判定器打红（default 模式不收集 `-m live`）。**基线第 11 行因此仍吻合。**
 - §0 第 1 条那句「除本 plan 文件外无输出」**在执行期不成立**。起草期原文不改，此处照实记。
 
+⚠️ **上面那段本身在 Phase 1 执行途中就过期了，照实记、不改写**（这是本轮的第二处基线变化）：
+Phase 1 收口时复读 `git log`，发现**人在本 plan 开工之后又提交了两次**，两次都落在 `main` 上：
+
+| sha | 时刻 | author | 做了什么 |
+|---|---|---|---|
+| `f09b8f0` | 15:10:05 | `lize` | `test(gates): 建 P1.8a 的活站点门禁` —— 把 `tests/gates/test_explain_service_live.py`（**87 行**，比 15:09 工作区里那份多 6 行）**提交进仓** |
+| `24529ec` | 15:24:39 | `lize` | `docs: 登记 main 上的预期红` —— **把 `expected-red.txt` 那 6 行撤回了**，改成在 `STATE.md` §3 追加一条 `[open]` |
+
+⇒ 逐条修正上面的记述：
+
+1. **本 plan 的 Phase 1 提交 `ac2d456` 的父提交是 `f09b8f0`，不是基线那个 `b072e48`。**
+   本 plan **没有** `git add` 过 `tests/gates/**` 的任何文件（那次 `git add` 只列了三个 docs 路径）；
+   那个文件是**人自己提交的**。红线 1 的自证从「有一行 `??`」变成**真正的无输出**。
+2. **`expected-red.txt` 现在与基线逐字相同（名单为空）**，上面「账本原样留着」那句已不适用 ——
+   人撤回的理由逐字记在 `24529ec` 里，且是**实测出来的**：
+   「该名单对 live 门禁**两种模式下都无效**（默认模式按标记排除 live 那批；live 模式逐字**不读预期红名单**）。
+   live 门禁没有『预期红』档位，**要么绿要么红**」。
+   ⇒ 本 plan **不划任何一行**，理由从「它还没绿」换成「**那本账上根本没有这一笔**」。
+3. **人已裁定「就让它红着」**，并在 `STATE.md` §3 追加了 `[open] 2026-08-25T07:24Z`：
+   `main` 上 `L2 全量 live 判定` 这一个 job 会持续红在那六条上、其余 13 个 job 全绿，
+   **红因不是坏了**；人侧监控已收严成「只有当红的**不只是**这六条时才告警」。
+   `24529ec` 的提交信息给 loop 写了三条，逐条照办：
+   ① 不要去「修」那个门禁（红线 1 内且红得对）—— **本 plan 一个字未碰**；
+   ② 不要因为 CI 红就停下或改判据 —— **本 plan 未停、未改任何判据的判定口径**；
+   ③ 「第 2 个 plan 弄绿之后在同一提交里收掉 STATE 那条 open」——
+   ⚠️ **这一条本 plan 做不到，且有两个各自独立的理由，都必须照实交出去**：
+   **(a)** 把 `[open]` 改成 `[resolved]` 是**改写 STATE.md 的已有行**，红线 5 明禁（loop 只能追加）；
+   **(b)** 更硬的一条：**那六条并不会全绿**。第 4 条在 503 分支上**自带 `pytest.skip`**（§1.11），
+   而 `gates-l2-live` 起栈时一个 AI 变量都不配 ⇒ 它必然 skip，而契约是**零 skip**。
+   ⇒ 本 plan 交付后，那个 job 的红因**从「六条全红」收窄成「五条转绿、第四条 skip」**，
+   但**仍然是红的**。本 plan 按 §11 的写法把它**追加**进 STATE §3 的 needs-human，
+   **不代人翻那一行的状态**。
+   ⚠️ 注意 `24529ec` 的提交信息说「roadmap 里给 loop 写了三条」，但**实读该 commit 只改了
+   `docs/masterplan/STATE.md`（2 行插入）**，`docs/backlog/p1-insight-roadmap.md` 未被触及。
+   照实记，不代改（roadmap 的工作项 10 那一行由本 plan 的 Phase 3 按自己的职责回写）。
+
 **另一条执行期实读（Phase 3 的前置）**：`docker compose ps` —— 栈在不在跑、`frontend` 发布在哪个端口。
 **观测出来的事实，不是配置出来的期望**（口径抄 `tests/gates/conftest.py` 的同名教训）。
 
@@ -442,7 +478,7 @@ Exit Criteria:
 
 ### Phase 2 — 落地接线 + 离线判据（不需要活栈就能判的那一半）
 
-Status: planned
+Status: completed
 Targets: `docker-compose.yml` · `agenerp/serve/`（只加监听地址一格）·
 `tests/unit/test_explain_service_body.py`（`Fix`：默认基址）· `tests/unit/`（新增判据）·
 `D-b-1` 选中项落地处（nginx 配置文件，路径由 `D-b-1` 定）
@@ -451,7 +487,7 @@ Skill: `none`
 - Item Types: `Add | Fix | Proof`
 - Prereqs: Phase 1 七条 Decision 全部落 §7.21
 
-- [ ] `Add` **compose 增 `agenerp-serve` 服务**（按 `D-b-2` / `D-b-3` / `D-b-6`）：
+- [x] `Add` **compose 增 `agenerp-serve` 服务**（按 `D-b-2` / `D-b-3` / `D-b-6`）：
       **只复用 `x-erpnext-image`（不新增镜像）与 `x-ai-env`（AI 变量空默认值）两个锚点，
       不复用 `x-backend-defaults`；新服务不挂 `sites` / `logs` 卷** ——
       镜像 entrypoint 每次启动都 `rm -rf sites/assets` 再重建软链，
@@ -462,14 +498,14 @@ Skill: `none`
       `:-` 默认值**不可省** —— `tests/unit/test_compose_zero_dep.py::test_every_interpolation_has_a_default`
       逐字要求每个 `${…}` 都带 `:-`。站点名与 `create-site --set-default`、
       `frontend` 的 `FRAPPE_SITE_NAME_HEADER` 是**同一个值**
-- [ ] `Add` **`frontend` 增同源那一跳**（按 `D-b-1`）+ 增 `depends_on: agenerp-serve`。
+- [x] `Add` **`frontend` 增同源那一跳**（按 `D-b-1`）+ 增 `depends_on: agenerp-serve`。
       ⚠️ **`frontend` 既有的服务名、`ports:` 那一行、`FRAPPE_SITE_NAME_HEADER`、
       三条既有 `depends_on` 一个字不许动**（§1.4）
-- [ ] `Add` **`agenerp/serve/` 增监听地址一格**（按 `D-b-4`）：新变量 + 解析函数，
+- [x] `Add` **`agenerp/serve/` 增监听地址一格**（按 `D-b-4`）：新变量 + 解析函数，
       **默认值仍是 `LOOPBACK`**；`app.py` 既有分支一行不改（Non-Goal 9）
-- [ ] `Fix` **断言体默认基址改直**（按 `D-b-5`）。⚠️ **只改「去哪里判」，
+- [x] `Fix` **断言体默认基址改直**（按 `D-b-5`）。⚠️ **只改「去哪里判」，
       六条断言的判定逻辑一个字不改**；文件头那段交接说明里凡提到端口的地方一并对齐
-- [ ] `Proof` **新增离线判据**（落 `tests/unit/`，文件名执行期定，**不进 `tests/gates/`**），
+- [x] `Proof` **新增离线判据**（落 `tests/unit/`，文件名执行期定，**不进 `tests/gates/`**），
       **至少九条，逐条挡一种假实现**：
       ① compose 里 `agenerp-serve` **没有 `ports:` 块**（`D-b-4` 那条论证的唯一支点）；
       ② nginx 侧的 `location` 前缀与 `agenerp/serve/app.py` 的 `ROUTE_PREFIX` **逐字相等**
@@ -488,21 +524,21 @@ Skill: `none`
       且 **nginx 上游主机名字面等于该服务在 compose 里的服务名**（两个文件各读一次再比）。
       ⚠️ 这一条挡的是**假服务**：一段自造的、只会对 `/agenerp/health` 回
       `200 {"service":"agenerp-explain"}` 的应答脚本，能让 ①–⑦ 全绿、M1–M8 全部按预测打红
-- [ ] `Proof` **既有零依赖判据复跑**：`python3 -m pytest tests/unit/test_compose_zero_dep.py -q` → 退 0；
+- [x] `Proof` **既有零依赖判据复跑**：`python3 -m pytest tests/unit/test_compose_zero_dep.py -q` → 退 0；
       **H1** 空环境 `docker compose config -q` → 退 0
 
 Exit Criteria:
 
-- [ ] **`docker compose -f docker-compose.yml up -d --wait --wait-timeout 900` → exit 0**，
+- [x] **`docker compose -f docker-compose.yml up -d --wait --wait-timeout 900` → exit 0**，
       且 `docker compose ps` 里 `agenerp-serve` 为 **healthy**。
       ⚠️ **这一条不过，Phase 2 的接线不许提交**（§5 回退义务 / §1.5 的三个 job 爆炸半径）
-- [ ] `python3 tools/gates/check_expected_red.py && python3 -m pytest tests/unit -q` → **exit 0**，
+- [x] `python3 tools/gates/check_expected_red.py && python3 -m pytest tests/unit -q` → **exit 0**，
       条数**只增不减**（对照 §0.1 **第 11 行**的基线数字）
-- [ ] `python3 -m pytest tests/contracts tests/tools tests/routing tests/context -q` → **exit 0**
-- [ ] `ruff check agenerp tests/unit tests/contracts tests/tools tests/routing tests/context tests/experiments` → **exit 0**
-- [ ] **H1 / H9 / H10 / H11** 四格有实测值
-- [ ] `git status --porcelain -- tests/gates/ .github/workflows/ missions/ docs/masterplan/DECISIONS.md` → **无输出**
-- [ ] §7.21 记下交付形状；`docs/logs/` 更新
+- [x] `python3 -m pytest tests/contracts tests/tools tests/routing tests/context -q` → **exit 0**
+- [x] `ruff check agenerp tests/unit tests/contracts tests/tools tests/routing tests/context tests/experiments` → **exit 0**
+- [x] **H1 / H9 / H10 / H11** 四格有实测值
+- [x] `git status --porcelain -- tests/gates/ .github/workflows/ missions/ docs/masterplan/DECISIONS.md` → **无输出**
+- [x] §7.21 记下交付形状；`docs/logs/` 更新
 
 ### Phase 3 — 活栈实证 + 变异自查 + 交接
 

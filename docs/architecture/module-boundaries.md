@@ -3514,3 +3514,45 @@ Phase 2 判据⑥ 在**服务块粒度**上再判一次（既有那条是全局�
 - **规则 ④ 只挡得住「写成插值」这一种绕过**。判据仍是文本扫描 ⇒
   换一个**同名但内容不同**的宿主目录、或在 CI 上用不同的 compose 文件，两条都绕得过去。
   这与既有那两条先例是同一处天花板，本节不假装本 plan 抬高了它。
+
+#### 交付的形状：四处接线 + 九族离线判据（Phase 2）
+
+**接线四处**（全部可 `git revert`，站点侧零残留）：
+
+| # | 落点 | 内容 |
+|---|---|---|
+| 1 | `docker-compose.yml` | 新服务块 `agenerp-serve`：复用 `x-erpnext-image` 与 `x-ai-env` 两个锚点，**不复用 `x-backend-defaults`、不挂 `sites`/`logs` 卷**（镜像 entrypoint 实读 `rm -rf sites/assets` 再重建软链，挂了会在每次重启时抖掉 `frontend` 的 `/assets`）、**无 `ports:` 块**、探针打 `/agenerp/health` |
+| 2 | `docker-compose.yml` | `frontend` **只加两条**：`./tools/nginx/frappe.conf.template:/templates/nginx/frappe.conf.template:ro` 挂载，与 `agenerp-serve: condition: service_healthy` 依赖。服务名 / `ports:` 那一行 / `FRAPPE_SITE_NAME_HEADER` / 三条既有 `depends_on` **一个字未动** |
+| 3 | `tools/nginx/frappe.conf.template` | 上游模板的副本 + 两段哨兵包围的本仓内容（`upstream agenerp-serve-upstream` 与 `location /agenerp/`） |
+| 4 | `agenerp/serve/__main__.py` | 新增 `HOST_ENV` + `resolve_host()`，`main()` 由 `host=LOOPBACK` 改成 `host=host_addr`。`app.py` **一行未改**（`LOOPBACK` 仍是它的默认形参） |
+
+**离线判据九族**，落 `tests/unit/test_explain_same_origin.py`（**21 条 collected**，**不进 `tests/gates/`**，红线 1）：
+
+| 判据 | 函数 | 挡的假实现 |
+|---|---|---|
+| ① | `test_serve_publishes_no_host_port` | 把服务端口发布到宿主 |
+| ② | `test_nginx_location_prefix_equals_route_prefix` | nginx 前缀与 `ROUTE_PREFIX` 分叉（**两个文件各读一次再比**） |
+| ③ | `test_nginx_upstream_port_equals_compose_serve_port` | 上游端口分叉，**或被写成插值形式** |
+| ④ | `test_listen_host_defaults_to_loopback` | 默认就对外 |
+| ⑤ | `test_listen_host_widens_only_when_explicitly_given` · `test_listen_host_rejects_illegal_values_instead_of_falling_back`（×5 参数化） | 非法监听地址被**静默回退** |
+| ⑥ | `test_ai_vars_absent_from_the_serve_healthcheck` | 让「AI 未配置」把新服务判成不健康；探针打 `/explain` |
+| ⑦ | `test_body_default_base_resolves_exactly_like_site_default_base_url`（×5 参数化）· `test_body_serve_base_env_still_wins` · `test_body_carries_no_hardcoded_default_base` | 断言体默认基址指着 CI 上不存在的端口 |
+| ⑧ | `test_agenerp_location_lives_inside_the_sole_listen_8080_server_block` | **「配置测试全绿、反代根本不存在」** |
+| ⑨ | `test_the_service_actually_runs_this_repos_explain_service` · `test_nginx_upstream_host_equals_the_compose_service_name` | **假服务**；反代指向别的上游 |
+
+⚠️ **判据⑧ 是唯一一条解析块结构的**（其余全是文本比对）。它必须如此：
+一段坐在**第二个** server 块里的 `location /agenerp/` 能同时满足②③，
+而 nginx 对那种写法执行期实测**只 warn、`nginx -t` 退 0**、块被静默丢弃。
+
+**Phase 2 的验证（全绿）**
+
+- `env -i PATH=$PATH HOME=$HOME docker compose -f docker-compose.yml config -q` → exit **0**（**H1**）
+- `AGENERP_HTTP_PORT=18080 docker compose -f docker-compose.yml up -d --wait --wait-timeout 900` → exit **0**，
+  `agenerp-serve` **healthy**
+- `python3 tools/gates/check_expected_red.py` → exit **0**（`门禁 26 项：预期红 0，绿 26，跳过 0`）
+- `python3 -m pytest tests/unit -q` → **`777 passed, 6 skipped`**，exit 0（基线 `756 passed, 6 skipped`，**只增不减**）
+- `python3 -m pytest tests/contracts tests/tools tests/routing tests/context -q` → `456 passed, 13 skipped`，exit 0（与基线逐字相同）
+- `ruff check agenerp tests/unit tests/contracts tests/tools tests/routing tests/context tests/experiments` → `All checks passed!`，exit 0
+- `git diff -- pyproject.toml` → **0 行**（**H9**，零新增依赖）·
+  `git ls-files --others --exclude-standard -- 'agenerp/**/*.py'` → **0 行**（**H10**，零新增模块）·
+  `git status --porcelain -- tests/gates/ .github/workflows/ missions/ docs/masterplan/DECISIONS.md` → **无输出**（**H11**）

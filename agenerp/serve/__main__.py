@@ -7,11 +7,21 @@
 
 from __future__ import annotations
 
+import ipaddress
 import os
 import sys
 
 from agenerp.serve.app import DEFAULT_PORT, LOOPBACK, PORT_ENV, build_server
 from agenerp.site import SITE_ENV
+
+# 监听**地址**这一格。§7.20 `D-a-1` 的残余风险逐字写着「它一旦要对本机之外提供，
+# 这一条就必须重开」—— nginx 在**另一个容器**里，绑回环它就到不了 ⇒ 条件成立。
+# 重开的裁定在 `docs/architecture/module-boundaries.md` §7.21 `D-b-4`。
+#
+# ⚠️ **重开的是「能不能配」，不是「默认是什么」。** 默认值仍是 `app.py` 的 `LOOPBACK`：
+# 直接把那个常量改成 `0.0.0.0` 会让**宿主上手工起的那次跑**也默认对外 ——
+# 一次静默的暴露面扩大，diff 里只有一行、看不出后果。
+HOST_ENV = "AGENERP_SERVE_HOST"
 
 
 def resolve_port(env: dict[str, str] | None = None) -> int:
@@ -36,6 +46,30 @@ def resolve_port(env: dict[str, str] | None = None) -> int:
     return port
 
 
+def resolve_host(env: dict[str, str] | None = None) -> str:
+    """监听地址。**默认值仍是回环** —— 不配时的行为与开这一格之前逐字相同。
+
+    纪律与 `resolve_port()` 完全一致：配了但不是合法监听地址就**当场失败并指名变量**，
+    不悄悄退回默认值。悄悄退回之后，「我配了 0.0.0.0」与「我配错了所以还在 127.0.0.1」
+    在运行时看不出区别 —— 而这两者的暴露面差一整个网段。
+
+    **只收 IP 字面量**（v4/v6 皆可），主机名一律拒。监听地址是**地址**不是名字：
+    一个名字能解析出多条记录，「绑到哪张网卡上」就成了不确定的。
+    拒绝的代价只是 `localhost` 要写成 `127.0.0.1`。
+    """
+    source = os.environ if env is None else env
+    raw = (source.get(HOST_ENV) or "").strip()
+    if not raw:
+        return LOOPBACK
+    try:
+        ipaddress.ip_address(raw)
+    except ValueError:
+        raise ValueError(
+            f"{HOST_ENV}={raw!r} 不是 IP 字面量（只收 IPv4/IPv6 地址，主机名不收）"
+        ) from None
+    return raw
+
+
 def main(argv: list[str] | None = None) -> int:
     site = (os.environ.get(SITE_ENV) or "").strip()
     if not site:
@@ -43,10 +77,11 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     try:
         port = resolve_port()
+        host_addr = resolve_host()
     except ValueError as exc:
         print(str(exc), file=sys.stderr)
         return 2
-    server = build_server(site=site, host=LOOPBACK, port=port)
+    server = build_server(site=site, host=host_addr, port=port)
     host, bound = server.server_address[:2]
     print(f"agenerp explain service listening on http://{host}:{bound}", file=sys.stderr)
     try:

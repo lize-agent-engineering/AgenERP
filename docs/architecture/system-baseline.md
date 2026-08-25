@@ -1626,3 +1626,39 @@ grep -rn "expected-red-ratchet\|只能变短" AGENTS.md docs/context/ docs/archi
   `force-exclude`）——**方向是弱化不是加剧**，这是它可以挂着的理由，**不是**「它本来就没问题」。
 - ⚠️ **这是「挡住」不是「修好」**：`tests/gates/**` 那 2 条告警一条没修，只是 lint 扫不到了。
   修它是**人的动作**（一次带 `Gates-Change-Approved-By:` 的清理）。
+
+---
+
+## 14.11 判据要比对的 compose 值一律字面写死（规则 ④，plan `2026-08-25-1423-1` 交付）
+
+裁定在 `docs/architecture/module-boundaries.md` **§7.21 `D-b-7`**。
+**本节只写规则与它的判据清单**；接线形态、候选与否决理由全部在 §7.21，两处不各写一半。
+
+§14 原有三条写作规则之外，本仓再加一条：
+
+> **规则 ④**：凡是**判据要比对**的 compose 值 —— 挂载路径、上游端口、回程地址 ——
+> 一律**字面写死**，不许写成 `${…}`，**哪怕带了 `:-` 默认值**。
+
+**理由不是洁癖，是判据的有效性**：仓根有 gitignored 的 `.env`，`docker compose config` 会读它做插值
+（实测 `AGENERP_HTTP_PORT=9999` 会把 `published` 改成 9999），而本仓这一族判据是对
+**原始文本**的静态扫描 —— 管不到 `.env`。
+⇒ 写成 `${VAR:-默认值}` 时，判据看见的是「默认值」，运行时用的可以是别的东西。
+`:-` 满足既有的 `test_every_interpolation_has_a_default`，**却不构成任何保护**。
+
+**已有的判据清单**（四条，前两条是先例，后两条由 plan `2026-08-25-1423-1` 补上）：
+
+| # | 值 | 判据 |
+|---|---|---|
+| 1 | 发布端口的**宿主 IP** | `tests/unit/test_compose_zero_dep.py::test_published_ports_bind_loopback_literally` |
+| 2 | 引导脚本的**挂载目录** | `tests/unit/test_compose_zero_dep.py::test_bootstrap_script_dir_is_mounted_literally` |
+| 3 | 解释服务的**上游端口** | `tests/unit/test_explain_same_origin.py::test_nginx_upstream_port_equals_compose_serve_port`（额外断言两侧都不含 `${`） |
+| 4 | 解释服务的**包挂载目录** | `tests/unit/test_explain_same_origin.py::test_the_service_actually_runs_this_repos_explain_service` |
+
+⚠️ **规则 ④ 的天花板照实记**：它只挡得住「写成插值」这一种绕过。
+判据仍是文本扫描 ⇒ 换一个**同名但内容不同**的宿主目录、或在 CI 上用另一份 compose 文件，
+两条都绕得过去。这与第 1、2 条先例是同一处天花板，规则 ④ **没有抬高它**。
+
+⚠️ **`AGENERP_SITE` 刻意不在这张表里**：它写成 `${AGENERP_SITE:-frontend}`。
+站点名本来就是可换的（与 `create-site --set-default`、`frontend` 的 `FRAPPE_SITE_NAME_HEADER`、
+`backend` 探针的 Host 头、`agenerp-serve` 的回程地址是同一族值），
+而它**不是任何判据的比对对象** —— 规则 ④ 管的是后者，不是「所有值」。

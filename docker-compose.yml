@@ -21,7 +21,14 @@
 # 升级时该跑什么：改完 tag 后依次跑
 #   docker compose -f docker-compose.yml config -q
 #   python3 -m pytest tests/unit/test_compose_zero_dep.py -q
+#   python3 -m pytest tests/unit/test_explain_same_origin.py -q
 #   python3 -m pytest tests/gates/test_zero_dep_boot.py::test_compose_config_valid_with_empty_env -q
+# ⚠️ 升级 frappe/erpnext 的 tag 时**还要多跑一条**：本仓维护着一份上游 nginx 模板的副本
+#   （tools/nginx/frappe.conf.template，理由见 module-boundaries.md §7.21 D-b-1）。
+#   它与上游的分叉是**静默的** —— nginx -t 不会报，栈照样起，只有被上游改掉的那条路由行为不同。
+#   唯一的对冲是 tag 钉死 + 这条 diff，期望差集只有本仓那两段 AgenERP 哨兵块：
+#     docker run --rm --entrypoint cat frappe/erpnext:<新 tag> \
+#       /templates/nginx/frappe.conf.template | diff - tools/nginx/frappe.conf.template
 #
 # 不写顶层 `version:`：compose v2+ 已弃用该键（实测是告警不是报错，规则仍保留）。
 
@@ -255,6 +262,66 @@ services:
     environment:
       <<: *ai_env
 
+  # 解释服务的 HTTP 面（P1.8a）。进程与端点本身见 module-boundaries.md §7.20，
+  # 接线（本块 + frontend 的两处 + tools/nginx/）见 §7.21。
+  #
+  # ⚠️ 刻意**不复用 x-backend-defaults、不挂 sites / logs 卷**：镜像 entrypoint 每次启动都
+  #    `rm -rf sites/assets` 再重建软链（实读 /usr/local/bin/entrypoint.sh），挂了就会在
+  #    每次重启时抖掉 frontend 的 /assets。本服务不读站点文件，没有挂的理由。
+  # ⚠️ **没有 ports: 块，这是刻意的**：`AGENERP_SERVE_HOST: "0.0.0.0"` 的含义是
+  #    「本容器的全部网卡」，而本容器只在 compose 的默认 bridge 网络上 ——
+  #    「容器内绑 0.0.0.0 ≠ 对本机之外提供」这条论证的**唯一支点**就是这里没有 ports:。
+  #    对外那格端口仍然只有 frontend 那一条。判据：tests/unit/test_explain_same_origin.py ①
+  agenerp-serve:
+    <<: *erpnext_image
+    restart: on-failure
+    command:
+      - python3
+      - -m
+      - agenerp.serve
+    environment:
+      # AI 变量全部空默认值（§14 规则 ②）。缺失 = 「未配置」不是错误：服务照常起、
+      # /agenerp/health 恒 200，只有真去调模型的那一刻才回 503 并指名缺哪个变量。
+      <<: *ai_env
+      # 站点名。与 create-site 的 --set-default、frontend 的 FRAPPE_SITE_NAME_HEADER、
+      # backend 探针的 Host 头、下面那行回程地址是**同一族值** —— 改站点名要这五处一起改。
+      # `:-` 默认值不可省：agenerp/serve/__main__.py 逐字「站点名为空即 return 2」，
+      # 省了会让空环境下容器直接退 2、`up --wait` 挂在起栈上。
+      AGENERP_SITE: ${AGENERP_SITE:-frontend}
+      # 回程地址**字面写死，不许写成 ${AGENERP_SITE_URL:-...}**（§7.21 D-b-3 ③）：
+      # .github/workflows/gates.yml 的 gates-l2-seed 有一块 job 级 env 含
+      # AGENERP_SITE_URL: http://127.0.0.1:8080，会被它那步 `up -d --wait` 一并继承 ——
+      # 插值形式会让本容器**打自己**，而 /agenerp/health 恒 200 ⇒ healthcheck 与
+      # `up --wait` 照样绿，只有 /agenerp/explain 静默打不到站点。绿着坏掉，最难发现。
+      AGENERP_SITE_URL: http://frontend:8080
+      # 监听端口与地址**字面写死**（§7.21 D-b-2 的外推）：判据③ 比的就是这个端口值与
+      # tools/nginx/frappe.conf.template 里上游那一行，写成插值时仓根 .env 能在 config
+      # 时把它改掉而静态判据看不见。
+      AGENERP_SERVE_PORT: "8330"
+      # 绑全部网卡 —— nginx 在**另一个容器**里，绑回环它就到不了（§7.21 D-b-4）。
+      # 代码侧的**默认值仍是 127.0.0.1**，这里是显式配置，不是改默认。
+      AGENERP_SERVE_HOST: "0.0.0.0"
+      PYTHONPATH: /opt/agenerp
+    volumes:
+      # 宿主侧与容器侧**两边都字面写死**，理由同 bootstrap-homepage 那条挂载（§14.1）。
+      - ./agenerp:/opt/agenerp/agenerp:ro
+    # 探针打 /agenerp/health（恒 200、不认人、不碰 LLM、不打站点），**不打 /agenerp/explain**：
+    # 后者认人碰站点，拿它做探针等于让「AI 未配置」把服务判成不健康 —— 正是规则 ② 要挡的。
+    # start_period 刻意不抄 backend 的 60s（那 60s 是给建站留的），依据见 §7.21 D-b-6 ③。
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - 'curl -fsS --max-time 5 -o /dev/null http://127.0.0.1:8330/agenerp/health'
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+    # 只等建站完成。**刻意不依赖 frontend**（会与 frontend depends_on agenerp-serve 成环），
+    # 也不依赖 backend（本服务启动时不打站点，create-site 已隐含 configurator）。
+    depends_on:
+      create-site:
+        condition: service_completed_successfully
+
   frontend:
     <<: *erpnext_image
     restart: on-failure
@@ -281,6 +348,13 @@ services:
     volumes:
       - sites:/home/frappe/frappe-bench/sites
       - logs:/home/frappe/frappe-bench/logs
+      # 同源那一跳（§7.21 D-b-1 候选 A）：覆盖上游那份 nginx 模板，让它多出一段
+      # `location /agenerp/`。上游 nginx-entrypoint.sh **一个字不动**，照常 envsubst 生成
+      # /etc/nginx/conf.d/frappe.conf 再 `nginx -g 'daemon off;'`。
+      # 宿主侧路径字面写死，理由同上面 bootstrap-homepage 那条挂载。
+      # ⚠️ 这是**上游文件的副本**，钉在 x-erpnext-image 那个 tag 上。升级 tag 时必须跑
+      #    文件头写的那条 diff —— 分叉是静默的，nginx -t 不会报、栈照样起。
+      - ./tools/nginx/frappe.conf.template:/templates/nginx/frappe.conf.template:ro
     # 宿主 IP 字面写死 127.0.0.1 —— 见文件头「附带风险」说明。端口号可经变量覆盖，绑定地址不可。
     ports:
       - "127.0.0.1:${AGENERP_HTTP_PORT:-8080}:8080"
@@ -300,6 +374,11 @@ services:
       # 不踩这个坑，正是因为它们各自被依赖着。
       bootstrap-homepage:
         condition: service_completed_successfully
+      # 反代的上游必须先在。service_healthy 而不是 service_started：与上面两条同一条理由 ——
+      # nginx 在上游主机名还解析不出来时启动会逐字报 `host not found in upstream` 并陷入重启循环。
+      # 这条边是**单向**的：agenerp-serve 的 depends_on 里没有 frontend，故不成环（§7.21 D-b-3 ①）。
+      agenerp-serve:
+        condition: service_healthy
 
 volumes:
   db-data:

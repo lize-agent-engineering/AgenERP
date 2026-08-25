@@ -4,18 +4,25 @@
 由**人**创建；人只需按路径加载本文件，**一行断言都不重写**（先例：P1.0a 的
 `tests/gates/test_tool_execution_live.py`，commit `3b6d071`，`Gates-Change-Approved-By: lize`）。
 
-## 为什么现在还不能加载
+## 加载前提：两样东西已经到位，第三样还没有
 
 `.github/workflows/gates.yml` 的 `gates-l2-live` 契约逐字是「全部绿、零 red、零 skip」。
-本文件要的两样东西**今天都还不存在**：
 
-1. **服务本身没有接进 compose** —— 它今天只能由人手工 `python3 -m agenerp.serve` 起在宿主上；
-2. **nginx 还没有 `location /agenerp/` 反代** —— 而 `sid` 是 `HttpOnly` **且按同源发送**，
-   不同源就根本拿不到 cookie，这条判据的整个前提不成立。
+原先挡着加载的两样，**已由 P1.8a 的第 2 个 plan 交付**
+（`docs/plans/p1-insight/2026-08-25-1423-1-explain-service-compose-and-same-origin.md`，
+落点 `docs/architecture/module-boundaries.md` §7.21）：
 
-两样都是**同一工作项第 2 个 plan** 的内容
-（`docs/plans/p1-insight/2026-08-25-1159-2-explain-service-compose-and-same-origin.md`，
-待起草）。⇒ **它落地的同一个提交里，人才应该把本文件按路径加载进 `tests/gates/`。**
+1. ✅ **服务已接进 compose** —— `docker-compose.yml` 的 `agenerp-serve` 服务块；
+2. ✅ **nginx 已有 `location /agenerp/` 反代** —— `tools/nginx/frappe.conf.template`
+   覆盖上游那份模板，那段 `location` 坐在唯一那个 `listen 8080` server 块里。
+
+⚠️ **但还有第三样，它挡着「加载后就能绿」，且两条出路都是人的**：
+本文件第 4 条（`test_the_user_in_the_answer_is_the_person_the_real_sid_resolves_to`）
+在 **503 分支上自带一个 `pytest.skip`**，而 `gates-l2-live` 起栈时**一个 AI 变量都不配**
+⇒ 那一条在 CI 上必然 `skip`，而契约是**零 skip**。
+两条出路：① 给 `gates-l2-live` 补 `AGENERP_LLM_*`（改 `.github/workflows/**`，红线 2）；
+② 把 503 分支从 `skip` 改成 `pass`（**那是在改判据自身的口径** —— 改完之后，一次
+**从未真正调过模型**的跑也能让门禁绿）。**loop 无权选**，见 `STATE.md` §3 的 `[needs-human]`。
 
 ## 给人的加载片段
 
@@ -35,8 +42,22 @@
 
 ## 加载后跑什么
 
+    AGENERP_SITE=frontend AGENERP_ADMIN_PASSWORD=... \\
+      python3 -m pytest -m live tests/gates/test_explain_service_live.py
+
+**基址不用手给**：`_target()` 的解析口径与 `agenerp/site.py` 的 `default_base_url()`
+**是同一套** —— `AGENERP_SERVE_BASE` > `AGENERP_SITE_URL` > `http://127.0.0.1:${AGENERP_HTTP_PORT:-8080}`。
+`gates-l2-live` 已有的 `AGENERP_SITE_URL=http://127.0.0.1:8080` 直接命中第二级。
+
+⚠️ **本机栈如果不是发布在默认的 8080 上，就要显式给**（观测出来的事实，不是配置出来的期望 ——
+`docker compose ps` 看 `frontend` 那格发布口）：
+
     AGENERP_SERVE_BASE=http://127.0.0.1:18080 AGENERP_SITE=frontend \\
-      AGENERP_ADMIN_PASSWORD=... python3 -m pytest -m live tests/gates/test_explain_service_live.py
+      AGENERP_ADMIN_PASSWORD=... python3 -m pytest tests/unit/test_explain_service_body.py -q
+
+（本文件此前把 `http://127.0.0.1:18080` 写成**默认值**，那个默认值只对起草者那台机器成立，
+在 CI 上指着一个根本不存在的端口 ⇒ 六条会红在「连不上」而不是红在实现。
+已按 §7.21 `D-b-5` 修直，**六条断言的判定逻辑一个字未改**。）
 
 ## ⚠️ 人要做的**一处收严**，loop 不替人做
 
@@ -58,10 +79,11 @@ import urllib.parse
 
 import pytest
 
+from agenerp.site import default_base_url
+
 pytestmark = pytest.mark.live
 
 SERVE_BASE_ENV = "AGENERP_SERVE_BASE"
-DEFAULT_SERVE_BASE = "http://127.0.0.1:18080"
 SITE_ENV = "AGENERP_SITE"
 ADMIN_USER_ENV = "AGENERP_ADMIN_USER"
 ADMIN_PASSWORD_ENV = "AGENERP_ADMIN_PASSWORD"
@@ -83,7 +105,7 @@ def _target() -> tuple[str, int, str]:
     直连服务端口能过而同源过不去，正是这条门禁唯一要抓的失败形态：
     `sid` 是 `HttpOnly` 且按同源发送，浏览器根本走不到直连那条路。
     """
-    base = (os.environ.get(SERVE_BASE_ENV) or DEFAULT_SERVE_BASE).strip()
+    base = (os.environ.get(SERVE_BASE_ENV) or default_base_url()).strip()
     parsed = urllib.parse.urlsplit(base)
     host = parsed.hostname or "127.0.0.1"
     port = parsed.port or (443 if parsed.scheme == "https" else 80)
