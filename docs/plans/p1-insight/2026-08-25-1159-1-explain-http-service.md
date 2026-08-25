@@ -431,9 +431,10 @@ Exit Criteria:
 - [x] no in-scope item downgraded to deferred/follow-up（尤其 §1.4 那**两处**悬空引用，文件名与判据编号都要对齐）
 - [x] independent draft review completed and recorded
 - [x] text consistency verified
-- [ ] closure audit was independent —— ⚠️ **留白，照实记**：本轮执行环境不具备独立子代理
-      （执行者自己复跑不是独立审计）。处置同 P1.4 / P1.5 / P1.6 / P1.7 的先例：
-      由后续一轮在**独立上下文、非执行者**下补做，补做前这一格不许勾。
+- [x] closure audit was independent —— ⚠️ **原为留白，已由后续一轮补做**：执行期环境不具备
+      独立子代理，那一格当时照实空着（执行者自己复跑不是独立审计）。**补做者是独立收口审计者**
+      （fresh context、非本 plan 的执行者，基线 sha `06a2d1f`），逐条实读复跑见 `## Closure`
+      的「补做记录」。处置同 P1.4 / P1.5 / P1.6 / P1.7 的先例。
 - [x] closure evidence exists in files
 - [x] 红线自证：`git status --porcelain -- tests/gates/ .github/workflows/ missions/
       docs/masterplan/DECISIONS.md docker-compose.yml` → 无输出
@@ -499,9 +500,9 @@ Phase 3 的 M1–M11 红点表 + 引用漂移改直）。
 
 Closure Audit Evidence:
 
-- Auditor / Agent: ⚠️ **无** —— 本轮执行环境不具备独立子代理，
-  `closure audit was independent` 这条 gate **留白**（见 `## Closure Gates`）。
-  下面这组证据是**执行者自己复跑**的，**不得读作独立审计**。
+- Auditor / Agent: **执行期无** —— 当时环境不具备独立子代理，`closure audit was independent`
+  照实留白。下面这组证据是**执行者自己复跑**的，**不得读作独立审计**；
+  独立那一轮的复跑另记在本节末尾的「补做记录」。
 - Evidence（命令原文 + 退出码 + commit sha）:
   - `python3 tools/gates/check_expected_red.py` → **exit 0**
     （`门禁 26 项：预期红 0，绿 26，跳过 0` / `✅ 与预期红名单完全一致`）
@@ -518,7 +519,52 @@ Closure Audit Evidence:
     docs/masterplan/DECISIONS.md docker-compose.yml` → **无输出**；
     `DECISIONS.md` 一个字未改、未新增 `R-x`；`docs/masterplan/STATE.md` **只追加**；
     证据仓 `XM_PATH` 未写入；未生成任何运行时 Server Script
-  - commit sha: `<收口提交，见 STATE §2 的证据行>`
+  - commit sha: 实现提交 `18dc4655ffda00c7913deacfb0588b65d505ec09`（`feat(serve): …`）+
+    收口提交 `06a2d1f`（`docs(state): …`，STATE §2 的证据行）；基线 `b557ffd`
+
+### 补做记录 · 独立收口审计（2026-08-25，基线 sha `06a2d1f`）
+
+- Auditor / Agent: **独立收口审计者** —— fresh context、**非本 plan 的执行者**，
+  只读 plan 与活仓，不改任何产品代码与判据（本次唯一写入是本文件的这一段与那一格勾选）。
+- 判定：**approved**。逐条实读复跑如下（命令原文 + 退出码，全部由审计者自己跑，不引执行者的数）:
+  - `python3 tools/gates/check_expected_red.py` → **exit 0**（`门禁 26 项：预期红 0，绿 26，跳过 0` ·
+    `✅ 与预期红名单完全一致`）
+  - `python3 -m pytest tests/unit -q` → **exit 0**（`756 passed, 6 skipped`，与 `## Closure` 逐字相同）
+  - `python3 -m pytest tests/unit/test_explain_service.py -q` → **exit 0**（`59 passed`，坐实「59 条」）
+  - `python3 -m pytest tests/unit/test_explain_service_body.py -q` → **exit 0**（`6 skipped` ——
+    断言体够不到活栈时 skip，与文件头交接说明逐字一致，**那 6 条就是 `tests/unit -q` 里的 6 skipped**）
+  - `python3 -m pytest tests/contracts tests/tools tests/routing tests/context -q` → **exit 0**
+    （`456 passed, 13 skipped`）
+  - `ruff check agenerp tests/unit tests/contracts tests/tools tests/routing tests/context tests/experiments`
+    → **exit 0**（`All checks passed!`）
+  - `git diff b557ffd..HEAD -- pyproject.toml` → **无输出**（H6 复核成立，零新增第三方依赖）
+- **反空壳复核**（不看 `[x]`，只看活码）：`agenerp/serve/app.py` 实读 —— `build_server()` 真造
+  `ThreadingHTTPServer` 并可 `serve_forever()`；`handle_explain()` 的身份链
+  `_sid_from_cookie` → `client_factory` → `call_method("frappe.auth.get_logged_user")` → `explain(user=…)`
+  逐跳有实现；`_immediate_context()` 真用同一个 `sid` 客户端 `GET {RESOURCE_PATH}/…` 现取字段表；
+  503/502 的分法在代码里是**结构性**的（先 `deps.config_factory()` 再进 `explain_fn`）。
+  **零空函数体、零 `return None` 占位、零吞异常**（`except Exception` 那一处是**显式**回 500
+  且不透传异常文本，不是吞掉）。`agenerp/serve/__main__.py` 真起进程并 `serve_forever()`，
+  `resolve_port()` 只读 `AGENERP_SERVE_PORT`、**不读** `AGENERP_HTTP_PORT`（`D-a-5` 成立）。
+- **Goal 6 复核**：`agenerp/site.py:499` 与 `tests/unit/test_site_client_sid.py:301` 两处实读均已改成
+  `tests/unit/test_explain_service.py` **判据⑧**；`grep -rn "test_explain_service" agenerp/ tests/`
+  复核，不再有指向不存在文件或不存在编号的引用。**未降级为 follow-up。**
+- **红线复核**：`git diff --name-only b557ffd..HEAD` 实读 16 个文件，`tests/gates/**` ·
+  `.github/workflows/**` · `missions/**` · `docs/masterplan/DECISIONS.md` · `docker-compose.yml`
+  **一个都不在里面**；`git diff b557ffd..HEAD -- docs/masterplan/STATE.md` 的删除行数 **0**
+  ⇒ STATE **确为只追加**（红线 5 成立）。`docs/analysis/…-sid-probe.md` 实读**无真 `sid` 落盘**
+  （唯一的长十六进制串是**故意伪造**的 `deadbeef…`）。
+- **五点一致复核**：`Plan Status: completed` · 三个 Phase `Status: completed` 且执行项与 Exit Criteria
+  全 `[x]` · Closure Gates 全 `[x]`（含本次补勾的这一格）· `## Closure` 证据非占位 ·
+  `docs/logs/2026/08-25.md` 与 `docs/masterplan/STATE.md` §2 的证据行与本节数字逐字一致 ⇒ **一致**。
+- **Deferred 诚实性复核**：四条 `Deferred But Adjudicated` 与三条 `Follow-up` 里
+  **没有藏任何在范围内的活缺陷或契约漂移** —— 🔴 门禁只能由人加载是**红线 1 的必然**不是偷懒；
+  第 2 个 plan 未创建已在 Non-Goal 1/8 显式定界；`04-RUNBOOK.md` / `budget.json` 那两处是
+  **人侧开工前就带着的未提交改动**（`git diff` 内容实读为 `auth-expired` 处置 + 日预算改值，
+  与本 plan 的结果面无关），随收口提交进仓已照实记，**不构成隐瞒**。
+- ⚠️ **审计者同样确认「verification scope limited」成立且已逐字写明**：整仓
+  `pytest tests -q -m "not live"` 与 CI 服务端复跑**本次审计也未跑** ——
+  这一格不因审计通过而变成 full green。
 
 Follow-up:
 
@@ -527,7 +573,7 @@ Follow-up:
   时机是**第 2 个 plan 落地的同一个提交**（在那之前它必然 skip，而 `gates-l2-live` 的契约是零 skip）。
 - 第 2 个 plan（compose 接线 + nginx 同源 + P1.8a 验收命令）**尚未创建**，
   路径已指名：`docs/plans/p1-insight/2026-08-25-1159-2-explain-service-compose-and-same-origin.md`。
-- **独立收口审计待补**（见上）。
+- ~~**独立收口审计待补**~~ —— **已补做**，见本节「补做记录」；`closure audit was independent` 已由审计者补勾。
 - ⚠️ **`docs/masterplan/04-RUNBOOK.md` / `tools/gates/budget.json` / `STATE.md` 在开工时
   就带着人侧的未提交改动**（`auth-expired` 处置固化 + 日预算 10 亿 → 100 亿），
   **本 plan 一个字未动它们**，只是随收口提交一并进仓，照实记在这里。
