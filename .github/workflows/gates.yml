@@ -324,6 +324,28 @@ jobs:
           AGENERP_LLM_MODEL: ${{ secrets.AGENERP_LLM_MODEL }}
         run: python3 tools/gates/check_expected_red.py
 
+      # ⚠️ 判定器只报「哪几条红了」，**不报为什么红**。人侧因此两次卡在
+      # 「CI 红了但看不见断言正文」上（2026-08-25），只能靠本机复现猜。
+      # 本步在**判定失败时才跑**，把 live 门禁用 pytest 原样重跑一遍，
+      # 让断言正文直接落进日志。它 `continue-on-error`，**不改变成败判定** ——
+      # 判定权仍在上一步，本步只负责让失败可读。
+      - name: 失败取证 —— 把 live 门禁的断言正文打出来
+        if: failure()
+        continue-on-error: true
+        env:
+          AGENERP_LIVE: "1"
+          AGENERP_ADMIN_PASSWORD: admin
+          AGENERP_SITE: frontend
+          AGENERP_SITE_URL: http://127.0.0.1:8080
+          AGENERP_WORKER_PASSWORD: ${{ secrets.AGENERP_WORKER_PASSWORD || 'worker-ci-only' }}
+          AGENERP_LLM_BASE_URL: ${{ secrets.AGENERP_LLM_ENDPOINT }}
+          AGENERP_LLM_API_KEY: ${{ secrets.DASHSCOPE_API_KEY }}
+          AGENERP_LLM_MODEL: ${{ secrets.AGENERP_LLM_MODEL }}
+        run: |
+          python3 -m pytest -m live tests/gates/ -q --tb=long --no-header -rf 2>&1 | tail -120
+          echo "───── 解释服务容器最近 60 行 ─────"
+          docker compose -f docker-compose.yml logs agenerp-serve --no-log-prefix --tail 60 || true
+
       - name: 取证 —— 服务状态
         if: always()
         run: docker compose -f docker-compose.yml ps
