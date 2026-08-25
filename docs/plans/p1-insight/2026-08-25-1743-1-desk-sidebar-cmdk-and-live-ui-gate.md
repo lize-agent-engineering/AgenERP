@@ -2,29 +2,41 @@
 
 > Plan Status: draft
 > Review Hold: §0.5 的两条前置只有人能答（① 准不准把浏览器驱动引进本仓 —— 前一个 plan 逐字保留给人的依赖决策；
-> ② `docs/references/playwright-e2e-guide.md` 算不算数）。**第 7 轮独立评审第六次实读复核、不是转述**
-> （`HEAD` = `caa051e`，工作树**干净**）：`docs/masterplan/STATE.md:875` 仍是 `[needs-human]` 而非 `[resolved]`
-> （全文**908 行**，第 6 轮是 891、第 5 轮 882；⚠️ **行号又漂了 8 行**，第 6 轮记的是 `:867`；
-> 其后 `:882` `[open] 14:05Z` · `:892` `[open] 11:07Z` · `:901` `[needs-human] 11:18Z`（P1.8a-fix 归属）三条，**都不覆盖它**），
-> `git log --grep=Approved-By` 今天是 **32 条**（第 6 轮 31、第 5 轮 30、第 4 轮 20），**无一条涉及浏览器驱动**；
-> `grep -rli "playwright\|selenium" docs/masterplan docs/backlog` 仍**只命中 `STATE.md` 自己那条 needs-human**。
+> ② `docs/references/playwright-e2e-guide.md` 算不算数）。**第 8 轮独立评审第七次实读复核、不是转述**
+> （`HEAD` = `96a208f`，工作树**干净**）：`docs/masterplan/STATE.md:875` 仍是 `[needs-human]` 而非 `[resolved]`
+> （⚠️ **这一轮行号没漂**，仍是 `:875`；全文由 908 涨到 **916 行**，新增的两条都追加在它**之后**：
+> `:901` `[needs-human] 11:18Z`（P1.8a-fix 归属）· `:910` `[open] 12:30Z`（起草步派 0 个 plan），
+> 连同更早的 `:882` `[open] 14:05Z` · `:892` `[open] 11:07Z`，**四条都不覆盖它**），
+> `git log --grep=Approved-By` 今天是 **33 条**（第 7 轮 32、第 6 轮 31），**无一条涉及浏览器驱动**；
+> `grep -rn -i "playwright\|selenium" docs/masterplan docs/backlog` 仍**只命中 `STATE.md` 自己那条 needs-human**
+> （`:876` `:877` `:878` `:897` 四行，全在那一条的正文里）。
 > ⇒ Phase 1 停机分支 4 仍是 100% 触发 ⇒ 不具备「可执行契约」，**不转 `active`**。人答完第 ① 条即可转。
-> ⚠️ **第 7 轮实读的三处新变更，逐条写在这里，因为它们各自改掉了本文件的一段说理**（详见 §0.7）：
-> **(甲)** 人新拆了 `02-WBS.md:88` 的 `P1.8a-fix` 行 ⇒ **P1.8b 那一行已从 `:88` 移到 `:89`**（§1.1 等八处已改准）；
-> **(乙)** 人新裁了 **`DECISIONS.md` D-24「预算满了就再加预算」** ⇒ §1.10 / §3.1 / §0.5 的「没有出口」说理**已改准**
-> （⚠️ **它不改红线 5，loop 仍不得自行加行**，D-24 自己逐字这么写）；
-> **(丙)** 人已把 P1.8a 那条 CI 红**查到「`frontend` 够不到」**并单独立了行 ⇒ **§1.8b / R9 那段「疑似 `sid` 外泄」已过期**，已改准。
-> ⚠️ **必须挡住的误读之一（第 5 轮写下，仍然有效）**：`Approved-By` 命中里有 `e3afd77` / `758b7bc` 两条
+> ⚠️ **第 8 轮的新内容不在「仓库又动了」上，而在「本文件自己有两条判据是不可满足 / 自相否决的」**（详见 §9 iteration 8）：
+> **(甲)** 判据⑤ 的 `JSON.stringify(` **零命中**与本 Phase 第 ③ 件事（同源 `POST` JSON 体）**正面互相否决**
+> —— `app.py:145` 逐字 `json.loads(raw)`，请求体**必须**是 JSON（已改准成 `≤ 1` 次，见 Phase 2 判据 ⑤c）；
+> **(乙)** `-p no:playwright` **不等价于「runner 上没装 playwright」**（它只关插件、不挡 `import playwright`），
+> 而 §1.5 实读本机**装着** ⇒「全部 `skipped`」这条 Exit Criteria **在执行者本机不可满足**
+> （已拆成 (A)(B) 两条命令，见 §1.4b；**第 8 轮实跑证伪，不是推演**）。
+> ⚠️ **第 8 轮实跑复核了 §1.9 那四条开工基线，四条全部与本文件所记逐字吻合**
+> （`门禁 28 项：预期红 0，绿 28，跳过 0` · `801 passed, 6 skipped` · `456 passed, 13 skipped` · `All checks passed!`，
+> 四条**均 exit 0**）—— 第 7 轮记的「本轮未复跑」这条 `verification scope limited` **本轮已补上**。
+> ⚠️ **必须挡住的误读之一（第 5 轮写下，第 8 轮复核仍然有效）**：`Approved-By` 命中里有 `e3afd77` / `758b7bc` 两条
 > **就带着 `Gates-Change-Approved-By: lize`、且确实改了 `.github/workflows/gates.yml`**。
 > **那两条批的是 CI 变量接线与失败取证步，与浏览器驱动毫无关系。**
 > **拿它们当第 ① 条的批准，就是把别人给另一件事的许可挪用到自己头上。免停条件必须逐字点名浏览器驱动。**
-> ⚠️ **必须挡住的误读之二（第 6 轮新增，第 7 轮扩，同族但出处不同）**：那 32 条里有 **5 条是本 plan 自己的评审提交**
-> （`7550b3f` / `d02b208` / `ede9944` / `2163e19`，加第 6 轮那一条）—— 它们命中只是因为**正文里引用了「免停条件」这句话本身**，
-> **都没有 trailer、也不是人写的**。⇒ 执行期跑那条 grep 会看到「命中数在涨」，
-> **涨的是本 plan 自己写的字。拿它当批准，就是拿自己的评审记录给自己发许可。**
+> ⚠️ **必须挡住的误读之二（第 6 轮新增，第 8 轮实读扩到 6 条）**：那 33 条里有 **6 条是本 plan 自己的评审提交**
+> （`7550b3f` / `d02b208` / `ede9944` / `2163e19` / `45ee997` / `b02fd7a`）—— 它们命中只是因为**正文里引用了「免停条件」这句话本身**，
+> **逐条实读确认：没有一条带真 trailer**（`2163e19` 看似带、实为正文里引用了那串字，不是 trailer 行），**也没有一条是人写的**。
+> ⇒ 执行期跑那条 grep 会看到「命中数在涨」，**涨的是本 plan 自己写的字。拿它当批准，就是拿自己的评审记录给自己发许可。**
 > ⚠️ **第 4 轮写在这里的「工作树有人侧未提交改动」自第 5 轮起已不成立**：那两处改动已由人落盘
-> （`e3afd77` + `758b7bc`），`git status --porcelain` 第 6 轮实测仍**无输出**。
-> 处置与它留下的**真**影响（判定环境已配 AI 变量、行号全体漂移）写在 **§0.6**。
+> （`e3afd77` + `758b7bc`），`git status --porcelain` 第 8 轮实测仍**无输出**。
+> 处置与它留下的**真**影响（判定环境已配 AI 变量、行号全体漂移）写在 **§0.6**；
+> ⚠️ **第 8 轮逐锚点复核 §0.6 那张对照表：`gates.yml` 自第 6 轮起一行未动，表内每一格仍准**
+> （`COVERED` `:597` · `pip install pytest certifi` `:567` · ruff `:646` · 「作用域三个目录」`:640` ·
+> 「这几个目录由 loop 写在红线外」`:579` · 零 skip 断言 `:528-530` · 「配上之后它走答案面」`:321` · 「把判据调整到迁就环境」`:293`；
+> 「判据自身的判据」实读为 `:528` / `:592` **两处**，与表内所记一致）。
+> ⚠️ **第 7 轮记的 (甲)(乙)(丙) 三处人侧变更，第 8 轮逐条复核仍准**（`02-WBS.md:89` = P1.8b 实读确认 ·
+> `DECISIONS.md` D-24 在 · P1.8a-fix 行在 `:88`），详见 §0.7。
 > Last Reviewed: 2026-08-25
 > Source: `docs/backlog/p1-insight-roadmap.md` 工作项 11（P1.8b）· `docs/masterplan/02-WBS.md` §4 第 89 行 ·
 > 前一个 plan `2026-08-25-1615-1` §11 第一条写死的后继指派（重开事件「该 plan 转 `completed`」已于 2026-08-25 触发）
@@ -302,10 +314,42 @@ runner 上的结果是 **`fixture 'page' not found` / `ModuleNotFoundError` —�
 1. 断言体**不许**依赖 `pytest-playwright` 提供的任何 fixture，也不许依赖它的任何 CLI 选项（`--headed` / `--browser` …）；
 2. 浏览器的启动与关闭由**断言体自己的 fixture** 承担，`import playwright` **写在那个 fixture 体内**；
    `ImportError` 在 `tests/unit` 那一轮 `skip`、经加载器收严后在 `tests/ui` 那一轮 `fail`（`D-d-3` ②）；
-3. **可执行验证（不是承诺，是一条命令）**：
-   `python3 -m pytest tests/unit/test_desk_sidebar_body.py -q -p no:playwright`
-   —— `-p no:playwright` 关掉该插件，**等价模拟 runner 上没装它**；
-   **必须 exit 0、全部 `skipped`、零 `error`**。这条进 Phase 3 的 Proof、Exit Criteria 与 §10。
+3. ⚠️ **可执行验证是两条命令，不是一条 —— 第 8 轮独立评审实跑打回，旧文不留**：
+
+   > ~~`python3 -m pytest tests/unit/test_desk_sidebar_body.py -q -p no:playwright`
+   > —— `-p no:playwright` 关掉该插件，**等价模拟 runner 上没装它**；**必须 exit 0、全部 `skipped`、零 `error`**。~~
+
+   **实跑证伪**（第 8 轮在 `/tmp` 用一个同形态的最小样本跑的，不是推演）：`-p no:playwright` 只关掉
+   **pytest 插件**，**不影响 `import playwright` 这个包本身**。而 §1.5 实读本机**装着** `playwright 1.58.0`
+   ⇒ 断言体自建 fixture 里那句 `import playwright` **照样成功**，那批用例会**真跑起来**（`1 passed`），
+   **不是 `skipped`**。⇒ 「全部 `skipped`」这条期望**在执行者本机不可满足**，
+   而 Phase 3 的 Prereqs 又逐字要求「活栈按 §5 起好并**真登录**过一次」⇒ 活栈在的时候更是真跑。
+   **一条不可满足的 Exit Criteria 就是收口时被逼着造假的洞**（同第 4 轮打回的那条「判不成立的 Exit Criteria」）。
+
+   **改准后写死两条，各证一件事，缺一不可**：
+
+   **(A) 插件面** —— `python3 -m pytest tests/unit/test_desk_sidebar_body.py -q -p no:playwright`
+   ⇒ **必须 exit 0、零 `error`**（**不断言全 `skipped`**：跑起来还是跳过，取决于本机装没装驱动、活栈起没起，
+   **两种都合法**）。它证的是**「断言体不吃 `pytest-playwright` 提供的 fixture」** ——
+   第 8 轮实跑确认：函数签名里写 `page` 参数时，这条命令给的是 `1 error`（`fixture 'page' not found`），
+   与 runner 上的形态**逐字相同**。
+
+   **(B) 驱动面** —— **真正等价模拟「runner 上没装 playwright」的是把包本身遮掉**：
+
+   ```
+   mkdir -p /tmp/agenerp-nodriver && \
+     printf 'raise ImportError("simulated: playwright not installed")\n' > /tmp/agenerp-nodriver/playwright.py && \
+     PYTHONPATH=/tmp/agenerp-nodriver python3 -m pytest tests/unit/test_desk_sidebar_body.py -q -p no:playwright -rs
+   ```
+
+   ⇒ **必须 exit 0、全部 `skipped`、零 `error`**。第 8 轮实跑同形态样本确认它**确实**打出
+   `1 skipped ... driver missing: simulated: playwright not installed`、exit 0。
+   ⚠️ **`-p no:playwright` 在 (B) 里不能省**：不关插件的话，插件自己加载时就会 `import playwright`，
+   撞上那个遮蔽模块 ⇒ 整轮起不来，红在插件上而不是红在断言体上。
+   ⚠️ **(B) 才是唯一能挡住「断言体在模块顶层 `import playwright`」的运行时证据** ——
+   (A) 在本机对它**无感**（包装着，导入成功）。⇒ 那个变体的打红面是 **(B) + 源码守卫 ②**，**不是 (A)**（见 `M13`）。
+
+   两条都进 Phase 3 的 Proof、Exit Criteria 与 §10。
 
 ### 1.5 浏览器驱动在本机的实读（起草期实测，**执行期须按 §0 第 4 条重取**）
 
@@ -470,7 +514,8 @@ roadmap 工作项 10 与 11 各记过一次同一条空缺：「**真浏览器�
 4. **第一次直接观测**「浏览器把 `HttpOnly` 的 `sid` 自动带到 `/agenerp/*`」（§1.8）。
 5. **不回归**：零依赖启动门禁仍绿 · `check_expected_red.py` 仍退 0 · `tests/unit` 只增不减 ·
    ⚠️ **`unit-and-contracts` 在「只装 `pytest certifi`」的 runner 上仍全绿**（§1.4b —— 断言体住进 `tests/unit/`
-   却依赖驱动时，那里出的是 `error` 不是 `skip`；这一条由 `-p no:playwright` 那条命令实证，不靠承诺）·
+   却依赖驱动时，那里出的是 `error` 不是 `skip`；这一条由 §1.4b 的 **(A)(B) 两条**命令实证，不靠承诺 ——
+   ⚠️ **(A) 一条不够**：它只挡「吃了插件 fixture」，挡不住「模块顶层 `import playwright`」，第 8 轮实跑改准）·
    `agenerp-serve` 停掉时 `frontend` 仍 `healthy`（§7.21 `D-b-8` 的不回归）· 既有资产判据那**四格**仍绿 ——
    `tests/unit/test_desk_asset_route.py` 的 `:165` `len(text) > 200` · `:166` `"agenerpDesk" in text` ·
    `:167` `"Object.freeze" in text` · `:168` `endswith(")();")`。
@@ -676,7 +721,13 @@ Skill: `none`
       （关闭后焦点回到唤起前那个元素 —— 不还焦点在单据页上是实实在在的可用性缺陷）。
       - Skill: `none`
 - [ ] **Proof**：探测记录 `docs/analysis/2026-08-25-1743-desk-sidebar-probe.md` 落盘，
-      含 `H1`–`H5` 的命令原文 + 退出码 + 实际值，与四条裁定的完整理由。
+      含 **`H1` / `H2` / `H2b` / `H3` / `H4` / `H5` 六格**的命令原文 + 退出码 + 实际值，
+      与 **`D-d-0` … `D-d-4` 五条**裁定的完整理由。
+      ⚠️ **第 8 轮独立评审改准：旧文写的是「`H1`–`H5`」与「四条裁定」** ——
+      `H2b`（第 6 轮补进 Phase 1、且是 `H3`/`H4` 的硬前置）与 `D-d-0`（第 2 轮补、且是 `D-d-1`/`D-d-2` 的前置）
+      **都被这条 Proof 漏在外面**，而探测记录正是它们唯一的落盘处
+      ⇒ 照旧文走，两件在范围内的活会「做了但无处存证」，撞指南 Minimum Rule 10。
+      **本条与同 Phase 那两条 Exit Criteria（六格 / 五条）现在逐字一致。**
       - Skill: `none`
 
 **⚠️ Phase 1 的四条停机分支（触发即停，写进 `STATE.md` §3 needs-human，不自行绕过）**
@@ -747,9 +798,27 @@ Skill: `none`
       ③ `window.agenerpDesk` 标记仍在；
       ④ **九个可分辨的已枚举码的字面量在资产里各出现过**（§1.3 计数口径；`502` 只需出现一次）
       —— 挡「只写了 200 分支」的半成品；
-      ⑤ ⚠️ **响应体不外泄（第 5 轮独立评审补，对应 Phase 2 ⑤ 那条禁令与 §1.8b）**：
-      资产源码里 **`JSON.stringify(` 与 `innerHTML` 零命中**，且 **`document.cookie` 零命中**。
-      ⚠️ **这三条同样是文本下限、不证运行时行为**（与本判据其余各条同口径）：
+      ⑤ ⚠️ **响应体不外泄（第 5 轮独立评审补；⚠️ 第 8 轮独立评审实读改准了它的写法，旧文不留）**：
+
+      > ~~资产源码里 **`JSON.stringify(` 与 `innerHTML` 零命中**，且 **`document.cookie` 零命中**。~~
+
+      **为什么改**：`JSON.stringify(` **零命中做不到，而且不该做到** —— 实读
+      `agenerp/serve/app.py:145` 的 `parse_request()` 逐字 `payload = json.loads(raw.decode("utf-8"))`
+      ⇒ **请求体必须是 JSON**，而本 Phase 第 ③ 件事写死了同源 `fetch(..., {method:"POST", ...})`
+      ⇒ **desk.js 必然要 `JSON.stringify` 一次来拼请求体**。
+      旧写法等于**同一个 Phase 里第 ③ 件事和判据⑤ 互相否决**（同第 3 轮打回的那个「两条判据互相否决」的死角），
+      执行期只剩两条出路：要么违反判据、要么手工拼 JSON 串（转义一错就是静默 400，**比它挡的那件事更糟**）。
+
+      **改准后写死三格**（口径都仍是**纯文本**，可离线判定）：
+      **⑤a 渲染面 sink 零命中**：`innerHTML` / `outerHTML` / `insertAdjacentHTML` **各零命中**
+      —— 建 DOM 只走 `textContent` / `createTextNode`（这是正路，不是变通）；
+      **⑤b `document.cookie` 零命中**；
+      **⑤c `JSON.stringify(` 命中次数 ≤ 1** —— **1 次是正常的**（拼请求体，见上），
+      **2 次起必有一次落在渲染面**（⑤a 只挡 `innerHTML` 一族，挡不住 `el.textContent = JSON.stringify(resp)`，
+      而那同样是「把整份响应铺进 DOM」）。
+      ⚠️ **≤1 是下限不是等价物**：它挡不住「逐字段拼接出来的等价泄漏」，那一半由 `M16` 与 `H8`
+      的「每一条只含该码字面量 + 已知键」承担（同下）。
+      ⚠️ **这三格同样是文本下限、不证运行时行为**（与本判据其余各条同口径）：
       它挡的是「整份响应被原样铺开」这个**最粗的**形态，挡不住逐字段拼接出来的等价泄漏；
       **运行时那一半由 `M16` 与 `H8` 的「每一条只含该码字面量 + 已知键」承担。**
       ⚠️ 用 `textContent` / `createTextNode` 建 DOM 是本条留下的正路，**不是变通**。
@@ -768,7 +837,7 @@ Skill: `none`
       tests/context tests/experiments`）仍 exit 0。⚠️ **本 Phase 不把 `tests/ui` 加进参数** ——
       那个目录要到 Phase 3 才建，此时传进去 ruff 会因路径不存在直接报错
       （第 3 轮独立评审补：前两版把它写在 Phase 2，会造一条假红）。
-      `tests/ui` 从 **Phase 3 起**进参数，见 §10 verification 那条**八**命令清单（⚠️ 第 6 轮改准，原写「七」）。
+      `tests/ui` 从 **Phase 3 起**进参数，见 §10 verification 那条**九**命令清单（⚠️ 第 6 轮由「七」改准成「八」，第 8 轮把 §1.4b 那条拆成 (A)(B) 后成「九」）。
       ⚠️ `ruff` 的 `exclude` 只排除 `tests/gates`，**`tests/ui` 建起来之后会被真扫**，别指望它被跳过。
       - Skill: `none`
 - [ ] **`Proof`** `python3 -m pytest tests/unit -q` 只增不减；`check_expected_red.py` 仍 exit 0。
@@ -786,7 +855,7 @@ Exit Criteria:
 
 - [ ] ⌘K（或 `D-d-4` 裁定的键，冲突时写死为 `Cmd/Ctrl+Shift+K`）唤起 / 关闭 / `Esc` / 焦点归还四条行为**都在代码里**，不是只有函数签名
 - [ ] 失败模式说清：**九个可分辨的已枚举码各自的可见态互不相同、非空、不 spinner**（与 `200` 一起共 10 条两两不等），**且兜底态接得住未枚举的码**；成功模式：200 时渲染 `answer` 与 `cost`
-- [ ] ⚠️ **响应体不外泄**：面板任何一态都不把响应体原样倾泻进 DOM（渲染只取 §1.3 四个已知键 + 状态码本身），判据⑤ 的三条源码守卫（`JSON.stringify(` / `innerHTML` / `document.cookie` 零命中）全绿（§1.8b / R9）
+- [ ] ⚠️ **响应体不外泄**：面板任何一态都不把响应体原样倾泻进 DOM（渲染只取 §1.3 四个已知键 + 状态码本身），判据⑤ 的三格源码守卫全绿 —— **⑤a** `innerHTML` / `outerHTML` / `insertAdjacentHTML` 零命中 · **⑤b** `document.cookie` 零命中 · **⑤c** `JSON.stringify(` **命中 ≤ 1 次**（⚠️ 第 8 轮独立评审改准：**不是零命中** —— 请求体必须是 JSON，见 `app.py:145`）（§1.8b / R9）
 - [ ] 新判据 `tests/unit/test_desk_sidebar_static.py` 全绿；既有 22 条**零改动**（`git diff` 证）
 - [ ] `docs/architecture/module-boundaries.md` §7.23 的状态机表落地
 - [ ] `docs/logs/2026/08-25.md` 追加 Phase 2 条目
@@ -833,13 +902,17 @@ Skill: `closure-audit-prompt.md`（仅收口那一步）
       ④ **加载器重绑的名字集合 == 断言体里 `test_` 开头的函数名集合**（`D-d-3` ⑤ ——
       挡「漏重绑 ⇒ `no tests collected`」与「漏重绑一条 ⇒ 静默少跑」）。
       ⚠️ **同 Phase 2 判据④ 的口径：这四条是文本下限，不证运行时行为。**
-      运行时那一半由本 Phase 的 `-p no:playwright` 实跑与 `M13`–`M15` 承担，**这一份不承担、也不假装承担。**
+      运行时那一半由本 Phase 的 **(A)(B) 两条实跑**（§1.4b）与 `M13`–`M15` 承担，**这一份不承担、也不假装承担。**
       - Skill: `none`
-- [ ] **`Proof`** ⚠️ **模拟 runner 上没装驱动**（§1.4b 那条可执行验证）：
-      `python3 -m pytest tests/unit/test_desk_sidebar_body.py -q -p no:playwright`
-      ⇒ **必须 exit 0、全部 `skipped`、零 `error`**。命令原文与退出码入证据文件。
-      **这条不退 0 ⇒ 今天绿着的 `unit-and-contracts` 会在下一次推送时红，而那是纯回归、不是设计内的代价**
-      （与 §1.4 那条红分开算，见 §1.4b）。
+- [ ] **`Proof`** ⚠️ **模拟 runner 上没装驱动 —— 两条命令，各证一件事**（§1.4b，第 8 轮独立评审实跑改准；
+      **原来只写 (A) 一条、且期望写成「全部 `skipped`」，那在本机不可满足**）：
+      **(A)** `python3 -m pytest tests/unit/test_desk_sidebar_body.py -q -p no:playwright`
+      ⇒ **必须 exit 0、零 `error`**（**不断言全 `skipped`**）—— 证「不吃 `pytest-playwright` 的 fixture」；
+      **(B)** `mkdir -p /tmp/agenerp-nodriver && printf 'raise ImportError("simulated: playwright not installed")\n' > /tmp/agenerp-nodriver/playwright.py && PYTHONPATH=/tmp/agenerp-nodriver python3 -m pytest tests/unit/test_desk_sidebar_body.py -q -p no:playwright -rs`
+      ⇒ **必须 exit 0、全部 `skipped`、零 `error`** —— 证「驱动不在时走 `_unavailable` 而不是 `error`」。
+      **两条的命令原文与退出码都入证据文件。**
+      **任一条不退 0 / (A) 出 `error` / (B) 出 `error` ⇒ 今天绿着的 `unit-and-contracts` 会在下一次推送时红，
+      而那是纯回归、不是设计内的代价**（与 §1.4 那条红分开算，见 §1.4b）。
       - Skill: `none`
 - [ ] **`Add`** `pyproject.toml` 加 `[project.optional-dependencies]` 的 `ui` extra
       （`D-d-2` 裁定的形态）。⚠️ **`[project].dependencies` 与 `[tool.pytest.ini_options]` 的
@@ -852,8 +925,11 @@ Skill: `closure-audit-prompt.md`（仅收口那一步）
 - [ ] **`Proof`** 不回归三条：`H10`（停 `agenerp-serve` 后 frontend 仍 healthy）· `H11`（`down -v` 冷起 exit 0）·
       零依赖启动门禁 `tests/unit/test_compose_zero_dep.py` 全绿**且一条未改松**。
       - Skill: `none`
-- [ ] **`Proof`** **变异自查**：至少 `M1`–`M16` **十六**条，逐条施加、逐条确认**被打红**、逐条复原并 `sha256` 校验 `RESTORED OK`。
-      写死的十五条：`M1` 删掉快捷键注册 · `M2` 把 503 分支渲染成空字符串 · `M3` 把 401 与 503 渲染成同一句话 ·
+- [ ] **`Proof`** **变异自查**：`M1`–`M16` **十六条**，其中 **`M13` 与 `M16` 各有两个变体**（`13a/13b`、`16a/16b`，
+      打红面各不相同，见下）⇒ **实际施加 18 次**；逐次施加、逐次确认**被打红**、逐次复原并 `sha256` 校验 `RESTORED OK`。
+      ⚠️ **第 8 轮独立评审改准计数**：旧文这里写「写死的十五条」而其下逐条列的是 `M1`–`M16` **十六**条
+      —— 与本文件反复挡的「正文写四条实列六条」是同一族计数不一致，照实改准。
+      逐条写死如下：`M1` 删掉快捷键注册 · `M2` 把 503 分支渲染成空字符串 · `M3` 把 401 与 503 渲染成同一句话 ·
       `M4` 请求体里偷偷加一个 `user` 键 · `M5` 把 `credentials` 改成 `omit`（`sid` 不再自动带）·
       `M6` 把请求路径改成 `/agenerp/explain2` · `M7` 把加载器里的 `skip→fail` 收严去掉 ·
       `M8` 把 `window.agenerpDesk` 标记删掉 · **`M9` 删掉渲染状态机的兜底分支**（`H8b` 那格必须打红）·
@@ -863,15 +939,23 @@ Skill: `closure-audit-prompt.md`（仅收口那一步）
       面板空白，而所有打桩判据全绿」）·
       **`M12` 把资产结尾从 `)();` 改成 `})();\n// end`**（`test_desk_asset_route.py:168` 必须打红 ——
       现有 `M1`–`M11` 没有一条守它）。
-      **`M13` 把断言体改成用 `pytest-playwright` 的 `page` fixture**（或在模块顶层 `import playwright`）
-      ⇒ 上面那条 `-p no:playwright` 必须打红，且源码守卫 ②③ 必须打红
-      —— 专挡「本机绿、runner 上 `unit-and-contracts` 红」这个纯回归（§1.4b）·
+      **`M13` 两个变体分开施加、打红面不同**（⚠️ 第 8 轮独立评审实跑改准 —— 旧文把两者都记在 (A) 头上，其中一半是假的）：
+      **(13a)** 把断言体改成用 `pytest-playwright` 的 `page` fixture ⇒ **命令 (A)** 必须打红
+      （实跑形态：`1 error` / `fixture 'page' not found`），且源码守卫 ③ 必须打红；
+      **(13b)** 在断言体**模块顶层** `import playwright` ⇒ ⚠️ **命令 (A) 对它无感**（本机装着，导入成功），
+      打红面是**命令 (B)**（遮蔽模块 ⇒ 收集期 `ImportError`）**与源码守卫 ②**。
+      —— 两个变体合起来专挡「本机绿、runner 上 `unit-and-contracts` 红」这个纯回归（§1.4b）·
       **`M14` 从加载器里删掉任意一条 `test_` 重绑** ⇒ 源码守卫 ④ 必须打红
       —— 专挡「漏重绑 ⇒ `no tests collected` / 静默少跑」（`D-d-3` ⑤）·
       **`M15` 在断言体里直调一次 `pytest.skip(...)` 绕过 `_unavailable`** ⇒ 源码守卫 ① 必须打红
       —— 专挡「收严间接层被绕过 ⇒ 门禁上又出现 skip」（`D-d-3` ④）。
-      **`M16` 把某一态改成把整个响应体倾泻进面板**（`el.innerHTML = JSON.stringify(resp)`）
-      ⇒ **Phase 2 判据⑤ 必须打红**（第 5 轮独立评审补）——
+      **`M16` 把某一态改成把整个响应体倾泻进面板 —— ⚠️ 第 8 轮独立评审拆成两个变体，各自的打红格不同**
+      （旧文只写 `innerHTML` 那一种，而判据⑤ 改准后 `JSON.stringify` 不再是零命中 ⇒ 必须点名是哪一格打红）：
+      **(16a)** `el.innerHTML = JSON.stringify(resp)` ⇒ **判据 ⑤a 必须打红**（`innerHTML` 由零变一）；
+      **(16b)** `el.textContent = JSON.stringify(resp)` ⇒ **判据 ⑤c 必须打红**（`JSON.stringify(` 由 1 次变 2 次）
+      —— **(16b) 是第 8 轮新补的，它正是「改准判据⑤ 之后唯一还能钻的那个洞」**，
+      不施加它就等于把 ⑤c 那格的 `≤ 1` 写成没人验过的空话。
+      两个变体都属**第 5 轮补的那条禁令**（Phase 2 ⑤）——
       专挡「面板把正在被调查的 `sid` 回显缺陷从接口面复制到界面上」（§1.8b / Phase 2 ⑤ 的禁令）。
       ⚠️ **这一条的打红面是离线源码守卫，不是浏览器** —— 因此它**不受**「本机有没有 AI 变量」影响，
       `H7b` 走哪一支都要施加它。
@@ -916,13 +1000,15 @@ Exit Criteria:
 - [ ] `AGENERP_LIVE=1 … pytest -m live tests/ui/test_sidebar.py -q -rs` → **exit 0，零 skip**（命令原文 + 退出码入证据文件），
       **且收集到的条数 > 0 并等于断言体里 `test_` 函数的条数**（`D-d-3` ⑤ —— `no tests collected` 退 5，
       「零 skip」这句话在一条都没跑的情况下也成立，**必须由条数把它钉住**）
-- [ ] `python3 -m pytest tests/unit/test_desk_sidebar_body.py -q -p no:playwright` → **exit 0、全 `skipped`、零 `error`**
-      （§1.4b —— 证明 `unit-and-contracts` 在无驱动 runner 上不会被本 plan 弄红）
+- [ ] §1.4b 的**两条**命令都已实跑并入证据文件（第 8 轮独立评审改准，原来只有一条且期望不可满足）：
+      **(A)** `… -q -p no:playwright` → **exit 0、零 `error`**（**不断言全 `skipped`** —— 本机装着驱动时它会真跑，那是合法的）；
+      **(B)** `PYTHONPATH=/tmp/agenerp-nodriver … -q -p no:playwright -rs`（遮蔽 `playwright` 包）→ **exit 0、全 `skipped`、零 `error`**
+      （§1.4b —— 两条合起来才证明 `unit-and-contracts` 在无驱动 runner 上不会被本 plan 弄红）
 - [ ] `H6` 有**直接观测值**：浏览器发出的请求带上了 `sid`（回的不是 401）—— 本仓第一次
 - [ ] `H2b` 的实际值（Phase 1 已测出、已落进探测记录）**确已被自建 fixture 采用**：
       浏览器到底怎么够到 `frontend` 站（默认站回落 / `--host-resolver-rules`），fixture 里用的与探测记录里记的**是同一条**
 - [ ] `H7b` 有**实际值**：起栈前 `AGENERP_LLM_*` 的**个数与变量名**（不含值）已记；走了哪一支已记。⚠️ **走 (乙) 支时，「本轮真实烧掉一次解释（中位约 11 万 token）」必须逐字落进证据文件与收口表**，**不许写成零成本**（§5 / R8）
-- [ ] 变异表 `M1`–`M16` 逐条有结论（打红 / 未打红 + 处置），全部 `RESTORED OK`
+- [ ] 变异表 `M1`–`M16` **十六条 / 18 次施加**（`M13`、`M16` 各两变体）逐次有结论（打红 / 未打红 + 处置 + **是哪一格打的红**），全部 `RESTORED OK`
 - [ ] 不回归三条全绿；`check_expected_red.py` exit 0；`tests/unit` 只增不减
 - [ ] `docs/context/project-context.md` 第 52 行的 Lint / static check 作用域**已改准**：
       从今天的 `ruff check agenerp tests/unit tests/contracts`（三个目录，**实读确认**）
@@ -1273,13 +1359,75 @@ Exit Criteria:
   即便如此，**§0 第 2 条仍强制执行期重取**，本文件的数字只作对照。
   另：**活栈、浏览器、docker 本轮一概未起**（评审轮不做活体取证）。
 
-- **本轮收敛结论：不转 `active`。** 七轮共 **39** 条（含本轮 1 条次要）已全部改进本文件，
+- **Independent draft review iteration 8: `needs revision`（已就地修完）+ 维持 `可以转 active: no`**
+  （mission-driver 评审步，2026-08-25，`HEAD` = `96a208f`）—— 复核前七轮的 39 条，并**不受前七轮结论约束**地重审全文。
+
+  **⚠️ 本轮与第 5、7 轮的性质又不同**：那两轮找的是「仓库动了、plan 没跟上」；
+  **本轮仓库对本 plan 而言几乎没动**（`caa051e..HEAD` 只有三个文件：`STATE.md` 追加两条 + 两个 plan 文件），
+  而本轮的两条 Blocker 都是**这份文件自己写死的判据不可满足 / 自相否决** ——
+  **前七轮 39 条里没有一条碰到它们，因为前七轮没有人去实跑那两条命令、也没有人去读 `parse_request()` 的那一行。**
+
+  **对前七轮的复核（逐条实读活仓，不采信 plan 自报）**：
+  `git status --porcelain` **无输出** · `STATE.md:875` 仍 `[needs-human]`（**本轮行号未漂**，全文 908 → **916 行**，
+  新增两条 `:901` / `:910` 都在其后且不覆盖它）· `Approved-By` **33 条**，无一涉及浏览器驱动，
+  其中 **6 条是本 plan 自己的评审提交**（逐条实读确认无真 trailer；`2163e19` 那条「看似带 trailer」实为正文引用）·
+  `grep -rn -i "playwright\|selenium" docs/masterplan docs/backlog` 只命中 `STATE.md` 那条 needs-human 的正文四行
+  ⇒ **免停出处仍不存在，停在 `draft` 的裁定成立，本轮维持。**
+  `ls -d tests/*/` 仍是那八个目录 = `gates.yml:597` 的 `COVERED`（`H1` 预测仍成立）·
+  **`gates.yml` 自第 6 轮起一行未动，§0.6 那张对照表本轮逐锚点复核仍准**（含「判据自身的判据」实读为 `:528` / `:592` 两处）·
+  `project-context.md:52` 仍是三个目录、`gates.yml:646` 仍是七个 ⇒ **交接项 (5a)(5b) 仍成立** ·
+  `check_expected_red.py:74` 判定面仍写死 `tests/gates` · `module-boundaries.md` 现存最末编号节仍是 **§7.22**（`:3820`，全文 4129 行）
+  ⇒ **§7.23 仍是正确的下一个编号** · `pyproject.toml` `dependencies` 仍只有 `certifi>=2024.2.2`、**仍无 `optional-dependencies` 段**、
+  `live` marker 已注册、`testpaths = ["tests"]`、`exclude = ["tests/gates"]` + `force-exclude = true` ·
+  `02-WBS.md:89` 逐字仍是 P1.8b 那一行（`:88` = `P1.8a-fix`、`:90` = P1.9）· `DECISIONS.md` `## 3. 重开记录` 仍逐字「（暂无）」⇒ **零 `R-x`**。
+  ⚠️ **本轮补跑了第 7 轮记为 `verification scope limited` 的那一项** —— §1.9 的四条开工基线**全部实跑**，
+  四条**均 exit 0**且与本文件所记**逐字吻合**：`门禁 28 项：预期红 0，绿 28，跳过 0` · `801 passed, 6 skipped` ·
+  `456 passed, 13 skipped` · `All checks passed!`。⇒ **§1.9 那一格本轮无需改动**（仍按 §0 第 2 条在执行期重取）。
+  ⚠️ **另一条本轮实读的新事实（用来排除一个没人查过的风险）**：`gates.yml` 里**没有任何一个 job 跑整仓 `pytest tests`**
+  —— 九处 `pytest` 调用逐处实读，全部点名到具体目录/文件 ⇒ **`tests/ui/` 落地不会被任何现有 job 导入**，
+  §1.4 (ii) 的「CI 上零覆盖」成立，且**不存在第三条被本 plan 弄红的 job**（§1.4b 只覆盖 `unit-and-contracts`，本轮确认无遗漏）。
+
+  **本轮新提 4 条（2 Blocker + 2 Major），全部已就地修完**：
+
+  | # | 级别 | 新发现 | 改在哪 |
+  |---|---|---|---|
+  | 1 | **Blocker** | **Phase 2 判据⑤ 的 `JSON.stringify(` 零命中与同一个 Phase 第 ③ 件事正面互相否决。** 实读 `agenerp/serve/app.py:145` 的 `parse_request()` 逐字 `payload = json.loads(raw.decode("utf-8"))` ⇒ **请求体必须是 JSON**；而 Phase 2 第 ③ 件事写死同源 `fetch(..., {method:"POST", …})` ⇒ **desk.js 必然要 `JSON.stringify` 一次**。执行期只剩两条出路：违反判据，或手工拼 JSON 串（转义一错就是静默 400，**比它挡的那件事更糟**）。**与第 3 轮打回的「两条判据互相否决的死角」是同一族**，只是这一次两条都在同一个 Phase 里 | 判据⑤ **整格重写**（旧文划掉）成三格：**⑤a** `innerHTML`/`outerHTML`/`insertAdjacentHTML` 零命中 · **⑤b** `document.cookie` 零命中 · **⑤c** `JSON.stringify(` **命中 ≤ 1 次**（1 次=拼请求体是正常的；2 次起必有一次落在渲染面，专挡 `el.textContent = JSON.stringify(resp)` 这个 ⑤a 挡不住的形态）· Phase 2 Exit Criteria 同步改准 · **变异 `M16` 拆成 (16a)(16b) 两个变体**，各自点名由哪一格打红（**(16b) 是改准后唯一还能钻的洞，不施加它 ⑤c 就是空话**）。⚠️ **Phase 2 ⑤ 那条禁令本身、§1.8b 的两条理由、`H8` 的判定口径一个字未改** |
+  | 2 | **Blocker** | **`-p no:playwright` 不等价于「runner 上没装 playwright」，而 §1.4b 全篇建在这个等价上。** 第 8 轮**实跑**同形态最小样本证伪（不是推演）：该选项只关掉 **pytest 插件**，**不影响 `import playwright` 这个包**；而 §1.5 实读本机**装着** `playwright 1.58.0` ⇒ 断言体自建 fixture 里那句 `import playwright` 照样成功，用例**真跑起来**（`1 passed`）而**不是 `skipped`** ⇒ **「必须 exit 0、全部 `skipped`、零 `error`」这条 Exit Criteria 在执行者本机不可满足**，而 Phase 3 的 Prereqs 又要求活栈起着 ⇒ 更是真跑。**一条不可满足的 Exit Criteria 就是收口时被逼着造假的洞**（同第 4 轮打回的那条）。⚠️ 连带：`M13` 的「模块顶层 `import playwright`」变体**在本机根本打不红**，旧文把它记在这条命令头上是假的 | §1.4b 第 3 条**整段重写**（旧文划掉）成 **(A)(B) 两条命令**：**(A)** `-p no:playwright` ⇒ **exit 0、零 `error`**，**不断言全 `skipped`**（证「不吃插件 fixture」；实跑确认写 `page` 参数时给的是 `1 error` / `fixture 'page' not found`，与 runner 形态逐字相同）· **(B)** `PYTHONPATH=/tmp/agenerp-nodriver`（内含一行 `raise ImportError` 的遮蔽模块）+ `-p no:playwright` ⇒ **exit 0、全 `skipped`、零 `error`**（实跑确认）· Phase 3 Proof 项 / Phase 3 Exit Criteria / §10 verification（**八→九条**）三处同步改准 · **`M13` 拆成 (13a)(13b)**，点明 (13b) 的打红面是 **(B) + 源码守卫 ②**，**不是 (A)** |
+  | 3 | **Major** | **Phase 1 最后那条 `Proof` 把两件在范围内的活漏在落盘面之外**：它逐字写「含 `H1`–`H5` …与**四条**裁定的完整理由」，而同一个 Phase 的执行项与两条 Exit Criteria 早已是**六格探针**（`H2b` 第 6 轮补进、且是 `H3`/`H4` 的硬前置）与**五条裁定**（`D-d-0` 第 2 轮补、且是 `D-d-1`/`D-d-2` 的前置）。⇒ 探测记录是它们**唯一**的落盘处，照旧文走就是「做了但无处存证」，撞指南 Minimum Rule 10。**与本文件自己反复挡的「正文写四条实列六条」是同一族** | Phase 1 该 `Proof` 项改准成「六格 + 五条」，并写明漏的是哪两件、为什么要紧；**与同 Phase 两条 Exit Criteria 现已逐字一致** |
+  | 4 | **Major** | **变异表的自报数与实列数对不上**：正文逐字「写死的**十五**条」，其下逐条列的是 `M1`–`M16` **十六**条（第 5 轮补 `M16` 时漏改这句）。同族计数不一致本文件已挡过两次（Phase 1「三条/四条」停机分支、§0「四条/六条」重取基线），这一处漏网 | 改准成「`M1`–`M16` **十六条**，其中 `M13`/`M16` 各两变体 ⇒ **实际施加 18 次**」· Phase 3 Exit Criteria 那格同步改准成「十六条 / 18 次施加」并要求逐次记**是哪一格打的红** |
+
+  ⚠️ **本轮也复核了三件「不该改」**：**Minimum Rule 4 不该拆**（与前七轮同结论）·
+  **Anti-Slacking 禁用词全文零命中**（`optional` 的命中逐处实读，全是 TOML 键名 `[project.optional-dependencies]`）·
+  **红线合规面**逐项核过三个 Phase 的 `Targets`、§10 六条自证与本轮新增的六处改动，**没找出必然越线的藏步**；
+  本轮自身只改了本文件一个文件。
+
+  ⚠️ **本轮的 `verification scope limited`，照实写**：**活栈、浏览器、docker 本轮一概未起**（评审轮不做活体取证）
+  ⇒ `H2b`–`H11` 那批探针**全部仍是预测值**，本轮一格都没落实际值。
+  §1.4b 那两条命令本轮是拿 `/tmp` 下一个**同形态最小样本**跑的（断言体尚不存在）——
+  **它证的是「命令的语义」，不是「本 plan 的断言体会怎样」**，后者只能由 Phase 3 实跑。
+
+- **第 8 轮收敛结论：不转 `active`。** 八轮共 **43** 条（第 8 轮 2 Blocker + 2 Major）已全部改进本文件，
   但 §0.5 那两条**只有人能答**的前置未答之前，这份 plan 不具备**可执行**契约
   （指南 Plan Status Flow：`active` 的含义是「独立评审已收敛成可执行契约」——
   一份 100% 会在 Phase 1 停机的 plan 不满足「可执行」）。
   ⇒ **`Plan Status` 保持 `draft`**，前置见 §0.5 与 front matter 的 `> Review Hold:` 行。
   人答完第 1 条即可转 `active`（第 2 条影响的是 `D-d-0` 的写法，不影响可执行性）。
-  ⚠️ **第 7 轮独立评审维持这一裁定，但把它的理由收敛成唯一一条**：
+  ⚠️ **第 8 轮维持这一裁定，理由与第 7 轮逐字相同，且本轮把它的两条实测证据又核了一遍**
+  （`STATE.md:875` 仍 `[needs-human]`、`Approved-By` 33 条无一涉及浏览器驱动、
+  masterplan/backlog 里 playwright 只命中那条 needs-human 自己的正文）。
+  ⚠️ **但第 8 轮必须补记一句，因为它改了「多停一轮的代价」这笔账的性质**：
+  前七轮的账记的是「**每多停一轮，plan 记的活事实就多烂一分**」——
+  **本轮仓库对本 plan 几乎没动，却仍然找出 2 条 Blocker**，
+  而且**两条都不是过期，是这份文件从第一版起就写错、且前七轮 39 条都没碰到的判据缺陷**
+  （一条要求资产源码 `JSON.stringify(` 零命中，而请求体必须是 JSON；
+  一条把 `-p no:playwright` 当成「等价模拟没装驱动」，而它只关插件）。
+  **两条的共同成因也是一条**：前七轮**没有人去实跑那两条命令、也没有人去读 `parse_request()` 的那一行**
+  —— 全是**在文本层面互相核对**，核不出「这条命令在真机上到底打出什么」。
+  ⇒ **这笔账因此要改写成两笔**：① 停得越久活事实越烂（前七轮的账，仍然有效）；
+  ② ⚠️ **一份从未被执行过的 plan，它写死的每一条「可执行验证」都只是一句没跑过的话** ——
+  本轮两条 Blocker 就是这么来的，**而剩下的 `H2b`–`H11` 十格探针今天仍然一格都没落实际值**。
+  这一笔不是催促，是把「纯文本评审的天花板」记在账上：**第 8 轮已经撞到它了。**
+  ⚠️ **第 7 轮独立评审当时把理由收敛成唯一一条，那段照旧保留**：
   人新裁的 **`D-24`** 让「预算满了就没有出口」这条**次要**理由变轻了（§0.7 (乙) / §1.10）
   ⇒ 停在 `draft` 的理由现在只剩下、也只需要这一条 ——
   `D-d-2` 的免停出处（**人已批准、且逐字点名浏览器驱动**的具体出处）**今天在仓里不存在**，
@@ -1320,14 +1468,18 @@ Exit Criteria:
 - [ ] relevant docs are aligned（`module-boundaries.md` §7.23 · **`docs/context/project-context.md:52` 的 lint 作用域** ·
       `docs/logs/2026/08-25.md` · `docs/evidence/p1-desk-sidebar/`）；
       对 `docs/design/agents-and-roles.md` §9 风险档表 **`No owner-doc update required`**（理由见 §4）
-- [ ] verification has run —— 至少这**八**条，命令原文 + 退出码入 `## Closure`：
+- [ ] verification has run —— 至少这**九**条（⚠️ 第 8 轮独立评审把 §1.4b 那条拆成 (A)(B) 两条，八→九），命令原文 + 退出码入 `## Closure`：
       `python3 tools/gates/check_expected_red.py` ·
       `python3 -m pytest tests/unit -q` ·
       `python3 -m pytest tests/contracts tests/tools tests/routing tests/context -q` ·
       `ruff check agenerp tests/unit tests/ui tests/contracts tests/tools tests/routing tests/context tests/experiments` ·
       `AGENERP_LIVE=1 … python3 -m pytest -m live tests/ui/test_sidebar.py -q -rs` ·
-      **`python3 -m pytest tests/unit/test_desk_sidebar_body.py -q -p no:playwright`**（§1.4b，
-      **必须 exit 0、全 `skipped`、零 `error`** —— 无驱动 runner 上 `unit-and-contracts` 不被弄红的唯一实证）·
+      **(A) `python3 -m pytest tests/unit/test_desk_sidebar_body.py -q -p no:playwright`**（§1.4b，
+      **必须 exit 0、零 `error`**；⚠️ **不断言全 `skipped`** —— 本机装着驱动时它会真跑，那是合法的，
+      第 8 轮实跑证伪了旧文那条期望）·
+      **(B) `PYTHONPATH=/tmp/agenerp-nodriver python3 -m pytest tests/unit/test_desk_sidebar_body.py -q -p no:playwright -rs`**
+      （先按 §1.4b 建好那个只含一行 `raise ImportError` 的遮蔽模块；**必须 exit 0、全 `skipped`、零 `error`**
+      —— **这一条才是**无驱动 runner 上 `unit-and-contracts` 不被弄红的实证）·
       `docker compose up -d --wait --wait-timeout 900`（冷起）·
       `git diff -- .github/workflows tests/gates docs/masterplan/DECISIONS.md docs/masterplan/02-WBS.md` → **0 行**
       ⚠️ **第 4 轮在这里写死的那个陷阱已经消失了，第 5 轮实测改准**：
@@ -1345,6 +1497,8 @@ Exit Criteria:
 - [ ] independent draft review completed and recorded（§9）
 - [ ] text consistency verified: 顶部 `Plan Status` ↔ 三个 Phase `Status` ↔ 全部 Exit Criteria ↔ 本节 ↔ 日志，五处互不打架；
       `grep -B5 "\- \[ \]" <本文件> | grep "Status: completed"` → **空**
+      ⚠️ **第 8 轮实跑提醒：这条 grep 在本文件上会命中 1 行，而那一行就是本行自己**（它把命令原文写在了文件里）。
+      ⇒ **判法是「除本行之外为空」**，别把这个自指命中当成一个真的 `completed` Phase 去查半天。
 - [ ] closure audit was independent（独立子代理或人，**执行者自己复跑不算**）
 - [ ] closure evidence exists in files
 - [ ] ⚠️ **红线 2 / 别人未提交改动的隔离自证**（第 4 轮独立评审补）：本 plan 的每一次提交都**显式列路径**，
