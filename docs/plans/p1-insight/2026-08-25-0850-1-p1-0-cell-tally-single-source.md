@@ -1,6 +1,6 @@
 # P1.0 逐格计数的单一真相源：把手抄换成可复算的派生，把三处口径分歧登记而不替人选
 
-> Plan Status: active
+> Plan Status: completed
 > Mission: p1-insight
 > Work Item: 2. 入口关口实验：门禁能否补偿模型能力（P1.0 🚪）—— **本 plan 是它的第 2 个 plan**
 > （表规 3「一个工作项 = 1–2 个 plan」的预算，本 plan 用掉第 2 个；起草期实读该格为 `1/2`）
@@ -39,7 +39,24 @@
 
 ### 0.1 执行期重取基线的**实读结果**
 
-*(执行期填写)*
+**执行期实读（2026-08-25，逐条复跑，非转述）**：
+
+| § 0 第几条 | 起草期写的 | **执行期实读** | 是否一致 |
+|---|---|---|---|
+| 1 | 基线 `7eb31bf`，`git status --porcelain` 无输出 | `git log -1 --format=%H` → **`2f6d9b210ae37a9e88a9a85a0cd3012f50aa2a42`**（起草期之后又落了一次起草提交 `2f6d9b2`，即本 plan 文件本身）；`git status --porcelain` → **无输出**（本 plan 文件已入库，故连它也无输出，比 §0 收窄的判据更严） | **一致**（判据满足） |
+| 2 | `7.x` 族最大节号 §7.17，本 plan 预定落 §7.18 | `grep -n "^### 7\." docs/architecture/module-boundaries.md \| tail -1` → **`2654:### 7.17 …（P1.7 第 2 个 plan · 2026-08-25）`** ⇒ **§7.18 未被占用，按原计划落** | **一致** |
+| 3 | grep-1 命中 8 处 / grep-2 命中 16 行 | 两条命令逐字复跑：grep-1 → **8 行**（`loop.py:645` · `mm:109` / `:228` / `:230` / `:232` · `mb:195` / `:558` / `:2540`）；grep-2 → **16 行**（与 §1.6 分类表逐行同一集合） | **一致**（§6 **H2 吻合**） |
+| 4 | STATE §2 三张表逐格 | `07:31Z` 表在 **`:283-288`**（`0/3` / `1/3` / `1/3` / `0/3`，`:290` 合计 `2/12`）· `08:56Z` 表在 **`:295-300`** · `09:01Z` 表在 **`:311-317`**（`正确值` 列 `0/3` / `1/3` / `3/3` / `1/3`，合计 `5/12`）—— **三张表逐格与 §1.2 相同，一个字节未变**（红线 5 未被破） | **一致** |
+| 5 | 标注集 24 行 | `wc -l` → **24**；`wc -c` → **63529**；`shasum -a 256` → **`243efdf33cc0283fd92bc4995d266994b2d26841164af77132060c86cf195b15`** | **一致**（行数）；字节数与 sha 为**执行期首次落账**，Phase 1 Exit Criteria 按此值自证 |
+| 6 | `_table_after()` 按 `<!-- machine-read: NAME -->` 取其后第一张表 | 实读 `tests/routing/test_capabilities.py:42-62`：`text.split(anchor, 1)[1]` 后逐行收表 —— **确认按标记名取，不同名的新标记按构造不可能干扰**；`:79-88` 的 `test_model_profiles_are_isomorphic_to_the_owner_doc` 只读 `row[0]` / `row[1]` / `row[2]`，**`row[3]`（出处列）确无判据钉着** | **一致** |
+| 7 | §1.5 / §1.6 / §7 D2 / §9 的每一个行号 | 逐条复读：§12.3 改准段 **`:98-128`**、四格表本体 **`:101-106`**、「照实记，不合并成一个数」在 **`:117`**、声明源 `07:31Z` 在 **`:118`**、§12.5 出处列 **`:207` / `:208` / `:210`**、`multi_hop` 限定段 **`:226-238`**（`1/6` 在 `:228` / `:230` / `:232`）、`mb` §7.8 残余风险 4 在 **`:558-560`**、`loop.py` docstring 在 **`:643-646`**（`1/6` 在 `:645`）、`STATE.md:464` 的 `[resolved] 10:12Z` 逐字含「更正后是 **4/6**（off 3/3），不是先前记的 1/6」、`test_answer_judging_fixture.py:9-12` 四次判错表 | **全部一致，零偏移** |
+| 8 | 八条基线命令 | ① exit 0 `判定模式：default` · `门禁 11 项：预期红 0，绿 11，跳过 0` · `✅ 与预期红名单完全一致` ② exit 0 `626 passed` ③ exit 0 `151 passed` ④ exit 0 `81 passed, 12 skipped` ⑤ exit 0 `167 passed, 1 skipped` ⑥ exit 0 `54 passed` ⑦ exit 0 `All checks passed!` ⑧ exit 0 `共校验 35 条引用，断链 0 条` | **八条逐字与 §1.1 相同** |
+
+⚠️ **另一处执行期实读，照实记**：§1.2 丁列的派生**在执行期重算了一遍**（同一条分组口径），
+八格实读 `qwen-plus off 0/3` · `on 2/3` · `qwen3.6-plus off 3/3` · `on 3/3` ·
+`qwen3.7-plus-2026-05-26 off 3/3` · `on 3/3` · `qwen3.8-max off 2/3` · `on 3/3` ——
+**与 §6 H1 写死的八格逐格相等**。这是在写判据**之前**手跑的一次核对，
+**不代替 H1 的判据**（判据仍由 Phase 1 落进 `tests/unit/` 并由 `pytest` 裁定）。
 
 ## 1. Current Baseline（起草期逐条实读，非记忆、非转述）
 
@@ -433,59 +450,67 @@ H4 判的就是它。
 
 ### Phase 1 — 派生面：从标注集机械算出八格，并证明标注集标的就是那 24 次运行
 
-Status: planned
+Status: completed
 Targets: `tests/unit/entry_gate_tally.py` · `tests/unit/test_entry_gate_tally.py`
 Skill: `none`
 
 - Item Types: `Add | Proof`（5 项：2 `Add` / 3 `Proof`；**3/5 = 60%，未达指南第 7 条的 80% 门槛**，因此逐项标注、不在 Phase 层声明统一类型）
 - Prereqs: §0 的八条重取基线全部填进 §0.1
 
-- [ ] `Add` 派生器：按 `(model, gate)` 分组数 `label == "correct"`，输出八格
+- [x] `Add` 派生器：按 `(model, gate)` 分组数 `label == "correct"`，输出八格
       `(命中, 总数)`；分母**由分组实际行数得出**，不写死 `3`
   - Skill: `none`
-- [ ] `Add` 同一性断言的输入面：24 行的 `run_id` → 轨迹文件路径的解析
+- [x] `Add` 同一性断言的输入面：24 行的 `run_id` → 轨迹文件路径的解析
       （`docs/evidence/p1-entry-gate/` 与 `p1-entry-gate-round2/` 两个目录）
   - Skill: `none`
-- [ ] `Proof` 判据①：八格 == §6 H1 写死的值（**逐格独立断言，不断言一个聚合数**）
+- [x] `Proof` 判据①：八格 == §6 H1 写死的值（**逐格独立断言，不断言一个聚合数**）
   - Skill: `none`
-- [ ] `Proof` 判据②：24 行的 `(model, gate)` 与轨迹同名键**逐条相等**，
+- [x] `Proof` 判据②：24 行的 `(model, gate)` 与轨迹同名键**逐条相等**，
       且 24 行的 `answer` 与轨迹 `final_answer` **逐字节相等**；
       **两条都要断言「比对确实发生了 24 次」**（计数断言，挡住空循环假实现）
   - Skill: `none`
-- [ ] `Proof` 判据③：标注集**行数 == 24** 且 `run_id` 互不重复；
+- [x] `Proof` 判据③：标注集**行数 == 24** 且 `run_id` 互不重复；
       八格分母之和 == 24（挡住「某一格被静默漏掉」）
   - Skill: `none`
 
 Exit Criteria:
 
-- [ ] 八格派生可复算，`pytest tests/unit -q` exit 0 且条数只增不减
-- [ ] `ruff check`（基线命令 ⑦ 原文）exit 0
-- [ ] 标注集**字节数与 sha256 与 §0.1 实读相同**（本 Phase 不改它，Non-Goal 1 自证）
-- [ ] `docs/logs/` 更新
+- [x] 八格派生可复算，`pytest tests/unit -q` exit 0 且条数只增不减
+- [x] `ruff check`（基线命令 ⑦ 原文）exit 0
+- [x] 标注集**字节数与 sha256 与 §0.1 实读相同**（本 Phase 不改它，Non-Goal 1 自证）
+- [x] `docs/logs/` 更新
+
+**Phase 1 实跑落账（命令原文 + 退出码）**：
+`python3 tools/gates/check_expected_red.py` → **exit 0**（`门禁 11 项：预期红 0，绿 11，跳过 0` · `✅ 与预期红名单完全一致`）·
+`python3 -m pytest tests/unit -q` → **exit 0 / `643 passed`**（基线 626，**+17**，只增不减）·
+`ruff check agenerp tests/unit tests/contracts tests/tools tests/routing tests/context tests/experiments` → **exit 0 / `All checks passed!`** ·
+`shasum -a 256 tests/fixtures/p1_entry_gate_labels.jsonl` → `243efdf33cc0283fd92bc4995d266994b2d26841164af77132060c86cf195b15`、
+`wc -c` → `63529` —— **与 §0.1 实读逐字相同**（Non-Goal 1 自证）。
+**H1 吻合**：八格逐格等于 §6 写死的值，由 `test_derived_cell_matches_the_frozen_expectation` 八条参数化判据各判一格。
 
 ### Phase 2 — 并置面：§12.3 的四列 `machine-read` 表，三列各自被钉在自己的源上
 
-Status: planned
+Status: completed
 Targets: `docs/architecture/model-management.md`（§12.3）· `tests/unit/test_entry_gate_tally.py`
 Skill: `none`
 
 - Item Types: `Fix | Proof | Decision`（6 项：1 `Fix` / 4 `Proof` / 1 `Decision`；**4/6 ≈ 67%，未达 80% 门槛**，逐项标注。⚠️ 起草期第一版把 `Add` 也列进来，而本 Phase 一个 `Add` 项都没有，已删）
 - Prereqs: Phase 1
 
-- [ ] `Fix` 把 §12.3 改准整段（起草期实读 `:98-128`，表本体 `:101-106`）划进
+- [x] `Fix` 把 §12.3 改准整段（起草期实读 `:98-128`，表本体 `:101-106`）划进
       `<!-- machine-read: p1-0-cell-tally -->` … `<!-- /machine-read: p1-0-cell-tally -->`
       **一对起止标记**（§6.1 第 3 条谓词的区域面），段内的四格表换成
       四列并置表（甲/乙/丙/丁），每列一个出处指针
   - Skill: `none`
-- [ ] `Proof` 判据④：丁列与 Phase 1 的派生器**逐格相等**
+- [x] `Proof` 判据④：丁列与 Phase 1 的派生器**逐格相等**
   - Skill: `none`
-- [ ] `Proof` 判据⑤：乙列与 `docs/masterplan/STATE.md:283-288` 的表**机械解析后逐格相等**；
+- [x] `Proof` 判据⑤：乙列与 `docs/masterplan/STATE.md:283-288` 的表**机械解析后逐格相等**；
       丙列与 `:311-317` 的表同样（§6 **H3** 判这一条能不能做到）
   - Skill: `none`
-- [ ] `Proof` 判据⑥：甲列与 `docs/evidence/p1-entry-gate/verdicts.md` 的逐条打勾行
+- [x] `Proof` 判据⑥：甲列与 `docs/evidence/p1-entry-gate/verdicts.md` 的逐条打勾行
       **机械解析后逐格相等**（该文件同时是审计 `:41/57/67` 三个数的来源）
   - Skill: `none`
-- [ ] `Proof` **判据⑨（区域内也必须被钉住），两半，弱的那半不许单独用**：
+- [x] `Proof` **判据⑨（区域内也必须被钉住），两半，弱的那半不许单独用**：
       **⑨a 位置相等（承重的一半）**：对**下表每一条被绑定的句子**，
       按**逐字锚点子串**在区域内定位（**不用行号定位** —— Phase 2 重写整段，
       起草期行号在判据第一次跑起来时就已作废），把该句内嵌的数**按出现顺序**取出成元组，
@@ -554,24 +579,47 @@ Skill: `none`
       钉住它**不等于承认乙列为准** —— 该句在哪几列下不成立由 D3 那句口径分述另行说明，
       两者一起才是完整处置。因此与 D2「不设正确值列」不冲突
   - Skill: `none`
-- [ ] `Decision` 记 **D2 / D3** 的落地形态：表里**没有**「正确值」列；
+- [x] `Decision` 记 **D2 / D3** 的落地形态：表里**没有**「正确值」列；
       §12.3 结论句原文保留 + 一句口径分述（D3 的残余风险照抄进 doc，不缩写）
   - Skill: `none`
 
 Exit Criteria:
 
-- [ ] §12.3 的表由判据钉住，改错任一格即红（Phase 4 的 M1/M2 证明）
-- [ ] **区域内没有任何一个数是「既豁免于守卫、又不被任何判据够到」的** ——
+- [x] §12.3 的表由判据钉住，改错任一格即红（Phase 4 的 M1/M2 证明）
+- [x] **区域内没有任何一个数是「既豁免于守卫、又不被任何判据够到」的** ——
       判据⑨a/⑨b 合起来覆盖区域内全部数字出现，Phase 4 的 **M9 / M9b** 两个变异各证一半
-- [ ] **`STATE.md` / `docs/audits/` / `docs/evidence/` 三处一个字节未改** ——
+- [x] **`STATE.md` / `docs/audits/` / `docs/evidence/` 三处一个字节未改** ——
       `git status --porcelain -- docs/masterplan docs/audits docs/evidence` 无输出
-- [ ] `pytest tests/routing -q` **逐字仍是 `167 passed, 1 skipped`**（§6 **H5**）
-- [ ] `bash tools/check-masterplan-links.sh` exit 0（新增指针不得造成断链）
-- [ ] `docs/logs/` 更新
+- [x] `pytest tests/routing -q` **逐字仍是 `167 passed, 1 skipped`**（§6 **H5**）
+- [x] `bash tools/check-masterplan-links.sh` exit 0（新增指针不得造成断链）
+- [x] `docs/logs/` 更新
+
+**Phase 2 实跑落账（命令原文 + 退出码）**：
+`python3 -m pytest tests/unit -q` → **exit 0 / `658 passed`**（Phase 1 后 643，**+15**）·
+`python3 -m pytest tests/routing -q` → **exit 0 / `167 passed, 1 skipped`**，与 §1.1 ⑤ **逐字相同**（**H5 吻合**）·
+`ruff check agenerp tests/unit tests/contracts tests/tools tests/routing tests/context tests/experiments` → **exit 0** ·
+`bash tools/check-masterplan-links.sh` → **exit 0 / `共校验 35 条引用，断链 0 条`** ·
+`git status --porcelain -- docs/masterplan docs/audits docs/evidence` → **无输出** ·
+`python3 tools/gates/check_expected_red.py` → **exit 0**。
+
+**H3 吻合（本 plan 两条真未知之一，这一条结清）**：乙 / 丙 / 甲 三处**都解析得出来** ——
+`STATE.md` 缩进两格的 md 表按 `strip()` 后判 `|` 开头即可；丙表的 `正确值` 是**末列**且带 `**` 粗体，
+`_bare()` 剥掉强调后再取数；`verdicts.md` 的结论列含全角字与粗体，同法可解。
+⚠️ **甲列刻意不读揭配置表自报的正确率**，而是**数**逐条打勾行；自报那一列另起一条判据做交叉核对，
+两处一致才算解析对了。
+
+**⑨a 在改动之后的实跑结果（这一半此前没有证据，见 §6 H4 的说明）**：
+四条逐字锚点在区域内**各命中 1 行**，取出的有序元组
+`(0/3, 1/3)` · `(1/3, 0/3, 2/12)` · `(0/3, 1/3)` · `(2/3, 3/3)`
+与各自声明的列-格引用**逐位相等**；侧断言 `甲.强off == 甲.强on` 成立；
+计数断言 **4 == 4**（区域内含数字的散文行恰是那四条锚点行）；
+⑨b 侧区域内**无并集外的数**。⚠️ **四条锚点行连换行位置都未改动**，
+追加的指针与口径分述句**一律另起一行且不含任何匹配数字面的数**（只指列名，不指数）。
+
 
 ### Phase 3 — 指针面与守卫：把段外八处手抄换成指针，并让「新写一处手抄」当场红
 
-Status: planned
+Status: completed
 Targets: `docs/architecture/model-management.md`（§12.5 出处列 `:207/:208/:210` + `multi_hop` 限定段）·
 `docs/architecture/module-boundaries.md`（§7.8）· `agenerp/explain/loop.py`（**仅注释**）·
 `tests/unit/test_entry_gate_tally.py` · `tests/unit/test_answer_judging_fixture.py`
@@ -580,54 +628,81 @@ Skill: `none`
 - Item Types: **`Fix`-heavy**（5/7 tagged `Fix`；另 2 `Proof`）
 - Prereqs: Phase 2
 
-- [ ] `Fix` §12.5 **模型档案表出处列**三处手抄换指针：`:207`（`2/3` / `3/3`）·
+- [x] `Fix` §12.5 **模型档案表出处列**三处手抄换指针：`:207`（`2/3` / `3/3`）·
       `:208`（`3/3` / `3/3`）· **`:210`（`0/3` / `1/3` —— `on` 格与丁列的 `2/3` 今天就冲突）**。
       ⚠️ **只动第四列**；前三列（模型名 / 能力 / 是否计 reasoning）一格不动，
       收口以 `pytest tests/routing -q` 逐字不变自证（§6 H5）
   - Skill: `none`
-- [ ] `Fix` §12.5 `multi_hop` 限定段：`1/6` 换指针；
+- [x] `Fix` §12.5 `multi_hop` 限定段：`1/6` 换指针；
       **那段「`2/6` vs `1/6` 待人裁定」实读已被 `STATE.md:464`（`[resolved] 10:12Z`）结清**，
       按该 `[resolved]` 行改准（**只改准「分歧仍敞着」这个陈述，不裁定计数**）
   - Skill: `none`
-- [ ] `Fix` §12.5 那句「它在本项目实测下答对不到一半」：该判断在甲/丁列下**不成立**
+- [x] `Fix` §12.5 那句「它在本项目实测下答对不到一半」：该判断在甲/丁列下**不成立**
       （6/6），按 D3 同法改成口径分述。**`multi_hop` 能力取值一个字不动**（Non-Goal 7）
   - Skill: `none`
-- [ ] `Fix` `module-boundaries.md:558` 的 `1/6` 换指针，`[open] 07:50Z` 引用原样保留
+- [x] `Fix` `module-boundaries.md:558` 的 `1/6` 换指针，`[open] 07:50Z` 引用原样保留
   - Skill: `none`
-- [ ] `Fix` `agenerp/explain/loop.py:645` 的 `1/6` 换指针（**仅注释**，D4）
+- [x] `Fix` `agenerp/explain/loop.py:645` 的 `1/6` 换指针（**仅注释**，D4）
   - Skill: `none`
-- [ ] `Proof` 判据⑦（守卫）：先跑**宽网阳性对照**（只留数字面、去掉语境面与区域面），
+- [x] `Proof` 判据⑦（守卫）：先跑**宽网阳性对照**（只留数字面、去掉语境面与区域面），
       证明它在 §1.6 那 **6 行无关面上全部误报**（起草期实跑：6/6 误报），
       再落 §6.1 三条谓词的收窄版并断言**误报 0 / 漏报 0**；
       收窄口径与派生器**共用一份常量**。
       ⚠️ **不写「H4 预测的 2 处」** —— H4 本轮已改写成「改完之后仍 0/0」，
       **它不再预测任何误报**；「2 处」是起草期第一版从 grep-1 的无关数带过来的，已作废
   - Skill: `none`
-- [ ] `Proof` 判据⑧：`tests/unit/test_answer_judging_fixture.py` 的历史叙述表
+- [x] `Proof` 判据⑧：`tests/unit/test_answer_judging_fixture.py` 的历史叙述表
       **数字一个字不改**，只加一条指向 §12.3 的指针；判据断言该文件仍含
       「三份正确答案判成」这句原文（挡住「顺手把历史改成新口径」）
   - Skill: `none`
 
 Exit Criteria:
 
-- [ ] §1.6 **两条 grep 一起**在 `agenerp` + `docs/architecture` 上复跑：
+- [x] §1.6 **两条 grep 一起**在 `agenerp` + `docs/architecture` 上复跑：
       **16 行 P1.0 面全部消失或落进 §12.3 的 `machine-read` 区域内**；
       **6 行无关面逐行原样保留**（逐行比对，不比对总行数）
-- [ ] 守卫的阳性对照与零误报两侧都落盘（命令原文 + 退出码）
-- [ ] `agenerp/**` 的改动**逐条是注释**：`git diff -- agenerp` 里无非注释行
-- [ ] `pytest tests/unit tests/contracts tests/tools tests/routing tests/context -q` 全 exit 0
-- [ ] `docs/logs/` 更新
+- [x] 守卫的阳性对照与零误报两侧都落盘（命令原文 + 退出码）
+- [x] `agenerp/**` 的改动**逐条是注释**：`git diff -- agenerp` 里无非注释行
+- [x] `pytest tests/unit tests/contracts tests/tools tests/routing tests/context -q` 全 exit 0
+- [x] `docs/logs/` 更新
+
+**Phase 3 实跑落账（命令原文 + 退出码）**：
+`python3 -m pytest tests/unit tests/contracts tests/tools tests/routing tests/context -q` → **exit 0 / `1120 passed, 13 skipped`**
+（`tests/unit` 单跑 **`667 passed`**，Phase 2 后 658，**+9**）·
+`python3 tools/gates/check_expected_red.py` → **exit 0** ·
+`ruff check agenerp tests/unit tests/contracts tests/tools tests/routing tests/context tests/experiments` → **exit 0** ·
+`git diff -U0 -- agenerp | grep '^+' | grep -v '^+++'` → **三行，逐条是 `explain()` 的 docstring**（D4「仅注释」自证）。
+
+**§1.6 两条 grep 的收口复跑（Exit 第 1 条，逐行比对不比对总行数）**：
+- `grep -rn --exclude-dir=.git --exclude-dir=__pycache__ -E "[0-9]+/(6|12)" agenerp docs/architecture` → **4 行**：
+  `mm:112` / `mm:130`（**均在区域 `:98-162` 内**）· `mb:195` / `mb:2541`（**无关面，原样**）。
+  起草期那 6 处属 P1.0 的命中里，`loop.py:645` / `mm:228` / `:230` / `:232` / `mb:558` **五处已换成指针而消失**。
+- `grep -rn … -E "[0-3]/3" agenerp docs/architecture` → **13 行**：`mm:108`–`:111` / `:129` / `:130` / `:140` / `:148`
+  **八行全在区域内**；`oob.py:195` / `mb:1251` / `:2461` / `:2509` **四行是无关面，原样**
+  （行号 +1 是 §7.8 那处指针多占一行所致，**文本零改动**，`git diff` 里不出现）。
+- ⇒ **16 行 P1.0 面：8 行段内（重写后仍在区域内）+ 8 行段外（全部换成指针）**；
+  **6 行无关面逐行原样保留**，`git diff -- docs/architecture/module-boundaries.md agenerp/oob.py`
+  的删除行只有 §7.8 那两行（即被换成指针的那一处），**无关面一行未被碰**。
+
+**守卫两侧的实跑（Exit 第 2 条）**：
+- **阳性对照**（`scan_handwritten_tallies(require_context=False, honour_region=False)`）：命中 **15 行**，
+  §1.6 那 **6 行无关面 6/6 全部误报** —— 与起草期实跑相同，证明去掉语境面守卫会被噪声淹掉。
+- **收窄版**（三条谓词合取）：命中 **0 处** ⇒ **误报 0 / 漏报 0**。
+  ⚠️ **§6 H4 吻合，且这是它第一次有证据**：§6.1.1 那张四口径标定表是在**改之前**的文本上跑的，
+  Phase 2/3 改动了行位置、内容与「标识↔数字」的距离，**「改完之后仍 0/0」今天才被实测到**。
+  ⇒ §6.2 的三条误报处置与三条漏报处置**一条都没有被触发**，两个旋钮（窗口大小、标识集合）**未动**。
+
 
 ### Phase 4 — 变异自查 M1–M9b（含 M7b / M9b）、落点节 §7.18、STATE §3 追加登记
 
-Status: planned
+Status: completed
 Targets: `docs/architecture/module-boundaries.md`（新增 §7.18）· `docs/masterplan/STATE.md`（**只追加**）· `docs/logs/2026/08-25.md`
 Skill: `none`
 
 - Item Types: `Proof | Add`
 - Prereqs: Phase 3
 
-- [ ] `Proof` **变异自查 M1–M9b（含 M7b / M9b，共 11 个），逐个施加、逐个复跑、逐个记退出码**：
+- [x] `Proof` **变异自查 M1–M9b（含 M7b / M9b，共 11 个），逐个施加、逐个复跑、逐个记退出码**：
       **M1** 丁列某一格 `3/3 → 2/3` · **M2** 乙列某一格改一位数 ·
       **M3** 派生器把 `label == "correct"` 改成恒真 · **M4** 派生器分母写死成 3 ·
       **M5** 同一性断言的循环体删空（计数断言必须打红） ·
@@ -644,24 +719,35 @@ Skill: `none`
       **M9b** 在区域内塞一个四列都没声明过的数（逐字 `4/9`）—— **判据⑨b 必须打红**。
       M9 / M9b 是独立草案评审第 2 轮点出的那个洞的实测，**两半各测一个**
   - Skill: `none`
-- [ ] `Add` 落点节 §7.18，内容按 **D5** 四条
+- [x] `Add` 落点节 §7.18，内容按 **D5** 四条
   - Skill: `none`
-- [ ] `Add` `STATE.md` §3 **追加一行**：登记「丙（5/12）与丁（8/12）在两格上差 3 条、
+- [x] `Add` `STATE.md` §3 **追加一行**：登记「丙（5/12）与丁（8/12）在两格上差 3 条、
       甲与丁在第一轮逐条一致」这一发现为 **needs-human**，附命令原文与退出码，
       **不替人裁定**，并逐字声明本 plan 未改 `docs/audits/` / `docs/evidence/` / 标注集
   - Skill: `none`
-- [ ] `Proof` 八条基线命令逐条复跑，与 §6 H1–H7 逐条对照，**不吻合就照实记不吻合**
+- [x] `Proof` 八条基线命令逐条复跑，与 §6 H1–H7 逐条对照，**不吻合就照实记不吻合**
   - Skill: `none`
 
 Exit Criteria:
 
-- [ ] M1–M9b **逐个被打红，M7b 除外**（它的预期是漏报，见上）；
+- [x] M1–M9b **逐个被打红，M7b 除外**（它的预期是漏报，见上）；
       其余有任何一个是绿的，**就地补断言并登记为 M10…**（不许放过）
-- [ ] §7.18 落地；`bash tools/check-masterplan-links.sh` exit 0
-- [ ] `STATE.md` 只追加：`git diff -- docs/masterplan/STATE.md` 里**无删除行**
-- [ ] §6 H1–H7 逐条对照表落进**本 plan 的 §12.2**（不是 `model-management.md` §12.2，
+- [x] §7.18 落地；`bash tools/check-masterplan-links.sh` exit 0
+- [x] `STATE.md` 只追加：`git diff -- docs/masterplan/STATE.md` 里**无删除行**
+- [x] §6 H1–H7 逐条对照表落进**本 plan 的 §12.2**（不是 `model-management.md` §12.2，
       那一节本 plan 不碰），**假设原文一个字未改**
-- [ ] `docs/logs/2026/08-25.md` 更新
+- [x] `docs/logs/2026/08-25.md` 更新
+
+**Phase 4 实跑落账**：变异结果逐个见 **§12.3**（含 M9b「第一次是绿的」那一处照实记）·
+八条基线命令逐条见 **§12.1** · H1–H7 逐条对照见 **§12.2** ·
+两条 grep 的收口复核见 **§12.4** · 红线自证见 **§12.5** · 并发写入那一段见 **§12.6**。
+
+⚠️ **§7.18 落地时被自己的守卫打红了一次，照实记**：该节初稿在讲 §6.1.1 窗口标定时
+顺手写了一个逐格形状的数，而它在区域**之外** ⇒ 判据⑦ 当场红。
+**没有动守卫的任何一个旋钮**（§6.2 (a)(b)(c) 三条禁止形态一条都没碰），
+改的是 §7.18 的写法：**该节不写任何逐格形状的数，要数就去 §12.3**，
+并把这条约束逐字写进该节。**判据倒逼写法收敛，正是本 plan 想要的形态。**
+
 
 ## 9. 红线自查（开工前读一遍，收口时逐条复核）
 
@@ -888,27 +974,158 @@ Exit Criteria:
 
 ## 12. 执行记录
 
-*(执行期填写：12.1 八条基线命令复跑 · 12.2 H1–H7 逐格对照 · 12.3 M1–M9b 变异结果 ·
-12.4 §1.6 两条 grep 的收口复核 · 12.5 红线自证)*
+### 12.1 八条基线命令的收口复跑（命令原文 + 退出码 + 输出）
+
+| # | 命令 | 退出码 | 输出 | 与 §1.1 基线比 |
+|---|---|---|---|---|
+| ① | `python3 tools/gates/check_expected_red.py` | **0** | `判定模式：default` · `门禁 11 项：预期红 0，绿 11，跳过 0` · `✅ 与预期红名单完全一致` | **逐字节不变**（H7） |
+| ② | `python3 -m pytest tests/unit -q` | **0** | `668 passed` | 626 → 668，**+42**（H6 的 `N ≥ 12` 达标） |
+| ③ | `python3 -m pytest tests/contracts -q` | **0** | `151 passed` | 不变 |
+| ④ | `python3 -m pytest tests/tools -q` | **0** | `81 passed, 12 skipped` | 不变 |
+| ⑤ | `python3 -m pytest tests/routing -q` | **0** | `167 passed, 1 skipped` | **逐字不变**（H5） |
+| ⑥ | `python3 -m pytest tests/context -q` | **0** | `54 passed` | 不变 |
+| ⑦ | `ruff check agenerp tests/unit tests/contracts tests/tools tests/routing tests/context tests/experiments` | **0** | `All checks passed!` | 不变 |
+| ⑧ | `bash tools/check-masterplan-links.sh` | **0** | `共校验 35 条引用，断链 0 条` | 不变 |
+
+⚠️ **`tests/unit` 的 `668` 里含本轮之外那次并发写入的贡献**（见 §12.6）：
+本 plan 自己新增 **42 条**，`626 + 42 = 668` 恰好对得上，是因为那次并发写入**只改了实现与既有判据**、
+没有新增判据条数。**照实写明这个巧合，不把 `668` 整个记成本 plan 的产出。**
+
+### 12.2 H1–H7 逐条对照（**假设原文一个字未改**，只填「实际」）
+
+| # | 性质 | 判据 | **实际** | 判定 |
+|---|---|---|---|---|
+| **H1** | 守护性回归 | `pytest tests/unit -q` | 八格实得 `qwen-plus off 0/3` · `on 2/3` · `qwen3.6-plus off 3/3` · `on 3/3` · `qwen3.7-plus-2026-05-26 off 3/3` · `on 3/3` · `qwen3.8-max off 2/3` · `on 3/3`，由 8 条参数化判据**逐格独立**断言 | **吻合** |
+| **H2** | 守护性回归 | 逐字复跑两条 grep | grep-1 命中 **8 处**（6 处属 P1.0 + `mb:195` / `:2540` 两处无关）· grep-2 命中 **16 行**，与 §1.6 分类表**逐行同一集合** | **吻合** |
+| **H3** | **真未知** | 判据里真解析、真断言 | **三处全部解析得出来**：`STATE.md` 缩进两格的 md 表按 `strip()` 后判 `|` 开头即可；更正表的 `正确值` 是**末列**且带 `**` 粗体，剥掉强调后取数；`verdicts.md` 结论列的全角字与粗体同法可解。⚠️ 甲列**刻意不读**揭配置表自报的正确率，改为**数**逐条打勾行，自报那列另做交叉核对 | **吻合** |
+| **H4** | **真未知** | 宽网阳性对照 + 三条谓词版逐条比对 | 阳性对照命中 **15 行**，§1.6 那 **6 行无关面 6/6 全部误报**；收窄版命中 **0 处** ⇒ **误报 0 / 漏报 0**。§6.2 的六条处置**一条都没被触发**，两个旋钮（窗口大小、标识集合）**未动** | **吻合** |
+| **H5** | 守护性回归 | 基线命令 ⑤ | `python3 -m pytest tests/routing -q` → **exit 0 / `167 passed, 1 skipped`**，与 §1.1 ⑤ **逐字相同** | **吻合** |
+| **H6** | 目标，不是假设 | 基线命令 ② | `626 → 668`，**N = 42 ≥ 12**（Phase 1 +17 · Phase 2 +15 · Phase 3 +9 · Phase 4 +1） | **达标** |
+| **H7** | 守护性回归 | 基线命令 ① | `判定模式：default` · `门禁 11 项：预期红 0，绿 11，跳过 0` · `✅ 与预期红名单完全一致` —— **逐字节不变** | **吻合** |
+
+### 12.3 M1–M9b 变异结果（**逐个施加、逐个复跑、逐个记退出码**；复跑命令一律 `python3 -m pytest tests/unit/test_entry_gate_tally.py -q`）
+
+| # | 变异 | 退出码 | 打红的是哪几条 | 判定 |
+|---|---|---|---|---|
+| **M1** | 丁列某一格 `3/3 → 2/3` | **1** | `2 failed`（判据④ + 合计行自洽） | **被打红** |
+| **M2** | 乙列某一格改一位数 | **1** | `4 failed`（判据⑤ + ⑨a 两条 + 合计行） | **被打红** |
+| **M3** | 派生器把 `label == "correct"` 改成恒真 | **1** | `4 failed` | **被打红** |
+| **M4** | 派生器分母写死成 `3` | **1** | `1 failed`（`test_denominator_comes_from_the_group_not_from_a_literal`） | **被打红** |
+| **M5** | 同一性断言的循环体删空 | **1** | `1 failed` —— **正是那条计数断言**（`== 24`）打的红 | **被打红** |
+| **M6** | 标注集删掉一行（24 → 23） | **1** | `6 failed` | **被打红** |
+| **M7** | `module-boundaries.md` §7.8 注入逐字 `⚠️ qwen3.6-plus 在两跳题上是 1/6。` | **1** | `1 failed`（判据⑦ 零命中那条） | **被打红** |
+| **M7b** | 同节注入逐字 `是 1/6。`，**前 4 行内不含任何标识** | **0** | —— | ✅ **预期漏报，边界被实测到**。守卫收窄版命中 **0 处**、宽网命中 **16 处**（比未注入时多 1）⇒ **漏的是语境面，不是数字面**。⚠️ 它**没有**打红，因此不必回头查 |
+| **M8** | 把 §12.3 的 `machine-read` 标记名改掉 | **1** | `15 failed`（区域整个定位不到） | **被打红** |
+| **M9** | 区域**内**散文数 `2/12 → 3/12` | **1** | `2 failed` —— **落在 ⑨a 上**（位置比较失败），**没有被 ⑨b 吸收** | **被打红** |
+| **M9b** | 区域内塞一个四列都没声明过的数（逐字 `4/9`） | **1** | `1 failed` —— **只有 ⑨b 够得到它**，⑨a 与 判据④⑤⑥ 全绿 | **被打红**（⚠️ 见下方「第一次是绿的」） |
+
+⚠️ **M9b 第一次跑是绿的（退出码 0），照实记，不抹掉**：⑨b 的第一版**复用了守卫的数字面**
+（`[0-3]/3` 与 `x/6` `x/12`），而 M9b 的注入值 `4/9` **不匹配那个面** ——
+**兜底那半在区域里根本没在兜**。当场按 §6.2 之外的路子改准（这不是守卫的旋钮，是判据自己的取数口径）：
+⑨b 改用更宽的 `\d+/\d+`，并**另加一条判据**把「⑨b 的口径必须比守卫的数字面宽」钉死，
+复跑 M9b → **退出码 1**。
+**这一处正是变异自查存在的理由**：判据被实测出有洞，不是「一次通过」，是「跑出来才知道」。
+⚠️ **两个面本来就不该是同一个**：守卫的数字面是给「找手抄」用的（要窄，否则误报淹掉）；
+⑨b 要的是「区域里有没有冒出一个谁都没声明过的数」（要宽）。第一版把它们混成一个，是设计错误。
+
+### 12.4 §1.6 两条 grep 的收口复核
+
+- **grep-1** → **4 行**：`mm:112` / `mm:130`（**均在区域 `:98-162` 内**）·
+  `mb:195` / `mb:2541`（**无关面，原样**）。起草期属 P1.0 的 6 处命中里，
+  `loop.py:645` / `mm:228` / `:230` / `:232` / `mb:558` **五处已换成指针而消失**。
+- **grep-2** → **13 行**：`mm:108`–`:111` / `:129` / `:130` / `:140` / `:148` **八行全在区域内**；
+  `oob.py:195` / `mb:1251` / `:2461` / `:2509` **四行无关面，原样**（行号 +1 是 §7.8 那处指针多占一行，文本零改动）。
+- ⇒ **16 行 P1.0 面：8 行段内（重写后仍在区域内）+ 8 行段外（全部换成指针）**；
+  **6 行无关面逐行原样保留**。
+
+### 12.5 红线自证（§9 两条命令逐条复跑）
+
+- `git status --porcelain -- tests/gates .github/workflows missions docs/masterplan/DECISIONS.md tools/experiments/p1_entry_gate docs/audits docs/evidence tests/fixtures`
+  → **无输出**
+- `git diff -- docs/masterplan/STATE.md | grep '^-' | grep -v '^---'` → **无输出**（只追加，零删除行）
+- 证据仓 `${XM_PATH}` 未写入（红线 6）· 未生成任何运行时 Server Script（红线 7）·
+  未改项目名 / 包名 / 命名空间（红线 4）· `DECISIONS.md` 未新增 `R-x`（红线 3）。
+
+### 12.6 ⚠️ 一次**并发写入**撞进收口窗口，照实记，不代人处置
+
+收口复跑 `python3 -m pytest tests/unit -q` 时出现 5 条 `test_seedsite_documents.py` 判据红。
+**复跑优先于分析**：原样复跑复现；随后在 `HEAD` 的干净 worktree 上跑**同一条命令 → 34 passed**，
+再逐个把本 plan 改过的文件换回 `HEAD` 版本复跑 —— **四个文件逐个换回，红的还是那 5 条** ⇒
+**不是本 plan 的改动**。`git diff` 显示 `agenerp/site.py` 与 `agenerp/seedsite.py`
+被本轮之外的一次写入改动（新增 `post_method` 与 `_close_sales_order`），
+两个文件的 mtime 落在**本轮执行期之内**且**在观察期间还在继续变**
+（红条数在几分钟内由 5 → 2）。
+
+**处置，按 RUNBOOK §5.5**：那两个文件**本 plan 一个字节未碰，也不代人处置、不 stash、不 revert**。
+本 plan 自己的判据面当时单独复跑：
+`python3 -m pytest tests/unit -q --ignore=tests/unit/test_seedsite_documents.py` → **exit 0 / `634 passed`**。
+
+**收场**：那次并发写入在本轮收口之前**自己收敛完了**（红条数 5 → 2 → 0），
+最终 `python3 -m pytest tests/unit -q` → **exit 0 / `668 passed`**，整目录绿（见 §12.1）。
+⇒ **本 plan 收口时不存在 `verification scope limited`**。
+⚠️ **但这属于运气，不是保障** —— 与本节 `STATE.md` §2 `2026-08-24T10:08Z` 那条记的是同一类风险：
+若那次写入没有及时收敛，本 plan 就只能带着「整目录绿拿不到」收口。
+**过程照实留在这里，不因为最后是绿的就把中间那段删掉。**
+⚠️ **本轮真正花掉的代价**：为判定「红是不是我造成的」，做了一次 `HEAD` 干净 worktree 复跑
+＋ 四个文件逐个换回 `HEAD` 版本复跑 —— **五次额外复跑**。
+这正是 RUNBOOK §5.5「动手前后各看一次 `git status`」要防的那件事：
+本轮开工时 `git status` 是干净的，收口时才发现多了两个不是我改的文件。
+
+⚠️ **同一次并发还造成了一处归属错乱，照实记，且本步不去纠正它**：
+那两次人侧提交（`484c123` `fix(seedsite): …` 与 `913d515` `test(gates): …`）
+**把本 plan 还没提交的三个文件一起扫了进去** ——
+`agenerp/explain/loop.py` 与 `tests/unit/test_answer_judging_fixture.py` 落进 `484c123`、
+`docs/masterplan/STATE.md` 的追加行落进 `913d515`。
+**内容逐条复核未被损坏**（三处改动的特征串各命中 1 次），但**产出 sha 变成了人的提交**。
+⇒ **本 plan 的产出 sha 不是单一的一个**，而是 `484c123` + `913d515` + 本轮收尾提交三处。
+**不改写那两次提交**（改写别人的历史比归属错乱更糟），**只在这里指明**。
+⚠️ **这与 `STATE.md` §2 `2026-08-24T10:08Z` 记的是同一件事、同一个根因**
+（人侧 `git add -A` 撞上正在写文件的 loop），**RUNBOOK §5.5 已立的纪律本轮再次没有兜住** ——
+照实记为一次复发，不写成「已按纪律处理」。
 
 ## Closure Gates
 
-- [ ] in-scope behavior is complete
-- [ ] relevant docs are aligned（§12.3 · §12.5 · §7.8 · 新增 §7.18）
-- [ ] verification has run：八条基线命令 ①–⑧ 逐条 exit 0 且输出原文落盘
-- [ ] scoped verification is not conflated with full verification —— 若只跑了部分目录，
-      逐字写「verification scope limited」并说清哪些没跑
-- [ ] no in-scope item downgraded to deferred/follow-up
-- [ ] independent draft review completed and recorded（§10）
-- [ ] text consistency verified: status, phases, gates, and log all agree
-- [ ] closure audit was independent
-- [ ] closure evidence exists in files
-- [ ] 红线自查 §9 的两条命令逐条复跑，输出为空
+- [x] in-scope behavior is complete —— 四个 Phase 全部 `completed`，Goals 五条（派生面 / 并置面 /
+      指针面 / 守卫面 / 登记面）逐条落地，见 §12.1–§12.5
+- [x] relevant docs are aligned（§12.3 · §12.5 · §7.8 · 新增 §7.18）
+- [x] verification has run：八条基线命令 ①–⑧ 逐条 exit 0 且输出原文落盘（**§12.1**）
+- [x] scoped verification is not conflated with full verification —— **本 plan 收口时不存在
+      `verification scope limited`**：八条基线命令全跑、全 exit 0。⚠️ **中途一度存在**，
+      原因是一次**并发写入**而非本 plan 的改动，过程与判定归属的取证逐条落在 **§12.6**，未抹掉
+- [x] no in-scope item downgraded to deferred/follow-up —— §11 五条 Deferred **全部是起草期就已裁定的**，
+      本轮**未新增任何一条**，也未把任何 in-scope 项挪进去。⚠️ 执行期真发现的两处问题
+      （M9b 那个洞、§7.18 撞守卫）**都在本轮当场改掉了**，没有一条被写成 follow-up
+- [x] independent draft review completed and recorded（§10 五轮，第 5 轮 `acceptable-as-is`）
+- [x] text consistency verified: status, phases, gates, and log all agree ——
+      `Plan Status: completed` · 四个 Phase 全 `completed` 且无 `[ ]` 遗留 ·
+      `docs/logs/2026/08-25.md` 四条 Phase 记录 · `STATE.md` §3 追加行，四处数字与措辞逐条对齐
+- [ ] **closure audit was independent** —— ⚠️ **本步做不到，照实留空，不自签**：
+      执行者与收口审计者是同一个循环，`Audit: required` 要的是**独立**收口审计。
+      **这一格只能由独立收口审计步（或人）来勾**，本步不代勾
+- [x] closure evidence exists in files —— §12.1（八条命令）· §12.2（H1–H7）· §12.3（M1–M9b）·
+      §12.4（两条 grep）· §12.5（红线）· §12.6（并发写入）· `docs/logs/2026/08-25.md` · `STATE.md` §3
+- [x] 红线自查 §9 的两条命令逐条复跑，输出为空（**§12.5**）
 
 ## Closure
 
-Status Note: *(pending)*
+Status Note: **四个 Phase 全部执行完毕、八条基线命令逐条 exit 0**（§12.1）。
+本 plan 的一个结果面已成立：**P1.0 的逐格计数在本仓只有一处可复算的派生**
+（`tests/unit/entry_gate_tally.py`，判据 42 条），**其余全是指向它的指针**；
+四个口径并置落盘、各自被判据钉在自己的源上；**孰为准仍由人裁定**，已在 `STATE.md` §3 追加 needs-human。
+§2 那句一句话判据由 **M1/M2**（改表里任一格）· **M9/M9b**（改区域内的散文数）·
+**M7**（区域外新写一处手抄）三组变异实测成立。
+
+⚠️ **三处照实记的收口保留，不美化**：
+1. **M9b 第一次跑是绿的** —— 兜底那半判据复用了守卫的数字面，在区域里根本没在兜；
+   当场改准并复跑打红（§12.3）。**判据被实测出有洞，不是「一次通过」。**
+2. **§7.18 落地时被自己的守卫打红过一次** —— 没有动守卫的任何旋钮，改的是 §7.18 的写法（Phase 4）。
+3. **一次并发写入撞进收口窗口**，花掉五次额外复跑才判定「红不是我造成的」；
+   它在收口前自己收敛完，**整目录绿属于运气不是保障**（§12.6）。
+4. **`closure audit was independent` 一格未勾** —— 执行者与审计者同一个循环，本步不自签。
 
 Closure Audit Evidence:
 
-- *(pending)*
+- **(pending —— 待独立收口审计)**。本步已备齐的可复核证据：
+  §12.1 八条基线命令（命令原文 + 退出码 + 输出）· §12.2 H1–H7 逐条对照（假设原文一个字未改）·
+  §12.3 M1–M9b 十一个变异逐个退出码 · §12.4 两条 grep 收口复核 · §12.5 红线自证两条命令 ·
+  §12.6 并发写入的取证过程。
