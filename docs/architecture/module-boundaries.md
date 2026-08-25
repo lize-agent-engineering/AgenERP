@@ -3186,3 +3186,331 @@ plan `docs/plans/p1-insight/2026-08-25-1159-1-explain-http-service.md`（D-19 �
 那一层**就被允许清单挡掉了，根本走不到身份链。这不是判据面薄，是**拒绝发生得更早** ——
 但也意味着「允许清单」这一条一旦松了，M10 的防线就只剩判据④ 的实参断言那一条。
 两条是串联不是并联，**这一点不粉饰**。
+
+---
+
+### 7.21 解释服务接进 compose + nginx 同源反代在本仓的落点（P1.8a 第 2 个 plan · 2026-08-25）
+
+plan `docs/plans/p1-insight/2026-08-25-1423-1-explain-service-compose-and-same-origin.md`
+（D-19 的第二半，也是 P1.8a 的**最后一格预算**）。
+
+**本节记的是「怎么把 §7.20 那个进程放进栈里、并让它与站点同源」**。
+进程与请求面本身在 **§7.20**，本节一个字不重定；`sid` 认证模式那一层在 **§7.14**。
+
+前置事实（本节全部裁定都指着它们说话，不引推测）：
+
+- `tests/gates/conftest.py:83-87` 逐字要求 `Service == "frontend"` 且 `TargetPort == 8080`
+  —— **红线 1 内，改不了** ⇒ 对外那格端口只能长在 `frontend` 自己身上。
+- `frontend` 容器内实读 `nginx/1.22.1`；`/etc/nginx/conf.d/` 只有一个 `frappe.conf`，
+  由 `nginx-entrypoint.sh` **每次启动时**用 `envsubst '<八个变量>'` 从
+  `/templates/nginx/frappe.conf.template` 重新生成，末行 `nginx -g 'daemon off;'`。
+- 该模板**只有一个 `server` 块**（`listen 8080; server_name ${FRAPPE_SITE_NAME_HEADER};`）。
+- `agenerp/serve/app.py:53` 的 `ROUTE_PREFIX = "/agenerp"`；`:49-50` 的
+  `PORT_ENV = "AGENERP_SERVE_PORT"` / `DEFAULT_PORT = 8330`。
+
+#### `D-b-1` 同源那一跳注入到哪里：选 **(A) 在本仓维护一份 `frappe.conf.template` 的副本**
+
+落点：`tools/nginx/frappe.conf.template`，以 `:ro` bind mount 覆盖容器内
+`/templates/nginx/frappe.conf.template`。上游 `nginx-entrypoint.sh` **一个字不动**，
+它照常 `envsubst` + `nginx -g 'daemon off;'`。
+
+五个候选逐条，**每条都指着实读或实测说话**：
+
+| 候选 | 判定 | 理由（实读/实测） |
+|---|---|---|
+| **(A)** 覆盖模板 | **选中** | 加的 `location` **按构造**就在那个唯一的 `listen 8080` server 块之内；产物是仓内一个**静态文本文件**，离线判据能直接解析它（判据②③⑧⑨ 的对象） |
+| (B) `conf.d/` 下再放一个文件 | **否决** | 只能生成**第二个 server 块**。执行期在一次性探针容器里**实测**：同 `listen` 同 `server_name` 时 nginx 逐字 `[warn] conflicting server name "frontend" on 0.0.0.0:8080, ignored`，而 **`nginx -t` 退 0**、`syntax is ok`。⇒ **做不出同源，且失败形态是「配置测试全绿、反代根本不存在」** |
+| (C) 新起前置 nginx、把对外端口挪过去 | **否决** | 撞 `conftest.py:83-87`（§1.4）。修那份 conftest 在**红线 1** 内 ⇒ 走这条会让 `tests/gates/` 下所有过 `compose_stack` 的门禁连不上 |
+| (D) 往被 `include` 的 `snippets/*.conf` 里塞 | **否决** | 模板**只 include 了 `security_headers.conf` 一个**，且 include 了**两处**，第二处在 regex location `~ ^/files/.*.(htm\|html\|svg\|xml)` **之内**。执行期实测逐字：`[emerg] location "/agenerp/" is outside location "^/files/.*.(htm\|html\|svg\|xml)" in /etc/nginx/snippets/security_headers.conf:6`，`nginx -t` 退 **1** ⇒ 不是「不优雅」，是**整个 `frontend` 起不来** |
+| (E) 换 `frontend` 的 `command:` 成仓内 wrapper（跑上游那条 `envsubst`，再把 `location` 追加进生成出来的 `frappe.conf`） | **否决** | 见下面的逐条比价 |
+
+**(A) 与 (E) 的逐条比价（不许只列不比）**
+
+- **(A) 的代价**：本仓多一份**上游文件的副本**（K3）。升级镜像 tag 时要人工比对上游模板。
+- **(E) 的代价**：启动路径上多一段 loop 写的 shell，且它**必须复述上游那条 `envsubst` 的八个变量名**
+  （上游的 entrypoint 末行就是 `nginx -g 'daemon off;'`，没有「只生成不启动」的入口可复用）。
+  ⇒ (E) **并没有真的免掉「维护一份上游副本」**，它维护的是**同一份东西的另一半**（那条 `envsubst` 命令行），
+  只是副本更短。
+- **决定性的那一条不是代价，是判据面**：(E) 把 `location` 的最终位置交给**运行时的文本插入**，
+  仓内落盘的是「一段会去改别的文件的 shell」，**不是一份可解析的 nginx 配置** ⇒
+  Phase 2 判据⑧（「那段 `location` 必须在唯一那个 `listen 8080` server 块之内」）**离线无从判起**，
+  只能靠 wrapper 自己 `grep` 一下自证 —— 而自证的脚本和被证的脚本是同一个人写的。
+  (A) 落盘的就是最终形态，判据⑧ 直接解析它。
+  ⇒ **(A) 更贵的是维护，(E) 更贵的是可判定性；本仓的取舍一贯是后者优先**（口径同 §14.4「判据要有对象」）。
+
+**选中项对三条硬要求的逐条满足**
+
+1. **与 `ROUTE_PREFIX` 逐字一致**：`tools/nginx/frappe.conf.template` 里那段
+   `location /agenerp/` 的前缀，与 `agenerp/serve/app.py:53` 的 `ROUTE_PREFIX = "/agenerp"`
+   由 **Phase 2 判据②** 守着 —— 它**从两个文件各读一次再比**，不在判据里写第三个字面量。
+2. **不动 `frontend` 服务名与 `TargetPort 8080` 发布口**：本决定只给 `frontend` 加
+   ① 一条 `:ro` bind mount、② 一条 `depends_on`。服务名、`ports:` 那一行、
+   `FRAPPE_SITE_NAME_HEADER`、三条既有 `depends_on` **一个字未动**。
+3. **代价照实记**（K3，口径抄 D-19「代价照实记」与 R-5）：
+   - 副本钉在 **`frappe/erpnext:v15.119.3`** 上（`docker-compose.yml` 的 `x-erpnext-image` 锚点）。
+   - **升级镜像 tag 时要一起看的，是「上游模板与本仓副本的差集」整体**，不是某几行 ——
+     判定方法写死成一条可复跑的命令，放进 `docker-compose.yml` 的升级步骤注释：
+     `docker run --rm --entrypoint cat <新 tag> /templates/nginx/frappe.conf.template | diff - tools/nginx/frappe.conf.template`
+     期望输出**只有本仓加的那两段**（`upstream agenerp-serve-upstream` 与 `location /agenerp/`）。
+     多出任何一行，都要人判断要不要跟进。
+   - **本仓加的两段用成对的哨兵注释围起来**（`# >>> AgenERP` / `# <<< AgenERP`），
+     让上面那条 `diff` 的期望输出是**机械可核对的**，而不是靠读的人记得住。
+
+**残余风险**
+
+- **副本会与上游静默分叉**：上游改了路由表而我们没跟进时，`nginx -t` 不会报错、栈照样起，
+  只有那条被改掉的路由行为不同。**没有自动判据能挡住它** —— 挡它的只有 tag 钉死 + 升级步骤里那条 `diff`。
+  本节不假装它被解决了。
+- **`envsubst` 的替换名单是上游 entrypoint 决定的**（八个）。本仓加的两段里
+  **不许出现这八个名字之外的 `${…}`**：写了也不会被替换，会原样进 nginx 配置。
+  本仓那两段实际只用 `$host` / `$remote_addr` / `$proxy_x_forwarded_proto` 这类 nginx 内置变量
+  （`envsubst` 不认它们，原样留下，正是要的）。
+
+#### `D-b-2` `agenerp` 包怎么送进容器：选 **(i) bind mount + `PYTHONPATH`**
+
+`./agenerp:/opt/agenerp/agenerp:ro` + `PYTHONPATH: /opt/agenerp`，
+命令 `python3 -m agenerp.serve`。
+
+| 候选 | 判定 | 理由 |
+|---|---|---|
+| **(i)** bind mount + `PYTHONPATH` | **选中** | 只有 `git clone` 的机器上直接成立；不新增镜像 tag；与本仓**已有的**同形先例一致 —— `bootstrap-homepage` 的 `./tools/bootstrap:/opt/agenerp/bootstrap:ro`（`docker-compose.yml`）。镜像内实读 `python3 -V` = **3.11.6**（满足 `requires-python >= 3.11`）、`import certifi` 可导入（本仓唯一那条运行期依赖） |
+| (ii) 新建 `Dockerfile` 把包 `COPY` 进去 | **否决** | 引入一个**本仓自己构建的镜像**（Non-Goal 4 逐字「不新增任何镜像」），并把 `up -d --wait` 的第一步变成一次构建 —— 三个 CI job 的起栈时间与失败面都跟着变 |
+| (iii) 起容器时 `pip install` 本仓 | **否决** | 启动路径上多一次**网络**依赖。`system-baseline.md` §14 规则 ③ 逐字「前置检查属于 verify 脚本，不属于启动路径」；离线机器上 `clone && up` 直接不成立 |
+
+**挂载路径字面写死、不许经变量**（`./agenerp` 与 `/opt/agenerp/agenerp` 两侧都是字面值）。
+理由抄 `test_bootstrap_script_dir_is_mounted_literally` 的 docstring：**仓根存在 gitignored 的 `.env`**，
+`docker compose config` 会读它做插值，而本仓的判据是**对原始文本的静态扫描**，管不到 `.env`
+⇒ 凡是判据依赖的路径，写成 `${…}` 就等于给了一条判据看不见的绕过路径。
+
+⚠️ **同一条理由外推到另外两个值**，本节一并钉死：
+
+- **上游端口**：`AGENERP_SERVE_PORT: "8330"` 在 compose 里**字面写死**，不写成 `${AGENERP_SERVE_PORT:-8330}`。
+  Phase 2 判据③ 比的就是「nginx 侧上游端口 ↔ compose 侧这个值」，写成插值形式时
+  仓根 `.env` 能在 `config` 时把它改掉而判据看不见 ⇒ 判据③ **额外断言它不是插值形式**。
+- **回程地址**：见 `D-b-3`，同样字面写死。
+
+⚠️ **`AGENERP_SITE` 是唯一的例外，且是被判据逼出来的**：写成 `${AGENERP_SITE:-frontend}`，
+因为 `test_compose_zero_dep.py::test_every_interpolation_has_a_default` 只管「有 `${…}` 就要有 `:-`」，
+而**不写变量、直接写字面 `frontend`** 也满足它。这里选插值形式的理由是**站点名本来就是可换的**
+（`create-site --set-default frontend` / `frontend` 的 `FRAPPE_SITE_NAME_HEADER` 是同一个值，
+换站点名要几处一起换），而端口与回程地址是**判据的比对对象**，性质不同。
+`agenerp/serve/__main__.py:41-43` 逐字：站点名为空即 `return 2` ⇒ **`:-frontend` 默认值不可省**，
+省了会让空环境下容器直接退 2、`up --wait` 挂在起栈上。
+
+**残余风险**
+
+- bind mount 是 `:ro`，但它把**宿主仓库目录**接进了容器。栈只绑 `127.0.0.1`（`docker-compose.yml` 文件头），
+  本期不额外对冲。
+- 容器里跑的是**工作区当前的 `agenerp/`**，不是某个 commit 的快照 ⇒
+  「容器里的行为」与「某个 sha 的行为」在有未提交改动时**不是同一件事**。
+  收口证据里的 sha 与实测必须来自同一个干净工作区，本 plan 的 Phase 3 按这条办。
+
+#### `D-b-3` 服务打站点的回程地址：选 **(i) `http://frontend:8080`**，字面写死
+
+compose 里 `agenerp-serve` 的 `environment` 给 `AGENERP_SITE_URL: http://frontend:8080`
+（**字面值，不是 `${AGENERP_SITE_URL:-…}`**）。
+`agenerp/site.py:167-173` 的 `default_base_url()` 逐字「`AGENERP_SITE_URL` 优先」
+⇒ `client_from_sid()`（`:493-503`，走的正是 `default_base_url()`）在容器里就打到 `frontend`。
+
+| 候选 | 判定 | 理由 |
+|---|---|---|
+| **(i)** `http://frontend:8080` | **选中** | 走 nginx 那一跳，`FRAPPE_SITE_NAME_HEADER` 由它加（模板逐字 `proxy_set_header X-Frappe-Site-Name ${FRAPPE_SITE_NAME_HEADER}`），本仓**一行代码不用改** |
+| (ii) `http://backend:8000` + 自定义 `Host` / `X-Frappe-Site-Name` 头 | **否决** | `SiteClient` 今天**没有自定义 Host 头的入口**，选它就要改 `agenerp/site.py` —— 那是 §7.14 的面，且是**所有调用方共用**的那一层。本 plan 的 Non-Goal 9 只点名了 `agenerp/explain/**` 与 `agenerp/serve/app.py`，但「为了接线去改一条共用认证路径」正是它要挡的形状 ⇒ **不选** |
+
+**必须回答的三个问题，逐条**
+
+① **会不会与 `frontend depends_on agenerp-serve` 构成 compose 依赖环？**
+**不构成。** compose 的环判定只看 `depends_on` 这一张图，而本 plan 只加了**一条边**：
+`frontend → agenerp-serve`。`agenerp-serve` 的 `depends_on` 里**没有 `frontend`**
+（它只依赖 `create-site: service_completed_successfully`，理由见 `D-b-6`）。
+(i) 的 `frontend:8080` 是**运行时的 HTTP 调用**，不是编排层的边 —— 两者不是同一张图。
+**启动次序上也不会互锁**：`agenerp-serve` 先起，它的探针打的是**自己**的 `/agenerp/health`
+（恒 200、不碰站点，§7.20 `D-a-2`）⇒ 它在 `frontend` 还不存在时就能 healthy；
+而任何 `/agenerp/explain` 请求都**只能经 `frontend` 进来**，那时 `frontend` 必然已在跑。
+
+② **选 (ii) 会不会越出 Non-Goal 9？** 见上表 —— 会，故不选。
+
+③ **为什么必须字面写死，不能写成 `${AGENERP_SITE_URL:-http://frontend:8080}`？**
+`.github/workflows/gates.yml:399` 的 `gates-l2-seed` 有一块 **job 级** `env:`，
+`:403` 逐字 `AGENERP_SITE_URL: http://127.0.0.1:8080`，它会被 `:419` 那步
+`docker compose up -d --wait` **一并继承**。写成插值形式时，那个 job 里
+`agenerp-serve` 拿到的回程地址就是 `http://127.0.0.1:8080` —— **容器打自己**。
+而 `/agenerp/health` 恒 200 ⇒ **healthcheck 与 `up --wait` 照样绿**，
+只有 `/agenerp/explain` 会静默地打不到站点。
+⇒ 这是一条**「绿着坏掉」**的路径，必须在写配置时就堵死，不是运行期能发现的。
+
+**残余风险**
+
+- 回程多了一跳 nginx（`agenerp-serve → frontend → backend`），比直连 `backend` 多一层延迟与失败面。
+  本期取「不改共用认证路径」这一条，代价照实记。
+- 字面写死意味着**换站点/换端口时这一行要手改**。它与 `create-site --set-default frontend`、
+  `frontend` 的 `FRAPPE_SITE_NAME_HEADER`、`backend` 探针的 Host 头是**同一族值**，
+  `docker-compose.yml` 里已有的「改站点名要这四处一起改」那条注释**扩到五处**。
+
+#### `D-b-4` 监听地址开成一格：新变量 `AGENERP_SERVE_HOST`，**默认仍是 `127.0.0.1`**
+
+**这是 §7.20 `D-a-1` 残余风险那一条的正式重开**。它逐字写着：
+「本期服务只绑 `127.0.0.1`、不出宿主，这个形态够用；**它一旦要对本机之外提供，这一条就必须重开**」。
+容器里的 nginx 与服务**不在同一个网络命名空间**（两个容器）⇒ 绑 `127.0.0.1` 时 nginx 到不了
+⇒ 条件成立，本节重开。
+
+① **新变量与默认值**
+
+- 变量名 `AGENERP_SERVE_HOST`，解析函数 `agenerp/serve/__main__.py::resolve_host()`，
+  与既有 `resolve_port()` **同一套纪律**：不配 → 默认；配了但**不是合法监听地址** → **当场失败并指名变量**，
+  **不静默回退**（悄悄回退之后，「我配了 `0.0.0.0`」与「我配错了所以在 `127.0.0.1`」在运行时看不出区别）。
+- **默认值仍是 `agenerp/serve/app.py:44` 的 `LOOPBACK`**，`app.py` 既有分支一行不改。
+- **「合法」的口径**：只接受 **IP 字面量**（`ipaddress.ip_address()` 认的，v4/v6 皆可）。
+  主机名一律拒。理由：监听地址是**地址**不是名字 —— 一个名字可以解析出多条记录，
+  「绑到哪张网卡上」就变成不确定的；而拒绝的代价只是 `localhost` 要写成 `127.0.0.1`。
+  ⇒ 「非法值」因此是一个**可判定**的集合（`not-an-address` / `999.1.1.1` / `frontend` 都非法），
+  变异 M5 有确定的对象。
+
+② **为什么「容器内绑 `0.0.0.0`」不等于「对本机之外提供」**
+
+`0.0.0.0` 在容器里的含义是「本容器的全部网卡」，而本容器**只在 compose 的默认 bridge 网络上**。
+外面能不能连到它，**只取决于 compose 有没有把这个端口发布到宿主**。
+⇒ `agenerp-serve` 服务块**没有 `ports:` 块**，是这条论证的**唯一支点**。
+**它必须有一条静态判据守着**（Phase 2 判据①），否则这条论证是一句没人守的话。
+对外那格端口仍然只有 `frontend` 既有那一条 `127.0.0.1:${AGENERP_HTTP_PORT:-8080}:8080`。
+
+③ **被否决的备选**
+
+- **直接把 `app.py` 的 `LOOPBACK` 常量改成 `0.0.0.0`** → **否决**。
+  它会让**宿主上手工 `python3 -m agenerp.serve`** 的那次跑也默认对外 ——
+  一次**静默的暴露面扩大**，且 diff 里只有一行、看不出后果。
+  §7.20 `D-a-1` 重开的是「**能不能配**」，不是「**默认是什么**」。
+- **给 `build_server()` 加一个 `host` 关键字就完事（不开环境变量）** → **否决**。
+  容器里跑的是 `python3 -m agenerp.serve`，没有传参的入口；不开变量就等于不可配。
+- **复用 `AGENERP_SERVE_PORT` 那种「一个变量管两件事」的写法**（例如让 `AGENERP_SERVE_PORT`
+  收 `host:port`）→ **否决**，理由抄 `app.py:46-48` 已有的那条注释：
+  一个变量同时决定两件事时，配错的失败形态是静默的。
+
+**残余风险**
+
+- 服务绑 `0.0.0.0` 后，**同一 compose 网络里的任何容器**都能直连 `agenerp-serve:8330`，
+  绕过 nginx 那一跳。这不构成越权（服务面自己认 `sid`，§7.20 `D-a-4`），
+  但它意味着「同源」是**浏览器侧**的约束，不是网络侧的隔离。本节不假装它是后者。
+- `ThreadingHTTPServer` 的无超时/无限流/无 TLS **原样继承 §7.20 `D-a-1`**，本节只重开「绑哪个地址」一格。
+
+#### `D-b-5` 断言体默认基址的解析口径：与 `default_base_url()` **同一套**
+
+`tests/unit/test_explain_service_body.py` 原先逐字 `DEFAULT_SERVE_BASE = "http://127.0.0.1:18080"`。
+新口径：**`AGENERP_SERVE_BASE` > `AGENERP_SITE_URL` > `http://127.0.0.1:${AGENERP_HTTP_PORT:-8080}`**
+—— 后两级**直接复用** `agenerp/site.py:167-173` 的 `default_base_url()`，不在断言体里重写一遍。
+
+**这处漂移是「确认的」，不是推测的**，两个实读摆在一起就成立：
+
+- `.github/workflows/gates.yml` 的 `gates-l2-live` **不设** `AGENERP_HTTP_PORT`
+  ⇒ compose 走默认，`frontend` 发布在 `127.0.0.1:8080`；该 job 也**不设** `AGENERP_SERVE_BASE`。
+- ⇒ 人一旦按路径把断言体加载进 `tests/gates/` 并按交接说明把 `skip` 改成 `fail`，
+  **那六条会红在「连不上 18080」**，而不是红在实现。
+
+**为什么这不是「把判据迁就环境」**
+
+**判的东西一个字没变** —— 六条断言的判定逻辑、状态码、`sid` 不回显、400 拒绝清单，全部原样。
+变的只是**「去哪里判」的默认值**，而那个默认值**此前指着一个 CI 上根本不存在的端口**。
+把判据指向一个不存在的靶子，不是更严格，是**红错地方**（口径同 `conftest.py:64-71`
+那条「端口是观测出来的事实，不是配置出来的期望」）。
+⇒ 按 `docs/plans/00-plan-authoring-and-execution-guide.md` **Minimum Rule 14**，
+这属于**确认的契约漂移**，必须是 `Fix`，不许降级成 `Follow-up`。
+
+**`18080` 的来历照实记**：起草期与执行期两次 `docker compose ps` 都实读本机栈的 `frontend`
+发布在 `127.0.0.1:18080`（仓根 `.env` 里**没有** `AGENERP_HTTP_PORT`，那套栈是用当时 shell 里的
+`AGENERP_HTTP_PORT=18080` 起的）⇒ 旧默认值是**「只对起草者那台机器成立」**，不是有人抄错。
+新口径对两边都成立：本机跑时显式给 `AGENERP_SERVE_BASE=http://127.0.0.1:18080`；
+`gates-l2-live` 已有的 `AGENERP_SITE_URL=http://127.0.0.1:8080` 直接命中第二级。
+**文件头示例命令一并对齐**，不留一处指着 `18080` 却不说明前提的写法。
+
+⚠️ **边界（与 §5.1 见即停第 10 条同一条线）**：本节改的是「去哪里判」。
+`tests/unit/test_explain_service_body.py:201` 那条 503 分支上的 `pytest.skip`
+是「**判成什么**」，**本 plan 一个字不碰** —— 见 `D-b-7` 后的收口段与 STATE 的 needs-human。
+
+**残余风险**
+
+- 三级解析里第三级 `${AGENERP_HTTP_PORT:-8080}` 与 compose 的发布口是**两处各写一遍**的同一个约定。
+  Phase 2 判据⑦ 用「同一组环境变量下两者算出同一个 host:port」把它们钉在一起，
+  但那只覆盖**解析口径**，不覆盖「compose 真的发布在那个口上」。后者由 `conftest.py` 的
+  **观测式**取端口承担（红线 1 内，本 plan 只依赖不改动）。
+
+#### `D-b-6` 新服务的 healthcheck 形状
+
+```
+healthcheck:
+  test: ["CMD-SHELL", "curl -fsS --max-time 5 -o /dev/null http://127.0.0.1:8330/agenerp/health"]
+  interval: 10s
+  timeout: 5s
+  retries: 6
+  start_period: 20s
+```
+
+① **不含任何 `AGENERP_LLM_*`** —— `test_compose_zero_dep.py::test_ai_vars_absent_from_healthchecks`
+扫全部 `healthcheck:` 块，本服务的这一块里一个 AI 变量都没有。
+Phase 2 判据⑥ 在**服务块粒度**上再判一次（既有那条是全局扫，新增这条点名 `agenerp-serve`）。
+
+② **打 `/agenerp/health` 而不是 `/agenerp/explain`**。
+`/explain` 认人、碰站点、可能碰 LLM（§7.20 `D-a-2` 的表）；拿它做探针等于让
+「AI 未配置」把服务判成**不健康** —— 正是 `docker-compose.yml` 文件头规则 ② 要挡的
+（外部能力缺失是「未配置」状态，不是错误状态）。
+`/health` 恒 200、不读任何 `AGENERP_LLM_*`、不打站点，是唯一合格的探针面。
+
+③ **`start_period` / `retries` 的取值依据**（不抄数，逐条说理由）：
+
+- `start_period: 20s` —— 本服务的启动路径只有「解释器起来 + 导入 `agenerp` 包 + `bind()`」，
+  **不建站、不连 DB、不等 redis**，本机实测 `python3 -m agenerp.serve` 秒级可用。
+  取 20s 是给「冷 CI runner 上的一次 python 冷导入 + `:ro` bind mount 的首次读」留余量。
+  ⚠️ **刻意不取 `backend` 那个 60s**：那 60s 是给**建站**留的（`system-baseline.md` §14.2 逐字
+  「建站耗时随机器速度变」），本服务不在那条路径上，抄过来只会让**真坏掉的服务更晚翻红**。
+- `interval: 10s` / `timeout: 5s` / `retries: 6` —— 与 `frontend` / `backend` / `websocket`
+  **三个既有探针逐字相同**。本服务没有任何理由需要一套不同的节奏，
+  保持一致的收益是「`up --wait` 的等待上限在全栈内可预测」（`start_period` 后最多 60s 翻红）。
+- `--max-time 5` 与 `timeout: 5s` 对齐：curl 自己先超时，探针拿到的是**明确的失败**而不是被 docker 掐断。
+
+④ **`depends_on`**：只有 `create-site: service_completed_successfully`。
+理由：服务**启动**时不打站点（`/health` 不碰站点），但它**存在的意义**是打站点；
+站点还没建完就让它 healthy，会让 `up -d --wait` 退 0 之后的第一个 `/explain` 必然失败。
+**刻意不依赖 `backend` / `frontend`**：依赖 `frontend` 会与 `frontend depends_on agenerp-serve` 成环（`D-b-3` ①）；
+依赖 `backend` 则把本服务的起停绑在一条它启动时用不到的链上，且 `create-site` 已经隐含了 `configurator`。
+
+**残余风险**
+
+- 探针只证明「进程活着且路由表里有 `/agenerp/health`」，**不证明**「它能打到站点」。
+  后者故意不进探针：打站点会把「站点没起来」翻译成「本服务不健康」，
+  与 ② 是同一条理由的另一半。代价是 `up --wait` 退 0 不等于 `/explain` 可用 ——
+  这一格由 Phase 3 的活体实测（H6）承担，不由探针承担。
+
+#### `D-b-7` 风险档自评：**L1**（可逆配置），不落 L2/L3；`system-baseline.md` §14 **就地追加一节**
+
+**逐档对照 `docs/design/agents-and-roles.md` §9 的风险档表**：
+
+| 档 | 定义 | 本 plan 是否落入 | 理由 |
+|---|---|---|---|
+| L0 | 只读，无副作用 | **不完全是** | 对**活站点**确实零写（服务面只读，§7.20 规矩 2），但本 plan 改的是**编排层**：多一个容器、多一处 nginx 配置 —— 那是有副作用的 |
+| **L1** | 可逆配置 | **✅ 落这一档** | 全部产物是 `docker-compose.yml` 的一个服务块、一个仓内 nginx 模板文件、`agenerp/serve/` 的一格监听地址、若干 `tests/unit/`。**逐条可 `git revert`**，站点侧零残留（不装 app、不改 site_config、不建 DocType） |
+| L2 | 业务数据写入 | ❌ | 对站点零写（Non-Goal 5） |
+| L3 | 系统形态变更 | ❌ | 不 `bench install-app` / 不 `bench new-app` / 不建 DocType / 不改权限 / 不改 Workflow（Non-Goal 6）；**不生成任何运行时 Server Script**（红线 7） |
+
+⚠️ **比 §7.20 `D-a-6` 的 L0 高了一档，照实记**：那个 plan 只往仓里加了三个 Python 模块，
+谁都没起它；本 plan 让它**成为默认栈的一部分** —— `git clone && docker compose up` 之后
+多一个进程在跑。这不是 L0。**评成 L1 而不是 L0，是本节刻意的自评，不是笔误。**
+
+**`system-baseline.md` §14 族要不要就地追加一节：**要。判据是本节自己定的那条
+「本 plan 是否新增了一条 compose 写作规则」——**新增了一条**：
+
+> **规则 ④（新）**：凡是**判据要比对**的 compose 值（挂载路径、上游端口、回程地址），
+> 一律**字面写死**，不许写成 `${…}` —— 哪怕带了 `:-` 默认值。
+> 理由：仓根有 gitignored 的 `.env`，`docker compose config` 会读它做插值，
+> 而本仓判据是对**原始文本**的静态扫描，管不到 `.env`。
+> 已有先例两条（`test_published_ports_bind_loopback_literally` 的宿主 IP、
+> `test_bootstrap_script_dir_is_mounted_literally` 的挂载目录），本 plan 是**第三、第四条**。
+
+⇒ 落 `system-baseline.md` **§14.11**，**只写那条规则与它的判据清单**；
+接线形态、候选与否决理由**全部只在本节（§7.21）**，两处不各写一半。
+
+**残余风险**
+
+- **L1 的「可逆」是对本仓而言的**：`git revert` 能把配置退回去，但**已经起过的容器与卷**不会自己消失
+  （`docker compose down` 是人的动作）。本节不把「可 revert」说成「无痕」。
+- **规则 ④ 只挡得住「写成插值」这一种绕过**。判据仍是文本扫描 ⇒
+  换一个**同名但内容不同**的宿主目录、或在 CI 上用不同的 compose 文件，两条都绕得过去。
+  这与既有那两条先例是同一处天花板，本节不假装本 plan 抬高了它。
