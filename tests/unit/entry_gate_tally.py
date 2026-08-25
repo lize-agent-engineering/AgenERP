@@ -274,16 +274,60 @@ def scan_files() -> list[pathlib.Path]:
     return found
 
 
-def _region_mask(lines: list[str]) -> list[bool]:
-    """逐行标记「是否落在单一真相源区域内」。起止标记本身算区域内。"""
+class UnpairedRegionMarker(AssertionError):
+    """区域标记不成对 —— **判据自身打红**，而不是静默地把豁免面扩大到 EOF。
+
+    这是 2026-08-25 独立收口审计实测出的 F1 缺陷的形态化：一个没有配对闭合的
+    起始标记曾把 `module-boundaries.md:2801` 到 EOF 整段判为「区域内」，
+    守卫在那一带彻底失效，且豁免面随该文件续写单调增长。
+    """
+
+
+def _region_marker_kind(line: str) -> str | None:
+    """标记只在**独占一行**（前后仅允许空白）时才算标记，回 `"open"` / `"close"` / `None`。
+
+    ⚠️ **行内引用不得开区域**：`module-boundaries.md` §7.18 讲区域面时会**逐字引用**
+    这两个标记名，散文里出现标记名是正常的、也是刻意保留的（审计逐字禁止靠删措辞绕过）。
+    把「标记」收窄成「独占一行」，散文引用与真标记就从此不同形。
+    """
+    stripped = line.strip()
+    if stripped == REGION_OPEN:
+        return "open"
+    if stripped == REGION_CLOSE:
+        return "close"
+    return None
+
+
+def _region_mask(lines: list[str], *, source: str = "<text>") -> list[bool]:
+    """逐行标记「是否落在单一真相源区域内」。起止标记本身算区域内。
+
+    标记必须**真正成对**：起始标记无配对闭合、闭合标记无配对起始、区域内再开区域，
+    三种形态一律 `UnpairedRegionMarker`（判据自身打红）。**沉默地豁免掉文件尾部
+    是最危险的失败形态** —— 守卫越瞎，「命中为空」那条判据越容易绿。
+    """
     inside = False
+    open_at = 0
     mask: list[bool] = []
-    for line in lines:
-        if REGION_OPEN in line:
-            inside = True
+    for number, line in enumerate(lines, start=1):
+        kind = _region_marker_kind(line)
+        if kind == "open":
+            if inside:
+                raise UnpairedRegionMarker(
+                    f"{source}:{number}: 区域内又出现起始标记（上一处开在 :{open_at}，未闭合）"
+                )
+            inside, open_at = True, number
+        elif kind == "close" and not inside:
+            raise UnpairedRegionMarker(
+                f"{source}:{number}: 闭合标记没有配对的起始标记"
+            )
         mask.append(inside)
-        if REGION_CLOSE in line:
+        if kind == "close":
             inside = False
+    if inside:
+        raise UnpairedRegionMarker(
+            f"{source}:{open_at}: 起始标记没有配对的闭合标记 —— "
+            f"到 EOF 的 {len(lines) - open_at + 1} 行会被整段豁免掉守卫"
+        )
     return mask
 
 
@@ -300,11 +344,15 @@ def scan_handwritten_tallies(
     """
     hits: list[tuple[str, int, str]] = []
     for path in scan_files():
+        relative = str(path.relative_to(REPO_ROOT))
         lines = path.read_text(encoding="utf-8").splitlines()
         for number, line in scan_text(
-            lines, require_context=require_context, honour_region=honour_region
+            lines,
+            require_context=require_context,
+            honour_region=honour_region,
+            source=relative,
         ):
-            hits.append((str(path.relative_to(REPO_ROOT)), number, line))
+            hits.append((relative, number, line))
     return hits
 
 
@@ -313,13 +361,14 @@ def scan_text(
     *,
     require_context: bool = True,
     honour_region: bool = True,
+    source: str = "<text>",
 ) -> list[tuple[int, str]]:
     """三条谓词施加在**一段文本**上，回 `(行号, 原文)`。
 
     与文件系统解耦，因此变异（M7 / M7b）可以在**合成文本**上施加并复跑，
     不必真去改一份 owner doc 再改回来。
     """
-    mask = _region_mask(lines) if honour_region else [False] * len(lines)
+    mask = _region_mask(lines, source=source) if honour_region else [False] * len(lines)
     found: list[tuple[int, str]] = []
     for index, line in enumerate(lines):
         if not GUARD_NUMBER.search(line):
@@ -347,11 +396,19 @@ REGION_ANCHORS = (
 
 
 def region_lines() -> list[str]:
-    """§12.3 单一真相源区域**内**的全部行（不含那对起止标记本身）。"""
-    text = MODEL_MANAGEMENT.read_text(encoding="utf-8")
-    assert REGION_OPEN in text, f"owner doc 里找不到 {REGION_OPEN}"
-    assert REGION_CLOSE in text, f"owner doc 里找不到 {REGION_CLOSE}"
-    return text.split(REGION_OPEN, 1)[1].split(REGION_CLOSE, 1)[0].splitlines()
+    """§12.3 单一真相源区域**内**的全部行（不含那对起止标记本身）。
+
+    走的是守卫那份 `_region_mask` —— 区域面在「取数」与「守卫」两侧**只有一个口径**，
+    因此标记一旦不成对，两侧同时打红，不会出现「取数照常、守卫失效」的偏斜。
+    """
+    lines = MODEL_MANAGEMENT.read_text(encoding="utf-8").splitlines()
+    mask = _region_mask(lines, source="docs/architecture/model-management.md")
+    assert any(mask), f"owner doc 里找不到成对的 {REGION_OPEN}"
+    return [
+        line
+        for line, inside in zip(lines, mask)
+        if inside and _region_marker_kind(line) is None
+    ]
 
 
 def region_prose_lines_with_numbers() -> list[str]:

@@ -34,6 +34,9 @@ from entry_gate_tally import (
     REGION_OPEN,
     REPO_ROOT,
     UNRELATED_LINES,
+    UnpairedRegionMarker,
+    _region_mask,
+    _region_marker_kind,
     anchored_line,
     numbers_in,
     region_lines,
@@ -394,6 +397,63 @@ def test_criterion_7_region_is_not_a_filename_whitelist():
         "⚠️ 门禁把它提到 2/3。",
     ]
     assert scan_text(injected) == [(5, "⚠️ 门禁把它提到 2/3。")]
+
+
+def test_criterion_7_no_scanned_file_has_an_unclosed_region_marker():
+    """**补判据（审计 F1）**：扫描面上的**每一份**文件，区域标记必须真正成对。
+
+    一个没有配对闭合的起始标记会把该文件从那一行到 EOF 整段豁免掉守卫 ——
+    而「命中为空」那条判据**豁免面越大越容易绿**，因此那种失效是静默的。
+    这一条把「成对」直接钉成判据：不成对就在这里当场红，不等到某天有人在尾部手抄。
+    """
+    for path in scan_files():
+        relative = str(path.relative_to(REPO_ROOT))
+        lines = path.read_text(encoding="utf-8").splitlines()
+        opens = sum(1 for line in lines if _region_marker_kind(line) == "open")
+        closes = sum(1 for line in lines if _region_marker_kind(line) == "close")
+        assert opens == closes, f"{relative}: 起始 {opens} 个、闭合 {closes} 个，不成对"
+        _region_mask(lines, source=relative)  # 嵌套 / 悬空 一律在这里抛
+
+
+def test_criterion_7_an_unclosed_open_marker_makes_the_guard_itself_red():
+    """区域标记不成对时，**判据自身打红**，而不是静默扩大豁免面。
+
+    这正是审计 F1 的失败形态：旧口径下这段文本会让 `1/6` 那行被判为「区域内」而放过。
+    """
+    injected = [REGION_OPEN, "", "门禁", "⚠️ 无门禁 1/6。"]
+    with pytest.raises(UnpairedRegionMarker):
+        scan_text(injected)
+    with pytest.raises(UnpairedRegionMarker):
+        scan_text([REGION_CLOSE, "门禁", "⚠️ 无门禁 1/6。"])
+
+
+def test_criterion_7_an_inline_quotation_of_the_marker_does_not_open_a_region():
+    """**F1 的根因判据**：散文里**行内引用**标记名不开区域，标记必须独占一行。
+
+    `module-boundaries.md` §7.18 讲区域面时逐字引用了这两个标记名（**刻意保留**，
+    审计逐字禁止靠删措辞绕过）。行内引用若开区域，该文件从那里到 EOF 就没人守了。
+    """
+    quoted = "3. **区域面** = 该行不在 `" + REGION_OPEN + "` 那对起止标记之间。"
+    assert _region_marker_kind(quoted) is None
+    assert _region_mask([quoted]) == [False]
+    injected = [quoted, "", "门禁", "⚠️ 无门禁 1/6。"]
+    assert scan_text(injected) == [(4, "⚠️ 无门禁 1/6。")]
+
+
+def test_criterion_7_a_tally_appended_to_the_tail_of_an_owner_doc_is_caught_m7_tail():
+    """**M7′（审计实跑的那条变异）的可复跑形态**：往 owner doc **文件尾部**追加一处
+    带语境的逐格数，守卫必须命中。
+
+    审计当天这条实测 **exit 0**（漏报 18 行豁免带）；本判据把它钉在活文件的**真实**
+    内容上跑 —— 尾部之后再续写多少行，这一条都跟着走。
+    """
+    target = REPO_ROOT / "docs/architecture/module-boundaries.md"
+    lines = target.read_text(encoding="utf-8").splitlines()
+    assert scan_text(lines, source="module-boundaries.md") == []
+    mutated = [*lines, "", M7_INJECTION]
+    assert scan_text(mutated, source="module-boundaries.md") == [
+        (len(mutated), M7_INJECTION)
+    ]
 
 
 def test_criterion_7_guard_scope_covers_both_trees():

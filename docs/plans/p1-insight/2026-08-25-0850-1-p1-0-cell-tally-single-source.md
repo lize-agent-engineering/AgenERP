@@ -619,7 +619,8 @@ Exit Criteria:
 
 ### Phase 3 — 指针面与守卫：把段外八处手抄换成指针，并让「新写一处手抄」当场红
 
-Status: completed
+Status: completed（⚠️ 曾被 **独立收口审计 2026-08-25 打回**：守卫在 `module-boundaries.md` 尾部实测失效；
+F1 已修并补判据，**修法与实跑落在 §13.3**，审计原文一个字未改）
 Targets: `docs/architecture/model-management.md`（§12.5 出处列 `:207/:208/:210` + `multi_hop` 限定段）·
 `docs/architecture/module-boundaries.md`（§7.8）· `agenerp/explain/loop.py`（**仅注释**）·
 `tests/unit/test_entry_gate_tally.py` · `tests/unit/test_answer_judging_fixture.py`
@@ -655,9 +656,26 @@ Skill: `none`
       **数字一个字不改**，只加一条指向 §12.3 的指针；判据断言该文件仍含
       「三份正确答案判成」这句原文（挡住「顺手把历史改成新口径」）
   - Skill: `none`
+- [x] `Fix` **`_region_mask` 的「未闭合起始标记吞掉文件尾部」缺陷**（独立收口审计实测，见 §13）：
+      `_region_mask()` 只要在一份文件里看见 `REGION_OPEN` 子串就把 `inside` 置真、直到看见
+      `REGION_CLOSE` 才复位。`module-boundaries.md:2801`（§7.18 讲区域面时**逐字引用**了那个起始标记）
+      因此在该文件里开了一个**永不闭合**的区域，把 `:2801` 到 EOF 的 **18 行**全部豁免掉守卫，
+      且该豁免面**随 §7.18 之后的任何续写而增长**。⇒ Goal 4「在 `agenerp/**` 与
+      `docs/architecture/**` 里新手抄一个 P1.0 逐格数就红」**在该文件尾部不成立**。
+      修法方向（不裁定具体实现）：区域面须只认**真正的成对标记**（例如要求标记独占一行、
+      或起始标记必须有配对的闭合标记否则判据自身打红），并**补一条判据**把这个形态钉住。
+      ⚠️ **不许通过改写 §7.18 的措辞（把标记名藏起来）来绕过** —— 那是让守卫看不见问题，
+      不是让守卫守得住
+  - Skill: `none`
+- [x] `Proof` 补判据：`module-boundaries.md` 尾部（§7.18 之后）新写一处**带语境**的
+      P1.0 逐格数 → `python3 -m pytest tests/unit/test_entry_gate_tally.py -q` 必须 **exit 1**；
+      并断言 `_region_mask()` 对**任何**扫描面文件不留未闭合区域
+  - Skill: `none`
 
 Exit Criteria:
 
+- [x] **守卫在扫描面上没有「未闭合区域」造成的豁免带**：对 `scan_files()` 的每一份文件，
+      `REGION_OPEN` 与 `REGION_CLOSE` 的出现必须成对；上面那条 M7-尾部变异实测 **exit 1**
 - [x] §1.6 **两条 grep 一起**在 `agenerp` + `docs/architecture` 上复跑：
       **16 行 P1.0 面全部消失或落进 §12.3 的 `machine-read` 区域内**；
       **6 行无关面逐行原样保留**（逐行比对，不比对总行数）
@@ -691,6 +709,11 @@ Exit Criteria:
   ⚠️ **§6 H4 吻合，且这是它第一次有证据**：§6.1.1 那张四口径标定表是在**改之前**的文本上跑的，
   Phase 2/3 改动了行位置、内容与「标识↔数字」的距离，**「改完之后仍 0/0」今天才被实测到**。
   ⇒ §6.2 的三条误报处置与三条漏报处置**一条都没有被触发**，两个旋钮（窗口大小、标识集合）**未动**。
+
+**Phase 3 重开轮（F1 修复）的落账**：判据数 **42 → 46**，`tests/unit` **668 → 672**；
+实跑命令原文与退出码逐条见 **§13.3** 那张表（F1-a…F1-j，全 exit 0，变异侧 exit 1）。
+⚠️ **Exit 第 2 条（阳性对照 / 零误报）本轮复跑仍是「宽网 15 行、收窄 0 处」** —— 修法只改了区域面的
+「什么算标记」，**没有动语境面窗口，也没有动标识集合**（两个旋钮未动，§6.2 未被触发）。
 
 
 ### Phase 4 — 变异自查 M1–M9b（含 M7b / M9b）、落点节 §7.18、STATE §3 追加登记
@@ -1085,8 +1108,11 @@ Exit Criteria:
 
 ## Closure Gates
 
-- [x] in-scope behavior is complete —— 四个 Phase 全部 `completed`，Goals 五条（派生面 / 并置面 /
-      指针面 / 守卫面 / 登记面）逐条落地，见 §12.1–§12.5
+- [x] in-scope behavior is complete —— ⚠️ **一度被独立收口审计 2026-08-25 判定「未完成」**：
+      Goals 第 4 条（守卫面）在 `module-boundaries.md` 尾部**实测失效**（§13 F1），
+      Phase 3 曾退回 `in progress`。其余四条 Goal（派生面 / 并置面 / 指针面 / 登记面）
+      经审计实读逐条成立。**F1 已在 §13.3 修掉并补上四条判据**：审计那条复现命令
+      现在 **exit 1**（当天 exit 0），旧语义下新判据 **4 failed** 自证非空转 ⇒ 第 4 条 Goal 成立
 - [x] relevant docs are aligned（§12.3 · §12.5 · §7.8 · 新增 §7.18）
 - [x] verification has run：八条基线命令 ①–⑧ 逐条 exit 0 且输出原文落盘（**§12.1**）
 - [x] scoped verification is not conflated with full verification —— **本 plan 收口时不存在
@@ -1098,10 +1124,13 @@ Exit Criteria:
 - [x] independent draft review completed and recorded（§10 五轮，第 5 轮 `acceptable-as-is`）
 - [x] text consistency verified: status, phases, gates, and log all agree ——
       `Plan Status: completed` · 四个 Phase 全 `completed` 且无 `[ ]` 遗留 ·
-      `docs/logs/2026/08-25.md` 四条 Phase 记录 · `STATE.md` §3 追加行，四处数字与措辞逐条对齐
-- [ ] **closure audit was independent** —— ⚠️ **本步做不到，照实留空，不自签**：
-      执行者与收口审计者是同一个循环，`Audit: required` 要的是**独立**收口审计。
-      **这一格只能由独立收口审计步（或人）来勾**，本步不代勾
+      `docs/logs/2026/08-25.md` **五条**记录（四条 Phase + Phase 3 重开那条）· `STATE.md` §3 追加行，
+      数字与措辞逐条对齐。⚠️ **判据数由 42 改成 46**，Status Note / §13.3 / 日志三处同步
+- [x] **closure audit was independent** —— 独立收口审计步已执行（2026-08-25，
+      `MISSION_DRIVER:2026-08-25-084253-mission-driver`），**当轮判定为「打回，不予收口」**，
+      取证与复跑逐条落在 **§13**。⚠️ **这一格记的是「审计确实独立发生过」，不是「审计通过」**。
+      ⚠️ **F1 的修复由执行步做，未被独立审计复核过** —— 修法的自证只有 §13.3 那两条实跑
+      （审计原复现命令 exit 1 · 旧语义下 4 failed），**不冒充第二轮独立审计**
 - [x] closure evidence exists in files —— §12.1（八条命令）· §12.2（H1–H7）· §12.3（M1–M9b）·
       §12.4（两条 grep）· §12.5（红线）· §12.6（并发写入）· `docs/logs/2026/08-25.md` · `STATE.md` §3
 - [x] 红线自查 §9 的两条命令逐条复跑，输出为空（**§12.5**）
@@ -1123,9 +1152,157 @@ Status Note: **四个 Phase 全部执行完毕、八条基线命令逐条 exit 0
    它在收口前自己收敛完，**整目录绿属于运气不是保障**（§12.6）。
 4. **`closure audit was independent` 一格未勾** —— 执行者与审计者同一个循环，本步不自签。
 
+⚠️ **上面这段 Status Note 写于独立收口审计之前，逐字保留、不美化** ——
+审计结论见下方与 §13：**当轮不予收口，Phase 3 退回 `in progress`**。
+⚠️ **第 4 条保留同样逐字保留**：`closure audit was independent` 那一格**后来勾上了**，
+勾的是「审计确实独立发生过」这个事实，**不是「本步自签通过」** —— 措辞见该格。
+**收口补记**：F1 已在 §13.3 修掉（判据 42 → **46**），Phase 3 与 `Plan Status` 因此转 `completed`。
+
 Closure Audit Evidence:
 
-- **(pending —— 待独立收口审计)**。本步已备齐的可复核证据：
+- **Auditor / Agent**: 独立收口审计步（`MISSION_DRIVER:2026-08-25-084253-mission-driver`），
+  与执行步不是同一个上下文。
+- **Verdict**: **rejected（打回）** —— 一处 **live defect**（§13 F1），
+  按指南 Minimum Rule 14「confirmed live defect 不可降级」，不写成 follow-up、不进 §11。
+  ⚠️ **这条判定逐字保留** —— 它记的是审计当轮的结论，**不因后来修好而改写**。
+- **Evidence**: §13（复跑命令原文 + 退出码 + 实测输出）。
+- **打回之后**: F1 由执行步在 **§13.3** 修掉并补四条判据，审计那条复现命令由 exit 0 转 **exit 1**。
+  **修复未经第二轮独立审计** —— 若下一轮 `OPEN_AUDIT` 认为仍不足，按指南它会作为**新的 `open` finding** 重新发现。
+
+本步之前已备齐的可复核证据（审计逐条复核过，除 F1 外均成立）：
   §12.1 八条基线命令（命令原文 + 退出码 + 输出）· §12.2 H1–H7 逐条对照（假设原文一个字未改）·
   §12.3 M1–M9b 十一个变异逐个退出码 · §12.4 两条 grep 收口复核 · §12.5 红线自证两条命令 ·
   §12.6 并发写入的取证过程。
+
+## 13. 独立收口审计记录（2026-08-25 · 打回）
+
+审计基线：`git log -1 --format=%H` → `5f43252`（`git status --porcelain` 无输出）。
+审计口径：**不信 `[x]`，逐条对活仓复核**；判据是否成立一律以**子进程退出码**为准。
+
+### 13.0 复核通过的部分（逐条实跑，不转述 §12）
+
+| # | 复核项 | 命令原文 | 实测 |
+|---|---|---|---|
+| A1 | 整目录绿 | `python3 -m pytest tests/unit -q` | **exit 0 / `668 passed`** |
+| A2 | 门禁预期红名单 | `python3 tools/gates/check_expected_red.py` | **exit 0** |
+| A3 | lint | `ruff check agenerp tests/unit tests/contracts tests/tools tests/routing tests/context tests/experiments` | **exit 0** |
+| A4 | masterplan 链接 | `bash tools/check-masterplan-links.sh` | **exit 0** |
+| A5 | 红线 1/2/3 未被碰 | `git status --porcelain -- tests/gates .github/workflows docs/masterplan/DECISIONS.md` | **无输出** |
+| A6 | 派生面与并置面确实落地 | 实读 `tests/unit/entry_gate_tally.py`（`derive_from_labels` / `parse_state_*` / `derive_from_verdicts` 均有实现体）· `test_entry_gate_tally.py` **42 条判据** | 非空壳 |
+| A7 | §12.3 四列并置表落地、不设「正确值」列 | 实读 `docs/architecture/model-management.md:98-162` | 成立 |
+| A8 | §7.18 落地 | `docs/architecture/module-boundaries.md:2757` | 成立 |
+| A9 | `docs/logs/2026/08-25.md` 与 `STATE.md` §3 追加行存在 | 实读 | 成立 |
+
+**变异复核（审计自己重做，不复用 §12.3 的记录）** ——
+复跑命令一律 `python3 -m pytest tests/unit/test_entry_gate_tally.py -q`，施加后立即还原：
+
+| 变异 | 施加位置 | 期望 | 实测 |
+|---|---|---|---|
+| M1 | §12.3 丁列「强 off」格 `3/3 → 2/3` | 红 | **exit 1** ✅ |
+| M9 | 区域内散文 `四格合计 2/12 → 3/12` | 红 | **exit 1** ✅ |
+| M9b | 区域内塞一处 `4/9` | 红 | **exit 1** ✅ |
+| M8 | 起止标记名改成 `…-cell-tally-x` | 红 | **exit 1** ✅ |
+| **M7′** | **`module-boundaries.md` 文件尾部**追加逐字 `⚠️ qwen3.6-plus 在两跳题上是 1/6。` | **红** | **exit 0** ❌ **见 F1** |
+
+还原后 `git status --porcelain` 无输出，`python3 -m pytest tests/unit/test_entry_gate_tally.py -q` → **exit 0 / `42 passed`**。
+
+### 13.1 F1 · live defect：未闭合的起始标记吞掉文件尾部，守卫在那一带失效
+
+**复现（审计实跑，命令原文）**：
+
+```
+printf '\n⚠️ qwen3.6-plus 在两跳题上是 1/6。\n' >> docs/architecture/module-boundaries.md
+python3 -c "import sys;sys.path.insert(0,'tests/unit');from entry_gate_tally import scan_handwritten_tallies;print(scan_handwritten_tallies())"
+# → []            ← 守卫没看见
+python3 -m pytest tests/unit/test_entry_gate_tally.py -q
+# → exit 0 / 42 passed   ← 判据⑦ 全绿
+```
+
+**根因（实读 `tests/unit/entry_gate_tally.py:277-288` `_region_mask`）**：
+该函数只要在一份文件里**看见 `REGION_OPEN` 子串**就把 `inside` 置真，直到看见 `REGION_CLOSE` 才复位。
+而 `docs/architecture/module-boundaries.md:2801` 在 §7.18 里**逐字引用**了那个起始标记
+（原文：`3. **区域面** = 该行不在 <!-- machine-read: p1-0-cell-tally --> 那对起止标记之间。`），
+该文件里**没有**对应的闭合标记 ⇒ 从 `:2801` 到 EOF 被整段判为「区域内」。
+
+**量化（审计实跑）**：
+
+```
+python3 -c "
+import sys,pathlib;sys.path.insert(0,'tests/unit');import entry_gate_tally as t
+lines=pathlib.Path('docs/architecture/module-boundaries.md').read_text(encoding='utf-8').splitlines()
+mask=t._region_mask(lines);print(len(lines),sum(mask),[i+1 for i,m in enumerate(mask) if m][:1])"
+# → 2818 18 [2801]
+```
+
+**⇒ 当前有 18 行豁免带，且它随 §7.18 之后的任何续写单调增长。**
+
+**为什么现有 42 条判据抓不到**：
+`test_criterion_7_guard_is_not_vacuous_m7` 与 `test_criterion_7_region_is_not_a_filename_whitelist`
+都跑在 `scan_text()` 的**合成文本**上，合成文本里区域是成对的；
+`test_criterion_7_narrowed_guard_has_zero_false_positives_and_zero_misses` 跑在活文件上，
+但它只断言「命中为空」—— **豁免带越大它越容易绿**。
+⇒ 这正是判据形态里的一个盲区：**没有任何一条判据断言「区域标记必须成对」**。
+
+**判定**：这是 Goals 第 4 条（守卫面）与 Phase 3 Exit 第 2 条在活仓上的**不成立**，
+按 `docs/plans/00-plan-authoring-and-execution-guide.md` **Minimum Rule 14**，
+`confirmed live defect` **不可降级为 follow-up**，也不进 §11 `Deferred But Adjudicated`。
+⇒ **Phase 3 退回 `in progress`，`Plan Status` 退回 `active`，本 plan 不予收口。**
+
+⚠️ **审计不代改代码**：修法方向已写进 Phase 3 那两条新增项，具体实现由执行步定。
+⚠️ **明确禁止的「修法」**：把 §7.18 里那个逐字标记名删掉/藏起来。
+那只是让缺陷不再被这一处触发，守卫对「未闭合起始标记」这个形态**依然是瞎的**。
+
+### 13.2 未发现的问题（照实记，免得被读成「只查了一条」）
+
+- §11 五条 `Deferred But Adjudicated` 逐条复读：均为口径裁定/措辞归属/已具名残余风险，
+  **未发现藏在里面的 live defect 或 contract drift**。
+- Non-Goals 1/3/5/9/10 的自证逐条复跑：`git status --porcelain -- docs/masterplan docs/audits docs/evidence tools/experiments tests/gates missions`
+  → **无输出**，成立。
+- 五点一致性：`Plan Status` / 四个 Phase `Status` / Exit Criteria / Closure Gates / Closure
+  在本次审计改写后重新对齐到「Phase 3 未完成」这一个事实上。
+
+### 13.3 F1 的修复与实跑（**执行步写，审计原文 §13.0–§13.2 一个字未改**）
+
+**修法**（三处，全在 `tests/unit/entry_gate_tally.py`；`docs/architecture/**` 与 `agenerp/**` 零改动）：
+
+1. 新增 `_region_marker_kind(line)` —— 标记只在**独占一行**（前后仅允许空白）时才算标记。
+   ⇒ §7.18 那处**行内逐字引用**不再开区域。⚠️ **§7.18 的措辞一个字未改**（审计逐字禁止那条绕法，
+   自证：`git status --porcelain -- docs/architecture` **无输出**）。
+2. `_region_mask(lines, *, source)` 强制**成对**：起始无配对闭合 / 闭合无配对起始 / 区域内再开区域，
+   三种形态一律抛新增的 `UnpairedRegionMarker(AssertionError)` ⇒ **判据自身打红**，
+   不再静默地把豁免面扩大到 EOF。报错带**文件名 + 行号 + 会被豁免多少行**。
+3. `region_lines()` 改走同一份 `_region_mask` —— 区域面在「取数」与「守卫」两侧**只剩一个口径**，
+   不会再出现「取数照常、守卫失效」的偏斜（旧实现用 `str.split`，与守卫是两套口径，正是 F1 能藏住的土壤）。
+
+**补的四条判据**（`tests/unit/test_entry_gate_tally.py`，判据数 **42 → 46**）：
+
+| 判据 | 钉住的形态 |
+|---|---|
+| `…_no_scanned_file_has_an_unclosed_region_marker` | `scan_files()` **每一份**文件的起止标记必须成对（另跑 `_region_mask` 兜住嵌套/悬空） |
+| `…_an_unclosed_open_marker_makes_the_guard_itself_red` | 不成对 ⇒ `UnpairedRegionMarker`，**不是**静默豁免 |
+| `…_an_inline_quotation_of_the_marker_does_not_open_a_region` | 逐字用 §7.18 那行的形状，断言它不开区域、其后的手抄照样红 |
+| `…_a_tally_appended_to_the_tail_of_an_owner_doc_is_caught_m7_tail` | **M7′ 的可复跑形态**：跑在 `module-boundaries.md` 的**真实**内容上，尾部追加一处带语境的逐格数必须命中 —— 该文件之后续写多少行，这一条都跟着走 |
+
+**实跑（命令原文 + 退出码）**：
+
+| # | 命令 | 实测 |
+|---|---|---|
+| F1-a | `printf '\n⚠️ qwen3.6-plus 在两跳题上是 1/6。\n' >> docs/architecture/module-boundaries.md` 后 `python3 -m pytest tests/unit/test_entry_gate_tally.py -q` | **exit 1**（审计当天 **exit 0**）·`scan_handwritten_tallies()` 回 `[('docs/architecture/module-boundaries.md', 2820, '⚠️ qwen3.6-plus 在两跳题上是 1/6。')]`（当天回 `[]`）。还原后 `git status --porcelain -- docs/architecture/module-boundaries.md` **无输出** |
+| F1-b | `_region_mask` 对 `module-boundaries.md` 的 `sum(mask)` | **18 → 0**（该文件里本就没有真标记；18 行豁免带消失） |
+| F1-c | **非空转自证**：把 `_region_marker_kind` 临时改回子串匹配（旧语义）复跑 `python3 -m pytest tests/unit/test_entry_gate_tally.py -q` | **exit 1 / `4 failed, 42 passed`** —— 红的正是新增三条 + 判据⑦；改回后 **exit 0 / `46 passed`** |
+| F1-d | `python3 tools/gates/check_expected_red.py` | **exit 0**（`门禁 26 项：预期红 0，绿 26，跳过 0`） |
+| F1-e | `python3 -m pytest tests/unit -q` | **exit 0 / `672 passed`**（审计基线 668，**+4**） |
+| F1-f | `python3 -m pytest tests/unit tests/contracts tests/tools tests/routing tests/context -q` | **exit 0 / `1125 passed, 13 skipped`** |
+| F1-g | `python3 -m pytest tests/routing -q` | **exit 0 / `167 passed, 1 skipped`**（§6 **H5** 逐字不变） |
+| F1-h | `ruff check agenerp tests/unit tests/contracts tests/tools tests/routing tests/context tests/experiments` | **exit 0** |
+| F1-i | `bash tools/check-masterplan-links.sh` | **exit 0**（断链 0 条） |
+| F1-j | `git status --porcelain -- tests/gates .github/workflows docs/masterplan docs/audits docs/evidence tools/experiments missions` | **无输出**（红线 1/2/3/5/6 未被碰） |
+
+**照实记的两处保留**：
+
+1. **这次修复没有经过第二轮独立审计** —— 执行步自己修、自己跑。上表是**实跑取证**，不是独立复核。
+   若下一轮 `OPEN_AUDIT` 认为仍不足，它会作为**新的 `open` finding** 重新发现，本节不预先辩护。
+2. **F1 暴露的是判据形态的盲区，不只是一个 off-by-one**：判据⑦ 断言「命中为空」，
+   **豁免面越大越容易绿**。上面第一条新判据（标记必须成对）正是冲着这个形态去的 ——
+   但**「断言不存在」这类判据天然存在同形风险**，本节把它具名记下，不声称已穷尽。
+
