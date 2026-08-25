@@ -69,6 +69,7 @@ P1 的目标一句话：**让 Agent 能看懂这套 ERP，并且能证明它真�
   - ⚠️ **人报的那个 `backend:8000` 变体没有被直接修掉**：那是**上游模板自己那一行**，同一条 nginx 性质，改它等于改上游文件内容、把副本与上游的差集撑大（K3）。**本次只保证「本仓加的那一跳不再有能力拖垮 frontend」，不保证「frontend 再也不会因为上游解析失败而重启循环」。**
   - ⚠️ **本机 Docker 另有两处不稳定，与本仓无关但影响取证**：① **另一个 compose 项目**（项目名 `docker`）的 `frontend-1` 占着宿主 `0.0.0.0:8080` ⇒ 不带 `AGENERP_HTTP_PORT` 的 `up` 会死在 `Bind for 0.0.0.0:8080 failed: port is already allocated` —— **这正是人那条复现命令在本机的另一种死法**；② 冷起栈两次中途报 `Error response from daemon: No such container: <id>`。**两处都不猜根因**，只说明本轮冷起栈取证是在一台不稳定的机器上做的。
   - ⚠️ **独立收口审计未做** —— 本轮执行环境不具备独立子代理，`closure audit was independent` 这条 gate **留白**（执行者自己复跑不算独立审计），详见 plan `## Closure`。
+- 10b. **`frontend` 间歇不可达 —— 起栈时序缺陷**（从工作项 10 拆出，人 2026-08-25）: `todo` —— 验收：**`gates-l2-live` 连续 3 次 run 全绿零跳过**（间歇缺陷，一次绿不算）。详见 `02-WBS.md` 的 `P1.8a-fix` 行与 STATE §3 同日条目。**plan 预算独立计**，不占工作项 10 的额度。
 - 11. **Desk 侧边栏**（⌘K，调 P1.8a 的面）（P1.8b）: `todo`
   - **◆ 第 1 个 plan 已交付（表规 3 的预算此后 1/2）：`2026-08-25-1615-1-desk-injection-seam-and-asset-route.md` → `completed`。**
     ⚠️ **本行状态词仍是 `todo`，不是遗漏** —— 那个 plan **从不声称满足** WBS §4 第 88 行的验收命令

@@ -422,6 +422,14 @@
 > 格式：`[状态] 日期 · 触发条件 · WBS行ID · 最后一条失败命令原文 + 退出码 · sha · 处置`
 > 状态只有 `open` / `resolved`。**resolved 的行保留不删。**
 
+- [open] 2026-08-25T11:15Z · 触发：**P1.8a 的 plan 预算 2/2 满、工作项仍 `todo`，loop 连续两轮派 0 个 plan —— 人已拆行解锁** · **本条是给 loop 的解锁通知，不是待办**
+  · **拆了什么**：`02-WBS.md` 新增 `P1.8a-fix` 行、`p1-insight-roadmap.md` 新增工作项 `10b`，**plan 预算独立计，不占工作项 10 的额度**。依据表规 3 逐字「超预算只能由人在 `02-WBS.md` 拆行 / 加行」。
+  · **loop 先前两轮判「无 plan 可派」是对的，不是空转** —— 预算确实满了，它没有越权自行加行。本行确认这个判断正确。
+  · **要修什么（症状是实测，线索只是方向）**：CI live 判定 **54 项绿 53 红 1**，红的那条**每轮不固定** —— run `758b7bc` 红 `echoes_the_sid` + `resolves_to`，run `4f81de8` 只红 `echoes_the_sid`。断言正文逐字「**`127.0.0.1:8080` 够不到（timed out）—— 同源前端没在跑**」。**服务容器自己正常**（`POST /agenerp/explain` 持续正常响应），**掉的是 `frontend`**。本机稳定 `6 passed`，只在 CI 复现。
+  · **已知线索，未证实**：干净重建时 `frontend` 曾无限 `Restarting` 报 `[emerg] host not found in upstream "backend:8000"`；`frontend.depends_on` 有 `agenerp-serve: service_healthy`，而 `agenerp-serve.depends_on` **只有 `create-site` 没有 `backend`**。⚠️ **裁判规则 3：不许猜根因。这是方向不是结论**，要取证。
+  · **验收特意定成「连续 3 次 run 全绿」**：间歇缺陷单次通过区分不出「修好了」和「这轮没咬到」。
+  · **人侧已做掉的部分（不必重做）**：① `AGENERP_LLM_BASE_URL` 变量名修正（`e3afd77`）—— 答案面那条已绿 ② CI 失败取证步（`758b7bc`）—— live 判定红时自动打印断言正文与服务容器日志，**就是它让本条的归因从「猜」变成「读」**
+
 - [resolved] 2026-08-25T10:41Z · 原「CI 上剩答案面一条红」**已由人查清并修好，根因不是模型答错，是变量名从头到尾就是错的**。**根因逐字**：解释服务读的是 `AGENERP_LLM_BASE_URL`（`agenerp/routing/config.py` 要 BASE_URL / API_KEY / MODEL 三件套），而 `docker-compose.yml:56` 与 CI 传的都是 `AGENERP_LLM_ENDPOINT` —— **服务因此永远拿不到端点**，`/agenerp/explain` 恒回 503。**为什么一直没被发现**：这条链此前从没跑到过那一步。症状极具误导性 —— **五条不需要真 `sid` 的门禁照过，只有答案面那一条红**，看起来像「模型答错了」。**服务自己的报错其实写得很好**：「默认端点会让『没配置』静默变成『连到了别人家』」，所以它三个变量都不给默认值。**修法**：compose 补 `AGENERP_LLM_BASE_URL`（未显式给时回落到 `ENDPOINT`），workflow 同步；并把 AI 变量从 `gates-l2`（只跑零依赖启动、根本不碰 LLM）挪到 `gates-l2-live` 的**起栈步**—— 答案面那条查的是**服务容器自己的环境**，不是 pytest 进程的。**实测证据**：本机 `6 passed in 48.87s`（耗时说明模型真被调了），此前同一命令 `1 failed, 5 passed`。⚠️ **人侧一处误判照实登记**：排查中我一度打 `localhost:8080` 得到全部 500，据此判「登录挂在同源反代上」——实为**打错容器**（AgenERP 的 frontend 在 `18080`，`8080` 是本机另一个项目的 nginx）。该结论已作废，写在这里是因为下次还会有人踩。
 
 - [resolved] 2026-08-25T09:17Z · 原「P1.8a 标了 `done`，但实测栈起不来…」**已处置**：roadmap 第 10 项由人改回 `todo`（`4e9e74d`），缺陷归因写进本节。此后 loop 修复，CI 上服务/同源反代/`sid` 认人五条已转绿 —— 原「栈起不来」不再复现
