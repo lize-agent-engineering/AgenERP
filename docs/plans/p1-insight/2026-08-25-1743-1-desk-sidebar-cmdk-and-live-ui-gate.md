@@ -1,6 +1,10 @@
 # P1.8b 下半 · ⌘K 侧边栏本体与 `tests/ui/test_sidebar.py` 活体门禁
 
 > Plan Status: draft
+> Review Hold: §0.5 的两条前置只有人能答（① 准不准把浏览器驱动引进本仓 —— 前一个 plan 逐字保留给人的依赖决策；
+> ② `docs/references/playwright-e2e-guide.md` 算不算数）。第 3 轮独立评审**实读复核过、不是转述**：
+> `docs/masterplan/STATE.md:868-870` 是 `[needs-human]` 而非 `[resolved]`，`git log --grep=Approved-By` 无一条涉及浏览器驱动。
+> ⇒ Phase 1 停机分支 4 仍是 100% 触发 ⇒ 不具备「可执行契约」，**不转 `active`**。人答完第 ① 条即可转。
 > Last Reviewed: 2026-08-25
 > Source: `docs/backlog/p1-insight-roadmap.md` 工作项 11（P1.8b）· `docs/masterplan/02-WBS.md` §4 第 88 行 ·
 > 前一个 plan `2026-08-25-1615-1` §11 第一条写死的后继指派（重开事件「该 plan 转 `completed`」已于 2026-08-25 触发）
@@ -31,8 +35,14 @@
 
 **独立评审 iteration 2 实测打出来的，不是推演**：
 
-- `grep -rl -i "playwright\|selenium" docs/masterplan docs/backlog` → **零命中**
+- `grep -rl -i "playwright\|selenium" docs/masterplan docs/backlog` → 起草期 iteration 2 实测**零命中**
 - `git log --grep=Approved-By` 里**无一条**涉及浏览器驱动；`DECISIONS.md` 无对应条目
+
+⚠️ **这条 grep 今天已经不是零命中了，别读错（第 3 轮独立评审实测补）**：
+`docs/masterplan/STATE.md:868-870` 现在命中 —— 那是**本轮追加的 `[needs-human]` 提问本身**，
+状态词是 `[needs-human]` 而**不是** `[resolved]`。
+⇒ **命中 ≠ 已批准。** 免停条件仍然是「人已批准的具体出处」（`[resolved]` 行 / commit / trailer），
+**拿这条 needs-human 行当批准，就是拿自己写的提问给自己发许可。**
 
 ⇒ **`D-d-2` 那条「唯一的免停条件（人已批准的具体出处）」今天在仓里不存在。**
 而 (c) 不用浏览器撞硬约束①、(d) 引 node 引第二套运行时，两条都已被否 ⇒
@@ -114,6 +124,14 @@ loop 不许顺势把它当批准用** —— 那正是「用一份自己找来�
   ⚠️ **因此渲染状态机不许写成封闭枚举** —— 必须有一条**兜底态**（未枚举的码也渲染成非空、可分辨、
   带上那个码本身的文本）。**一次真实的 500 / 504 打在没有兜底的面板上，就是 Goal 2 明令禁止的空白。**
   这是 §7 Phase 2 第 ⑤ 项与 §6 `H8` 的枚举依据 —— **不是本 plan 发明的分类**。
+- ⚠️ **计数口径写死（第 3 轮独立评审补，起草期与前两轮都没把它说开）**：上面数的**十种是「来源」**，
+  **不是十个可分辨的状态码** —— `502` 出现两次（服务端「上游模型坏了」与反代「`agenerp-serve` 不在」），
+  而**面板只看得见状态码，看不见它是谁回的**。
+  ⇒ **面板侧可分辨的码只有九个**：`400/401/403/404/405/500/502/503/504`，**加 `200`，加一条兜底态**。
+  ⚠️ **两个 502 合并成同一态是正确行为，不是缺陷** —— 想把它们分开，只能靠嗅响应体
+  （服务端 502 回 JSON、反代 502 回默认 HTML），而 `H8c` / `M11` 明令禁止兜底路径假设响应体形态。
+  ⇒ **`H8` 的「两两全等比较必须全部为假」按这九个码 + `200` 判，共 10 条**；
+  按十种来源判是**不可满足**的（两个 502 必然全等），会把正确行为判成缺陷。
 
 ### 1.4 ⚠️ 正面冲突：`tests/ui/` 会让一条**今天是绿的** CI 步骤变红
 
@@ -235,7 +253,7 @@ roadmap 工作项 10 与 11 各记过一次同一条空缺：「**真浏览器�
 
 1. **⌘K 侧边栏本体**落在 `agenerp/serve/assets/desk.js`：快捷键唤起 / 关闭、**保留当前单据上下文**
    （在某个真单据页上唤起时，把该 `doctype` / `name` 带进请求）、同源 `POST /agenerp/explain`。
-2. **失败形态一个都不许渲染成空白**：§1.3 那**十种**已枚举的码各自渲染成**可分辨的、非空的**文案，
+2. **失败形态一个都不许渲染成空白**：§1.3 那十种来源折成的**九个可分辨的码**各自渲染成**可分辨的、非空的**文案，
    **且必须有一条兜底态**接住**未枚举**的码（含将来新增的）；**不许停在永久 spinner** 上。
 3. **`tests/ui/test_sidebar.py` 真的退 0** —— 用**真浏览器**驱动**真活栈**，
    **零 skip**（§1.6），且**不需要任何 AI 变量**（§1.7）。
@@ -316,7 +334,7 @@ Minimum Rule 4 原文同时禁止 over-split（「共享同一行为契约与闭
 | `H5` | 带真登录会话 `GET /app/<某真单据>`，看注入的 `<script src="/agenerp/desk.js">` 在不在、几次 | 在，**恰好 1 次**，且在 `</body>` 之前 | 不在 ⇒ 第 1 个 plan 的接缝回归了，**先修回归再往下**，不许绕过去 |
 | `H6` | **浏览器**（不是 curl）从 `/app` 页面发出的 `POST /agenerp/explain`，服务端看到的 `Cookie` 里**有没有 `sid`**。⚠️ **观测方式写死：`page.expect_response` 观测那一次「未打桩」的真请求** —— `page.route` 打桩的那些请求**根本到不了服务端**，从它们身上取不到这个证据 | **有** —— 直接证据是回的**不是 401**（`handle_explain` 的顺序是 `_sid_from_cookie` → `parse_request` → `_resolve_identity`(401) → `config_factory`(503)，⇒ **任何非 401 的码都蕴含「站点已经认到人」**）。⚠️ 这是本仓第一次直接观测，此前只有推断 | 没有 ⇒ **这是一个真发现，不是本 plan 的失败**：说明 `HttpOnly` + 同源那套推断是错的。**当场停下**，把实测写进 `STATE.md` §3 needs-human 并交人重裁 D-19 的同源假设 |
 | `H7` | 一个 AI 变量都不配时，面板发出的那次请求回什么码 | **503**，且体里**指名缺哪个变量** | ⚠️ **不许清环境重跑**（独立评审打回，此处已改准）：回 200 或别的码时，**照实记下那个码，并断言面板渲染的是该码对应的那一态**。理由 —— `gates.yml:304-310` 的判定步已配了三个 AI secret、注释逐字「配上之后它走答案面」，⇒ 「环境里有 AI 变量」是**人正在推进的正常状态**，为了让断言成立去清环境，与 `gates.yml:275-279` 点名禁止的「把判据调整到迁就环境」是同一族动作 |
-| `H8` | **十种已枚举的码**（400/401/403/404/405/500/502/503 + 反代 502/504）**+ 200**，用浏览器内 `page.route` 打桩逐个喂给面板 | **各自**渲染出**互不相同**且**非空**的可见文本；**无一停在 spinner**。⚠️ **「互不相同」的判定口径现在就写死**：取面板可见文本，**两两全等比较必须全部为假**，**且每一条都含该状态码的字面量** —— 不许留给执行期「人眼看着不一样」 | 有两种渲染成同一句话 ⇒ **那是缺陷不是风格问题**（「未认到人」与「模型没配」混成一句，用户与判据都分不出），当场修 |
+| `H8` | **九个可分辨的已枚举码**（`400/401/403/404/405/500/502/503/504`，见 §1.3 计数口径：十种来源里两个 `502` 合并成一个码）**+ 200**，共 **10** 条，用浏览器内 `page.route` 打桩逐个喂给面板 | **各自**渲染出**互不相同**且**非空**的可见文本；**无一停在 spinner**。⚠️ **「互不相同」的判定口径现在就写死**：取面板可见文本，**这 10 条两两全等比较必须全部为假**，**且每一条都含该状态码的字面量** —— 不许留给执行期「人眼看着不一样」。⚠️ **不许把两个 `502` 拆成两条来凑数**（§1.3 计数口径：拆开只能靠嗅响应体，撞 `H8c`/`M11`） | 有两种渲染成同一句话 ⇒ **那是缺陷不是风格问题**（「未认到人」与「模型没配」混成一句，用户与判据都分不出），当场修 |
 | `H8c` | **真 nginx 502**（不是打桩）：`docker compose stop agenerp-serve` 之后，在面板里发一次问 | 面板渲染**非空、可分辨、带 `502`** 的文本 | ⚠️ **这一格是独立评审 iteration 2 逼出来的，理由必须写清**：`tools/nginx/frappe.conf.template` **没有 `error_page`、没有 `proxy_intercept_errors`** ⇒ 真 nginx 502/504 回的是**默认 HTML 错误页**，而服务端的 502/503 回的是 **JSON `{"error": …}`**。⇒ **打桩喂一个「JSON 体的假 502」走的是面板的 JSON 分支，真 502 上 `r.json()` 会直接抛**，正好落进 Goal 2 禁止的空白，而打桩判据全绿。⇒ **`H8` 那批打桩不能替代这一格。** 本格零额外成本（`H10` 本来就要停服）。不吻合 ⇒ 当场修兜底分支，让它**不假设响应体是 JSON** |
 | `H8b` | **喂一个未枚举的码**（写死用 `418`）与**一次网络层失败**（`page.route` 直接 `abort`） | 两者都渲染出**非空、可分辨、带上那个码/失败原因本身**的文本；**不空白、不 spinner** | 空白或 spinner ⇒ **兜底态缺失，当场补**。⚠️ 这一格不是凑数：`500`（`app.py:327` 的 `except Exception` 兜底）与 `504`（`proxy_read_timeout`）在真环境里**会**发生，而封闭枚举接不住它们 |
 | `H9` | 面板实际发出的请求体键集。⚠️ **与 `H6` / `M5` 同一约束：只能取自那一次「未打桩」的真请求**（`page.expect_response` / `request` 事件） | ⊆ `{question, task_class, doctype, name}`，**且不含** `fields`/`role`/`view`/`actions`/`user` | 含了 ⇒ 当场删。⚠️ 这一格不是形式主义：服务端对这五个键回 400，前端带上就是**必然 400**，而那种 400 在界面上和「问题不合法」长得一样 |
@@ -390,7 +408,8 @@ Skill: `none`
       含 `H1`–`H5` 的命令原文 + 退出码 + 实际值，与四条裁定的完整理由。
       - Skill: `none`
 
-**⚠️ Phase 1 的三条停机分支（触发即停，写进 `STATE.md` §3 needs-human，不自行绕过）**：
+**⚠️ Phase 1 的四条停机分支（触发即停，写进 `STATE.md` §3 needs-human，不自行绕过）**
+（iteration 1 新增了第 4 条之后这里仍写着「三条」，第 3 轮独立评审改准）：
 
 1. **`H2` 不吻合**（驱动不可用）⇒ 依赖决策归人。
 2. **`H6` 若在 Phase 3 不吻合**（浏览器不带 `sid`）⇒ D-19 的同源假设需人重裁（红线 3，loop 无权开 `R-x`）。
@@ -423,7 +442,7 @@ Skill: `none`
       ② 按 `H4` 裁定的取法拿当前单据上下文，**取不到就不带**（§1.3 的「同时给或同时不给」）；
       ③ 同源 `fetch("/agenerp/explain", {method:"POST", credentials:"same-origin", …})`；
       ④ 请求体**只放** `question` / `task_class` / `doctype` / `name`（`H9`）；
-      ⑤ 按 §1.3 的**十种已枚举的码 + 200** 各渲染一种可分辨的非空态（`H8`），
+      ⑤ 按 §1.3 计数口径的**九个可分辨的已枚举码 + 200**（共 10 条）各渲染一种可分辨的非空态（`H8`），
       **外加一条兜底态**接住未枚举的码与网络层失败（`H8b`）—— **没有一条路径通向空白或永久 spinner**；
       ⑥ **保留既有资产判据钉着的四格**：`len>200` · `agenerpDesk` · **`Object.freeze`** · **结尾逐字 `)();`**
       （`test_desk_asset_route.py:165-168`）。
@@ -439,7 +458,8 @@ Skill: `none`
       ② 资产里出现的请求体键名集合 ⊆ `app.py` 的 `ALLOWED_BODY_KEYS`，**且与五个越权键的交集为空**
       （两个集合都从 `app.py` 读，不在判据里抄）；
       ③ `window.agenerpDesk` 标记仍在；
-      ④ **十种已枚举的码在资产里各出现过** —— 挡「只写了 200 分支」的半成品。
+      ④ **九个可分辨的已枚举码的字面量在资产里各出现过**（§1.3 计数口径；`502` 只需出现一次）
+      —— 挡「只写了 200 分支」的半成品。
       ⚠️ **这一条是下限，它不证明任何分支「可达」，也不许被读成证明了兜底存在**
       （独立评审 iteration 2 打回第一版那句「兜底分支在源码里可达」）：
       本判据是**离线、零浏览器、零 JS 运行时**的，Python 读 `.js` 纯文本 ⇒
@@ -451,12 +471,17 @@ Skill: `none`
 - [ ] **`Proof`** 既有 22 条（`test_desk_asset_route.py` / `test_desk_injection_static.py`）**一条不许改松**，
       跑一遍确认仍全绿 —— 尤其那条「服务发出的体与仓里那份**逐字节相同**」（改了 `desk.js` 之后它必须仍绿）。
       - Skill: `none`
-- [ ] **`Proof`** `ruff check` 覆盖面**加上新目录**（`D-d-1` 选 (A) 时把 `tests/ui` 加进那条命令的参数）。
-      ⚠️ `ruff` 的 `exclude` 只排除 `tests/gates`，**`tests/ui` 会被真扫**，别指望它被跳过。
+- [ ] **`Proof`** `ruff check` 跑一遍**现有七个目录**（`agenerp tests/unit tests/contracts tests/tools tests/routing
+      tests/context tests/experiments`）仍 exit 0。⚠️ **本 Phase 不把 `tests/ui` 加进参数** ——
+      那个目录要到 Phase 3 才建，此时传进去 ruff 会因路径不存在直接报错
+      （第 3 轮独立评审补：前两版把它写在 Phase 2，会造一条假红）。
+      `tests/ui` 从 **Phase 3 起**进参数，见 §10 verification 那条七命令清单。
+      ⚠️ `ruff` 的 `exclude` 只排除 `tests/gates`，**`tests/ui` 建起来之后会被真扫**，别指望它被跳过。
       - Skill: `none`
 - [ ] **`Proof`** `python3 -m pytest tests/unit -q` 只增不减；`check_expected_red.py` 仍 exit 0。
       - Skill: `none`
-- [ ] **`Add`** 落点节 §7.23 补「渲染状态机」那一格：**十种已枚举的码 + 200 + 一条兜底态**的映射表，
+- [ ] **`Add`** 落点节 §7.23 补「渲染状态机」那一格：**九个可分辨的已枚举码 + 200 + 一条兜底态**的映射表
+      （并写明 §1.3 那条计数口径：十种来源 → 九个码，两个 `502` 合并且**合并是正确的**），
       与 §1.3 的服务端表**逐条对齐**。
       ⚠️ **这张表必须写成「开放枚举 + 兜底」，不许写成封闭枚举** —— 它是要落进 owner doc 的**持久制品**，
       把封闭枚举写进架构文档，等于把「真实 500/504 渲染成空白」这个失败形态**固化成规范**
@@ -467,7 +492,7 @@ Skill: `none`
 Exit Criteria:
 
 - [ ] ⌘K（或 `D-d-4` 裁定的键，冲突时写死为 `Cmd/Ctrl+Shift+K`）唤起 / 关闭 / `Esc` / 焦点归还四条行为**都在代码里**，不是只有函数签名
-- [ ] 失败模式说清：**十种已枚举的码各自的可见态互不相同、非空、不 spinner**，**且兜底态接得住未枚举的码**；成功模式：200 时渲染 `answer` 与 `cost`
+- [ ] 失败模式说清：**九个可分辨的已枚举码各自的可见态互不相同、非空、不 spinner**（与 `200` 一起共 10 条两两不等），**且兜底态接得住未枚举的码**；成功模式：200 时渲染 `answer` 与 `cost`
 - [ ] 新判据 `tests/unit/test_desk_sidebar_static.py` 全绿；既有 22 条**零改动**（`git diff` 证）
 - [ ] `docs/architecture/module-boundaries.md` §7.23 的状态机表落地
 - [ ] `docs/logs/2026/08-25.md` 追加 Phase 2 条目
@@ -476,7 +501,9 @@ Exit Criteria:
 
 Status: planned
 Targets: `tests/ui/test_sidebar.py`（新建，加载器）· `tests/unit/test_desk_sidebar_body.py`（新建，断言体）·
-`pyproject.toml`（`ui` extra）· `docs/evidence/p1-desk-sidebar/README.md`（新建）
+`pyproject.toml`（`ui` extra）· `docs/evidence/p1-desk-sidebar/README.md`（新建）·
+**`docs/context/project-context.md`（第 52 行 Lint / static check 那一格的作用域漂移，`Fix`，见本 Phase 交接项 (5) 下方；
+第 3 轮独立评审补 —— 前两轮把这件事写进了正文却漏进 Targets）**
 Skill: `closure-audit-prompt.md`（仅收口那一步）
 
 - Item Types: `Proof`（5/7 项是 `Proof`）
@@ -529,8 +556,9 @@ Skill: `closure-audit-prompt.md`（仅收口那一步）
       **(4)** 那条 step 照抄 `gates.yml:492-495` 既有的**零 skip 断言**形态（否则 skip 又变成静默出口）；
       **(5)** `lint` job（`gates.yml:609`）的 ruff 参数是七个目录的字面量 ⇒ 加上 `tests/ui`，否则它在 CI 上零 lint 覆盖。
       ⚠️ **交接项 (5) 有一件邻接活是 loop 自己该做的，不许一起推出去**（独立评审 iteration 2 指出）：
-      `gates.yml:604` 逐字声明 lint 作用域「照抄 `docs/context/project-context.md` 的 Lint / static check 一行」，
-      而那一行**今天还是三个目录、gates.yml 已经是七个 —— 本就已漂移**。
+      `gates.yml:603` 逐字声明 lint 作用域「照抄 `docs/context/project-context.md` 的 Lint / static check 一行」，
+      而那一行（`project-context.md:52`）**今天还是三个目录、`gates.yml:609` 已经是七个 —— 本就已漂移**
+      （行号经第 3 轮独立评审实读改准，原写 `:604`）。
       ⇒ **本 plan 就地把 `project-context.md` 那一行改准成七个目录并加上 `tests/ui`**（它不在任何红线内），
       否则交接项 (5) 没有真相源可照抄。**这是 `Fix`，不是 follow-up。**
       **再加一件需人裁的**：`D-d-4` 若因 `H3` 冲突改成 `Cmd/Ctrl+Shift+K`，与 WBS 第 88 行「⌘K」字面的偏差归人。
@@ -544,6 +572,10 @@ Exit Criteria:
 - [ ] `H6` 有**直接观测值**：浏览器发出的请求带上了 `sid`（回的不是 401）—— 本仓第一次
 - [ ] 变异表 `M1`–`M12` 逐条有结论（打红 / 未打红 + 处置），全部 `RESTORED OK`
 - [ ] 不回归三条全绿；`check_expected_red.py` exit 0；`tests/unit` 只增不减
+- [ ] `docs/context/project-context.md` 第 52 行的 Lint / static check 作用域**已改准**：
+      从今天的 `ruff check agenerp tests/unit tests/contracts`（三个目录，**实读确认**）
+      改成与 `gates.yml:609` 一致的七个目录 **加上 `tests/ui`**；改后 `gates.yml:603` 那句「逐字照抄」重新成立
+      —— 这是 `Fix` 不是 follow-up，**不许跟着交接一起推给人**
 - [ ] `STATE.md` §3 两条**追加**（needs-human + `[Proof]`），**已有行零改写**（`git diff` 证）
 - [ ] `docs/evidence/p1-desk-sidebar/README.md` 落盘；`docs/logs/2026/08-25.md` 追加 Phase 3 条目
 
@@ -622,15 +654,49 @@ Exit Criteria:
   **Phase 3 交接六件逐件核过，五件在红线 2 面、第六件在红线 5 面，没有一件是 loop 能自己做的**
   —— 唯一被它揪出来该由 loop 做的是那处 lint 作用域漂移（已归位）。
 
+- **Independent draft review iteration 3: `needs revision`（已就地修完）+ 维持 `可以转 active: no`**
+  （mission-driver 评审步，2026-08-25）—— 复核前两轮的 14 条阻塞是否真落地，并**不受前两轮结论约束**地重审全文。
+
+  **对前两轮的复核**：iteration 1 的 9 条、iteration 2 的 5 条，**逐条实读活仓确认已落进本文件**
+  （含 iteration 2 揪出的「Phase 2 最后一项与 Non-Goals 1 仍写六种」—— 已确认改准为八种 / 十种）。
+  §0.5 的两条实测证据**本轮重跑复核过**：`git log --grep=Approved-By` 无一条涉及浏览器驱动、
+  `docs/masterplan/STATE.md:868-870` 的状态词是 `[needs-human]`（**不是** `[resolved]`）
+  ⇒ **停在 `draft` 的裁定成立，本轮维持。**
+
+  **本轮新提 3 条阻塞 + 3 条次要，全部已就地修完**：
+
+  | # | 级别 | 新发现 | 改在哪 |
+  |---|---|---|---|
+  | 1 | **Blocker** | `H8` 的「两两全等比较必须全部为假」**不可满足**：十种来源里 `502` 出现两次（服务端「上游模型坏了」/ 反代「`agenerp-serve` 不在」），而**面板只看得见状态码** ⇒ 两个 502 必然渲染成同一态，被 `H8` 的处置列判成「缺陷，当场修」；而想把它们分开只能嗅响应体，那又正好撞 `H8c` / `M11` 明令禁止的「兜底路径假设响应体是 JSON」。⇒ 执行期被逼进一个**两条判据互相否决**的死角 | §1.3 新增**计数口径**一格（十种**来源** → **九个可分辨的码** `400/401/403/404/405/500/502/503/504`，两个 502 合并**是正确行为不是缺陷**）· `H8` 改判为「九个码 + `200` 共 10 条两两不等」并写死「不许拆两个 502 凑数」· Goal 2 / Phase 2 ⑤ / 判据④ / §7.23 映射表 / Phase 2 Exit / §10 第 1 格**六处同步改准** |
+  | 2 | **Major** | Phase 3 交接项 (5) 下方那件 loop 自己该做的 `Fix`（改准 `docs/context/project-context.md` 的 lint 作用域）**写在正文里、却不在任何 `Targets` 和任何 Exit Criteria / Closure Gates 里** ⇒ 违反指南 Minimum Rule 10（在范围内的项必须落在四态之一）与「Execution Plan covers all checklist items」，实际就是一件**没人认领、收口时查不到**的活 | Phase 3 `Targets` 补上该文件 · Phase 3 **新增一条 Exit Criteria**（写死今天是三个目录、改成七个 + `tests/ui`、并点明「不许跟着交接推给人」）· §10 `relevant docs are aligned` 那格补上它 |
+  | 3 | **Major** | §0.5 逐字写着 `grep -rl -i "playwright\|selenium" docs/masterplan docs/backlog` → **零命中**，但**本轮追加的 needs-human 行已经让它命中**（`STATE.md:868-870`）⇒ 执行期按 §0 重跑这条 grep 会拿到命中，而停机分支 4 的免停条件正是「指得出人已批准的具体出处」—— 一行**自己写的提问**被读成批准，正是 §0.5 自己点名要挡的那件事 | §0.5 补一段：命中的是 `[needs-human]` 提问本身、状态词不是 `[resolved]`，**命中 ≠ 已批准** |
+  | 4 | Minor | Phase 1 小标题写「**三条**停机分支」，其下实列**四条**（iteration 1 新增第 4 条时漏改标题） | 改准为「四条」并注明来历 |
+  | 5 | Minor | Phase 2 的 ruff 项要求「把 `tests/ui` 加进那条命令的参数」，但 `tests/ui/` 要到 **Phase 3** 才建 ⇒ 在 Phase 2 传进去 ruff 直接报路径不存在，造一条**假红** | Phase 2 该项改成「跑现有七个目录」，并写死 `tests/ui` **从 Phase 3 起**才进参数 |
+  | 6 | Minor | 行号漂移：`gates.yml:604` 实为 `:603`（`:604` 是下一句「一个字不加不减」） | 就地改准，并补上 `project-context.md:52` / `gates.yml:609` 两个实读行号 |
+
+  **本轮实跑复核过的活仓事实**（不采信 plan 自报）：`gates.yml:560` 的 `COVERED` 八个目录 ·
+  `ls -d tests/*/` 今天恰好是那八个（`H1` 预测成立）· `check_expected_red.py:74` 判定面写死 `tests/gates` ·
+  `gates.yml:609` ruff 七个目录 · `project-context.md:52` 三个目录（漂移坐实）·
+  `module-boundaries.md` 现存最末节是 **§7.22** ⇒ **§7.23 是正确的下一个编号** ·
+  `pyproject.toml` 已注册 `live` marker、`testpaths = ["tests"]` ⇒ 加载器那条命令跑得通 ·
+  `docs/references/playwright-e2e-guide.md:3` 逐字如 §0.5 所引。
+
+  ⚠️ **本轮也复核了三件「不该改」**：**Minimum Rule 4 不该拆**（与前两轮同结论）；
+  **Anti-Slacking 禁用词全文零命中**（`optional` 的四处全是 TOML 键名 `[project.optional-dependencies]`，非含糊语）；
+  **红线合规面**逐项核过三个 Phase 的 `Targets` 与 §10 六条自证，**没找出必然越线的藏步**。
+
 - **本轮收敛结论：不转 `active`。** 两轮共 14 条阻塞已全部改进本文件，
   但 §0.5 那两条**只有人能答**的前置未答之前，这份 plan 不具备**可执行**契约
   （指南 Plan Status Flow：`active` 的含义是「独立评审已收敛成可执行契约」——
   一份 100% 会在 Phase 1 停机的 plan 不满足「可执行」）。
-  ⇒ **`Plan Status` 保持 `draft`**，前置见 §0.5。人答完第 1 条即可转 `active`（第 2 条影响的是 `D-d-0` 的写法，不影响可执行性）。
+  ⇒ **`Plan Status` 保持 `draft`**，前置见 §0.5 与 front matter 的 `> Review Hold:` 行。
+  人答完第 1 条即可转 `active`（第 2 条影响的是 `D-d-0` 的写法，不影响可执行性）。
+  ⚠️ **第 3 轮独立评审维持这一裁定**：三轮共 17 条阻塞已全部改进本文件，
+  剩下的**不是文本质量问题，是一件红线内、只有人能做的裁定** —— 再评一轮也不会变。
 
 ## 10. Closure Gates
 
-- [ ] in-scope behavior is complete（唤起 / 上下文保留 / 同源请求 / 十种态 + 兜底态渲染，五项都**有行为**不只有签名）
+- [ ] in-scope behavior is complete（唤起 / 上下文保留 / 同源请求 / 九个码 + `200` 共 10 态 + 兜底态渲染，五项都**有行为**不只有签名）
 - [ ] ⚠️ **闭合判据本身（不可降级，独立评审打回后写死）**：
       `AGENERP_LIVE=1 … python3 -m pytest -m live tests/ui/test_sidebar.py -q -rs` **退 0 且零 skip**。
       **它没退 0 时本 plan 不得转 `completed`** —— 只能停在 `active` 并把实测退出码与红因交人。
@@ -638,7 +704,8 @@ Exit Criteria:
       `landed` / `adjudicated as residual-risk-only` / `moved to explicit successor ownership` / `removed from scope with recorded reason`
       —— 本条只能落 `landed`）。
       ⚠️ **不许把「没退 0」挪进 §11**：§11 里已登记的四条，**没有一条**是它。
-- [ ] relevant docs are aligned（`module-boundaries.md` §7.23 · `docs/logs/2026/08-25.md` · `docs/evidence/p1-desk-sidebar/`）；
+- [ ] relevant docs are aligned（`module-boundaries.md` §7.23 · **`docs/context/project-context.md:52` 的 lint 作用域** ·
+      `docs/logs/2026/08-25.md` · `docs/evidence/p1-desk-sidebar/`）；
       对 `docs/design/agents-and-roles.md` §9 风险档表 **`No owner-doc update required`**（理由见 §4）
 - [ ] verification has run —— 至少这七条，命令原文 + 退出码入 `## Closure`：
       `python3 tools/gates/check_expected_red.py` ·
