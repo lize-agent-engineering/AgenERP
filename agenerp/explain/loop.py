@@ -642,8 +642,9 @@ def explain(
     能力不满足就明确失败（`RoutingError`），**不静默降级**（D1）。
 
     ⚠️ **残余风险照实登记**：`lineage` 档今天会放行 `qwen3.6-plus`，而它在本项目两跳题上
-    是 1/6（STATE §3 `[open] 2026-08-24T07:50Z`）。那条 `[open]` **不因本模块落地而消失**，
-    本模块也不代人处置它。
+    的逐格数见 `docs/architecture/model-management.md` §12.3 的四列并置表 —— 四列在那两格上
+    并不一致，孰为准归人裁定（STATE §3 `[open] 2026-08-24T07:50Z`）。那条 `[open]`
+    **不因本模块落地而消失**，本模块也不代人处置它。
 
     `immediate` 是 ① 即时上下文（当前单据），给了就渲染成**一条独立的 `system` 消息**
     插在开场可见范围之后、提问之前。⚠️ **① 层不查权限**（`agenerp/context/immediate.py`

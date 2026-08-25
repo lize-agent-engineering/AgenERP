@@ -796,7 +796,46 @@ def load_documents(client: SiteClient) -> DocLoadReport:
             for spec in step.binds:
                 key, _, path = spec.partition("=")
                 bindings[key] = _pick(full, path)
+
+    # ── 人工关闭销售订单（「账面全绿陷阱」的成因）────────────────────
+    #
+    # **`status` 不能在建档时送**：ERPNext 按单据流程自己算，建档时给的会被
+    # 覆盖成 `To Deliver and Bill`。2026-08-24 实测：站点上读回
+    # `status='To Deliver and Bill'`，而 `model.py` 写的是 `Closed` —— 两边不一致，
+    # 而「账面全绿」这个陷阱的**整个前提**就是这张单被人工关闭过。
+    #
+    # 正规做法是提交后调白名单方法（容器内实读
+    # `sales_order.py:1700 @frappe.whitelist() def update_status(status, name)`，
+    # 它先 `has_permission(..., "submit", ...)` 再 `so.update_status(status)`）。
+    #
+    # ⚠️ **必须在发货单之后**：先发 990 台，再关单 —— 顺序反了就成了
+    # 「关了单又发货」，那是另一个故事。
+    # 不进 `report.record`：那是**建档**统计，关单不是建档。混进去会让
+    # 「新建 0」这条幂等判据变得看不懂。
+    _close_sales_order(client, bindings)
     return report
+
+
+def _close_sales_order(client: SiteClient, bindings: dict[str, Any]) -> None:
+    """把销售订单置为 `Closed`。**幂等**：已是 Closed 就不再调。"""
+    name = str(bindings.get("sales_order") or names.SALES_ORDER)
+    doc = client.get(f"/api/resource/Sales Order/{name}").get("data", {})
+    if doc.get("status") == M.SALES_ORDER_STATUS:
+        return
+    # ⚠️ **不走 `call_method`**：它要求响应里有 `message`（那条保护是为了挡住
+    # 「方法名写错被静默忽略」），而 `update_status` 无返回值，Frappe 回 `{}`。
+    # 这里改为直接发请求 + **读回状态验证** —— 判据比「有没有 message」更强：
+    # 方法名写错时状态不会变，下面那条断言照样发红。
+    client.post_method(
+        "erpnext.selling.doctype.sales_order.sales_order.update_status",
+        {"status": M.SALES_ORDER_STATUS, "name": name},
+    )
+    after = client.get(f"/api/resource/Sales Order/{name}").get("data", {})
+    if after.get("status") != M.SALES_ORDER_STATUS:
+        raise SiteError(
+            f"关闭销售订单 {name} 后状态仍为 {after.get('status')!r}，"
+            f"期望 {M.SALES_ORDER_STATUS!r} —— 「账面全绿陷阱」在站点侧不成立"
+        )
 
 
 # ── 站点侧对账（`--verify-site`）─────────────────────────────────────────────
@@ -1077,10 +1116,47 @@ def _link_field_checks(client: SiteClient) -> list[CheckResult]:
     return results
 
 
+def _trap_precondition_checks(client: SiteClient) -> list[CheckResult]:
+    """**「账面全绿陷阱」在站点侧成立**的前置条件。
+
+    这条判据是 2026-08-24 那个缺陷的直接产物：装载器建销售订单时没送
+    `status`（ERPNext 按单据流程自己算），站点上读回 `To Deliver and Bill`，
+    而离线数据集是 `Closed` —— **两边不一致，而「账面全绿」这个陷阱的整个
+    前提就是这张单被人工关闭过**。缺了它，P1.5 的巡检器在站点上查不到那条
+    「已关闭却少发」的规则命中。
+
+    **归属**：站点侧对账（与 `_link_field_checks` 同族），**不是行业包的判据** ——
+    行业包判的是「规则写得对不对」，这条判的是「站点上有没有那个可查的事实」。
+    """
+    dataset = seed_generate()
+    expected = dataset.of("Sales Order")[0]
+    name = str(expected["name"])
+    doc = client.get(f"/api/resource/Sales Order/{name}").get("data", {})
+    item = (doc.get("items") or [{}])[0]
+    return [
+        CheckResult(
+            label=f"Sales Order {name}.status（陷阱前提：被人工关闭）",
+            actual=repr(doc.get("status")),
+            expected=repr(expected["status"]),
+            source="agenerp.seed 生成的数据集（Sales Order.status）",
+            ok=doc.get("status") == expected["status"],
+        ),
+        CheckResult(
+            label=f"Sales Order {name} 的交付缺口（订 − 发）",
+            actual=str(float(item.get("qty") or 0) - float(item.get("delivered_qty") or 0)),
+            expected=str(float(expected["items"][0]["qty"]) - float(expected["items"][0]["delivered_qty"])),
+            source="agenerp.seed 生成的数据集（关闭时仍欠交的数量）",
+            ok=_close(float(item.get("qty") or 0) - float(item.get("delivered_qty") or 0),
+                      float(expected["items"][0]["qty"]) - float(expected["items"][0]["delivered_qty"])),
+        ),
+    ]
+
+
 def verify_site(client: SiteClient, today: str | None = None) -> list[CheckResult]:
     """站点侧对账：读回**站点自己算出来**的数，跟 `checks.EXPECTED_*` 比。"""
     return (_backlog_checks(client) + _books_checks(client) + _overdue_checks(client, today)
-            + _document_graph_checks(client) + _link_field_checks(client))
+            + _document_graph_checks(client) + _link_field_checks(client)
+            + _trap_precondition_checks(client))
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(

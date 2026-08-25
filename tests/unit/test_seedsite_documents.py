@@ -72,6 +72,16 @@ class FakeDocSite:
 
     def __call__(self, request):
         self.requests.append(request)
+        if "/api/method/" in request.url and "update_status" in request.url:
+            # 关单是**只有副作用**的调用：Frappe 对无返回值的方法回 `{}`。
+            # 这里同时把副作用做出来，否则装载器读回状态时会判失败 ——
+            # 假站点不模拟副作用，等于让判据测一个不存在的世界。
+            import json as _json
+            body = _json.loads(request.body or "{}")
+            doc = self.docs.get(body.get("name", ""))
+            if doc is not None:
+                doc["status"] = body.get("status")
+            return SiteResponse(200, "{}")
         if "/api/method/" in request.url:
             method = request.url.split("/api/method/", 1)[1].split("?")[0]
             if method not in self.FACTORY_DRAFTS:
@@ -204,13 +214,17 @@ def test_the_factory_is_not_called_when_the_document_already_exists():
     site = FakeDocSite()
     client = _client(site)
     seedsite.load_documents(client)
-    first_run_factory_calls = len([r for r in site.requests if "/api/method/" in r.url])
+    # **排除关单**：`update_status` 是只有副作用的调用，不是"由另一张单派生
+    # 出一份草稿"的工厂方法。混进来会让这条判据在加任何一个副作用调用时假红。
+    first_run_factory_calls = len([r for r in site.requests
+                                   if "/api/method/" in r.url and "update_status" not in r.url])
     assert first_run_factory_calls == 3, (
         f"外协四步链应调三次工厂方法（外协订单/发料/收货），实为 {first_run_factory_calls}"
     )
 
     seedsite.load_documents(client)
-    total = len([r for r in site.requests if "/api/method/" in r.url])
+    total = len([r for r in site.requests
+                 if "/api/method/" in r.url and "update_status" not in r.url])
 
     assert total == first_run_factory_calls, (
         f"第二次装载又调了 {total - first_run_factory_calls} 次工厂方法 —— "
@@ -507,7 +521,7 @@ def test_verify_site_passes_on_the_numbers_the_plan_exists_to_prove():
     results = _verify()
 
     assert [r.label for r in results if not r.ok] == []
-    assert len(results) == 30, (
+    assert len(results) == 32, (
         "9 条财务/库存口径 + 9 条文档图条数对账（D-12）+ 12 条跨单据 Link 字段对账"
         "（P1.0 前置 T0）。条数变了就必须来这里改，不许让判据悄悄少跑"
     )

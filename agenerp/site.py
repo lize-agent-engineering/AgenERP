@@ -338,6 +338,20 @@ class SiteClient:
             )
         return response["message"]
 
+    def post_method(self, method: str, params: dict | None = None) -> Any:
+        """调服务端白名单方法，**不要求响应里有 `message`**。
+
+        与 `call_method` 的分工：那个用于**取返回值**（工厂方法），因此把
+        「没有 message」当作「方法名写错」来挡。本方法用于**只有副作用**的
+        调用（如 `sales_order.update_status`），Frappe 对无返回值的方法回 `{}`，
+        用 `call_method` 会误判成失败。
+
+        ⚠️ **调用方必须自己验副作用**。本方法只保证请求发出去且 HTTP 2xx；
+        方法名写错时 Frappe 同样回 2xx —— 判据只能是「事情有没有真的发生」。
+        """
+        self._ensure_authenticated()
+        return self._request("POST", f"{METHOD_PATH}/{method}", body=params or {})
+
     def submit_doc(self, doctype: str, name: str) -> dict:
         """把一份已存在的文档由 `docstatus 0` 推到 `1`（提交），返回站点回的 `data`。
 
