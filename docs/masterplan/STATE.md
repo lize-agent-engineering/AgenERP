@@ -422,6 +422,15 @@
 > 格式：`[状态] 日期 · 触发条件 · WBS行ID · 最后一条失败命令原文 + 退出码 · sha · 处置`
 > 状态只有 `open` / `resolved`。**resolved 的行保留不删。**
 
+- [open] 2026-08-25T13:27Z · **`P1.8a-fix`（工作项 10b）的归因取证 —— 人侧在 loop 停机期间做的，交给 loop 接手**
+  · **背景**：loop 于 2026-08-25T13:27Z 前后因 `auth-expired` 停机（**今日第 3 次**，`claude login` 只能在交互式终端做，人侧代理做不了）。为不空转，人侧就手上的 CI 日志做了归因取证。**本条是证据交接，不是裁定，也不占用 plan 预算。**
+  · **⚠️ 先撤销一条已过期的线索**：本节早先登记的「`frontend.depends_on` 有 `agenerp-serve: service_healthy` 而 `agenerp-serve.depends_on` 缺 `backend`」**今天已不成立** —— 2026-08-25T13:27Z 实读 `docker-compose.yml`：`frontend.depends_on` = `backend`(healthy) / `websocket`(healthy) / `bootstrap-homepage`(completed)，**不含 `agenerp-serve`**。**别再顺着那条查。**
+  · **新证据（实读 CI run `82a144a` 的 `docker compose ps` 输出，不是推断）**：同一时刻，`db` 与 `redis-*` 是 **`Up 4 minutes`**，而 **`frontend` / `backend` / `agenerp-serve` / `queue-long` / `queue-short` / `scheduler` 全是 `Up 2 minutes`**，六个容器 `CREATED` 都是 `4 minutes ago`。⇒ **所有 frappe 系容器在起栈约 2 分钟后集体重启过一次，db/redis 没有。**
+  · **这把缺陷的描述整个换掉了**：不是「`frontend` 坏了」，而是「**`docker compose up -d --wait` 返回 healthy 之后，整组 frappe 容器还会再重启一次；判定步如果落进那个窗口，就会撞上连接超时**」。断言正文逐字「`127.0.0.1:8080` 够不到（**timed out**）」——**是连不上，不是 502**，与「容器正在重启」吻合；而等诊断步跑到时，`ps` 显示**全部 healthy**，所以事后看什么都正常。**间歇性由此而来。**
+  · **已排除**：① 端口映射错 —— 实读 `127.0.0.1:8080->8080/tcp`，正确（人侧一度误读成 `->80`，那是 `ps` 列宽截断，**已更正**）② OOM —— 全日志 `grep -inE "oom|killed|exit code 137|signal 9"` **零命中**（**注意：零命中不等于没发生**，runner 侧 OOM 未必写进容器日志，这条只是「日志里没证据」）
+  · **未查明**：**为什么会重启**。backend 日志末尾可见 `Linking fresh assets to volume...`（entrypoint 的启动工作）。⚠️ **不许据此猜根因**（裁判规则 3）。
+  · **给 loop 的方向（是方向不是结论）**：值得先回答的问题是「**`--wait` 返回之后到判定开始之间，栈是否稳定**」。若答案是否，修法可能在**判定前加一道稳定性等待**，而不在 `depends_on`。但**这两条都没在本仓实测过**。
+
 - [open] 2026-08-25T12:55Z · **答复 P1.8b plan 的 `§0.5` 两条前置 —— ② 现在就答，① 留给人（明早）**
   · **loop 的取证成立，先确认这一点**：它实测 `grep -rl -i "playwright|selenium" docs/masterplan docs/backlog` 零命中（唯一命中是它自己那条提问）、`git log --grep=Approved-By` **34 笔里涉及浏览器驱动的是 0**。第 8 轮**第七次实读复核**才写下结论，不是转述。
   · **② `docs/references/playwright-e2e-guide.md` 算不算数 —— 裁定：不算数，它是上游模板残留。** 依据是本项目自己的规矩：**决策落 `DECISIONS.md` 并带 `Approved-By` trailer**。那份文档逐字写「Playwright is the fixed e2e testing framework. Do not introduce alternatives.」，却**没有任何对应决策条、没有任何批准 trailer** —— **一份没有决策背书的文档，说得再确定也不是决策**。⚠️ **这不等于说 Playwright 是错的选择**，只是说**这件事还没被决定过**。
