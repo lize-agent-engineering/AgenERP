@@ -30,6 +30,7 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from http.cookies import CookieError, SimpleCookie
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
 
@@ -53,6 +54,18 @@ DEFAULT_PORT = 8330
 ROUTE_PREFIX = "/agenerp"
 HEALTH_PATH = f"{ROUTE_PREFIX}/health"
 EXPLAIN_PATH = f"{ROUTE_PREFIX}/explain"
+
+# Desk 注入接缝的静态资产（§7.22 `D-c-2` 选 (a) / `D-c-4` 裁定 `D-a-2` 不适用于本条）。
+# **文件名是模块级常量** —— 调用方一个字都拼不进去（判据用 AST 扫全模块守它）。
+# 路径由 `__file__` 推出，**不读任何环境变量**。
+ASSET_FILENAME = "desk.js"
+ASSET_PATH = f"{ROUTE_PREFIX}/{ASSET_FILENAME}"
+ASSET_CONTENT_TYPE = "text/javascript; charset=utf-8"
+ASSET_DIR = Path(__file__).resolve().parent / "assets"
+
+# 本服务实际服务的路径集合。**404 文案从它算出来，不另写一份字面量** ——
+# 漏改文案就是一条会说谎的错误信息，而说谎的错误信息比没有更贵。
+SERVED_PATHS = (HEALTH_PATH, EXPLAIN_PATH, ASSET_PATH)
 
 # 只读白名单方法：把浏览器带上来的 `sid` 解析成一个人。
 LOGGED_USER_METHOD = "frappe.auth.get_logged_user"
@@ -285,12 +298,19 @@ def _make_handler(deps: ServiceDeps) -> type[BaseHTTPRequestHandler]:
             if path == EXPLAIN_PATH:
                 self._respond(405, {"error": f"{EXPLAIN_PATH} 只接受 POST"})
                 return
+            if path == ASSET_PATH:
+                # **不认人**（不读 Cookie）、**不碰 LLM**、**不打站点**（§7.22 `D-c-4` 的端点表第三行）。
+                self._respond_asset()
+                return
             self._not_found()
 
         def do_POST(self) -> None:  # noqa: N802 - 标准库约定的方法名
             path = urlsplit(self.path).path
             if path == HEALTH_PATH:
                 self._respond(405, {"error": f"{HEALTH_PATH} 只接受 GET"})
+                return
+            if path == ASSET_PATH:
+                self._respond(405, {"error": f"{ASSET_PATH} 只接受 GET"})
                 return
             if path != EXPLAIN_PATH:
                 self._not_found()
@@ -318,9 +338,35 @@ def _make_handler(deps: ServiceDeps) -> type[BaseHTTPRequestHandler]:
                 raise ServiceError(400, "Content-Length 不能是负数")
             return self.rfile.read(length) if length else b""
 
+        def _respond_asset(self) -> None:
+            """把 `assets/` 下那个**名字写死在模块常量里**的文件原样发出去。
+
+            **请求里的任何一个字都进不了文件路径** —— 路径 = `ASSET_DIR / ASSET_FILENAME`，
+            两项都是模块级常量，`self.path` 只被用来做等值比较（`path == ASSET_PATH`），
+            从不参与拼接。判据用 AST 扫**本模块全部函数**守这一条（既有判据⑧/⑩ 只扫
+            `do_GET` 那几个，把逻辑挪进 helper 就绕过去了 —— 这一格是补的）。
+
+            读不到文件时回 500 且**不回显任何路径**：那是部署缺件，不是调用方能修的事。
+            """
+            try:
+                body = (ASSET_DIR / ASSET_FILENAME).read_bytes()
+            except OSError:
+                self._respond(500, {"error": INTERNAL_ERROR})
+                return
+            self.send_response(200)
+            self.send_header("Content-Type", ASSET_CONTENT_TYPE)
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
         def _not_found(self) -> None:
-            """**不回显请求路径。** 路径与 query 是调用方能控制的，回显就是一条反射面。"""
-            self._respond(404, {"error": f"未知路径；本服务只有 {HEALTH_PATH} 与 {EXPLAIN_PATH}"})
+            """**不回显请求路径。** 路径与 query 是调用方能控制的，回显就是一条反射面。
+
+            枚举的路径**从 `SERVED_PATHS` 算出来**，不另写一份 —— 判据比对的是
+            「文案里枚举的集合 == 本模块实际服务的常量集合」，漏改一条当场红。
+            """
+            served = "、".join(SERVED_PATHS)
+            self._respond(404, {"error": f"未知路径；本服务只有 {served}"})
 
         def _respond(self, status: int, payload: dict) -> None:
             body = json.dumps(payload, ensure_ascii=False).encode("utf-8")

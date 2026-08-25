@@ -70,6 +70,37 @@ P1 的目标一句话：**让 Agent 能看懂这套 ERP，并且能证明它真�
   - ⚠️ **本机 Docker 另有两处不稳定，与本仓无关但影响取证**：① **另一个 compose 项目**（项目名 `docker`）的 `frontend-1` 占着宿主 `0.0.0.0:8080` ⇒ 不带 `AGENERP_HTTP_PORT` 的 `up` 会死在 `Bind for 0.0.0.0:8080 failed: port is already allocated` —— **这正是人那条复现命令在本机的另一种死法**；② 冷起栈两次中途报 `Error response from daemon: No such container: <id>`。**两处都不猜根因**，只说明本轮冷起栈取证是在一台不稳定的机器上做的。
   - ⚠️ **独立收口审计未做** —— 本轮执行环境不具备独立子代理，`closure audit was independent` 这条 gate **留白**（执行者自己复跑不算独立审计），详见 plan `## Closure`。
 - 11. **Desk 侧边栏**（⌘K，调 P1.8a 的面）（P1.8b）: `todo`
+  - **◆ 第 1 个 plan 已交付（表规 3 的预算此后 1/2）：`2026-08-25-1615-1-desk-injection-seam-and-asset-route.md` → `completed`。**
+    ⚠️ **本行状态词仍是 `todo`，不是遗漏** —— 那个 plan **从不声称满足** WBS §4 第 88 行的验收命令
+    （`pytest -m live tests/ui/test_sidebar.py`），它**不做 ⌘K、不做侧边栏 UI、不建 `tests/ui/`**（其 Non-Goals 1/2）。
+    它交付的是那条命令成立所必需、而此前**完全不存在**的一格：**Desk 页面上如何才能加载到本仓的一段 JS。**
+    本行要转 `done`，等的是**第 2 个 plan**（表规 3 的最后一格预算）。
+  - **补的是一格空着的裁定**：`DECISIONS.md` **D-19** 把承载形态定为「独立进程 + nginx 同源反代，不是 Frappe custom app」，
+    于是 §7.13 `D1` 选中的「自建 Frappe app」被逐字否掉，**但 D-19 没有给出替代的注入口** ——
+    而 `www/app.py:47` 实读证明 Desk 全局 JS 只有 `hooks["app_include_js"]` 与 `frappe.conf["app_include_js"]`
+    两个来源，**两个都要进 Frappe 侧**。落点节 `module-boundaries.md` **§7.22**（新增，`§7.13/§7.20/§7.21` 一个字未改）。
+  - **裁定四条**：`D-c-1` 选 **(I)**（哨兵段内另起 `location ^~ /app`，**只在该块内** `sub_filter`）·
+    `D-c-2` 选 **(a)**（`agenerp/serve/assets/desk.js` + 服务的一条**不认人**只读 GET 路由，零新增挂载 / 零新增 location）·
+    `D-c-3` 风险档自评 **L1**（与 §7.21 `D-b-7` 同档；`D1` 当年判 L3 的理由随 D-19 否掉那条路而消失——**是被评的对象换了**）·
+    `D-c-4` 裁定 §7.20 `D-a-2`「不加第三条」**不适用**于一条不认人、不碰站点、不碰 LLM 的静态资产路由，**`D-a-2` 一个字未改**。
+  - ⚠️ **(H) 的否决是实测出来的，不是论证出来的**：一次可复原的临时施加下，server 级 `sub_filter` 实测
+    **误伤门户页 `/login`（1 次）与走 `location ~ ^/files/…` 那条路的 HTML（1 次）** —— 后者等于把注入串写进用户下载的 HTML。
+    选 (I) 之后同样两条请求实测**各 0 次**（体分别 347,156 / 330,562 字节，**有体可数，不是空响应**）。
+  - **活栈八条探针 `H5`–`H11` 全部吻合开跑前写死的预测**：`nginx -t` exit 0 · 资产 URL 200 / `text/javascript; charset=utf-8` / 与仓里那份逐字节相同 ·
+    `/app` 注入标记**恰好 1 次**且在 `</body>` **之前** · 停掉 `agenerp-serve` 后 frontend `healthy`、`RestartCount=0`、`/app` 仍 200 且标记仍在、资产回 **502**（§7.21 `D-b-8` 不回归）。
+    **冷起** `down -v` → `up -d --wait --wait-timeout 900` → **exit 0，墙钟 68 秒**，十个长期服务全 `running`；冷起后重新登录复跑，这一跳仍成立。
+  - **上游差集复核**：`<` 行 **0** 条（上游一行未删未改）、`>` 行 **100** 条落在**恰好两个 hunk** ⇒ **K3 成立，段数仍是两段**。
+  - ⚠️ **变异自查抓到一个真窟窿，照实记**：**M5**（`Content-Type` 改成 `application/json`）第一轮**没打红** ——
+    那条判据当时写的是「服务发出的 == `ASSET_CONTENT_TYPE`」，**两边是同一个常量的两次读取**，
+    守不住「常量本身被改成浏览器不会执行的类型」，而那正是最难发现的失败形态（标签在、`curl` 200、`nginx -t` 绿，只有浏览器不执行）。
+    **当场补断言**（media type 必须落在 JavaScript MIME 集合里）后复跑 → 打红。
+    **M6**（改资产一个字节）**按构造打不红**（「逐字节相同」比的是两个源），照实保留在表里，
+    并补了 M6b/M6c 两条覆盖它真正守的失败形态。共 **14 次施加、13 次打红、全部 `RESTORED OK`**。
+  - ⚠️ **verification scope limited**：未跑整仓 `pytest tests -q -m "not live"`（跑的是 `tests/unit` **801 passed, 6 skipped**，开工基线 `779 passed, 6 skipped`
+    + `contracts/tools/routing/context` **456 passed, 13 skipped**）· **未经 CI 服务端复跑** ·
+    **未做任何浏览器验证** —— 本轮证到「HTML 里确实有那个 `<script src>`、且那个 URL 真回 200 JS」，
+    ⚠️ **「HTML 里有 `<script>` 标签」≠「浏览器执行了它」**，那是第 2 个 plan 的面 ·
+    「真实静态 HTML 附件会不会被损坏」本栈 `files/` 为空且 Non-Goals 3 禁止上传取证 ⇒ `not observed on this stack`。
 
 ## 已经就绪的前置（不要重做）
 

@@ -3814,3 +3814,316 @@ docker compose up -d --force-recreate --no-deps frontend
   ② 冷起栈两次中途报 `Error response from daemon: No such container: <id>`，
   **容器在守护进程里凭空消失**。第二次按裁判规则 3 复跑 `up -d --wait` 即 exit 0。
   **这两处都不猜根因**，只说明：**本轮的冷起栈取证是在一台不稳定的机器上做的。**
+
+---
+
+### 7.22 Desk 注入接缝与静态资产路由在本仓的落点（P1.8b 第 1 个 plan · 2026-08-25）
+
+> 交付 plan：`docs/plans/p1-insight/2026-08-25-1615-1-desk-injection-seam-and-asset-route.md`
+> 执行期探测记录：`docs/analysis/2026-08-25-1615-desk-injection-seam-probe.md`
+> ⚠️ **本节不改 §7.13 / §7.20 / §7.21 任何一行。** §7.13 是历史记录（其探测表仍有效），
+> §7.20 / §7.21 是 P1.8a 的两个落点，本节在它们之上加一格。
+
+**本节补的是一格今天完全空着的裁定**：`DECISIONS.md` **D-19** 把承载形态定为
+「独立进程 + nginx 同源反代，**不是** Frappe custom app」，
+于是 §7.13 `D1` 选中的 (A) 自建 Frappe app 被逐字否掉 —— **但 D-19 没有给出替代的注入口**。
+`www/app.py:47` 实读证明 Desk 全局 JS 的来源只有 `hooks["app_include_js"]` 与
+`frappe.conf["app_include_js"]` 两项，**两项都要求进 Frappe 侧** ⇒ 在 D-19 的约束下，
+**Frappe 自己一个可用注入口都没留下**。今天本仓唯一还能改 Desk 页面的位置是**反代那一层**。
+
+#### 执行期探针的实际值（四条，全部带真登录会话）
+
+| # | 探针 | 预测 | **实际** |
+|---|---|---|---|
+| `H1` | `nginx -V` 里 `--with-http_sub_module` / `--with-http_addition_module` | 两条都是 `1` | **两条都是 `1`**（`nginx/1.22.1`） |
+| `H2` | 带真 `sid` `GET /app` | 200 · `text/html` · 体含 `</body>` | **200** · `text/html; charset=utf-8` · `</body>` 出现 **恰好 1 次** · 体 **277,440** 字节 |
+| `H3` | 容器内 `frontend → backend:8000/app`，带真 `sid` + `Accept-Encoding: gzip` | **不带** `Content-Encoding` | **不带**（`Server: gunicorn` · `Content-Length: 277459` · 全响应头无 `Content-Encoding`） |
+| `H4` | 不带 Cookie `GET /app` | 301 · `Location` 含 `/login` · `Content-Length: 0` | **301** · `Location: /login?redirect-to=%2Fapp` · `Content-Length: 0` |
+
+⇒ `H3` 吻合 ⇒ **`H3b` 那条对冲（在自起的 location 里 `proxy_set_header Accept-Encoding "";`）未被触发**，
+本节落地的配置里**没有**这一行。⚠️ 它是**留了记录的备用件**：上游哪天开始回 gzip，
+`sub_filter` 会**静默失效**（配置全绿、注入物不见），届时的第一处置就是补上那一行 —— 见本节「翻案条件」。
+
+⚠️ **两处 gzip 分开记**：模板 `:149` 的 `gzip on` 是 **nginx→客户端**方向、跑在 `sub_filter`
+**之后**，**无害**；只有**上游→nginx** 那一跳的压缩才会让 `sub_filter` 失效。混为一谈会得出「本方案不可行」的错误结论。
+
+#### `D-c-1` 注入接缝：选 **(I)** —— 在哨兵段内另起 `location ^~ /app`，只在该块内 `sub_filter`
+
+候选六个，**依据分两类，不混**。
+
+**经验性候选（依据引执行期探针格）**：
+
+| 候选 | 判定 | 依据（**执行期探针**） |
+|---|---|---|
+| **(H)** server 级 `sub_filter` 换 `</body>` | **否决** | `E-3` 一次可复原的临时施加实测：`/app` 注入 **1** 次（要的）、**`/login` 也注入 1 次**（门户页误伤）、**`/files/<不存在>.html` 也注入 1 次**（走 `location ~ ^/files/.*.(htm\|html\|svg\|xml)` 那条路的 HTML 被改写）。**作用面 = 所有 `text/html` 响应**，实测坐实，不是推断 |
+| **(I)** 哨兵段内另起 `location ^~ /app`，**只在该块内** `sub_filter` | **选中** | 同一批探针证明改写能力存在（`H1`=1）、锚点存在且唯一（`H2` 的 `</body>` 恰好 1 次）、上游不压缩（`H3` 不带 `Content-Encoding`）⇒ **(I) 需要的三个前提全部实测成立**，且它把作用面收窄到 Desk 一条路由 |
+| **(M)** `add_after_body`（`ngx_http_addition_module`） | **否决** | 模块实测在（`H1`=1，**不是能力问题**）。否决理由是**注入位置**：它把内容追加在整个响应体**之后**（`</html>` 之后），而 (I) 插在 `</body>` **之前**。`H11` 测的就是这一格。追加在 `</html>` 之后的 `<script>` 处在 HTML 解析的「after body」状态，其执行时机与 DOM 就绪次序**依赖浏览器容错**而非规范保证 —— 本 plan 明确不做浏览器实证（Non-Goals 5）⇒ **选一个把不确定性堆到未实证面上的方案，是把风险藏进看不见的地方**。另：`add_after_body` 对每个匹配响应各发一次**内部子请求**，等于给每个 Desk 页面多一跳 |
+
+**决策性候选（依据是文档原文，`不需要探针`）**：
+
+| 候选 | 判定 | 依据（**文档原文，不需要探针**） |
+|---|---|---|
+| **(J)** 自建 Frappe app 走 `hooks["app_include_js"]` | **否决** | `DECISIONS.md` **D-19** 逐字：「承载形态定为 **独立进程 + nginx 同源反代**，不是 Frappe custom app」 |
+| **(K)** `frappe.conf["app_include_js"]` | **否决** | §7.13 (E)：承载物落在共用 `sites:` volume 里 ⇒ 是**运行期**写、写完即生效、不进 git、不可 diff ⇒ 正是 **D-10** 那扇「运行期的门」。D-10 逐字「**暂不解开红线 7**」「**不得以『反正将来要解开』为由试探**」⇒ 走这条要**停机交人**，不由 loop 裁 |
+| **(L)** 不嵌 Desk、改做 `/agenerp/` 下的独立页面 | **只作退路登记，不作选项** | `02-WBS.md` §4 第 88 行逐字要求「**保留当前单据上下文**」，(L) 按构造做不到（它不在 Desk 页面里，拿不到当前单据）。且它会产出一个**关不掉 WBS P1.8b 的残件** |
+
+**选中项 (I) 的落地形态**（全部坐在那一对哨兵之间，**上游任何一行不动**）：
+
+```
+location ^~ /app {
+	# @webserver 那套头的孪生（见下面「代价」）
+	proxy_http_version 1.1;
+	proxy_set_header X-Forwarded-For $remote_addr;
+	proxy_set_header X-Forwarded-Proto $proxy_x_forwarded_proto;
+	proxy_set_header X-Frappe-Site-Name ${FRAPPE_SITE_NAME_HEADER};
+	proxy_set_header Host $host;
+	proxy_set_header X-Use-X-Accel-Redirect True;
+	proxy_read_timeout ${PROXY_READ_TIMEOUT};
+	proxy_redirect off;
+
+	sub_filter '</body>' '<script src="/agenerp/desk.js"></script></body>';
+	sub_filter_once on;
+
+	proxy_pass http://backend-server;
+}
+```
+
+⚠️ **代价逐字写清，三条**：
+
+1. **上游孪生**。自起的 `location ^~ /app` 拿不到 `location @webserver` 的那套头
+   （nginx 的体过滤器与 `proxy_set_header` 都按**最终处理请求的那个 location** 取配置；
+   写成 `try_files … @webserver` 会让请求内部跳进 `@webserver`，**`sub_filter` 随之失效** ——
+   这不是可选写法，是 (I) 必须自带那套头的**结构性原因**）。
+   ⇒ 哨兵段里从此养着一份**需随镜像 tag 升级同步的上游孪生**：
+   `X-Frappe-Site-Name` / `X-Use-X-Accel-Redirect` / `Host` / `X-Forwarded-*` / `proxy_read_timeout` 五项，
+   上游改了而本仓没跟，Desk 会**静默走偏**（不是报错，是行为不同）。
+   **判据在 §7.22 判据⑤ 那一格守它**（模板里 `^~ /app` 块的头集合 ⊇ `@webserver` 的头集合）。
+2. **`location /` 的三条 `rewrite` 不再作用于 `/app` 前缀**（`^~` 是精确前缀、优先于正则、且不落回 `location /`）。
+   实读那三条是 `^(.+)/$ → $1` / `^(.+)/index\.html$ → $1` / `^(.+)\.html$ → $1`，
+   **对 Desk 路由（`/app`、`/app/<doctype>`）本来就不产生跳转**；照实登记为**行为面差异**，非缺陷。
+3. **`^~ /app` 是前缀匹配，会连带匹配 `/app…` 开头的其它路径**（如 `/apple`）。
+   实读本栈上 Frappe 只在 `/app` 前缀下开 Desk，无其它 `/app*` 路由 ⇒ 今天无碰撞；
+   **登记为残余风险**，上游哪天加一条 `/app-xxx` 就会被本块吃掉。
+
+**(H) 的残余风险照实登记（选 (I) 后不再承担，但记录必须留下）**：
+server 级 `sub_filter` 会把注入串写进**用户下载的 HTML 附件**（那是**损坏用户文件**）。
+本栈 `sites/frontend/public/files/` **文件 0 个**，而造对象要往站点上传附件——plan Non-Goals 3 逐字禁止
+⇒ 该格**降级实测**为「`/files/<不存在>.html` 的 404 体被改写」（已实测 **1** 次），
+「**真实静态附件被损坏**」保持 **推论 + `not observed on this stack`**，
+**不得反过来当成已证或已排除**。另实读一处：那条 404 响应**不带** `Content-disposition: attachment`
+（nginx `add_header` 默认不对 404 生效）⇒ 降级探针证的是「体被改写」，不含「浏览器当附件下载」。
+
+**翻案条件（三条，任一成立即重开本条）**：
+① 上游 `backend` 开始对 `/app` 回 `Content-Encoding`（`H3` 被推翻）⇒ 第一处置是 `H3b` 那行
+`proxy_set_header Accept-Encoding "";`，**只加在本块内、上游一行不动**；
+② 上游镜像 tag 升级后 `@webserver` 的头集合变了（代价 1 的孪生漂移）；
+③ 上游新增 `/app` 前缀下的非 Desk 路由（代价 3）。
+
+#### `D-c-2` 那段 JS 从哪儿来、由谁发：选 **(a)** —— 本仓文件 + 解释服务的只读 GET 路由
+
+| 候选 | 判定 | 依据 |
+|---|---|---|
+| **(a)** `agenerp/serve/assets/desk.js`，随**现有**挂载送达，由 `agenerp/serve/app.py` 一条只读 GET 路由发出去 | **选中** | `docker-compose.yml` 实读 `agenerp-serve` 的 `volumes:` **唯一一条** `- ./agenerp:/opt/agenerp/agenerp:ro` ⇒ **`agenerp/` 下任何文件天然已送达容器**，本方案**零新增挂载、零新增 location、零新增依赖** |
+| **(b)** 打进镜像 | **否决** | `x-erpnext-image` 是钉死的上游镜像，本仓不自建镜像层；且 §7.13 (F) 实测 `frappe-bench` 下只有 `sites` / `logs` 两个 volume ⇒ 容器重建即丢 |
+| **(c)** 给 `frontend` 再加一个 bind mount，nginx `alias` 直接发 | **否决** | **硬碰撞**：`tests/unit/test_explain_same_origin.py:218` 逐字 `assert len(directives) == 1`（含 `ROUTE_PREFIX` 的 `location` 有且只有一段）。(c) 必然新增 `location /agenerp/desk.js` ⇒ **那条既有判据当场变红**。**放宽一条既有判据是一次独立裁定**，不是顺手放宽 ⇒ 这条碰撞本身就是 **(a) 胜过 (c) 的硬理由** |
+
+**这段资产认不认人：不认人。** 三条理由：
+① `<script src>` 取不到就整个白做，而它**本身零业务信息**（自证存在的最小脚本）；
+② 认人会多出一条「未登录时页面报错」的噪声路径，而 `H4` 实测未登录根本拿不到 Desk HTML
+⇒ 那条路径**永远走不到**，是纯负债；
+③ 认人 = 多一个认人面，正是 `D-a-2` 否决 `whoami` 时点名要避免的东西（见 `D-c-4`）。
+
+⚠️ **「不认人」不等于「无防护」**，本节把两件事分开：路由**不接受任何路径参数**
+（文件名是模块级常量，调用方一个字都拼不进去）、**不读任何环境变量**、路径由 `__file__` 推出。
+判据用 AST 扫**本模块全部函数（含新加的 helper，不只是 `do_GET`）**守它 —— ⚠️ 既有判据⑧/⑩ 的
+AST 扫描**只扫到它扫的那几个函数**，把资产逻辑挪进 `do_GET` 之外就能绕过去，这一格是本节新补的。
+
+#### `D-c-3` 本次改动的风险档自评：**L1**
+
+逐格对 `docs/design/agents-and-roles.md` §9 那张表：
+
+| 档 | 定义 | 本次改动符不符合 |
+|---|---|---|
+| L0 | 只读，无副作用 | **不符** —— 它改变了所有登录 Desk 用户浏览器里加载的东西，不是只读 |
+| **L1** | **可逆配置** | **符合** —— 三份产物（JS 资产 / 服务路由 / nginx 模板注入段）**全部是构建期文件、全部进 git**；`git revert <sha>` + `docker compose up -d --force-recreate --no-deps frontend agenerp-serve` 即彻底复原，**站点里不留任何东西** |
+| L2 | 业务数据写入 | **不符** —— **不写站点任何一行数据**（P1 是②端只读） |
+| L3 | 系统形态变更（DocType DDL / 改权限 / 改 Workflow） | **不符** —— 三样一样不沾；不跑 `bench install-app`、不动 `installed_apps`、不建 `apps/**` |
+
+**结论：L1。** 与 §7.21 `D-b-7`（compose + nginx 接线，自评 L1）**同性质、同档**。
+
+⚠️ **为什么不是 §7.13 `D1` 判的 L3 —— 必须正面回答**：`D1` 当时判 L3，是因为它选中的承载面是
+**(A) 自建 Frappe app**，而那条路要 `bench install-app` 往**站点**里装东西 —— 那是**系统形态变更**。
+**D-19 把那条路否掉之后，L3 的那个理由随之消失**：本次改动一次都不碰站点。
+**这不是 loop 把一个 L3 自评成 L1** —— 是**被评的对象换了**（改的东西从「站点形态」变成「反代配置 + 独立进程的一条只读路由」）。
+
+**结论若是 L3 会怎样（写死的分支，本轮未触发）**：Phase 2 / 3 必须挂在人批之后，
+在 `STATE.md` §3 追加一条 needs-human 并停在 Phase 1，**loop 不自批、不试探**。
+
+⚠️ **D-10 的三格护栏逐条对答**（本次改动是不是那扇「运行期的门」）：
+**进 git？** 是（三份产物全部是仓内文件）· **走人审？** 是（提交进 git，人可 diff、可 revert）·
+**重启才生效？** 是（nginx 模板是 `:ro` bind mount，改完必须 `--force-recreate` frontend；
+资产文件也要容器重起才重读）。⇒ **三格全中，走的是 D-10 认可的构建期那扇门**，不是运行期。
+
+#### `D-c-4` 与 §7.20 `D-a-2`「不加第三条」的冲突：裁定 **`D-a-2` 不适用于本条路由**，可加
+
+⚠️ **`D-a-2` 一个字不改。** 本条是**就地扩展**，不是推翻。
+
+`D-a-2` 的否决对象逐字是「加一条 `GET /agenerp/whoami` 方便调试」，否决理由逐字是：
+
+> 它是**第二个认人面**，判据要跟着翻倍（401 的每一格都要在两处各判一次），
+> 而它的全部调试价值已经由 `/explain` 的 401 分支覆盖。
+
+**那条理由适不适用于 `GET /agenerp/desk.js`？逐字回答：不适用。**
+理由由**两个连词**构成，两半都不成立：
+① 「**第二个认人面**」—— `desk.js` 按 `D-c-2` **不认人**（不读 Cookie、不解析 `sid`、不调
+`frappe.auth.get_logged_user`）⇒ 它**不是**认人面，一个都不是，谈不上第二个；
+② 「**判据要跟着翻倍**」—— `whoami` 要翻倍的是**401 的每一格**，而 `desk.js` **没有 401 分支**
+（它对任何调用方一律 200 同一份字节）⇒ **没有可翻倍的格**。它带来的判据是**新的一类**
+（字节一致性 / `Content-Type` / 不可拼路径），不是既有格的复制。
+
+**⇒ `D-a-2` 的「不加第三条」是对「第二个认人面」的否决，不是对「端点数量」本身的禁令。**
+本条按其**理由的射程**裁定：**不认人、不碰站点、不碰 LLM 的静态资产路由不在其射程内。**
+
+**扩展后的端点表（三行，三列逐格填满）**：
+
+| 方法 · 路径 | 认人？ | 碰 LLM？ | 碰站点？ |
+|---|---|---|---|
+| `GET  /agenerp/health` | **否** | **否** | **否** |
+| `POST /agenerp/explain` | **是** | 可能 | 是 |
+| **`GET  /agenerp/desk.js`**（本节新增） | **否** | **否** | **否** |
+
+⇒ 认人面**仍然只有一个**（`/explain`）。`D-a-2` 真正守的那件事**一格未动**。
+
+⚠️ **写死的强制动作，本轮**未**触发**：裁定若为「适用（不得加第三条）」，停机前必须先枚举并实测
+「不新增任何含 `ROUTE_PREFIX` 的 `location` 就发这段资产」的两条候选
+（① 具名 location `@agenerp_asset` 为主路径 · ② 现有 `location /agenerp/` 内 `try_files` ——
+后者按 nginx 语义会把 `proxy_pass` 移出该块、打红判据③，与 `D-c-2` 的 (c) 同性质）。
+本轮裁定为「不适用」⇒ **这条链条不进入**。**照实记以备翻案**：候选 ① 至今**未实测**，
+它是「`D-a-2` 哪天被人重新裁定为适用」时的第一处置，不是本轮已验证的东西。
+
+**残余风险**：`/agenerp/desk.js` 与 `/agenerp/health` 一样**不认人** ⇒ 任何能打到 `frontend`
+对外口的人都能取到这段 JS。它**零业务信息**（自证存在的最小脚本）⇒ 今天无害；
+**翻案条件**：这段 JS 哪天开始含任何站点信息或凭据形态的东西（例如把配置烘进去），
+**这一条必须重开**，届时「不认人」不再成立。
+
+#### 落地面（Phase 2 回填）
+
+三份产物，**注入的 URL 与服务发出的 URL 是同一个字面量的两次读取**：
+
+| 产物 | 是什么 |
+|---|---|
+| `agenerp/serve/assets/desk.js` | **自证存在的最小脚本**：在 `window` 上挂一个 `Object.freeze` 的只读标记 + 往 console 打一行。**不注册快捷键、不发任何请求、不碰 DOM**（⌘K 是工作项 11 第 2 个 plan 的面）。随**现有**那条 `./agenerp:/opt/agenerp/agenerp:ro` 挂载送达，**零新增挂载** |
+| `agenerp/serve/app.py` | 新增 `ASSET_FILENAME` / `ASSET_PATH` / `ASSET_CONTENT_TYPE` / `ASSET_DIR` / `SERVED_PATHS` 五个模块级常量 + `_respond_asset()`。`GET {ASSET_PATH}` **不认人、不接受任何路径参数**（文件名是常量，`self.path` 只做等值比较、从不参与拼接）、`Content-Type: text/javascript; charset=utf-8`、显式 `Content-Length`；路径由 `__file__` 推出，**不读任何环境变量**。`POST` 到该路径回 **405**（路径存在、方法不对），不是 404 |
+| `tools/nginx/frappe.conf.template` | 那一对哨兵之间新增 `location ^~ /app`（`D-c-1` 的 (I)）。**上游任何一行不动**，哨兵仍是**一对**（`:51` / `<<<`） |
+
+⚠️ **`_not_found()` 的文案改成从 `SERVED_PATHS` 算出来**，不再手写枚举。
+落地前实读 `grep -rn "本服务只有" tests/` **无输出** ⇒ 漏改、改错、改成一条不存在的第四条路径，
+**当时全绿**。**一条会说谎的错误信息比没有更贵**，这一格由判据补上。
+
+#### 判据（两份，各守一件事）
+
+`tests/unit/test_desk_asset_route.py`（**13 条**，起真 socket 打真路由）：
+不带 Cookie 回 200 · `Content-Type` 逐字 · 体与仓里那份 **逐字节相同**（不比子串——比子串时改一个字节仍全绿）·
+`POST` 回 405 · 未知路径仍 404 且**调用方控制的串一个字不回显**（含带 query 的那条）·
+**404 文案枚举的路径集合 == 本模块实际服务的常量集合**（两边都从常量算出，**双向比对**：既不许漏，也不许枚举不存在的路径）·
+AST 扫**本模块全部函数**（不只 `do_GET`）：无凭据环境变量、**读文件的实参链里没有任何请求侧的值**、文件名确是模块级常量。
+
+`tests/unit/test_desk_injection_static.py`（**8 条**，纯离线，**从两个文件各读一次再比**）：
+① 注入 URL 前缀 == `ROUTE_PREFIX` · ② 注入文件名 == `ASSET_FILENAME` ·
+③ 注入段在那一对哨兵**之间**（且哨兵外没有第二处 `sub_filter`）·
+④ **注入段在生效行上，不是被整段注释掉**（先剔注释行再判——只 grep 字符串会把注释里的 URL 也数进去，
+**这是静态判据最容易被绕的一格**）· ⑤ **自起的 `^~ /app` 的头集合 ⊇ 上游 `@webserver` 的头集合**
+（守 `D-c-1` 代价 1 的孪生漂移；漂了就把上游新增项抄进来，**不是放宽判据**）·
+⑥ `sub_filter` 的替换串里仍含锚点（否则把 `</body>` 吃掉、页面结构坏）· ⑦ `sub_filter_once on;` ·
+⑧ 模板里 `/agenerp/` 上游端口 == compose 的 `AGENERP_SERVE_PORT`（沿用 §14.11 口径）。
+
+⚠️ **判据里一个第三方字面量都不写**：URL、文件名、端口三处全部「两个文件各读一次再比」。
+
+**八种失败模式各自打红哪一条**（Phase 2 Exit Criteria 要求说得出）：
+改前缀 → 静态①；改文件名 → 静态②；注入段挪出哨兵 → 静态③；注入段整段注释掉 → 静态④；
+资产路由认人 → 路由① `test_asset_is_served_without_any_cookie`；改 `Content-Type` → 路由 `test_asset_content_type_is_javascript`；
+改上游端口 → 静态⑧；404 文案说谎 → 路由 `test_404_message_enumerates_exactly_the_paths_this_module_serves`。
+
+**验证（Phase 2）**：`python3 tools/gates/check_expected_red.py && python3 -m pytest tests/unit -q`
+→ **exit 0**，门禁 26 项全绿，**`800 passed, 6 skipped`**（开工基线 `779 passed, 6 skipped` ⇒ **+21 条，只增不减**）·
+`ruff check agenerp tests/unit tests/contracts tests/tools tests/routing tests/context tests/experiments`
+→ **`All checks passed!`** · `git diff -- pyproject.toml` → **0 行**（零新增依赖）·
+`python3 -m pytest tests/contracts tests/tools tests/routing tests/context -q` → **`456 passed, 13 skipped`** ·
+`python3 -m pytest tests/unit/test_compose_zero_dep.py -q` → **`14 passed`**。
+
+#### 活栈实测值（Phase 3 回填）
+
+证据全文：`docs/evidence/p1-desk-seam/README.md`。八条探针**全部吻合开跑前写死的预测**：
+
+| # | 预测 | **实际** |
+|---|---|---|
+| `H5` | `nginx -t` exit 0 · 回归两条 200 | **exit 0** · `/api/method/ping` **200** · `/agenerp/health` **200** |
+| `H6` | 资产 URL 200 · `text/javascript; charset=utf-8` | **200** · **`text/javascript; charset=utf-8`** · `Content-Length: 1193` · `cmp` 与仓里那份**逐字节相同** |
+| `H7` | 注入标记**恰好 1 次** | **1** |
+| `H8` | frontend 不进重启循环 · `/app` 仍 200 且标记仍在 · 资产 URL 502 | **`healthy`、`RestartCount = 0`** · `/app` **200**、标记 **1** · 资产 **502** · `ping` **200** |
+| `H9` | `test_compose_zero_dep.py` 14 条全绿 | **`14 passed`**（**冷起后复跑仍 14 绿，一条未改松**） |
+| `H10a` | 选 (I) ⇒ `/login` **0 次** | **0**（体 **347,156** 字节，**有体可数**） |
+| `H10b` | 选 (I) ⇒ `/files/<不存在>.html` **0 次** | **0**（体 **330,562** 字节，**有体可数**） |
+| `H11` | 选 (I) ⇒ 标记在 `</body>` **之前** | **之前**（`marker@277444` · `</body>@277484` · `</html>@277492`） |
+
+⚠️ **`H10a` / `H10b` 是选中项的代价那一半，两条都是有体可数的 0，不是「未观察」。**
+对照 Phase 1 的 `E-3`：**同样两条请求在候选 (H) 下各数出 1 次** ⇒
+**(I) 与 (H) 的作用面差异是实测出来的。**
+
+**冷起**：`down -v` → `up -d --wait --wait-timeout 900` → **exit 0，墙钟 68 秒**，
+十个长期服务全 `running`、有探针的七个全 `healthy`。
+⚠️ **宿主对外口必须给 `18080`**（本机 `8080` 被另一个 compose 项目占着）——本轮实际撞到过一次，照实记。
+
+**上游副本差集复核**：`docker run --rm --entrypoint cat frappe/erpnext:v15.119.3 /templates/nginx/frappe.conf.template | diff - tools/nginx/frappe.conf.template`
+→ **`<` 行 0 条**（上游一行未删未改）· **`>` 行 100 条**，落在**恰好两个 hunk**
+（`0a1,20` 文件头注释块 · `30a51,130` 那一对哨兵及其之间）。
+⇒ **K3 成立，段数仍是两段** —— 本 plan 加的内容落在第二段里，**没有产生第三段**。
+
+#### 变异自查（14 次施加，13 次打红，1 次没打红）
+
+M1–M12 逐条见证据文件。**两处照实记的结果，不粉饰**：
+
+🔴 **M5（`Content-Type` 改成 `application/json`）第一轮没打红 —— 抓到一个真窟窿。**
+当时那条判据写的是 `headers.get("Content-Type") == ASSET_CONTENT_TYPE`，
+**两边是同一个常量的两次读取** ⇒ 守得住「服务与自己的常量漂开」，
+**守不住「常量本身被改成浏览器不会执行的类型」**。后者的失败形态正是最难发现的那种：
+`<script>` 标签照样在、`curl` 照样 200、`nginx -t` 照样绿，**只有浏览器不执行它**。
+**当场补断言**：那条判据改成两层一起判，第二层要求 media type 落在
+`{text/javascript, application/javascript, application/x-javascript}` 且声明 `charset=utf-8`。
+⚠️ **这是本 plan 全部判据里唯一一处刻意写死的字面量** —— 它对齐的不是本仓的另一个文件，
+而是**浏览器那一侧的契约**，没有第二个仓内文件可以「各读一次再比」。补后 M5 → **打红**。
+
+🔴 **M6（把资产内容改一个字节）没打红 —— 按构造就打不红，不是判据漏了。**
+「体与仓里那份逐字节相同」比的是**两个源**，改了磁盘那份、服务发的也跟着变 ⇒ 两边仍相等。
+**它守的是「服务发出的 ≠ git 里那份」**，由 **M6b**（只改服务发出的字节）实测打红。
+**不补「钉死内容/哈希」的断言**：那会让每次改这段 JS 都要同步改判据，是纯 churn。
+**补的是一条只看形状的下限判据**（非空、含 `agenerpDesk`、含 `Object.freeze`、收尾完整的 IIFE），
+挡「掏空」这个真实失败形态，由 **M6c** 实测打红。**M6 的「没打红」保留在记录里。**
+
+#### 本节的残余风险与 `verification scope limited`
+
+- **未做任何浏览器验证**：本轮证到「HTML 里确实有那个 `<script src>`、且那个 URL 真回 200 JS」。
+  ⚠️ **「HTML 里有 `<script>` 标签」≠「浏览器执行了它」**，**本节不声称已证浏览器行为**。
+  承接者是工作项 11 的第 2 个 plan。
+- **未经 CI 服务端复跑**：全部证据来自本机。
+- **未跑整仓 `pytest tests -q -m "not live"`**：跑的是 `tests/unit` + `contracts/tools/routing/context`。
+- **本节不声称满足 WBS §4 P1.8b 的验收命令**（`pytest -m live tests/ui/test_sidebar.py`）——
+  那条命令要的是 ⌘K 侧边栏本体，是下一个 plan 的结果面。
+
+#### 收口数字，与一次**被 P1.0 计数守卫拦下**的措辞（照实记）
+
+`tests/unit` 的收口实跑是 **`801 passed, 6 skipped`**（开工基线 `779 passed, 6 skipped`，**+22 条**）。
+⚠️ 上文 Phase 2 那一格记的 `800` **是 Phase 2 收口那一刻的真值**，不改；
+Phase 3 的变异自查又补了两条断言（`test_asset_content_type_is_javascript` 的第二层、
+`test_asset_file_is_not_gutted`）⇒ 收口时是 801。**两个数都留着，不合并成一个。**
+
+⚠️ **本节初稿有一行被 `tests/unit/test_entry_gate_tally.py` 的 P1.0 逐格计数守卫打红**，照实记：
+那一行把基线的 passed 与 skipped 两个数**用一条斜杠连着写**，正好命中守卫的数字面
+（它认「若干位数字 + 斜杠 + `6` 或 `12`」这种形状），而其前 4 行内有语境标识「门禁」
+⇒ 守卫判定为「有人把一个 P1.0 逐格计数手抄进了 owner doc」。
+**语义上是误报**（那两个数是 pytest 的 passed / skipped，不是逐格计数），
+**处置是改本节的措辞**（写成 `779 passed, 6 skipped`），**不是放宽那条守卫** ——
+放宽一条既有判据是一次独立裁定，且那条守卫的固有边界（裸计数不可见）在 §7.18 已写死、由人处置。
+⇒ 顺带给 §7.18 那条守卫添一格**真实世界的误报样本**：
+它的数字面会吃掉「passed 与 skipped 用斜杠连写」这种形状的 pytest 计数。
+**写 owner doc 时把这两个数分开写，就不会撞上它。**

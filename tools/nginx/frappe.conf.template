@@ -86,6 +86,46 @@ server {
 
 		proxy_pass http://$agenerp_serve_host:8330;
 	}
+
+	# ---- Desk 注入接缝（§7.22 `D-c-1` 选 (I)）------------------------------------
+	# 目的：让**登录后的 Desk 页面**加载到本仓 git 里的那段 JS，且与解释服务同源。
+	#
+	# ⚠️⚠️ **为什么另起一个 location，而不是在 server 级开 sub_filter**（`D-c-1` 的 (H)，
+	# 一次可复原的临时施加实测过，不是推断）：server 级 sub_filter 的作用面是
+	# **所有 text/html 响应** —— 实测 `/login`（门户页）也被注入 1 次、
+	# `/files/<不存在>.html`（走下面那条 `location ~ ^/files/.*.(htm|html|svg|xml)`，
+	# 带 Content-disposition: attachment）也被注入 1 次。**那是把注入串写进用户下载的 HTML。**
+	# 收窄到这一个 location，作用面就只剩 Desk 一条路由。
+	#
+	# ⚠️⚠️ **为什么这里要抄一份 @webserver 的头，而不是 `try_files ... @webserver`**：
+	# nginx 的体过滤器与 proxy_set_header 都按**最终处理请求的那个 location** 取配置。
+	# 写成 try_files 会让请求内部跳进 @webserver，**本块的 sub_filter 随之静默失效**
+	# （配置全绿、注入物不见）。这是结构性原因，不是写法偏好。
+	# 代价照实记：下面这一份是**上游 @webserver 的孪生**，上游随镜像 tag 改了而这里没跟，
+	# Desk 会**静默走偏**（不是报错，是行为不同）。判据⑤ 比对两边的头集合守它。
+	#
+	# ⚠️ sub_filter 只在**上游不压缩**时有效。实测（带真 sid 打 backend:8000/app）
+	# 上游**不回** Content-Encoding ⇒ 本块**不需要** `proxy_set_header Accept-Encoding "";`。
+	# 上游哪天开始回 gzip，第一处置就是把那一行加**在本块内**（上游一行不动）。
+	#
+	# 注入的 URL 前缀必须与 agenerp/serve/app.py 的 ROUTE_PREFIX 逐字一致、
+	# 文件名必须与 ASSET_FILENAME 逐字一致 —— 判据从两个文件各读一次再比，
+	# 不在判据里写第三个字面量（沿用 §14.11 的口径）。
+	location ^~ /app {
+		proxy_http_version 1.1;
+		proxy_set_header X-Forwarded-For $remote_addr;
+		proxy_set_header X-Forwarded-Proto $proxy_x_forwarded_proto;
+		proxy_set_header X-Frappe-Site-Name ${FRAPPE_SITE_NAME_HEADER};
+		proxy_set_header Host $host;
+		proxy_set_header X-Use-X-Accel-Redirect True;
+		proxy_read_timeout ${PROXY_READ_TIMEOUT};
+		proxy_redirect off;
+
+		sub_filter '</body>' '<script src="/agenerp/desk.js"></script></body>';
+		sub_filter_once on;
+
+		proxy_pass http://backend-server;
+	}
 	# <<< AgenERP
 
 	location /assets {
