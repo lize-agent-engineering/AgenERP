@@ -371,7 +371,8 @@ Exit Criteria:
 Status: completed
 Targets: `docs/architecture/module-boundaries.md`（§7.7 · `:488` · §7.23.6）· `docs/architecture/model-management.md`（§12.5）·
 `docs/architecture/system-baseline.md`（§14.7 / §14.10，**仅追加时点限定**）· `docs/context/project-context.md`（`:52`）·
-`docs/backlog/p1-insight-roadmap.md` · `docs/masterplan/STATE.md`（**仅追加**）· `docs/evidence/p1-ci-coverage-registration/`
+`docs/backlog/p1-insight-roadmap.md` · `docs/backlog/tools-dir-has-no-static-check-coverage.md`（**仅追加时点限定**，补扫查出）·
+`docs/masterplan/STATE.md`（**仅追加**）· `docs/evidence/p1-ci-coverage-registration/`
 Skill: `none`
 
 - Item Types: `Proof | Fix | Decision`
@@ -723,7 +724,8 @@ Exit Criteria:
 - [x] no in-scope item downgraded to deferred/follow-up（§12.5 两处**在范围内、已处置**，见归属节与 Phase 3）
 - [x] independent draft review completed and recorded
 - [x] text consistency verified: status, phases, gates, and log all agree
-- [ ] closure audit was independent
+- [x] closure audit was independent —— **由独立收口审计步补勾**（全新会话，非本 plan 执行者；
+      逐条实测与开出的那一条 blocking 见下方 `Closure Audit Evidence`）
 - [x] closure evidence exists in files
 - [x] **红线自证（`AGENTS.md` 的七条，逐条）**：`git diff --name-only bc7f13f -- tests/gates/ .github/workflows/
       docs/masterplan/DECISIONS.md docs/masterplan/02-WBS.md` → 无输出（红线 1/2/3/5，
@@ -824,8 +826,36 @@ N3 `1 failed`（仅 `test_05`），无一条回归。逐条实测与失败文案
 
 Closure Audit Evidence:
 
-- Auditor / Agent: <独立子代理，非本 plan 执行者 —— 执行期留白，不代填>
-- Evidence: <task id / 审计文件路径 / 复跑命令与退出码 —— 执行期留白，不代填>
+- Auditor / Agent: **独立收口审计步**（全新会话，非本 plan 执行者；`MISSION_DRIVER:2026-08-26-205222`）。
+- Evidence（**逐条本轮独立实跑，不照抄执行期记录**，`BASE = bc7f13f`）：
+  - **四条复跑命令原样复跑，退出码逐条与 `## Closure` 表相符**：
+    `python3 tools/gates/check_expected_red.py` → **exit 0**（`门禁 29 项：预期红 0，绿 29，跳过 0`）·
+    `python3 -m pytest tests/unit tests/tools -q` → **exit 0**（`928 passed, 29 skipped`）·
+    `python3 -m pytest tests/contracts tests/routing tests/context -q` → **exit 0**（`386 passed, 1 skipped`）·
+    `ruff check agenerp tests/unit tests/contracts tests/tools tests/routing tests/context tests/experiments tests/ui` → **exit 0**（`All checks passed!`）。
+  - **红线自证独立复跑**：`git diff --name-only bc7f13f -- tests/gates/ .github/workflows/ docs/masterplan/DECISIONS.md docs/masterplan/02-WBS.md`
+    → **无输出** · 自设围栏那条 → **无输出** · `git diff --numstat bc7f13f -- docs/masterplan/STATE.md` → **`13 0`（删除列 0）**。
+  - **B2 表逐行对着活仓点（不按数字点）**：§7.26 存在且成对标记齐全、数据行 **9** == `ls -d tests/*/ | wc -l` 实测 **9** ·
+    表的六列与 `gates.yml` 实读逐行相符（步骤序号 `①`–`⑥` 落在 `:604 :607 :615 :618 :621 :624`、`:631` `COVERED` 九项、`:682` ruff 八参）·
+    §7.7 `:485-488` · §12.5 十行（判真的 `:374`/`:379`/`:385` 三句确未被改写）· §7.23.6 五条 · `:4270` 时点限定 ·
+    `project-context.md:52` · `roadmap:41` / `:108-109` 纯指针 · `system-baseline.md` §14.7 / §14.10 时点限定（该文件 `numstat` **11 0**）——
+    **九处逐处实读确认已落地**。
+  - **反空壳**：`tests/unit/test_ci_coverage_registration.py` 逐条读完（459 行、8 个 `def test_`、七条断言各自有真实解析器与失败文案），
+    落在 `tests/unit/` ⇒ **真的进 `commands.test` 与 CI 的 `unit-and-contracts` 第 ① 步**，无空函数体 / 无 `return None` 占位 / 无被吞异常。
+  - 🔴 **本轮开出并当场修完的一条 blocking**：`module-boundaries.md` §7.26.2 正文逐字写着「同一个事实被登记在**五个地方**」，
+    而它自己下方的表是 **6 行** —— **这正是本 plan 要治的那个病（表改了而正文的数字没跟上）在交付物里复发第四次**。
+    按本 plan 第 7 轮 BL-4 已写死的处置口径修（**不再第四次改数字，改结构**）：把数字从正文里去掉，
+    改成「下表即这份清单的唯一形态，本节正文任何地方都不再写「一共有 N 处」」。
+    ⚠️ `docs/logs/2026/08-26.md:25` 与 `STATE.md:1659` 记的是「**六处**」，**与表一致、无需改**（后者亦属红线 5 只追加）。
+  - **SF（一并补齐）**：Phase 3 的 `Targets:` 漏了本阶段确实动过的 `docs/backlog/tools-dir-has-no-static-check-coverage.md`
+    （补扫判为 `已过期 + 行号漂移`，按 `:4270` 那一档口径只追加时点限定，`numstat` 删除列 **0**，证据 §5.1 / §6.2 已记）→ 已补入。
+  - **五点一致复核**：`Plan Status: completed` · 三个 Phase `Status: completed` · 全部 `Exit Criteria` `[x]` ·
+    `Closure Gates` 十条全 `[x]` · `docs/logs/2026/08-26.md` 条目与 `STATE.md` §3 追加行三方口径相符（含 `verification scope limited`）。
+  - **Deferred 诚实性复核**：`D1`–`D5` 五条各自带分类与重开事件，**无一条是被降级的范围内确认缺陷**；
+    `Follow-up` 逐字为「无」。规则 12 自检 `grep -B5 "\- \[ \]" <plan> | grep "Status: completed"` → **空**。
+  - ⚠️ **本审计的边界，照实记**：未起 docker 栈、未跑 `-m live`、未跑整仓 `pytest tests -q -m "not live"`（已知基线即红）、
+    **未经 CI 服务端复跑**；N1–N10 的 `/tmp` 变异**未由本轮独立重跑**，本审计只接受执行期落在证据文件 §3 的记录
+    与「活仓工作树零改动」这一点的可验证结果（`git diff --name-only bc7f13f -- .github/ missions/ tests/gates/` → 无输出）。
 
 Follow-up:
 

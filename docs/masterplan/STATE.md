@@ -1664,3 +1664,16 @@
     · **本行只追加，不改写本节任何已有行**（红线 5）。
     · 红线自证（`BASE = bc7f13f`）：`git diff --name-only bc7f13f -- tests/gates/ .github/workflows/ docs/masterplan/DECISIONS.md docs/masterplan/02-WBS.md` → **无输出**（红线 1/2/3/5；项目名 / 包名 / 命名空间未改 = 红线 4）· 自设围栏 `git diff --name-only bc7f13f -- missions/ agenerp/ tests/routing/ tests/context/ tests/tools/ tests/contracts/ docker-compose.yml industry-packs/ pyproject.toml` → **无输出**（⚠️ **`missions/**` 列在围栏而不是红线，理由见上**）· `git diff --numstat bc7f13f -- docs/masterplan/STATE.md` **删除列为 0** · 全程未对 `${XM_PATH}` 发起任何读写（红线 6）· 未生成任何运行时 Server Script（红线 7）。
     · ⚠️ **verification scope limited** —— 未跑整仓 `pytest tests -q -m "not live"`（**已知基线即红**，见 `docs/backlog/gates-and-tools-leak-env-across-directories.md`）· 未起 docker 栈 · 未跑任何 `-m live` · **未经 CI 服务端复跑**。⚠️ **补扫是关键词扫描，不是全文逐行复核，已经漏过两次** —— 边界见 plan 的 `D4`。
+    · **独立收口审计（2026-08-27，全新会话、非本 plan 执行者）—— 结论 `issues`，开出的一条已当场修完，plan 就此收口**：
+      四条复跑命令原样重跑，退出码与上面那条「收尾复跑」逐条相符（`check_expected_red.py` → **exit 0**，`门禁 29 项：预期红 0，绿 29，跳过 0` ·
+      `pytest tests/unit tests/tools -q` → **exit 0**，`928 passed, 29 skipped` · `pytest tests/contracts tests/routing tests/context -q` → **exit 0**，
+      `386 passed, 1 skipped` · `ruff check …` 八目录 → **exit 0**，`All checks passed!`）；红线自证独立复跑同样无输出、`STATE.md` `numstat` 删除列仍为 **0**。
+      🔴 **开出的那一条 blocking**：`module-boundaries.md` §7.26.2 正文逐字「同一个事实被登记在**五个地方**」，而它自己下方的表是 **6 行**
+      —— **本 plan 要治的那个病（表改了而正文的数字没跟上）在交付物里复发第四次**。按 plan 第 7 轮 BL-4 已写死的口径修（**不再第四次改数字，改结构**）：
+      把处数从正文里去掉，改成「下表即这份清单的唯一形态，本节正文任何地方都不再写「一共有 N 处」」。
+      ⚠️ 本节 `:1659` 与 `docs/logs/2026/08-26.md:25` 记的「**六处**」**与表一致、两处都未改动**（前者亦属红线 5 只追加）。
+      **SF 一并补齐**：Phase 3 的 `Targets:` 漏了本阶段确实动过的 `docs/backlog/tools-dir-has-no-static-check-coverage.md`（已补入）。
+      收口后 `node tools/mission-driver/src/plan-check.mjs --strict <plan>` → **exit 0**（`totalChecked: 55`，`totalUnchecked: 0`，`planStatus: completed`）。
+      ⚠️ **本次审计的边界照实记**：未起 docker 栈 · 未跑任何 `-m live` · 未跑整仓 `pytest tests -q -m "not live"`（已知基线即红）· **未经 CI 服务端复跑** ·
+      N1–N10 十条变异**未由本轮重跑**，只接受执行期落在证据文件 §3 的记录与「活仓工作树零改动」这一可验证结果。
+      · **本行只追加，不改写本节任何已有行**（红线 5）。
