@@ -414,6 +414,10 @@
   · ⚠️ **本机 Docker 另有两处不稳定，与本仓无关但影响取证，照实记**：① **另一个 compose 项目**（项目名 `docker`）的 `frontend-1` 占着宿主 `0.0.0.0:8080` ⇒ 不带 `AGENERP_HTTP_PORT` 的 `up` 会死在 `Bind for 0.0.0.0:8080 failed: port is already allocated`（**这正是人那条复现命令在本机的另一种死法**，与本 plan 无关）；② 冷起栈两次中途报 `Error response from daemon: No such container: <id>`，**容器在守护进程里凭空消失**，按裁判规则 3 复跑即 exit 0。**两处都不猜根因。**
   · **工作项 10 的状态词**：人已在 `4e9e74d` 改回 `todo`，**loop 不擅自再翻回 `done`** —— 那是人基于实测做的裁定，改它要人自己来。roadmap 那一行已追加本次修复的实测记录，**状态词一个字未动**。
   · **本行只追加，不改写本节任何已有行**（红线 5）。
+- 2026-08-26T02:52Z · P1.8a-fix/工作项 10b · `python3 tools/gates/check_expected_red.py` → **exit 0**（`门禁 28 项：预期红 0，绿 28，跳过 0`）· `python3 -m pytest tests/unit -q` → **exit 0**（`801 passed, 6 skipped`）· `bash tools/check-masterplan-links.sh` → **exit 0**（`断链 0 条`）· sha `653b281` · **下一项：无 —— 本轮零产出，plan `1118-1` 仍停在 `deferred`，等 `[needs-human] 2026-08-26T02:40Z` 的 ③⑦ 两问。**
+  · **本行是事实登记，不是新卡点** —— mission-driver 于本时刻再次把 plan `1118-1` 派回执行，loop 重读全文后判定 **Phase 3 一行都不能动**：`P3-1` 逐字要求「落地 Phase 2 选中的修法」，而 `P2-1` 的选中项是 **无**（唯一能修掉机制陈述的候选 (A) 落在**红线 1**，`D-b-9` 已逐条记否决理由）⇒ 强行执行 Phase 3 只有两条路，**一条改 `tests/unit/test_explain_service_body.py:99` 的 `TIMEOUT`（= 改 `tests/gates/test_explain_service_live.py:57` 的唯一判据正文，红线 1）**，**另一条是 plan 已逐字禁止的绕道（另写宽松副本 / env 覆盖 / monkeypatch）**。**两条都是停机分支 A，不自批。**
+  · **`[needs-human] 2026-08-26T02:40Z` 本轮实读仍未被答复**：其后唯一的新条目是人 `653b281` 追加的 `[resolved] 2026-08-26T02:46Z`，那条撤销的是**人自己**在 `7a217a2` 的归因（「容器集体重启」），并逐字确认 loop 的机制陈述才对；**它对 ③「30 秒是判据还是传输参数」与 ⑦「额度还剩多少」一个字未答**，末尾逐字「**本条不代它回答**」。⇒ **停机分支 A 与 C 同时仍然成立。**⚠️ **额度闸也仍然关着**：探路闸 6/6 已在上一轮用尽，`P3-6` 要的 3 次连绿 `push` 至少还要 6 次真解释 ⇒ **本轮一次模型调用都没发。**
+  · **本轮仓内零改动**（`git status --porcelain` 开工时无输出）；对 `docs/masterplan/**` 的唯一改动是本行的追加（红线 5）。`grep -B5 '^\- \[ \]' <plan> | grep 'Status: completed'` → **空（exit 1）**，Minimum Rule 12 满足：Phase 3 的 8 个 `[ ]` 与 `Status: planned` 一致，**未打勾、未改状态词**。⚠️ **verification scope limited** —— 未跑整仓 `pytest tests -q -m "not live"`，本轮零代码改动。
 
 ## §3 needs-human 队列
 
