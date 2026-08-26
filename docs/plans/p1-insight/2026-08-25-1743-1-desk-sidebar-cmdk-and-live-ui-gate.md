@@ -1653,11 +1653,13 @@ Exit Criteria:
       `grep -B5 "\- \[ \]" <本文件> | grep "Status: completed"` → **空**
       ⚠️ **第 8 轮实跑提醒：这条 grep 在本文件上会命中 1 行，而那一行就是本行自己**（它把命令原文写在了文件里）。
       ⇒ **判法是「除本行之外为空」**，别把这个自指命中当成一个真的 `completed` Phase 去查半天。
-- [ ] closure audit was independent（独立子代理或人，**执行者自己复跑不算**）
-      ⚠️ **本条留白，不勾** —— 本轮的收口复跑是**执行者自己**做的，按本条自己的括号逐字「执行者自己复跑不算」。
-      **不许因为「其余都绿」就把它勾上。** 与第 1 个 plan `1615-1` 当初的处置同口径
-      （那一条后来由 mission-driver 派了一位**非执行者**补做，见 `STATE.md` `2026-08-25T09:35Z`）。
-      ⇒ **本条的补做归人 / 归下一次派工**，本 plan 不代它勾。
+- [x] closure audit was independent（独立子代理或人，**执行者自己复跑不算**）
+      ⚠️ **本条曾留白** —— 收口当轮的复跑是**执行者自己**做的，按本条自己的括号逐字「执行者自己复跑不算」，
+      当轮**没有**因为「其余都绿」就把它勾上；与第 1 个 plan `1615-1` 当初的处置同口径
+      （那一条后来也由 mission-driver 派了一位**非执行者**补做，见 `STATE.md` `2026-08-25T09:35Z`）。
+      ✅ **2026-08-26 由 mission-driver 派的独立收口审计者（非本 plan 执行者）补做完毕**，
+      **不是转述执行者的记录，是自己重跑**：闭合判据 + 十一条里的离线七条 + 红线六条，**逐条实跑**，
+      命令原文与退出码见 `## Closure` 的「独立收口审计（Closure Audit Evidence）」小节。
 - [x] closure evidence exists in files
 - [x] ⚠️ **红线 2 / 别人未提交改动的隔离自证**（第 4 轮独立评审补）：本 plan 的每一次提交都**显式列路径**，
       `git show --stat <每个提交>` 里**不出现** `.github/workflows/**` 与 `docker-compose.yml`；
@@ -1814,8 +1816,9 @@ AGENERP_LIVE=1 AGENERP_HTTP_PORT=18080 AGENERP_ADMIN_PASSWORD=admin \
 - **未经 CI 服务端复跑**：`tests/ui/` 今天不在任何 job 的作用域里
   （`COVERED` 八个目录不含它、`lint` job 的 ruff 参数七个目录不含它）
   ⇒ **本门禁在 CI 上的行为本轮零数据。** 这一处只能等人把它接进 CI（交接项 1/3/4/5a）。
-- **`closure audit was independent` 留白** —— 本轮的收口复跑是执行者自己做的，按该 gate 自己的括号「执行者自己复跑不算」，
-  **不勾**。补做归人 / 归下一次派工。
+- **`closure audit was independent` 收口当轮留白** —— 当轮的收口复跑是执行者自己做的，按该 gate 自己的括号
+  「执行者自己复跑不算」，当轮**不勾**。**该项已于 2026-08-26 由独立审计者（非执行者）补做并勾上**，
+  见下面的「独立收口审计（Closure Audit Evidence）」；**其余三条 scope limited 一条都没被这次补做消除**。
 - **「答得对不对」本 plan 不声称验证**（§3 Non-Goals 4）：那是 P1.4 的面。
   本轮那次真请求回的是 401，**一次模型调用都没发生**。
 
@@ -1825,6 +1828,38 @@ AGENERP_LIVE=1 AGENERP_HTTP_PORT=18080 AGENERP_ADMIN_PASSWORD=admin \
 容器里 `AGENERP_LLM_API_KEY` / `AGENERP_LLM_BASE_URL` **实测为空**（只有 `AGENERP_LLM_MODEL` 非空），
 且那次真请求在 `config_factory` 之前就被 **401** 挡下。
 ⚠️ **这不是「本 plan 零成本」的普遍形式** —— 密钥配上后那一次真请求**会**真调模型（中位约 11 万 token、墙钟约 50 秒）。
+
+### 独立收口审计（Closure Audit Evidence）
+
+- **Auditor / Agent**：mission-driver 任务 `2026-08-26-094345-mission-driver` 派出的**独立收口审计步**，
+  **非本 plan 的执行者**（执行者的收口复跑另记在上面各表，本节的数是审计者自己跑出来的）。
+- **审计基线**：`HEAD` = `9006ce2`，`git status --porcelain` → **无输出**（工作树干净，审计期零改动落在产品代码/判据上）。
+- **逐条实跑（命令原文 + 退出码 + 输出）**：
+
+| # | 命令 | 退出码 | 输出 |
+|---|---|---|---|
+| 1 | `AGENERP_LIVE=1 AGENERP_HTTP_PORT=18080 AGENERP_ADMIN_PASSWORD=admin python3 -m pytest -m live tests/ui/test_sidebar.py -q -rs` | **0** | `11 passed in 39.66s`，**零 skip** |
+| 2 | `AGENERP_LIVE=1 python3 -m pytest -m live tests/ui/test_sidebar.py --collect-only -q` · `grep -c '^def test_' tests/unit/test_desk_sidebar_body.py` | **0** | `11 tests collected` **==** `11` ⇒ 条数把「零 skip」钉住 |
+| 3 | `python3 tools/gates/check_expected_red.py` | **0** | `✅ 与预期红名单完全一致` |
+| 4 | `python3 -m pytest tests/unit -q` | **0** | `819 passed, 17 skipped` —— 与收口表**逐字相同** |
+| 5 | `python3 -m pytest tests/contracts tests/tools tests/routing tests/context -q` | **0** | `456 passed, 13 skipped` —— 与收口表**逐字相同** |
+| 6 | `ruff check agenerp tests/unit tests/ui tests/contracts tests/tools tests/routing tests/context tests/experiments` | **0** | `All checks passed!` |
+| 7 | **(A)** `python3 -m pytest tests/unit/test_desk_sidebar_body.py -q -p no:playwright` | **0** | `11 skipped`、零 `error`（审计者未给活栈变量 ⇒ 走 skip 支，与收口表那句「带活栈变量时会真跑」不矛盾） |
+| 8 | **(B)** `PYTHONPATH=/tmp/agenerp-nodriver-audit python3 -m pytest tests/unit/test_desk_sidebar_body.py -q -p no:playwright -rs`（审计者自建的遮蔽模块，跑完已 `rm -rf`） | **0** | `11 skipped`、零 `error`，逐字 `driver missing: simulated: playwright not installed` |
+| 9 | `python3 -c "import tomllib…"` | **0** | `['certifi>=2024.2.2'] {'ui': ['playwright>=1.47']}` |
+| 10 | `git diff --name-only 393ef11..HEAD -- tests/gates .github/workflows docs/masterplan/DECISIONS.md docs/masterplan/02-WBS.md pyproject.toml` | — | **无输出**（红线 1/2/3/5 + `pyproject.toml` 只读，五处一次判完） |
+| 11 | `git -C /Users/lize/Documents/ChatGPT/XM status --porcelain` · `rev-parse HEAD` | — | **无输出**；`HEAD` = `1c622c8119755b36992c54ba98fbf6840cd22ed4` **与冻结 sha 逐字相同**（红线 6） |
+
+- **反空壳（anti-hollow）实读**：`tests/ui/test_sidebar.py` 的 11 个 `test_` 名逐条重绑自
+  `tests/unit/test_desk_sidebar_body.py`，断言体里**没有**空函数体 / `pass` 占位 / 吞异常
+  （`grep '^\s*pass$|except.*: pass'` 零命中），`driver` fixture 真起 chromium、`desk` fixture 真换会话、
+  `real_exchange` 真发 `POST /agenerp/explain`；`agenerp/serve/assets/desk.js` 的键位监听、渲染十态与兜底态
+  **都在被 `agenerp/serve/app.py:61` 那条资产路由送出去的同一份文件里**，不是只有签名。
+- **一处证据精度的更正（不改结论）**：收口表与 `STATE.md` 记的
+  `git diff 393ef11..HEAD -- docs/masterplan/STATE.md | grep -c '^-'` → `0`，
+  审计者实跑得到的是 **`1`**，而那一行实读是 diff 自己的表头 `--- a/docs/masterplan/STATE.md`，
+  **真正被删除的内容行是 0 行** ⇒ **「只追加、零删除」这个结论成立**，差的只是这条 `grep` 把表头也数进去了。
+  `STATE.md` 在红线 5 内（只可追加、不可改写已有行），故那处数字**原样保留不动**，只在此登记。
 
 ### Follow-up
 
