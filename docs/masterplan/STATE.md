@@ -465,6 +465,15 @@
 > 格式：`[状态] 日期 · 触发条件 · WBS行ID · 最后一条失败命令原文 + 退出码 · sha · 处置`
 > 状态只有 `open` / `resolved`。**resolved 的行保留不删。**
 
+- [open] 2026-08-26T09:53Z · **人拆出 `P1.1-fix`（工作项 `3b`）—— `route()` 静默换模型，交 loop 执行它已起草的那个 plan**
+  · **人裁定：做。** loop 已起草 `docs/plans/p1-insight/2026-08-26-1728-1-routing-honors-configured-model.md`（`Plan Status: draft`），本条给它一个能落的工作项。
+  · **为什么拆行而不是回退 P1.1**：P1.1 的判据仍然成立、已 `done`，本条是**交付后发现的活缺陷**。同 `P1.8a-fix` 先例 —— **不回退状态，给独立 plan 预算**。⚠️ 人侧 2026-08-25 回退 P1.8a 那次的教训还在：**回退会把下游依赖搞成倒挂**。
+  · **状态源 = `` `MD:p1-explain` ``**（人侧本次特意核对过这一格 —— 2026-08-25 建 `P1.8a-fix` 时把它填成 `人`，害 loop 停在 draft 干等了半天）。
+  · **缺陷实测**：`route()` 不传 `requested` 时取「第一个满足该任务类目的档案」、用 `profile.name`，**`AGENERP_LLM_MODEL` 被完全忽略**。配 `qwen3.7-flash`、实际走 `qwen3.8-max`，后者**没有免费额度** ⇒ 403 ⇒ 每一次解释都失败回空答案，**挂了数日无人发现**。
+  · **⚠️ 人侧已修的只是服务层**（`6e118c2`：`agenerp/serve/app.py` 传 `requested=config.model`）—— **只堵了一个调用方**。**本工作项要的是 `route()` 本体**：任何不传 `requested` 的调用方都不该被静默换模型。
+  · **验收特意钉在那个缺口上**：`tests/unit/test_configured_model_is_the_one_used.py` **补一条不传 `requested` 的用例并绿**。⚠️ **今天那份判据绿，是因为它显式传了 `requested` —— 那不是缺口所在。** 只让现有用例继续绿不算达标。
+  · **一并交底**：`route()` 改成默认尊重 `config.model` 之后，**点名不认识的模型仍必须明确失败**（既有用例 `test_an_unknown_model_fails_loudly_instead_of_silently_swapping` 钉着这一条，别改弱它）。
+
 - [open] 2026-08-26T09:49Z · **人侧改动登记（`04-RUNBOOK.md` §7.2.2 的第一次适用）—— 交 loop 独立复核**
   · **本条按刚立的规矩登记，不是求批准。** §7.2.2 逐字：人侧对 `tests/gates/**`、断言体、`agenerp/**` 的改动，提交后登记进本节，由 loop 下一轮独立复核（口径同 `closure-audit-prompt.md`：不采信自报，逐条对活仓取证）。**它不阻塞提交，要的是有人看过。**
   · **待复核的人侧提交**：`6e118c2`（三条：`requested=config.model` / `_failure_detail()` / 答案面判据去 `or`）· `5396e68`（`doc.links` 跳过 Single 宿主 + `doctype_flags` 增查 `issingle`）· `40a6c33`（上限 `25/32 → 40/50`）· `f68ae19`（两条新判据 + RUNBOOK 两节）
