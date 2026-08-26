@@ -1,6 +1,6 @@
 # P1.8b 下半 · ⌘K 侧边栏本体与 `tests/ui/test_sidebar.py` 活体门禁
 
-> Plan Status: active
+> Plan Status: completed
 > Review Hold Released: 2026-08-26 —— §0.5 那两条**只有人能答**的前置，人已在 2026-08-26T01:47Z 全部答完。
 > **第 9 轮独立评审逐条实读复核、不是转述**（`HEAD` = `d69b335`，工作树只有另一份 plan 的 ` M`，本文件之外零改动）：
 > ① **准不准引浏览器驱动 —— 已批准**：`docs/masterplan/DECISIONS.md` **D-25**（人逐字「批准，加 ui extra」）·
@@ -894,7 +894,7 @@ Exit Criteria:
 
 ### Phase 3 — `tests/ui/test_sidebar.py` 活体门禁 + 变异自查 + 交接
 
-Status: planned
+Status: completed
 Targets: `tests/ui/test_sidebar.py`（新建，加载器）· `tests/unit/test_desk_sidebar_body.py`（新建，断言体）·
 **`tests/unit/test_desk_sidebar_static.py`（Phase 2 建的那份，本 Phase **追加**四条源码级守卫；第 4 轮独立评审补）** ·
 **`pyproject.toml`（⚠️ 第 9 轮改准：`ui` extra 已由人在 `d69b335` 落盘 ⇒ 本 plan 对它是**只读复核**，
@@ -909,7 +909,7 @@ Skill: `closure-audit-prompt.md`（仅收口那一步）
   故**不作 Phase 级统一声明**，以每一项自己的类型标注为准。
 - Prereqs: Phase 2 全部完成；活栈按 §5 起好并**真登录**过一次
 
-- [ ] **`Add`** 断言体 `tests/unit/test_desk_sidebar_body.py`：真浏览器、真登录、真 Desk 页面，
+- [x] **`Add`** 断言体 `tests/unit/test_desk_sidebar_body.py`：真浏览器、真登录、真 Desk 页面，
       覆盖 `H6` / `H7` / `H8` / `H8b` / `H8c` / `H9` 六格。
       **驱动取不到或活栈够不到 ⇒ 在 fixture 里调 `D-d-3` ④ 那个间接层**（默认 `pytest.skip`），
       **模块级一律不 skip、不 `importorskip`**（`D-d-3` ①②④）。
@@ -920,7 +920,7 @@ Skill: `closure-audit-prompt.md`（仅收口那一步）
       ⚠️ `H6` 与 `M5` 的证据**只能取自那一次「未打桩」的真请求**（`page.expect_response`）——
       `page.route` 打桩的请求到不了服务端，从它们身上取不到「服务端看到了 `sid`」。
       - Skill: `none`
-- [ ] **`Add`** 加载器 `tests/ui/test_sidebar.py`：`pytestmark = pytest.mark.live`；
+- [x] **`Add`** 加载器 `tests/ui/test_sidebar.py`：`pytestmark = pytest.mark.live`；
       **先自己 `import playwright`（失败即 `pytest.fail`），再按路径加载断言体**，
       随后**重绑断言体的 `_unavailable` 间接层为 `pytest.fail`**（`D-d-3` ④ —— **不动 `pytest` 模块本身**），
       **再把断言体里每一个 `test_` 函数逐条重绑进本模块命名空间**（`D-d-3` ⑤ ——
@@ -929,7 +929,7 @@ Skill: `closure-audit-prompt.md`（仅收口那一步）
       —— `tests/` 下没有 `__init__.py`，同名 basename 会让整轮 `pytest` `import file mismatch` 收集失败
       （`tests/unit/test_explain_service_body.py` 文件头逐字记着这条，第 4 轮独立评审实读带回，**只是钉住现状，不需要改名**）。
       - Skill: `none`
-- [ ] **`Add`** 给 `tests/unit/test_desk_sidebar_static.py` **追加四条源码级守卫**（离线、零浏览器、零 JS 运行时；
+- [x] **`Add`** 给 `tests/unit/test_desk_sidebar_static.py` **追加四条源码级守卫**（离线、零浏览器、零 JS 运行时；
       第 4 轮独立评审补，全部是**纯文本判定**，与该文件既有口径同族）：
       ① 断言体源码里 **`pytest.skip(` 与 `pytest.importorskip` 零命中**（出口只许走 `_unavailable`，`D-d-3` ②④）；
       ② 断言体**模块顶层**没有 `import playwright` / `from playwright`（`D-d-3` ⑥ / §1.4b）；
@@ -940,7 +940,7 @@ Skill: `closure-audit-prompt.md`（仅收口那一步）
       ⚠️ **同 Phase 2 判据④ 的口径：这四条是文本下限，不证运行时行为。**
       运行时那一半由本 Phase 的 **(A)(B) 两条实跑**（§1.4b）与 `M13`–`M15` 承担，**这一份不承担、也不假装承担。**
       - Skill: `none`
-- [ ] **`Proof`** ⚠️ **模拟 runner 上没装驱动 —— 两条命令，各证一件事**（§1.4b，第 8 轮独立评审实跑改准；
+- [x] **`Proof`** ⚠️ **模拟 runner 上没装驱动 —— 两条命令，各证一件事**（§1.4b，第 8 轮独立评审实跑改准；
       **原来只写 (A) 一条、且期望写成「全部 `skipped`」，那在本机不可满足**）：
       **(A)** `python3 -m pytest tests/unit/test_desk_sidebar_body.py -q -p no:playwright`
       ⇒ **必须 exit 0、零 `error`**（**不断言全 `skipped`**）—— 证「不吃 `pytest-playwright` 的 fixture」；
@@ -950,7 +950,7 @@ Skill: `closure-audit-prompt.md`（仅收口那一步）
       **任一条不退 0 / (A) 出 `error` / (B) 出 `error` ⇒ 今天绿着的 `unit-and-contracts` 会在下一次推送时红，
       而那是纯回归、不是设计内的代价**（与 §1.4 那条红分开算，见 §1.4b）。
       - Skill: `none`
-- [ ] **`Proof`** ⚠️ **`pyproject.toml` 的 `ui` extra —— 人已在 `d69b335` 落盘，本项由 `Add` 改成 `Proof`**
+- [x] **`Proof`** ⚠️ **`pyproject.toml` 的 `ui` extra —— 人已在 `d69b335` 落盘，本项由 `Add` 改成 `Proof`**
       （第 9 轮独立评审改准；旧文是「**`Add`** 加 `[project.optional-dependencies]` 的 `ui` extra」，
       **照旧文走要么写出第二个同名 TOML 表 ⇒ 解析报错，要么发现「已经有了」而无处存证**）。
       **本项要做的是复核 + 存证，一个字节都不改 `pyproject.toml`**：
@@ -964,7 +964,7 @@ Skill: `closure-audit-prompt.md`（仅收口那一步）
       （`live` marker 已注册、`testpaths = ["tests"]`、`exclude = ["tests/gates"]`，均已实读确认）。
       ⚠️ **不在仓里了（被 revert）⇒ 停机分支 4 重新触发**，不许自己补写那一段。
       - Skill: `none`
-- [ ] **`Proof`** ⚠️ **装浏览器二进制的时间成本实测 —— D-25 逐字压给 loop 的一件活**
+- [x] **`Proof`** ⚠️ **装浏览器二进制的时间成本实测 —— D-25 逐字压给 loop 的一件活**
       （第 9 轮独立评审新增；D-25「未决」栏与 `STATE.md:428` ③ 逐字：「**CI 装 chromium 会显著拉长 `gates-l2-live`**……
       **由 loop 在 plan 里给方案并实测，不要默认塞进现有 job 就完事**」）。
       **它是在范围内的活，不是 follow-up** —— 旧版交接项 (2) 只写「装 `ui` extra 并 `playwright install --with-deps chromium`」，
@@ -983,14 +983,14 @@ Skill: `closure-audit-prompt.md`（仅收口那一步）
       **方案三** 只装 `chromium-headless-shell`（体积更小，代价 = 与本 plan 断言体实际启动的浏览器形态必须一致，否则 CI 与本机不同源）。
       ⚠️ **本项只给方案与数，不动 `.github/workflows/**` 任何一个字节**（红线 2）—— **选哪个方案归人。**
       - Skill: `none`
-- [ ] **`Proof`** 跑 WBS 那条命令原文：`AGENERP_LIVE=1 AGENERP_HTTP_PORT=18080 AGENERP_ADMIN_PASSWORD=admin
+- [x] **`Proof`** 跑 WBS 那条命令原文：`AGENERP_LIVE=1 AGENERP_HTTP_PORT=18080 AGENERP_ADMIN_PASSWORD=admin
       python3 -m pytest -m live tests/ui/test_sidebar.py -q -rs` ⇒ **必须 exit 0 且零 skip**。
       **退出码与输出逐字抄进 `docs/evidence/p1-desk-sidebar/README.md` 与收口表。**
       - Skill: `none`
-- [ ] **`Proof`** 不回归三条：`H10`（停 `agenerp-serve` 后 frontend 仍 healthy）· `H11`（`down -v` 冷起 exit 0）·
+- [x] **`Proof`** 不回归三条：`H10`（停 `agenerp-serve` 后 frontend 仍 healthy）· `H11`（`down -v` 冷起 exit 0）·
       零依赖启动门禁 `tests/unit/test_compose_zero_dep.py` 全绿**且一条未改松**。
       - Skill: `none`
-- [ ] **`Proof`** **变异自查**：`M1`–`M16` **十六条**，其中 **`M13` 与 `M16` 各有两个变体**（`13a/13b`、`16a/16b`，
+- [x] **`Proof`** **变异自查**：`M1`–`M16` **十六条**，其中 **`M13` 与 `M16` 各有两个变体**（`13a/13b`、`16a/16b`，
       打红面各不相同，见下）⇒ **实际施加 18 次**；逐次施加、逐次确认**被打红**、逐次复原并 `sha256` 校验 `RESTORED OK`。
       ⚠️ **第 8 轮独立评审改准计数**：旧文这里写「写死的十五条」而其下逐条列的是 `M1`–`M16` **十六**条
       —— 与本文件反复挡的「正文写四条实列六条」是同一族计数不一致，照实改准。
@@ -1028,7 +1028,7 @@ Skill: `closure-audit-prompt.md`（仅收口那一步）
       打桩那批对它无感 —— **变异表里写死这一句，免得事后把「没打红」解释成「不需要」。**
       ⚠️ **打不红的照实记在表里**，当场补断言后复跑；补不出来就**保留「这条守不住」的记录**，不许改成「全打红」。
       - Skill: `none`
-- [ ] **`Fix | Follow-up` 交接**：往 `docs/masterplan/STATE.md` §3 **追加**（只追加）一条 needs-human。
+- [x] **`Fix | Follow-up` 交接**：往 `docs/masterplan/STATE.md` §3 **追加**（只追加）一条 needs-human。
       ⚠️ **起草期把它写成「加一行 `COVERED` 就好了」是错的**（独立评审实读打回）——
       `check_expected_red.py:73-74` 的判定面写死 `tests/gates`，加 `COVERED` **只让第 ⑦ 步不红，
       不会让这条门禁在 CI 上跑起来一次**。交接必须**逐件写清人要做的六件**
@@ -1068,39 +1068,39 @@ Skill: `closure-audit-prompt.md`（仅收口那一步）
 
 Exit Criteria:
 
-- [ ] `AGENERP_LIVE=1 … pytest -m live tests/ui/test_sidebar.py -q -rs` → **exit 0，零 skip**（命令原文 + 退出码入证据文件），
+- [x] `AGENERP_LIVE=1 … pytest -m live tests/ui/test_sidebar.py -q -rs` → **exit 0，零 skip**（命令原文 + 退出码入证据文件），
       **且收集到的条数 > 0 并等于断言体里 `test_` 函数的条数**（`D-d-3` ⑤ —— `no tests collected` 退 5，
       「零 skip」这句话在一条都没跑的情况下也成立，**必须由条数把它钉住**）
-- [ ] §1.4b 的**两条**命令都已实跑并入证据文件（第 8 轮独立评审改准，原来只有一条且期望不可满足）：
+- [x] §1.4b 的**两条**命令都已实跑并入证据文件（第 8 轮独立评审改准，原来只有一条且期望不可满足）：
       **(A)** `… -q -p no:playwright` → **exit 0、零 `error`**（**不断言全 `skipped`** —— 本机装着驱动时它会真跑，那是合法的）；
       **(B)** `PYTHONPATH=/tmp/agenerp-nodriver … -q -p no:playwright -rs`（遮蔽 `playwright` 包）→ **exit 0、全 `skipped`、零 `error`**
       （§1.4b —— 两条合起来才证明 `unit-and-contracts` 在无驱动 runner 上不会被本 plan 弄红）
-- [ ] `H6` 有**直接观测值**：浏览器发出的请求带上了 `sid`（回的不是 401）—— 本仓第一次
-- [ ] `H2b` 的实际值（Phase 1 已测出、已落进探测记录）**确已被自建 fixture 采用**：
+- [x] `H6` 有**直接观测值**：浏览器发出的请求带上了 `sid`（回的不是 401）—— 本仓第一次
+- [x] `H2b` 的实际值（Phase 1 已测出、已落进探测记录）**确已被自建 fixture 采用**：
       浏览器到底怎么够到 `frontend` 站（默认站回落 / `--host-resolver-rules`），fixture 里用的与探测记录里记的**是同一条**
-- [ ] ⚠️ **`pyproject.toml` 的 `ui` extra 已复核且本 plan 零改动**（第 9 轮新增）：三条命令的原文与输出入证据文件
+- [x] ⚠️ **`pyproject.toml` 的 `ui` extra 已复核且本 plan 零改动**（第 9 轮新增）：三条命令的原文与输出入证据文件
       （`grep` 实读到 `ui = ["playwright>=1.47"]` · `tomllib` 读出 `dependencies` 仍只有 `certifi>=2024.2.2` ·
       `git diff --name-only <基线sha>..HEAD -- pyproject.toml` **无输出**）
-- [ ] ⚠️ **装 chromium 的时间成本已实测并折成方案**（第 9 轮新增，D-25 逐字压给 loop 的活）：
+- [x] ⚠️ **装 chromium 的时间成本已实测并折成方案**（第 9 轮新增，D-25 逐字压给 loop 的活）：
       `--dry-run` 输出 + **冷装墙钟秒数 + 下载体积**（用临时 `PLAYWRIGHT_BROWSERS_PATH`，跑完已清理）入证据文件；
       交接项 (2) 里**至少三个方案各带一句代价**，且**没有替人选**。
       ⚠️ 拿不到网络 ⇒ 逐字记 `verification scope limited`，**不许拿本机已缓存的秒数冒充冷装**
-- [ ] `H7b` 有**实际值**：起栈前 `AGENERP_LLM_*` 的**个数与变量名**（不含值）已记；走了哪一支已记。⚠️ **走 (乙) 支时，「本轮真实烧掉一次解释（中位约 11 万 token）」必须逐字落进证据文件与收口表**，**不许写成零成本**（§5 / R8）
-- [ ] 变异表 `M1`–`M16` **十六条 / 18 次施加**（`M13`、`M16` 各两变体）逐次有结论（打红 / 未打红 + 处置 + **是哪一格打的红**），全部 `RESTORED OK`
-- [ ] 不回归三条全绿；`check_expected_red.py` exit 0；`tests/unit` 只增不减
-- [ ] `docs/context/project-context.md` 第 52 行的 Lint / static check 作用域**已改准**：
+- [x] `H7b` 有**实际值**：起栈前 `AGENERP_LLM_*` 的**个数与变量名**（不含值）已记；走了哪一支已记。⚠️ **走 (乙) 支时，「本轮真实烧掉一次解释（中位约 11 万 token）」必须逐字落进证据文件与收口表**，**不许写成零成本**（§5 / R8）
+- [x] 变异表 `M1`–`M16` **十六条 / 18 次施加**（`M13`、`M16` 各两变体）逐次有结论（打红 / 未打红 + 处置 + **是哪一格打的红**），全部 `RESTORED OK`
+- [x] 不回归三条全绿；`check_expected_red.py` exit 0；`tests/unit` 只增不减
+- [x] `docs/context/project-context.md` 第 52 行的 Lint / static check 作用域**已改准**：
       从今天的 `ruff check agenerp tests/unit tests/contracts`（三个目录，**实读确认**）
       改成 `gates.yml:609` 那七个目录 **加上 `tests/ui`**（共八个）
       —— 这是 `Fix` 不是 follow-up，**不许跟着交接一起推给人**
-- [ ] ⚠️ **同一格里那句「改后 `gates.yml:603` 的『逐字照抄』重新成立」已删除，因为它是假的**
+- [x] ⚠️ **同一格里那句「改后 `gates.yml:603` 的『逐字照抄』重新成立」已删除，因为它是假的**
       （第 4 轮独立评审实读打回）：`gates.yml:603` 逐字是「**作用域三个目录**逐字照抄……一个字不加不减」，
       改完之后 ① 那句「三个目录」仍然错、② 文档八个 vs `:609` 七个**仍然不等**。
       ⇒ **残余的两处都落在 `.github/workflows/**`（红线 2）**，
       本 plan **不修、也不假装修好了**，逐字写进交接项 (5) 交人；
       收口文字里**不许**出现「照抄重新成立 / 漂移已消除」这类说法。
       **本 plan 只负责把真相源（`project-context.md:52`）摆正**，让人有得照抄
-- [ ] `STATE.md` §3 两条**追加**（needs-human + `[Proof]`），**已有行零改写**（`git diff` 证）
-- [ ] `docs/evidence/p1-desk-sidebar/README.md` 落盘；`docs/logs/2026/<执行当天>.md` 追加 Phase 3 条目（⚠️ 同上，第 9 轮改准，不再写死 `08-25.md`）
+- [x] `STATE.md` §3 两条**追加**（needs-human + `[Proof]`），**已有行零改写**（`git diff` 证）
+- [x] `docs/evidence/p1-desk-sidebar/README.md` 落盘；`docs/logs/2026/<执行当天>.md` 追加 Phase 3 条目（⚠️ 同上，第 9 轮改准，不再写死 `08-25.md`）
 
 ## 8. 风险
 
@@ -1603,18 +1603,18 @@ Exit Criteria:
 
 ## 10. Closure Gates
 
-- [ ] in-scope behavior is complete（唤起 / 上下文保留 / 同源请求 / 九个码 + `200` 共 10 态 + 兜底态渲染，五项都**有行为**不只有签名）
-- [ ] ⚠️ **闭合判据本身（不可降级，独立评审打回后写死）**：
+- [x] in-scope behavior is complete（唤起 / 上下文保留 / 同源请求 / 九个码 + `200` 共 10 态 + 兜底态渲染，五项都**有行为**不只有签名）
+- [x] ⚠️ **闭合判据本身（不可降级，独立评审打回后写死）**：
       `AGENERP_LIVE=1 … python3 -m pytest -m live tests/ui/test_sidebar.py -q -rs` **退 0 且零 skip**。
       **它没退 0 时本 plan 不得转 `completed`** —— 只能停在 `active` 并把实测退出码与红因交人。
       **它不是可降级项**（指南 Minimum Rule 14「确认的活体缺陷/契约漂移不得降级」+ Anti-Slacking 四态：
       `landed` / `adjudicated as residual-risk-only` / `moved to explicit successor ownership` / `removed from scope with recorded reason`
       —— 本条只能落 `landed`）。
       ⚠️ **不许把「没退 0」挪进 §11**：§11 里已登记的四条，**没有一条**是它。
-- [ ] relevant docs are aligned（`module-boundaries.md` §7.23 · **`docs/context/project-context.md:52` 的 lint 作用域** ·
+- [x] relevant docs are aligned（`module-boundaries.md` §7.23 · **`docs/context/project-context.md:52` 的 lint 作用域** ·
       `docs/logs/2026/<执行当天>.md`（⚠️ 第 9 轮改准，不再写死 `08-25.md`） · `docs/evidence/p1-desk-sidebar/`）；
       对 `docs/design/agents-and-roles.md` §9 风险档表 **`No owner-doc update required`**（理由见 §4）
-- [ ] verification has run —— 至少这**十一**条（⚠️ 第 8 轮把 §1.4b 那条拆成 (A)(B)，八→九；
+- [x] verification has run —— 至少这**十一**条（⚠️ 第 8 轮把 §1.4b 那条拆成 (A)(B)，八→九；
       ⚠️ **第 9 轮再加两条，九→十一**：`pyproject.toml` 的 `ui` extra 只读复核 · 装 chromium 的冷装计时），
       命令原文 + 退出码入 `## Closure`：
       `python3 tools/gates/check_expected_red.py` ·
@@ -1645,17 +1645,21 @@ Exit Criteria:
       理由是执行期人侧**随时可能又落新的提交**（本轮 24 小时内就落了两次）。
       **收口时把 `git status --porcelain` 原文照抄进 `## Closure`**：干净就记干净；
       若届时又出现别人的未提交改动，按 §0.6 第 1、2 条办 —— **不许 `checkout` / `stash` 掉它们**。
-- [ ] scoped verification is not conflated with full verification —— 若未跑整仓 `pytest tests -q -m "not live"`
+- [x] scoped verification is not conflated with full verification —— 若未跑整仓 `pytest tests -q -m "not live"`
       或未经 CI 服务端复跑，**逐条写明 `verification scope limited`**
-- [ ] no in-scope item downgraded to deferred/follow-up
-- [ ] independent draft review completed and recorded（§9）
-- [ ] text consistency verified: 顶部 `Plan Status` ↔ 三个 Phase `Status` ↔ 全部 Exit Criteria ↔ 本节 ↔ 日志，五处互不打架；
+- [x] no in-scope item downgraded to deferred/follow-up
+- [x] independent draft review completed and recorded（§9）
+- [x] text consistency verified: 顶部 `Plan Status` ↔ 三个 Phase `Status` ↔ 全部 Exit Criteria ↔ 本节 ↔ 日志，五处互不打架；
       `grep -B5 "\- \[ \]" <本文件> | grep "Status: completed"` → **空**
       ⚠️ **第 8 轮实跑提醒：这条 grep 在本文件上会命中 1 行，而那一行就是本行自己**（它把命令原文写在了文件里）。
       ⇒ **判法是「除本行之外为空」**，别把这个自指命中当成一个真的 `completed` Phase 去查半天。
 - [ ] closure audit was independent（独立子代理或人，**执行者自己复跑不算**）
-- [ ] closure evidence exists in files
-- [ ] ⚠️ **红线 2 / 别人未提交改动的隔离自证**（第 4 轮独立评审补）：本 plan 的每一次提交都**显式列路径**，
+      ⚠️ **本条留白，不勾** —— 本轮的收口复跑是**执行者自己**做的，按本条自己的括号逐字「执行者自己复跑不算」。
+      **不许因为「其余都绿」就把它勾上。** 与第 1 个 plan `1615-1` 当初的处置同口径
+      （那一条后来由 mission-driver 派了一位**非执行者**补做，见 `STATE.md` `2026-08-25T09:35Z`）。
+      ⇒ **本条的补做归人 / 归下一次派工**，本 plan 不代它勾。
+- [x] closure evidence exists in files
+- [x] ⚠️ **红线 2 / 别人未提交改动的隔离自证**（第 4 轮独立评审补）：本 plan 的每一次提交都**显式列路径**，
       `git show --stat <每个提交>` 里**不出现** `.github/workflows/**` 与 `docker-compose.yml`；
       `git log --oneline <基线sha>..HEAD` 与每个提交的文件清单入 `## Closure`
 
@@ -1728,4 +1732,105 @@ Exit Criteria:
 
 ## Closure
 
-<待收口时填：Status Note · Closure Audit Evidence（独立审计者 + 命令原文 + 退出码 + sha）· Follow-up>
+**Status Note**：三个 Phase 全部 `completed`，`Plan Status` 转 `completed`。
+工作项 11（P1.8b）的 plan 预算此后 **`2/2` 满**（表规 3）—— 任何后继只能由**人**在 `02-WBS.md` 拆行 / 加行（红线 5，loop 无权）。
+**全部命令原文、退出码、观测值在 `docs/evidence/p1-desk-sidebar/README.md`**，本节只摘不可省的那几条。
+
+### 闭合判据（不可降级项，只能落 `landed`）
+
+```
+AGENERP_LIVE=1 AGENERP_HTTP_PORT=18080 AGENERP_ADMIN_PASSWORD=admin \
+  python3 -m pytest -m live tests/ui/test_sidebar.py -q -rs
+→ exit 0 · 11 passed · 零 skip     （连跑三次：41.54s / 51.31s / 40.25s，三次都在 down -v 冷起之后）
+--collect-only → 11 tests collected  ==  grep -c '^def test_' 断言体 → 11
+```
+
+⇒ **`landed`。** 「零 skip」由条数钉住（`no tests collected` 退 5 时这句话也成立）。
+
+### verification has run —— 十一条
+
+| # | 命令 | 退出码 | 输出 |
+|---|---|---|---|
+| 1 | `python3 tools/gates/check_expected_red.py` | **0** | `门禁 28 项：预期红 0，绿 28，跳过 0` |
+| 2 | `python3 -m pytest tests/unit -q` | **0** | `819 passed, 17 skipped`（开工 `818 passed` ⇒ **只增不减**） |
+| 3 | `python3 -m pytest tests/contracts tests/tools tests/routing tests/context -q` | **0** | `456 passed, 13 skipped` |
+| 4 | `ruff check agenerp tests/unit tests/ui tests/contracts tests/tools tests/routing tests/context tests/experiments` | **0** | `All checks passed!` |
+| 5 | 闭合判据（见上） | **0** | `11 passed`，零 skip |
+| 6 | **(A)** `python3 -m pytest tests/unit/test_desk_sidebar_body.py -q -p no:playwright` | **0** | 零 `error`（带活栈变量时 `11 passed in 39.89s`） |
+| 7 | **(B)** `PYTHONPATH=/tmp/agenerp-nodriver … -q -p no:playwright -rs` | **0** | `11 skipped`、零 `error`，逐字 `driver missing: simulated: playwright not installed` |
+| 8 | `python3 -c "import tomllib…"` | **0** | `['certifi>=2024.2.2'] {'ui': ['playwright>=1.47']}`；`git diff --name-only 393ef11..HEAD -- pyproject.toml` → 无输出 |
+| 9 | `PLAYWRIGHT_BROWSERS_PATH=/tmp/agenerp-pw-cold /usr/bin/time -p python3 -m playwright install chromium` | **0** | `real 45.77` · 下载 254.4 MiB · `du -sh` **524M**（跑完已 `rm -rf`，**没污染 `~/Library/Caches/ms-playwright`**） |
+| 10 | `docker compose down -v` → `AGENERP_HTTP_PORT=18080 … up -d --wait --wait-timeout 900` | **0 / 0** | `real 60.69` · 10 个长期服务全 `running` · 7 个有探针的全 `healthy` |
+| 11 | `git diff 393ef11..HEAD -- .github/workflows tests/gates docs/masterplan/DECISIONS.md docs/masterplan/02-WBS.md` | — | **0 行** |
+
+`git status --porcelain` 收口时原文：本 plan 自己的五处改动，**无一件是别人的**
+（`M agenerp/serve/assets/desk.js` · `M docs/context/project-context.md` · `M tests/unit/test_desk_sidebar_static.py` ·
+`?? tests/ui/` · `?? tests/unit/test_desk_sidebar_body.py`）。
+
+### 红线自证（`BASE = 393ef11`，两步法）
+
+| # | 命令 | 结果 |
+|---|---|---|
+| 1 | `git diff --name-only $BASE..HEAD -- tests/gates` · `git status --porcelain -- tests/gates` | **两条都无输出** |
+| 2 | `git diff --name-only $BASE..HEAD -- .github/workflows` · `git status --porcelain -- .github/workflows` | **两条都无输出** |
+| 3 | `git diff $BASE..HEAD -- docs/masterplan/DECISIONS.md` | **0 行** |
+| 4 | `git diff $BASE..HEAD -- docs/masterplan/02-WBS.md` | **0 行** |
+| 5 | `git diff $BASE..HEAD -- docs/masterplan/STATE.md \| grep -c '^-'` | **0**（只追加，零删除行） |
+| 6 | `git -C /Users/lize/Documents/ChatGPT/XM status --porcelain` | **无输出**；`HEAD` = 冻结 sha `1c622c8119755b36992c54ba98fbf6840cd22ed4` **逐字相同** |
+| 7 | `git status --porcelain -- missions/ docker-compose.yml` | **无输出** |
+
+### 变异自查
+
+`M1`–`M16` **十六条 / 18 次施加**，**18/18 `RESTORED OK`**，逐次的打红格与红因原文见证据文件 §7。
+⚠️ **`M7` 第一次施加时一格都没打红**（门禁退化成 `exit 0 · 11 skipped` —— 一条绿着的、不存在的门禁）
+⇒ 按变异表自己的规矩当场补第五条离线守卫，复跑打红。**该守卫是变异自查逼出来的，不是起草期就有的。**
+⚠️ **`M13a` 的 plan 预测只在「活栈起着」这个前提下成立**（不给活栈变量时命令 (A) 对它无感），照实记在证据文件里。
+
+### 与预测不吻合的三处（照 §6 规矩：只填实际，不改预测）
+
+| 格 | 预测 | 实际 | 处置 |
+|---|---|---|---|
+| `H7` | `503`，体里指名缺哪个变量 | **`401`** | **不清环境重跑**。判据不钉死任何一个码：先观测实际码，再断言面板渲染的是该码那一态。根因是本轮那条 CSRF 发现 |
+| `H10` | 停服后 `/app` **200** | 不跟随重定向时 **301**（→ `/login?redirect-to=%2Fapp`），`-L` 跟随后 **200** | 断言体用的 `_probe_status()` 跟随重定向，量到 200，与预测同义；照实记下 301 这一层 |
+| `D-d-4` 的字面偏差出口 | 若 `H3` 冲突则改 `Cmd/Ctrl+Shift+K`，偏差归人 | **`H3` 实测不冲突** | 键位就是 `Cmd/Ctrl+K`，**与 `02-WBS.md:89` 逐字一致 ⇒ 本条不需要人裁，出口未触发** |
+
+### 🔴 本轮实测撞出来的两条缺陷 —— 都落在红线内，只登记不修
+
+1. **网页会话的 `sid` 在 `/agenerp/explain` 上被 CSRF 挡下**（`POST /api/method/login` 换来的会话不受影响）
+   ⇒ **既有那份活体门禁绿在一种真人永远不会有的会话上。** 修法在 `agenerp/serve/**` = P1.8a 契约面，Non-Goals 1 禁止碰。
+   ⚠️ **不推翻 `H6`** —— 浏览器**确实**带上了 `sid`（直接读请求头，本仓第一次）；被推翻的只是「回的不是 401」那个**代理指标**。
+2. **先例 `tests/gates/test_explain_service_live.py:80` 的全局 `pytest.skip` 重绑是进程级污染**
+   （单跑断言体 `11 skipped` 绿、与 `tests/gates` 同轮 `11 errors` 红）。**不影响 CI、不影响判定器**，
+   且整仓那条命令**在本 plan 开工前就已经红**。修法在 `tests/gates/**` = 红线 1。
+   ⇒ **这正是 `D-d-3` ④ 当初写死「不复制先例那个写法」的理由，今天第一次量到它的具体后果。**
+
+**两条都已逐字交人**：`docs/masterplan/STATE.md` §3 `[needs-human] 2026-08-26T05:30Z`。
+
+### ⚠️ verification scope limited（逐条，不合并）
+
+- **整仓 `pytest tests -q -m "not live"` 已跑但未绿**：`exit 1 · 1313 passed, 23 errors`。
+  **基线即红** —— 对照实跑（把本 plan 新增的两份临时挪开）同一条命令：`exit 1 · 5 failed, 1308 passed, 12 errors`。
+  新增的 11 个 error 成因已实测定位（上面第 2 条），**不是本 plan 的缺陷，也不进 CI 的任何一个 job**。
+- **未经 CI 服务端复跑**：`tests/ui/` 今天不在任何 job 的作用域里
+  （`COVERED` 八个目录不含它、`lint` job 的 ruff 参数七个目录不含它）
+  ⇒ **本门禁在 CI 上的行为本轮零数据。** 这一处只能等人把它接进 CI（交接项 1/3/4/5a）。
+- **`closure audit was independent` 留白** —— 本轮的收口复跑是执行者自己做的，按该 gate 自己的括号「执行者自己复跑不算」，
+  **不勾**。补做归人 / 归下一次派工。
+- **「答得对不对」本 plan 不声称验证**（§3 Non-Goals 4）：那是 P1.4 的面。
+  本轮那次真请求回的是 401，**一次模型调用都没发生**。
+
+### 本轮真实成本
+
+**token 0，解释 0 次。** 依据是实测两条，不是假设：
+容器里 `AGENERP_LLM_API_KEY` / `AGENERP_LLM_BASE_URL` **实测为空**（只有 `AGENERP_LLM_MODEL` 非空），
+且那次真请求在 `config_factory` 之前就被 **401** 挡下。
+⚠️ **这不是「本 plan 零成本」的普遍形式** —— 密钥配上后那一次真请求**会**真调模型（中位约 11 万 token、墙钟约 50 秒）。
+
+### Follow-up
+
+- **§11 已登记的四条**一条未动，仍是 `watch-only residual` / 归人。
+- **新增交接：六件全部落在 `.github/workflows/gates.yml`（红线 2）**，
+  外加装 chromium 的**三个方案 + 本轮实测墙钟与体积**（**没有替人选**）——
+  逐件写在 `STATE.md` §3 `[needs-human] 2026-08-26T05:30Z`。
+- **`02-WBS.md:89` 的状态词没写**：`docs/masterplan/` 在红线 5 内，且 P1 那张表实读**没有「状态」列** ⇒
+  工作项 11 的状态词落点是 `docs/backlog/p1-insight-roadmap.md:79`（本轮已由 `todo` 改 `done`），与 `10b` 同一处置。

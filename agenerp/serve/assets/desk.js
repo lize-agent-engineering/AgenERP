@@ -395,11 +395,21 @@
 	// ⌘K / Ctrl+K 唤起与关闭；Esc 关闭。
 	// H3 实测：Frappe v15 的 frappe.ui.keys.handlers 里没有 "k"（awesomebar 走 ctrl+g），
 	// 真按下去 defaultPrevented=false ⇒ 这个键位没被占，不抢任何既有绑定。
+	// ⚠️ 消费掉的键要 `stopPropagation`，**这不是防御式编程，是一条实测出来的缺陷的修法**：
+	// `esc` / `escape` 在 `frappe.ui.keys.handlers` 里是**注册着**的（H3 实读）。
+	// 只 `preventDefault` 不阻止冒泡 ⇒ 我们 `close()` 之后 Frappe 自己那条 esc 处理还会跑，
+	// 把焦点从我们刚还回去的那个元素上**夺走**。
+	// 实测对照：`Esc` 关闭后 `document.activeElement` 是 **`BODY`**（焦点丢了），
+	// 而走 toggle（再按一次 ⌘K）关闭时是 **`BUTTON#agenerp-focus-probe`**（焦点还回去了）——
+	// 同一个 `close()`，差别只在冒泡出去之后有没有别人再动一次焦点。
+	// ⇒ 面板开着时按下的 `Esc` **是我们的**，让 Desk 同时也响应它本身就是缺陷
+	//   （会顺手关掉 Desk 的对话框 / 清掉筛选）。
 	document.addEventListener(
 		"keydown",
 		function (event) {
 			if (event.key === "Escape" && state.open) {
 				event.preventDefault();
+				event.stopPropagation();
 				close();
 				return;
 			}
@@ -407,6 +417,7 @@
 				var key = event.key ? String(event.key).toLowerCase() : "";
 				if (key === "k") {
 					event.preventDefault();
+					event.stopPropagation();
 					toggle();
 				}
 			}

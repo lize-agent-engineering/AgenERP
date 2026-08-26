@@ -76,7 +76,20 @@ P1 的目标一句话：**让 Agent 能看懂这套 ERP，并且能证明它真�
     **守卫**：`tests/unit/test_explain_service_timeout_budgets.py`（6 条，含 3 条行为判据），**7 个变异 7/7 打红**（M5「长预算只从 30 挪到 31」尤其关键 —— 它让「改了数字但没真改」过不去）。
     ⚠️ **`02-WBS.md:88`（`P1.8a-fix` 行）的状态词至今没写** —— `docs/masterplan/` 在红线 5 内（loop 只读），且 P1 那张表实读**没有「状态」列**（表头 5 列）⇒ 本行就是 `10b` 的状态词落点。**那一格已交人**，见 `STATE.md` §3 `[open] 2026-08-26T03:39Z`。
     ⚠️ **verification scope limited** —— 验收面是 `P3-4` 的五条命令 + 三次 run；整仓 `pytest tests -q -m "not live"` 有 12 个 error（`tests/gates`×`tests/tools` 环境泄漏，已单列 `gates-and-tools-leak-env-across-directories.md`，与本缺陷无关）。
-- 11. **Desk 侧边栏**（⌘K，调 P1.8a 的面）（P1.8b）: `todo`
+- 11. **Desk 侧边栏**（⌘K，调 P1.8a 的面）（P1.8b）: `done`
+  - **◆ 第 2 个 plan 已交付并收口（2026-08-26）：`2026-08-25-1743-1-desk-sidebar-cmdk-and-live-ui-gate.md` → `completed`（表规 3 的预算此后 `2/2` 满）。**
+    **验收命令原文与退出码**：`AGENERP_LIVE=1 AGENERP_HTTP_PORT=18080 AGENERP_ADMIN_PASSWORD=admin python3 -m pytest -m live tests/ui/test_sidebar.py -q -rs` → **exit 0 · `11 passed` · 零 skip**，连跑三次全绿（`41.54s` / `51.31s` / `40.25s`，三次都在 `down -v` 冷起之后）。
+    **收集条数 11 == 断言体里 `test_` 函数条数 11** —— 「零 skip」这句话在一条都没跑时也成立，由条数把它钉住（`no tests collected` 退 5）。
+    **交付**：`agenerp/serve/assets/desk.js`（⌘K 唤起 / `Esc` / toggle / 焦点归还 + 九个已枚举码 + `200` + 兜底态）· `tests/ui/test_sidebar.py`（薄加载器，零 skip 严格模式）· `tests/unit/test_desk_sidebar_body.py`（断言体，**受 `pytest tests/unit -q` 那一轮保护**）· `tests/unit/test_desk_sidebar_static.py`（离线判据 + **五条**源码级守卫）· 落点节 `module-boundaries.md` **§7.23**。
+    **变异自查 `M1`–`M16` 十六条 / 18 次施加，18/18 `RESTORED OK`**，其中 **`M7` 第一次施加时一格都没打红**（门禁退化成 `exit 0 · 11 skipped`，一条绿着的、不存在的门禁）⇒ 当场补第五条守卫后打红，经过已逐字记在证据文件。
+    **本仓第一次真浏览器侧实证**：浏览器把 `HttpOnly` 的 `sid` 带到了 `/agenerp/explain`（直接读那次请求的 `Cookie` 头，morsel 名 `['full_name','sid','system_user','user_id','user_image']`，值长 56 字符），而同页 `document.cookie` 里**没有** `sid`。
+    ⚠️ **`H7` 预测不吻合，照实记**：预测 `503`，实际 **`401`** —— 原因是下面那条 CSRF 发现；判据**不钉死任何一个码**（先观测实际码，再断言面板渲染的是该码那一态）。
+    ⚠️ **本轮真实 token 成本 = 0** —— 容器里 `AGENERP_LLM_API_KEY` / `BASE_URL` **实测为空**，且那次真请求在 `config_factory` 之前就被 401 挡下 ⇒ 一次模型调用都没发生。**这不是「本 plan 零成本」的普遍形式**，配上密钥后那一次真请求会真调模型（中位约 11 万 token）。
+    🔴 **两条实测撞出来、落在红线内的缺陷，已交人**（`STATE.md` §3 `[needs-human] 2026-08-26T05:30Z`）：**①** 浏览器网页会话的 `sid` 在 `/agenerp/explain` 上被 **CSRF** 挡下（既有活体门禁用的 `POST /api/method/login` 会话不受影响 ⇒ **那份门禁绿在一种真人永远不会有的会话上**），修法在 `agenerp/serve/**` = P1.8a 的请求契约面，本 plan Non-Goals 1 禁止碰；**②** 先例 `tests/gates/test_explain_service_live.py:80` 的全局 `pytest.skip` 重绑是**进程级污染**，同轮跑到它之后本 plan 断言体的 skip 全变 error（单跑绿、同轮红，已实测三条），修法在 `tests/gates/**` = 红线 1。
+    ⚠️ **`tests/ui/` 在 CI 上今天零覆盖，六件交接全部落在 `.github/workflows/**`（红线 2）** —— `COVERED` 少一个 `ui`（下次推送时 `unit-and-contracts` 第 ⑦ 步必红，**那正是那条守卫被写出来的目的**）· `gates-l2-live` 没有跑它的 step（**光加 `COVERED` 不会让它跑起来一次**）· `lint` job 的 ruff 参数不含 `tests/ui`。**装 chromium 的三个方案 + 实测墙钟/体积已一并交回，选哪个归人。**
+    ⚠️ **verification scope limited**：整仓 `pytest tests -q -m "not live"` **已跑但未绿**（**基线即红** —— 对照实跑把本 plan 新增的两份挪开，同一条命令 `5 failed, 1308 passed, 12 errors`）· **未经 CI 服务端复跑**（`tests/ui/` 不在任何 job 作用域里，**本门禁在 CI 上的行为零数据**）· **独立收口审计由执行者自己复跑，该 gate 留白**。
+    **全部命令原文、退出码、观测值见 `docs/evidence/p1-desk-sidebar/README.md`。**
+    ⚠️ **`02-WBS.md:89`（P1.8b 行）的状态词没写** —— `docs/masterplan/` 在红线 5 内（loop 只读），且 P1 那张表实读**没有「状态」列**（表头 5 列）⇒ **本行就是工作项 11 的状态词落点**，与 `10b` 同一处置。
   - **◆ 第 1 个 plan 已交付（表规 3 的预算此后 1/2）：`2026-08-25-1615-1-desk-injection-seam-and-asset-route.md` → `completed`。**
     ⚠️ **本行状态词仍是 `todo`，不是遗漏** —— 那个 plan **从不声称满足** WBS §4 第 88 行的验收命令
     （`pytest -m live tests/ui/test_sidebar.py`），它**不做 ⌘K、不做侧边栏 UI、不建 `tests/ui/`**（其 Non-Goals 1/2）。
