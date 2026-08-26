@@ -465,6 +465,14 @@
 > 格式：`[状态] 日期 · 触发条件 · WBS行ID · 最后一条失败命令原文 + 退出码 · sha · 处置`
 > 状态只有 `open` / `resolved`。**resolved 的行保留不删。**
 
+- [resolved] 2026-08-26T10:43Z · **「把分支/worktree 合并回 main」核查完毕 —— 没有可合的，且不该合**
+  · **worktree**：只有主工作区一个（`git worktree list` 实测），无游离副本。
+  · **分支**：12 个本地分支，远端只有 `main`。**main 领先每个分支 219–299 笔**，各分支「独有」0–9 笔。
+  · **那些「独有」提交是什么，逐条读过**：绝大多数是**故意注入缺陷再 revert 的实验痕迹** —— 逐字如 `EXPERIMENT 1 (will be reverted): 把 _validate_returns 变成 no-op` + `Revert "EXPERIMENT 1..."` · `MUTATION-A: 故意的 F401（两处）` + 其 Revert · `experiment(0337-2): 实验 ① —— 等长交换（承重实验）`。**它们是证明门禁有牙的取证过程，不是待交付代码。**
+  · **真实产出早已在 main**（2026-08-26T10:43Z 逐个实测）：那些分支要加的四个 CI job —— `gates-l2-live` / `verdict-tool-untouched` / `unit-and-contracts` / `gates-l2-seed` —— **`.github/workflows/gates.yml` 上全都有**。而 `git log main | grep -cE "EXPERIMENT|MUTATION"` = **0**：**main 的历史是干净的，本该如此。**
+  · ⇒ **合并会往 main 塞实验痕迹、且可能把 330–349 个文件的旧状态带回来，没有任何收益。** 处置：**归档不合并** —— 分支引用保留（实验证据可回查），不并入 `main`。
+  · **仓里既有的做法本来就是这个**：跑完实验把**结论**并回 main，**提交本身不并**（`ci/*-land` 那几个分支名里的 `land` 就是这条做法的痕迹）。本条只是把它写明。
+
 - [open] 2026-08-26T10:10Z · **P2 规划已落地（人 2026-08-26T10:10Z）—— 设施齐、依赖接好，但 P2.0 的入口关口尚未跑**
   · **新建两份执行设施**：`missions/p2-views.json`（mission 配置，`roadmapPath` / `plansDir` 按 WBS 已写死的 `MD:p2-views` 对齐）· `docs/backlog/p2-views-roadmap.md`（10 个工作项，编号与 `02-WBS.md` §5 一一对应，**判据以 WBS 为准，roadmap 不重定**）· `docs/plans/p2-views/` 目录。
   · **接了一条 WBS 里漏掉的依赖**：`P2.3`（视图 Agent）的前置由 `P2.2` 改为 **`P2.2 + P2.0R`** —— 视图 Agent 的产出必须指回真实字段，而 schema 检索今日实测 **Top-5 = 75%**。**不先解决它，P2.3 是空中楼阁。**
