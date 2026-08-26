@@ -4251,3 +4251,202 @@ Phase 3 的变异自查又补了两条断言（`test_asset_content_type_is_javas
 ⇒ 顺带给 §7.18 那条守卫添一格**真实世界的误报样本**：
 它的数字面会吃掉「passed 与 skipped 用斜杠连写」这种形状的 pytest 计数。
 **写 owner doc 时把这两个数分开写，就不会撞上它。**
+
+### 7.23 ⌘K 侧边栏本体与真浏览器活体门禁在本仓的落点（P1.8b 第 2 个 plan · 2026-08-26）
+
+> 交付 plan：`docs/plans/p1-insight/2026-08-25-1743-1-desk-sidebar-cmdk-and-live-ui-gate.md`
+> 执行期探测记录：`docs/analysis/2026-08-25-1743-desk-sidebar-probe.md`
+> ⚠️ **本节不改 §7.13 / §7.20 / §7.21 / §7.22 任何一行。** 它们各自是既有落点，本节在其上加一格。
+
+**本节补的是三件今天空着的事**：① 注入进 Desk 的那段 JS **从「只证明自己到了」变成一个会发请求的面板**，
+它的行为边界要有个持久落点；② **本仓第一次有真浏览器侧的活体判据**，它的形态（薄加载器 + 已进 CI 的断言体）
+要写死，否则下一份会退化成「一条会 skip 的门禁」；③ **渲染状态机**要写成**开放枚举 + 兜底**，
+把它写成封闭枚举等于把「真实 500/504 渲染成空白」固化成规范。
+
+#### 7.23.1 执行期探针的实际值（六条，全部带真登录会话；完整原文见探测记录）
+
+| # | 探针 | 预测 | **实际** |
+|---|---|---|---|
+| `H1` | `tests/` 目录集合 vs `gates.yml:597` 的 `COVERED` | 两边相等（八个） | **相等**：`context contracts experiments fixtures gates routing tools unit` |
+| `H2` | 驱动可用性 | 都成功、能起 chromium | **exit 0** · `playwright 1.58.0` / `pytest-playwright 0.7.2` · chromium **`145.0.7632.6`** 真起来并读到 DOM |
+| `H2b` | 浏览器发的 `Host: 127.0.0.1:18080` 落不落到 `frontend` 站 | 落到（默认站回落） | **落到**：`/login` → **200** · `title=Login` · `#login_email` 与 `input[type=password]` 都在 |
+| `H3` | Desk 有没有占 `Cmd/Ctrl+K` | 倾向没占（awesomebar 走 `Ctrl+G`） | **没占**，两路互证：注册表 `handlers["k"]` **`ABSENT`**（`ctrl+g` / `shift+ctrl+g` 在）；真按下 `defaultPrevented=false`、modal 数 0、焦点不动 |
+| `H4` | URL / `frappe.get_route()` / `cur_frm.doc` 三者都能取到且一致 | 三者一致 | ⚠️ **不吻合** —— 三者**都取不到**（见 7.23.2） |
+| `H5` | 注入的 `<script src="/agenerp/desk.js">` 在不在、几次 | 在，恰好 1 次 | **恰好 1 次**（`/app` · `/app/user/Administrator` · `/app/user` 三条路径各测一次），**且 `window.agenerpDesk` 读得到** |
+
+⇒ **`H2b` 吻合 ⇒ `--host-resolver-rules="MAP frontend 127.0.0.1"` 那条对冲分支未被触发**，
+本节落地的 fixture **不带**该参数，基址逐字 `http://127.0.0.1:18080`。
+⚠️ 它是**留了记录的备用件**：站点哪天不再 `--set-default`、或 compose 起多站，这一跳会**静默**落到别的站
+（判据会红在一个看起来像「面板坏了」的地方），届时第一处置就是加上那个 Chromium 参数 —— 见本节「翻案条件」。
+
+⇒ **`H5` 比预测强一格**：`window.agenerpDesk` 读得到 ⇒ §7.22 留下的那句
+「『HTML 里有 `<script>` 标签』≠『浏览器执行了它』」**第一次被正面回答：它真的被执行了。**
+
+#### 7.23.2 `H4` 不吻合：本机站点够不到任何一张单据页，以及它换来的一条真发现
+
+**实读**：`frappe.boot.sysdefaults.setup_complete` = **`False`** ⇒ Frappe Desk 的路由层把**任何**
+`/app/**` 强制改写成 `setup-wizard`。`goto("/app/user/Administrator")` 后 `location.pathname` 是
+**`/app/setup-wizard/0`**、`frappe.get_route()` 是 `["setup-wizard","0"]`、`cur_frm` 是 `None`。
+
+**处置按 plan `H4` 第四列写死的走**：三者都取不到 ⇒ **合法的「无单据上下文」态**，请求体不带 `doctype`/`name`
+（`app.py` 的 `parse_request` 逐字要求这两个键「同时给或同时不给」）。
+
+**这一格换来的真发现（`frappe.router.routes`，本机实读 447 条）**：
+
+| 查询 | 返回 |
+|---|---|
+| `routes["user"]` | `{"doctype":"User"}` |
+| `routes["sales-order"]` | `{"doctype":"Sales Order"}` |
+| `routes["item-price"]` | `{"doctype":"Item Price"}` |
+| `routes["setup-wizard"]` · `routes["home"]` | **`ABSENT`** |
+
+⇒ **两件事，都直接决定实现口径**：
+
+1. **URL 路径是有损的。** `/app/sales-order/SO-0001` 里的 `sales-order` **不是** doctype 名，真名是 `Sales Order`。
+   把 slug 原样发出去，服务端取不到字段表 ⇒ 403，而那种 403 在界面上和「问题不合法」长得一样。
+2. **URL 形状分不出「单据路由」与「页面路由」。** `/app/setup-wizard/0` 与 `/app/user/Administrator`
+   结构完全相同；只有 `routes` 这张表能分开。**没有它就会在 Workspace / setup-wizard 这类页面上发出假上下文。**
+
+**⇒ 上下文取值链写死（`H4` 的优先级一个字不改）**：
+
+```
+① location.pathname → /app/<slug>/<name>      ← 取「哪两段」，第一顺位
+   slug 还原成 doctype 名、并判定这到底是不是单据路由 → frappe.router.routes[slug].doctype
+   （URL 自己给不出这两件，这不是把优先级改了）
+② frappe.get_route() 的 Form 形态 → ["Form", <doctype>, <name>]
+③ cur_frm.doc.doctype / cur_frm.doc.name
+④ 都没有 ⇒ 无单据上下文，请求体不带 doctype / name
+```
+
+⚠️ **本节照实登记一条本 plan 关不掉的残余**：**「在一张真单据页上唤起时 `doctype`/`name` 真的被带进请求」
+这条行为，本机站点上拿不到活体证据**（够不到单据页；跑完 setup wizard 会往站点写数据，撞该 plan Non-Goals 2）。
+本 plan 交的是 ① 无上下文态的**活体**证据 + ② 有上下文态的**离线**证据（对取值函数的直接调用 + 源码守卫）。
+**② 不等于 ①，收口文字里不许混。**
+
+#### 7.23.3 渲染状态机：**开放枚举 + 兜底**，不是封闭枚举
+
+**计数口径先写死（沿用 §7.20 的服务端表，不另立一份）**：失败**来源**有十种 ——
+服务端八种（`400/401/403/404/405/500/502/503`）+ 反代两种（`502` / `504`）。
+**但面板只看得见状态码，看不见它是谁回的** ⇒ 两个 `502` **必然**合并成同一态。
+⇒ **面板侧可分辨的码是九个**：`400/401/403/404/405/500/502/503/504`。
+
+⚠️ **两个 `502` 合并是正确行为，不是缺陷。** 想分开只能靠嗅响应体（服务端 502 回 JSON、反代 502 回默认 HTML），
+而那正是本节下面那条禁令明令禁止的。**判据按九个码 + `200` 共 10 条判，按十种来源判是不可满足的。**
+
+| 码 | 面板呈现（各自可分辨、非空、含该码字面量） |
+|---|---|
+| `200` | 渲染 `answer`；下方渲染 `cost.calls` / `cost.total`；`accepted` 为假时加一句「未被判定为可接受」 |
+| `400` | 「请求不合法（400）」+ 服务端 `error` 文案 |
+| `401` | 「未认到人（401）——站点不认这个会话」 |
+| `403` | 「当前身份取不到这张单据的字段表（403）」 |
+| `404` | 「这个路径服务不认（404）」 |
+| `405` | 「方法不对（405）」 |
+| `500` | 「服务内部出错（500）」 |
+| `502` | 「上游坏了或解释服务不在（502）」 |
+| `503` | 「模型未配置（503）」+ 服务端指名缺哪个变量 |
+| `504` | 「等太久被反代掐断（504）」 |
+| **兜底** | **任何未枚举的码**：「未预期的响应（`<该码>`）」；**网络层失败**：「请求没能发出去（`<原因>`）」 |
+
+**维护义务写死**：服务端加一种码 ⇒ 这张表跟着加一行；**但兜底态在任何时候都不许删。**
+理由不是风格 —— `app.py:327` 的 `except Exception` 兜底会真的回 500、`proxy_read_timeout 300` 会真的回 504，
+**封闭枚举接不住它们**，接不住的结果就是那个 plan Goal 2 明令禁止的空白。
+
+#### 7.23.4 禁令：任何一态都不许把响应体原样倾泻进 DOM
+
+**渲染只取上面那四个已知键（`user` / `answer` / `accepted` / `cost`）与状态码本身。**
+兜底态**只**渲染状态码 + 一句固定文案，**不碰响应体**。
+
+**两条理由，都不依赖任何 CI 现状**：
+
+1. `sid` 是 `HttpOnly`，其存在意义就是**不进 JS 可读面、更不进 DOM**（本机实读坐实：
+   `document.cookie` 里看不到 `sid`）。把整份响应铺进 DOM，等于**自己造一个绕过 `HttpOnly` 的显示面**。
+2. **真 nginx 502/504 回的是默认 HTML，不是 JSON**（`tools/nginx/frappe.conf.template` 里
+   既没有 `error_page` 也没有 `proxy_intercept_errors`）。任何「把响应体当结构化数据铺开」的写法
+   在真 502 上都会抛 —— 而**打桩喂一个 JSON 体的假 502 走的是面板的 JSON 分支，全绿**。
+   ⇒ 这与 7.23.3 的兜底态是同一条约束的两面。
+
+**离线可判的下限（`tests/unit/test_desk_sidebar_static.py`，纯文本）**：
+`innerHTML` / `outerHTML` / `insertAdjacentHTML` **各零命中**（建 DOM 只走 `textContent` / `createTextNode`，
+**这是正路不是变通**）· `document.cookie` **零命中** · `JSON.stringify(` **命中 ≤ 1 次**。
+
+⚠️ **`JSON.stringify(` 不是零命中，也不该是**：`app.py:145` 的 `parse_request()` 逐字
+`payload = json.loads(raw.decode("utf-8"))` ⇒ **请求体必须是 JSON**，`desk.js` 必然要 `stringify` 一次来拼它。
+**1 次正常，2 次起必有一次落在渲染面**（`el.textContent = JSON.stringify(resp)` 同样是把整份响应铺进 DOM，
+而 `innerHTML` 那一族的守卫挡不住它）。
+
+⚠️ **这三格是文本下限，不证运行时行为。** 它挡的是「整份响应被原样铺开」这个**最粗的**形态，
+挡不住逐字段拼接出来的等价泄漏；那一半由变异自查与「每一态只含该码字面量 + 已知键」的活体判据承担。
+
+#### 7.23.5 活体判据的形态：薄加载器 + 已进 CI 的断言体，**零 skip**
+
+**判据只有一份，门禁是它的严格模式** —— 沿用 `tests/gates/test_explain_service_live.py` 立下的形态，
+但**换掉它那个有副作用的收严机制**。
+
+| 层 | 文件 | 职责 |
+|---|---|---|
+| 断言体 | `tests/unit/test_desk_sidebar_body.py` | 真浏览器、真登录、真 Desk 页面。**受 `pytest tests/unit -q` 那一轮保护**，日常改坏了看得见。**「跑不了」的出口一律只调模块级的 `_unavailable(reason)`，默认实现是 `pytest.skip`** |
+| 加载器 | `tests/ui/test_sidebar.py` | `pytestmark = pytest.mark.live`。**先自己 `import playwright`（失败即 `pytest.fail`，不是 `importorskip`）**，再按路径加载断言体，然后**只重绑一个名字** `_BODY._unavailable = pytest.fail`，最后把断言体里每一个 `test_` 函数**逐条重绑**进本模块命名空间 |
+
+**四条写死的理由，每一条都对应一个具体的失败形态**：
+
+1. **收严为什么必须在 `exec_module()` 之后**：`Skipped` 若在模块级抛出，`exec_module()` 里就抛完了，
+   收严那一行还没执行 ⇒ 结果是**门禁退 0 且 `1 skipped`——一条绿着的、不存在的门禁**。
+   ⇒ 断言体**禁用**模块级 `pytest.skip` 与模块级 `pytest.importorskip`，驱动导入与活栈探活**一律放进 fixture**。
+2. **为什么重绑的是断言体自己的 `_unavailable`，不是先例那样的 `_BODY.pytest.skip`**：
+   后者改的是**全局 `pytest` 模块**的属性，属**进程级污染**（同一轮里别的测试文件也会被改）。
+   本形态没有这个副作用，且**新增的 skip 出口自动受管**（好处与先例相同）。
+   ⚠️ **本节不去改那份先例**（`tests/gates/**` 是红线 1）。
+3. **为什么加载器必须逐条重绑 `test_` 函数**：漏了这一步，`pytest -m live tests/ui/test_sidebar.py`
+   **一条都收集不到 ⇒ 退出码 5**（`no tests collected`）——
+   而「零 skip」这句话在**一条都没跑**的情况下也成立。⇒ 闭合判据必须**同时**钉住条数。
+   配套守卫（离线、进 CI）：**加载器重绑的名字集合 == 断言体里 `test_` 开头的函数名集合**，缺一即红。
+4. **`tests/unit/` 那份允许 skip、`tests/ui/` 那份必须 fail，这个取舍差是有意的，不许含糊成「都一样」**：
+   日常那一轮不该因为没起 docker 就整轮红（那会让人学会忽略红）；
+   门禁那一轮「跑不了 = 没跑 = 没跑就是红」。**同一份断言体，两种严格度，靠那一个间接名切换。**
+
+**断言体的硬约束（`unit-and-contracts` 只装 `pytest certifi`，`gates.yml:567`）**：
+**不许**依赖 `pytest-playwright` 提供的任何 fixture（`page` / `browser` / `context` / `browser_type`）
+与它的任何 CLI 选项；**不许**在模块顶层 `import playwright`。
+浏览器由**本文件自己的 fixture** 起，`import playwright` 写在那个 fixture 体内。
+⚠️ 违反的后果**不是 skip 而是 `error`** ⇒ **今天绿着的 `unit-and-contracts` 会红**，且那是**纯回归**，
+与「判据自身的判据」按设计报警**不是一件事**。
+
+**两条可执行验证，各证一件事，缺一不可**：
+
+| 命令 | 期望 | 它证的是 |
+|---|---|---|
+| **(A)** `python3 -m pytest tests/unit/test_desk_sidebar_body.py -q -p no:playwright` | **exit 0、零 `error`**（**不断言全 `skipped`** —— 本机装着驱动时它会真跑，那是合法的） | 断言体**不吃** `pytest-playwright` 提供的 fixture（签名里写 `page` 时这条给的是 `1 error` / `fixture 'page' not found`，与 runner 上逐字相同） |
+| **(B)** 先建只含一行 `raise ImportError(...)` 的 `/tmp/agenerp-nodriver/playwright.py`，再 `PYTHONPATH=/tmp/agenerp-nodriver python3 -m pytest … -q -p no:playwright -rs` | **exit 0、全 `skipped`、零 `error`** | 驱动**不在**时走 `_unavailable` 而不是 `error`。⚠️ **这才是唯一能挡住「模块顶层 `import playwright`」的运行时证据** ——(A) 对它无感（本机装着，导入成功） |
+
+⚠️ **(B) 里 `-p no:playwright` 不能省**：不关插件的话，插件自己加载时就会 `import playwright`、撞上遮蔽模块
+⇒ 整轮起不来，红在插件上而不是红在断言体上。
+
+#### 7.23.6 CI 覆盖面：本节落地后**三处零覆盖**，全部归人（红线 2）
+
+**照实说，不粉饰**：`tests/ui/` 落地之后
+
+1. `gates.yml:597` 第 ⑦ 步「没有测试目录被漏在 CI 之外」**会红** —— 它的名字逐字叫「判据自身的判据」，
+   **红正是它的目的**。本仓已有四个同形态先例（`tests/tools` / `tests/routing` / `tests/context` / `tests/experiments`）。
+2. **新门禁在 CI 上零覆盖**：`tools/gates/check_expected_red.py` 的判定面写死 `"tests/gates"`，
+   而 `gates-l2-live` 只有一条判定步就是跑它 ⇒ `tests/ui/test_sidebar.py` **不会被任何 job 跑到一次**。
+   **「把 `ui` 加进 `COVERED` 就好了」是错的** —— 那只让第 ⑦ 步不红。
+3. **`tests/ui` 在 CI 上零 lint 覆盖**：`gates.yml:646` 的 ruff 参数是七个目录的**字面量**
+   （本机会被真扫，因为 `[tool.ruff]` 的 `exclude` 只排除 `tests/gates`）。
+
+⇒ 六件人要做的事逐件写在交付 plan 的 Phase 3 交接项与 `STATE.md` §3。
+**六件全部落在 `.github/workflows/**` 里 ⇒ 红线 2，本节与本 plan 一个字节都不碰。**
+
+⚠️ **`project-context.md:52` 的 lint 作用域由本 plan 就地改准**（它不在任何红线内），
+让交接项有真相源可照抄。**但改完之后漂移并没有消除**：`gates.yml:640` 那句注释逐字写的是
+「**作用域三个目录**逐字照抄……」，改完之后「三个目录」**仍然是错的**；
+且真相源变成**八个**目录而 `:646` 是**七个**，两边**仍然不等**。**这两处残余都在红线 2，交人，不假装修好了。**
+
+#### 7.23.7 翻案条件（出现任一条即回来重读本节）
+
+| # | 条件 | 第一处置 |
+|---|---|---|
+| 1 | 浏览器发出的 `Host: 127.0.0.1:18080` 不再落到 `frontend` 站（站点不再 `--set-default`、或 compose 起多站） | 自建 fixture 加 Chromium 参数 `--host-resolver-rules="MAP frontend 127.0.0.1"` 并把基址改成 `http://frontend:18080`。**不改 compose / nginx / `/etc/hosts`** |
+| 2 | Frappe 升级后 `frappe.router.routes` 不再是 slug → `{doctype}` 的形状 | 上下文取值链降到第 ② 顺位（`frappe.get_route()` 的 `Form` 形态）；**取不到就是无上下文**，不许猜 slug |
+| 3 | Desk 开始占用 `Cmd/Ctrl+K`（`frappe.ui.keys.handlers["k"]` 不再 `ABSENT`） | 换 `Cmd/Ctrl+Shift+K`，并把与 `02-WBS.md:89`「⌘K」字面的偏差**交人**（改 WBS 是红线 5） |
+| 4 | 服务端新增一种状态码 | 7.23.3 那张表加一行。**兜底态不许删** |
+| 5 | 上游开始对 `/app` 回 gzip（`sub_filter` 静默失效） | 见 §7.22 的翻案条件那条（补 `proxy_set_header Accept-Encoding "";`）——**那是 §7.22 的面，不是本节的** |
