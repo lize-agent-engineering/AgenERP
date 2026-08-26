@@ -4605,3 +4605,111 @@ C1 对 **Single 宿主**的「不留痕」是人已选定的取舍，它**没有
 | 3 | 有一次因裁定 ①(a) 丢行而**少报**了关键关联，且该少报造成了错误结论 | 不回到 (b)（已取消漏出更糟），改为把 `child_rows_skipped_after_failure` 抬到模型可见（同第 1 条） |
 | 4 | `scan_links()` 末尾的下游筛选不再是「排除已取消」 | 裁定 ① 的整个推理前提消失，本节 7.24.4 ① 全部重算 |
 | 5 | §7.24.5 那处「查成功但返回空」的缺口被人裁定要修 | 按裁定并入 ①(a) 的口径，并补一条与 `test_a_row_whose_parent_backtrack_failed_is_dropped_not_faked` 同形的判据 |
+
+---
+
+### 7.25 `route()` 尊重配置里的模型名在本仓的落点（P1.1-fix · 工作项 3b 第 1 个 plan · 2026-08-26）
+
+来源 plan：`docs/plans/p1-insight/2026-08-26-1728-1-routing-honors-configured-model.md`。
+落点节的另一半是 `docs/architecture/model-management.md` §12.5（环境变量表那一行）。
+
+#### 7.25.1 修之前那条路是什么样
+
+`route()` 不传 `requested` 时取「**第一个满足该任务类目的档案**」，回 adapter 时用的是
+`model=profile.name` —— 它把 `resolved.model`（= `AGENERP_LLM_MODEL`）**整个盖掉**。
+`adapter.py:128` 那句 `self.model = model or config.model` 里 `model` 恒非空，
+所以 `config.model` 那一支**在走 `route()` 的路径上永远取不到**。
+
+实测（零网络）：`config.model = qwen3:14b` → `adapter.model = qwen3.8-max`。
+**配了 A，调的是 B，没有任何一处说话。**
+
+活栈后果逐字记在 `agenerp/serve/app.py:246-256`（人 2026-08-26 实测）：配 `qwen3.7-flash`、
+实际走 `qwen3.8-max`，后者没有免费额度 ⇒ 每一次解释都 403，用户只看到一个空答案。
+当时的处置是**在那一个调用点上**补 `requested=config.model`（`app.py:257`）——
+契约本身没变，下一个调用方照样会踩。本节就是把它抬到契约上。
+
+#### 7.25.2 裁定 D-1：`requested is None` 时 `config.model` 的地位
+
+**选定 (A)**：`config.model` 去掉首尾空白后**非空即等同于 `requested`** ——
+先按名从候选里取档案（取不到 → 沿用既有的「不在候选档案里」按名抛），
+再拿它过**同一条**能力校验（`profile.satisfies(task_class)`）。
+
+被否的三条，连同否决理由：
+
+| 备选 | 否决理由 |
+|---|---|
+| (B) 保留「第一个满足的胜出」，但选中的 `profile.name` 与 `config.model` 不同时抛 | 成功面上仍然没有「配了 X 就用 X」这条规则；且 `[qwen-plus, qwen3.6-plus]` + `config.model=qwen3.6-plus` + `explain` 这种**完全合法**的配置会被它判红。那是把「静默替换」换成「误报」，不是修好 |
+| (C) 不动 `route()`，要求每个调用方自己点名 | 它**已经被忘过一次**，后果逐字记在 `app.py:246-256`。把正确性寄托在「每个调用方都记得」上正是本缺陷的成因；今天还有三个默认 `None` 的转手调用点（`explain/loop.py` · `judging/judge.py` · `insight/attribution.py`） |
+| (D) 在 `config.py` 的 `from_env()` 里校验模型名 | 会让 `config.py` import `capabilities`，而 §12.5 的落地形态表逐字给 `config.py` 的职责是「三个 `AGENERP_LLM_*` 从环境读，零默认值」、给 `capabilities.py` 的是「不做任何调用，不读环境」。为顺带修 502/503 去掉换这两层的依赖方向，代价与收益不成比例 |
+
+#### 7.25.3 `requested` 与 `config.model` 的优先级：显式压过默认
+
+**两个都给且不同时，`requested` 胜出。** `config.model` 是**默认值**，不是**覆盖值**。
+判据 `tests/routing/test_router.py::test_an_explicit_request_wins_over_the_configured_model`。
+
+⚠️ **照实说**：这条判据在改动**之前也是绿的** —— 旧实现「从不读 `config.model`」时它恰好也满足。
+它是回归护栏，不是缺口证据；它真正被证明有效是在变异 M2（把守卫改成 `if True:`）下打红。
+
+#### 7.25.4 残余风险：候选偏好顺序在环境驱动路径上事实上失效
+
+`router.py` 模块头原先那句「候选顺序 = 调用方的偏好顺序，第一个满足的胜出」，
+选 (A) 之后**只在 `config.model` 为空串时还成立**；而 `from_env()` 保证它非空
+⇒ **环境驱动的路径上，候选偏好顺序事实上失效**，那条路上永远是「配的那个模型，或明确失败」。
+
+这句已在 `router.py` 模块头就地改准为带前提的说法，**不留在那里当一句已不成立的话**。
+
+今天没有任何调用方依赖「给一串候选、让 router 按偏好挑」：六个调用点要么点名、
+要么把候选集缩成一个。**翻案条件**：出现第一个真正依赖候选偏好顺序的调用方
+（例如「主模型不可用时按顺序回落」），那时 `route()` 需要一个显式的「允许回落」开关，
+而那是一次新的 `Decision`，须由人开预算格。
+
+#### 7.25.5 一处行为变化（不假装没变）
+
+`config` 的解析从 `for` 循环体内**上提到挑档案之前**。后果：`config is None` 且环境没配时，
+`RoutingError("配置不全…")` 现在**在能力校验之前**抛。
+
+⇒ 「**不满足能力 + 环境也没配**」这种双错情形下，**报的错换了一个**（从「没有一个候选满足」
+换成「配置不全」）。既有判据 `test_route_falls_back_to_env_config_only_when_no_config_is_given`
+用的是 `models=[STRONG]` + `explain`（本来就满足）⇒ 实测它不红，但行为确实变了。
+
+#### 7.25.6 判据分工：哪一条证什么，不许互相冒充
+
+| 要证的事 | 由谁证 | 不由谁证 |
+|---|---|---|
+| `route()` 的**选择语义**（给定候选集与 `config.model`，选中哪一个 / 选不动时怎么失败） | `tests/routing/test_router.py` 第 ⑤ 节（9 条） | WBS 验收那个文件 —— 它不构造多样的候选集 |
+| **从环境配到实际调用**这条端到端路径 | `tests/unit/test_configured_model_is_the_one_used.py`（走 `from_env()` 真实构造路径，参数化遍历所有 `satisfies("explain")` 的档案） | `test_router.py` —— 它直接构造 `LlmConfig`，绕过 `from_env()` |
+| 「配了不认识的模型仍明确失败」 | 上述两个文件**各有一条**（点名分支一条、不点名分支一条） | 只有点名分支那一条 —— 缺陷正是活在不点名分支上 |
+
+⚠️ **这张表是 B8 那个教训的产物**：`test_configured_model_is_the_one_used.py` 原有的 6 条
+**全部显式传 `requested`** ⇒ 它一直全绿，而缺陷全须全尾地活着。**一个文件的名字叫「配了哪个就用哪个」，
+不等于它测的是那件事。**
+
+#### 7.25.7 变异自查 M1–M10 的逐格结果（含**没打红**的那两格，照实记）
+
+命令形态：`python3 -m pytest <目标> -q --no-header -p no:cacheprovider`。
+逐条施加、记退出码与栈顶、逐条复原并核 `sha256`（三个文件复原后与施加前逐字节相同）。
+
+| # | 变异位 | 变异内容 | 结果 |
+|---|---|---|---|
+| M1 | `router.py` | 删掉 `requested = config.model` 那一跳 | **exit 1**（`2 failed`，栈顶 `assert 'qwen3.6-plus' == 'qwen-plus'`） |
+| M2 | `router.py` | 守卫改成 `if True:`（让 `config.model` 压过显式 `requested`） | **exit 1**（`1 failed`，栈顶 `assert 'qwen-plus' == 'qwen3.6-plus'`） |
+| M3 | `router.py` | `.strip() or None` 改成 `or None`（空白串当成点名） | **exit 1**（`1 failed`，栈顶 `RoutingError: 点名的模型 '   ' 不在候选档案里`） |
+| M4 | `router.py` | 点名取不到时改成「忽略、继续按第一个满足的挑」 | **exit 1**（`DID NOT RAISE RoutingError`） |
+| M5 | `router.py` | 点名取到后跳过 `satisfies` 校验直接回 adapter | **exit 1**（`DID NOT RAISE RoutingError`） |
+| M6 | `router.py` | `ChatAdapter(..., model=profile.name)` 改成 `model=None` | ⚠️ **exit 0 —— 没打红。** 点名分支下 `profile.name` 与 `config.model` 恰好同值，adapter 的 `or config.model` 兜出同一个字符串 ⇒ P4 判不出差别（plan 起草期已预判此形） |
+| M6b | 同 M6 | 同上，改判 P6（空 `config.model` 走「第一个满足的胜出」） | **exit 1**（`assert '' == 'qwen3:14b'`）；整个 `tests/routing` `32 failed, 147 passed` ⇒ **该变异确实被这一层挡住** |
+| M7 | `test_router.py` | 夹具 `model=""` 改回 `model="unused"` | **exit 1**（`15 failed, 42 passed`，栈顶 `RoutingError: 点名的模型 'unused' 不在候选档案里`）⇒ 反测「夹具改法没有掩盖问题」：那 15 条正是 B5 实测的同一批 |
+| M8 | `capabilities.py` | `KNOWN_MODEL_PROFILES` 删掉 `qwen3:14b` 一格 | **exit 2 —— 红了，但红在收集期**（`KeyError: 'qwen3:14b'`，`test_router.py:32` 的模块级 `LOCAL = ...`），不是红在 P2 第二组 / P4 的断言上。⚠️ **同一变异对 WBS 验收文件 exit 0（`10 passed`）** —— 它按表参数化，表缩小时用例数跟着从 12 掉到 10 而全绿。**参数化遍历一张表的判据，天然测不出「表少了一格」**；照实登记，不修饰成「全打红」 |
+| M9 | `router.py` | 同 M1 | **exit 1**（`4 failed, 1 passed`，栈顶 `配的是 'qwen3.7-plus-2026-05-26'，实际却用了 'qwen3.8-max'`）⇒ **WBS 验收那条确实钉在缺口上** |
+| M10 | `router.py` | 同 M4 | **exit 1**（`DID NOT RAISE RoutingError`） |
+
+⚠️ M8 那一格暴露的是一条**普遍形态**，不是本 plan 的局部问题：
+**「遍历某张表」的参数化判据对「表本身变短」是盲的**。它没被本 plan 修（不在范围内），
+就地登记，**翻案条件**：人裁定要给 `KNOWN_MODEL_PROFILES` 加一条「表规模不得静默缩小」的判据。
+
+#### 7.25.8 本次不碰的一格（交人）
+
+`AGENERP_LLM_MODEL` 配了一个系统不认识的名字时，`handle_explain` 回的是 **502**（「上游坏了」），
+不是 **503**（「未配置」）—— 与 `agenerp/serve/app.py:239-242` 自己写死的结构性分法冲突。
+修法面在 `agenerp/serve/**` = 工作项 10（P1.8a），其 plan 预算 `2/2` 已满 ⇒ **本 plan 不动它**，
+已追加登记在 `docs/masterplan/STATE.md` §3。

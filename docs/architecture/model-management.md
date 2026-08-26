@@ -250,6 +250,11 @@ Spike 02 实测（`claude:sonnet`，四道探针的通过态）：
    没观测到问题就放行）会让 §12.1 ③ 的"不满足则失败"退化成"没人拦就过"。
 2. **这是一份配置种子，不是厂商绑定。** 端点 / 凭据 / 默认模型名全部从
    `AGENERP_LLM_*` 环境变量来；产品包里没有任何厂商端点、厂商 SDK 或厂商环境变量名。
+   ⚠️ **「默认模型名」这四个字从 2026-08-26 起是可判定的**：`route()` 不传 `requested` 时
+   拿 `AGENERP_LLM_MODEL` 当点名去这张表里取档案，取不到 / 能力不够都**明确失败**，
+   **不回落到「第一个满足的候选」**。在此之前它是一个被 `route()` 完全忽略的字段
+   （配了 A 调了 B，无声）—— 那次缺陷与本次裁定逐字记在
+   `docs/architecture/module-boundaries.md` §7.25。
    **但照实说：它今天是 `agenerp/routing/capabilities.py` 里的一个 Python 常量**，
    增删它就是改产品源码，且要同步改 `tests/routing/` 两个文件里引用它的判据 ——
    「不绑厂商」成立，「改它不用动代码」**不成立**。把它外置成配置文件是将来的事，本期没做。
@@ -297,7 +302,7 @@ Spike 02 实测（`claude:sonnet`，四道探针的通过态）：
 |---|---|
 | `AGENERP_LLM_BASE_URL` | OpenAI 兼容端点 |
 | `AGENERP_LLM_API_KEY` | 凭据。**不进 git / `repr` / `asdict` / `vars` / 异常文本 / 本层任何日志**（`LlmConfig` 用 `__slots__` 且刻意不是 dataclass，批量序列化那条路整个不存在）。⚠️ **挡不住带栈帧 locals 的 traceback 打印器**（rich / cgitb / `pytest -l`）——`_post` 的栈帧里有构造好的 `Request`，请求头即 `Authorization`。判据判的是标准库 `traceback.format_exc()` |
-| `AGENERP_LLM_MODEL` | 默认模型名 |
+| `AGENERP_LLM_MODEL` | 默认模型名 —— **走 `route()` 时它就是被点名的那个模型**（不传 `requested` 时它顶上，去首尾空白后非空即算点名）；**点不动就明确失败**，绝不换一个跑。显式 `requested` 压过它。落点节 `docs/architecture/module-boundaries.md` §7.25 |
 
 **为什么不复用 `DASHSCOPE_*`**：那两个名字把厂商写进了产品配置面，与 §12.1 ① 直接冲突。
 实验设施 `tools/experiments/p1_entry_gate/` 仍在用旧变量，那是它的事，本层不读。
