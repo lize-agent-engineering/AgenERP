@@ -1519,21 +1519,63 @@ ERP 定制的经典死法：定制散落在数据库里，没有版本、没有 
 
 Spike 06 证明 Custom Field **撤不回来**。Workspace 的问题方向相反：**留不住**。
 
-ERPNext 把标准工作台以 JSON fixture 装在 app 目录里（`erpnext/selling/workspace/selling/selling.json` 等）。`frappe/modules/import_file.py` 按文件 md5 决定是否导入：
+ERPNext 把标准工作台以 JSON fixture 装在 app 目录里（`erpnext/selling/workspace/selling/selling.json` 等），`bench migrate` → `frappe.model.sync.sync_all()` → `import_file_by_path()` 逐个过一遍（`frappe/model/sync.py:29` 的 `IMPORTABLE_DOCTYPES` 含 `("desk","workspace")`；`migrate.py:123` **不传 `force`**）。
 
-- 日常 `bench migrate`：hash 未变 → 跳过（:137）→ 用户改动存活
-- 升级 ERPNext 且官方改过该 JSON：hash 变化 → `import_doc` 走 `delete_doc` + 重新插入（:273）→ **用户改动无声消失**
+**是否重新导入，由一个闸门决定 —— 而对 `Workspace` 而言，那个闸门是 `modified` 时间戳，不是文件 md5**（`import_file.py:130-144`，v15.118.0；v16.31.0 `:128-141` 结构逐行相同）：
 
-且 Workspace **没有 Custom Field / Property Setter 那样的定制隔离层**——它是整条记录被覆盖，不是字段级合并。
+```python
+if not force and db_modified_timestamp:
+    stored_hash = None
+    if doc["doctype"] == "DocType":                     # ← 只有 DocType 才去取 hash
+        stored_hash = frappe.db.get_value(doc["doctype"], doc["name"], "migration_hash")
+    if stored_hash and stored_hash == calculated_hash:  # ← Workspace 永不进这支
+        continue
+    if is_db_timestamp_latest and doc["doctype"] != "DocType":   # ← Workspace 真正的闸门
+        continue
+```
+
+`migration_hash` 是 **`DocType` 的字段**，`Workspace` 没有（实测：`frappe.db.has_column("Workspace","migration_hash")` → `False`，meta 里也没有该字段）。⇒ md5 **算了但从不参与 Workspace 的判断**。
+
+> ⚠️ **本节 2026-08-20 版本曾写「按文件 md5 决定是否导入」，那是错的**（读到了 `:137` 那一行，但没看到它上面三行把 hash 限死在 `DocType`）。2026-08-26 Spike 11 端到端实测订正为上文。**`delete_doc` + 重新插入那一半是对的**（v15 `:274` / v16 `:273`）。
+
+于是：
+
+- 日常 `bench migrate`（官方没动过该 JSON）：DB 的 `modified` ≥ JSON 的 → 跳过 → 用户改动存活
+- 升级 ERPNext 且官方改过该 JSON（**发版会把 `modified` 推新**）：`is_db_timestamp_latest` 为假 → `import_doc` 走 `delete_old_doc` + `doc.insert()` → **用户改动无声消失**
+
+且 Workspace **没有 Custom Field / Property Setter 那样的定制隔离层**——它是整条记录被覆盖，不是字段级合并。上游自己的代码就是证据：
+
+```python
+ignore_values  = { ..., "Workspace": ["is_hidden"] }   # import_file.py:30-37
+ignore_doctypes = [""]                                 # :39 —— 空的，没有子表被保留
+```
+
+**恰好一个字段（`is_hidden`）被手挑豁免**，其余字段与全部子表（shortcuts / links / charts / number_cards）一律重建。
 
 | | Custom Field | Workspace |
 |---|---|---|
 | 缺陷 | 撤不回来 | 留不住 |
 | 后果 | 定制只增不减 | 定制寿命 = 一次升级 |
 
-**证据强度**：代码路径已确认，**端到端未实测**——待 Spike 11 证实或证伪，不得据此下终局结论。
+#### 证据强度：**端到端已实测（2026-08-26，Spike 11）**
 
-→ 若成立，这是视图 DSL 的又一条独立论据：**DSL 存在 AgenERP 自己的表里，不参与 Frappe 的 fixture 覆盖循环。** 反之，视图 Agent 若直接改标准 Workspace，产物只有一次升级的寿命。
+站点 `frontend`（frappe 15.118.0 / erpnext 15.119.3），标的 `Workspace/Selling`。用户改动 = ①追加一条 shortcut `AGENERP-SPIKE11-CANARY` ②改 `icon` ③置 `is_hidden=1`。三臂：
+
+| 臂 | 手法 | 结果 |
+|---|---|---|
+| **C 控制组** | 不动 JSON，`bench migrate` | ①②③ **全部存活** |
+| **A** | 改 JSON 使 **md5 变**（`b87df58…` → `c06f4b8e…`）、**`modified` 不动** | ①②③ **全部存活**；JSON 里新写的 `icon` **没有落库** ⇒ 导入被整个跳过 ⇒ **md5 对 Workspace 惰性，实锤** |
+| **B** | 改 JSON **且把 `modified` 推到晚于 DB 的** | `icon` 变成 JSON 的值、shortcuts **7 → 6**、canary 在 `tabWorkspace Shortcut` 里 **物理删行（count = 0）**；**只有 `is_hidden` 幸存** |
+
+**「静默」不是修辞**：Arm B（抹掉全部用户改动的那一次）与 Arm C（什么都没发生的那一次）的 `bench migrate` 输出，去掉进度条后 **`diff` 退 0，逐字节相同**；全程 `grep -i "selling|warn|overwrit|discard|delet"` **零命中**。
+
+完整预测/实测逐条对照见 [`docs/plans/p2-views/2026-08-26-P2.0-entry-gate-spike11-workspace-upgrade-overwrite.md`](../plans/p2-views/2026-08-26-P2.0-entry-gate-spike11-workspace-upgrade-overwrite.md)（六条预测在跑之前落盘并提交，`f7cc4bd`）。
+
+⇒ **假设成立。** 这是视图 DSL 的又一条独立论据：**DSL 存在 AgenERP 自己的表里，不参与 Frappe 的 fixture 覆盖循环。** 视图 Agent 若直接改标准 Workspace，产物只有一次升级的寿命。
+
+⚠️ **本节只判呈现层载体。** 行为层（按钮点了干什么）能不能落 Workspace，`docs/design/view-dsl-and-eval.md` §10.4 已单独实测「不能」，两者不得混判。
+
+⚠️ **P2.0 关口的过/不过由人判**（WBS §5 该项 `状态源 = 人`），本节只是证据。
 
 ---
 
