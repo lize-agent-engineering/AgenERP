@@ -1,0 +1,546 @@
+{
+  "n_draft": 40,
+  "n_valid": 40,
+  "n_with_problems": 0,
+  "problems": [],
+  "items": [
+    {
+      "q": "这张销售订单是什么时候下的？",
+      "expected": [
+        "Sales Order.transaction_date"
+      ],
+      "domain": "selling",
+      "expected_doctypes": [
+        "Sales Order"
+      ],
+      "expected_doctype_rowcounts": {
+        "Sales Order": 1
+      }
+    },
+    {
+      "q": "这张销售订单的客户是谁？",
+      "expected": [
+        "Sales Order.customer",
+        "Sales Order.customer_name"
+      ],
+      "domain": "selling",
+      "expected_doctypes": [
+        "Sales Order"
+      ],
+      "expected_doctype_rowcounts": {
+        "Sales Order": 1
+      }
+    },
+    {
+      "q": "销售订单承诺的交货日期在哪个字段？",
+      "expected": [
+        "Sales Order.delivery_date",
+        "Sales Order Item.delivery_date"
+      ],
+      "domain": "selling",
+      "expected_doctypes": [
+        "Sales Order",
+        "Sales Order Item"
+      ],
+      "expected_doctype_rowcounts": {
+        "Sales Order": 1,
+        "Sales Order Item": 1
+      }
+    },
+    {
+      "q": "销售订单这一行订了多少数量？",
+      "expected": [
+        "Sales Order Item.qty",
+        "Sales Order Item.stock_qty"
+      ],
+      "domain": "selling",
+      "expected_doctypes": [
+        "Sales Order Item"
+      ],
+      "expected_doctype_rowcounts": {
+        "Sales Order Item": 1
+      }
+    },
+    {
+      "q": "销售订单里这一行已经发了多少了？",
+      "expected": [
+        "Sales Order Item.delivered_qty"
+      ],
+      "domain": "selling",
+      "expected_doctypes": [
+        "Sales Order Item"
+      ],
+      "expected_doctype_rowcounts": {
+        "Sales Order Item": 1
+      }
+    },
+    {
+      "q": "销售订单的含税总额是多少？",
+      "expected": [
+        "Sales Order.grand_total",
+        "Sales Order.base_grand_total"
+      ],
+      "domain": "selling",
+      "expected_doctypes": [
+        "Sales Order"
+      ],
+      "expected_doctype_rowcounts": {
+        "Sales Order": 1
+      }
+    },
+    {
+      "q": "客户的默认结算货币是什么？",
+      "expected": [
+        "Customer.default_currency"
+      ],
+      "domain": "selling",
+      "expected_doctypes": [
+        "Customer"
+      ],
+      "expected_doctype_rowcounts": {
+        "Customer": 1
+      }
+    },
+    {
+      "q": "报价单的有效期到什么时候？",
+      "expected": [
+        "Quotation.valid_till"
+      ],
+      "domain": "selling",
+      "expected_doctypes": [
+        "Quotation"
+      ],
+      "expected_doctype_rowcounts": {
+        "Quotation": 0
+      }
+    },
+    {
+      "q": "采购订单是向哪个供应商下的？",
+      "expected": [
+        "Purchase Order.supplier",
+        "Purchase Order.supplier_name"
+      ],
+      "domain": "buying",
+      "expected_doctypes": [
+        "Purchase Order"
+      ],
+      "expected_doctype_rowcounts": {
+        "Purchase Order": 1
+      }
+    },
+    {
+      "q": "采购订单要求的到货日期在哪？",
+      "expected": [
+        "Purchase Order.schedule_date",
+        "Purchase Order Item.schedule_date"
+      ],
+      "domain": "buying",
+      "expected_doctypes": [
+        "Purchase Order",
+        "Purchase Order Item"
+      ],
+      "expected_doctype_rowcounts": {
+        "Purchase Order": 1,
+        "Purchase Order Item": 1
+      }
+    },
+    {
+      "q": "采购订单这一行已经收了多少货？",
+      "expected": [
+        "Purchase Order Item.received_qty"
+      ],
+      "domain": "buying",
+      "expected_doctypes": [
+        "Purchase Order Item"
+      ],
+      "expected_doctype_rowcounts": {
+        "Purchase Order Item": 1
+      }
+    },
+    {
+      "q": "采购收货单上这一行的验收仓库是哪个？",
+      "expected": [
+        "Purchase Receipt Item.warehouse"
+      ],
+      "domain": "buying",
+      "expected_doctypes": [
+        "Purchase Receipt Item"
+      ],
+      "expected_doctype_rowcounts": {
+        "Purchase Receipt Item": 0
+      }
+    },
+    {
+      "q": "供应商的付款条件模板记在哪个字段？",
+      "expected": [
+        "Supplier.payment_terms"
+      ],
+      "domain": "buying",
+      "expected_doctypes": [
+        "Supplier"
+      ],
+      "expected_doctype_rowcounts": {
+        "Supplier": 1
+      }
+    },
+    {
+      "q": "某个仓库里这个物料的库存数量是多少？",
+      "expected": [
+        "Bin.actual_qty"
+      ],
+      "domain": "stock",
+      "expected_doctypes": [
+        "Bin"
+      ],
+      "expected_doctype_rowcounts": {
+        "Bin": 4
+      }
+    },
+    {
+      "q": "某个仓库里这个物料的库存价值是多少？",
+      "expected": [
+        "Bin.stock_value"
+      ],
+      "domain": "stock",
+      "expected_doctypes": [
+        "Bin"
+      ],
+      "expected_doctype_rowcounts": {
+        "Bin": 4
+      }
+    },
+    {
+      "q": "这个物料的默认计量单位是什么？",
+      "expected": [
+        "Item.stock_uom"
+      ],
+      "domain": "stock",
+      "expected_doctypes": [
+        "Item"
+      ],
+      "expected_doctype_rowcounts": {
+        "Item": 3
+      }
+    },
+    {
+      "q": "物料的估价方法是先进先出还是移动加权？",
+      "expected": [
+        "Item.valuation_method"
+      ],
+      "domain": "stock",
+      "expected_doctypes": [
+        "Item"
+      ],
+      "expected_doctype_rowcounts": {
+        "Item": 3
+      }
+    },
+    {
+      "q": "库存流水这一笔之后的结存数量是多少？",
+      "expected": [
+        "Stock Ledger Entry.qty_after_transaction"
+      ],
+      "domain": "stock",
+      "expected_doctypes": [
+        "Stock Ledger Entry"
+      ],
+      "expected_doctype_rowcounts": {
+        "Stock Ledger Entry": 10
+      }
+    },
+    {
+      "q": "库存流水里这一笔的单位成本是多少？",
+      "expected": [
+        "Stock Ledger Entry.valuation_rate"
+      ],
+      "domain": "stock",
+      "expected_doctypes": [
+        "Stock Ledger Entry"
+      ],
+      "expected_doctype_rowcounts": {
+        "Stock Ledger Entry": 10
+      }
+    },
+    {
+      "q": "库存调拨单这一行是从哪个仓库出的？",
+      "expected": [
+        "Stock Entry Detail.s_warehouse"
+      ],
+      "domain": "stock",
+      "expected_doctypes": [
+        "Stock Entry Detail"
+      ],
+      "expected_doctype_rowcounts": {
+        "Stock Entry Detail": 5
+      }
+    },
+    {
+      "q": "库存调拨单这一行入到哪个仓库？",
+      "expected": [
+        "Stock Entry Detail.t_warehouse"
+      ],
+      "domain": "stock",
+      "expected_doctypes": [
+        "Stock Entry Detail"
+      ],
+      "expected_doctype_rowcounts": {
+        "Stock Entry Detail": 5
+      }
+    },
+    {
+      "q": "发货单上这一行实际发了多少数量？",
+      "expected": [
+        "Delivery Note Item.qty",
+        "Delivery Note Item.stock_qty"
+      ],
+      "domain": "stock",
+      "expected_doctypes": [
+        "Delivery Note Item"
+      ],
+      "expected_doctype_rowcounts": {
+        "Delivery Note Item": 1
+      }
+    },
+    {
+      "q": "这个仓库属于哪家公司？",
+      "expected": [
+        "Warehouse.company"
+      ],
+      "domain": "stock",
+      "expected_doctypes": [
+        "Warehouse"
+      ],
+      "expected_doctype_rowcounts": {
+        "Warehouse": 9
+      }
+    },
+    {
+      "q": "物料是否走批次管理，看哪个字段？",
+      "expected": [
+        "Item.has_batch_no"
+      ],
+      "domain": "stock",
+      "expected_doctypes": [
+        "Item"
+      ],
+      "expected_doctype_rowcounts": {
+        "Item": 3
+      }
+    },
+    {
+      "q": "这张 BOM 的原材料成本合计是多少？",
+      "expected": [
+        "BOM.raw_material_cost",
+        "BOM.base_raw_material_cost"
+      ],
+      "domain": "manufacturing",
+      "expected_doctypes": [
+        "BOM"
+      ],
+      "expected_doctype_rowcounts": {
+        "BOM": 1
+      }
+    },
+    {
+      "q": "BOM 里这道工序每小时的费率是多少？",
+      "expected": [
+        "BOM Operation.hour_rate"
+      ],
+      "domain": "manufacturing",
+      "expected_doctypes": [
+        "BOM Operation"
+      ],
+      "expected_doctype_rowcounts": {
+        "BOM Operation": 3
+      }
+    },
+    {
+      "q": "工单计划要生产多少件？",
+      "expected": [
+        "Work Order.qty"
+      ],
+      "domain": "manufacturing",
+      "expected_doctypes": [
+        "Work Order"
+      ],
+      "expected_doctype_rowcounts": {
+        "Work Order": 1
+      }
+    },
+    {
+      "q": "工单已经完工入库了多少件？",
+      "expected": [
+        "Work Order.produced_qty"
+      ],
+      "domain": "manufacturing",
+      "expected_doctypes": [
+        "Work Order"
+      ],
+      "expected_doctype_rowcounts": {
+        "Work Order": 1
+      }
+    },
+    {
+      "q": "工人报工完成了多少数量？",
+      "expected": [
+        "Job Card.total_completed_qty"
+      ],
+      "domain": "manufacturing",
+      "expected_doctypes": [
+        "Job Card"
+      ],
+      "expected_doctype_rowcounts": {
+        "Job Card": 0
+      }
+    },
+    {
+      "q": "这道工序在哪个工作站上做？",
+      "expected": [
+        "BOM Operation.workstation",
+        "Work Order Operation.workstation"
+      ],
+      "domain": "manufacturing",
+      "expected_doctypes": [
+        "BOM Operation",
+        "Work Order Operation"
+      ],
+      "expected_doctype_rowcounts": {
+        "BOM Operation": 3,
+        "Work Order Operation": 0
+      }
+    },
+    {
+      "q": "这张销售发票还有多少钱没收回来？",
+      "expected": [
+        "Sales Invoice.outstanding_amount"
+      ],
+      "domain": "accounts",
+      "expected_doctypes": [
+        "Sales Invoice"
+      ],
+      "expected_doctype_rowcounts": {
+        "Sales Invoice": 1
+      }
+    },
+    {
+      "q": "总账分录的借方金额字段叫什么？",
+      "expected": [
+        "GL Entry.debit",
+        "GL Entry.debit_in_account_currency"
+      ],
+      "domain": "accounts",
+      "expected_doctypes": [
+        "GL Entry"
+      ],
+      "expected_doctype_rowcounts": {
+        "GL Entry": 18
+      }
+    },
+    {
+      "q": "总账分录记在哪个科目上？",
+      "expected": [
+        "GL Entry.account"
+      ],
+      "domain": "accounts",
+      "expected_doctypes": [
+        "GL Entry"
+      ],
+      "expected_doctype_rowcounts": {
+        "GL Entry": 18
+      }
+    },
+    {
+      "q": "会计科目的类型（资产/负债/收入）在哪个字段？",
+      "expected": [
+        "Account.root_type",
+        "Account.account_type"
+      ],
+      "domain": "accounts",
+      "expected_doctypes": [
+        "Account"
+      ],
+      "expected_doctype_rowcounts": {
+        "Account": 93
+      }
+    },
+    {
+      "q": "付款单实际付了多少钱？",
+      "expected": [
+        "Payment Entry.paid_amount",
+        "Payment Entry.base_paid_amount"
+      ],
+      "domain": "accounts",
+      "expected_doctypes": [
+        "Payment Entry"
+      ],
+      "expected_doctype_rowcounts": {
+        "Payment Entry": 0
+      }
+    },
+    {
+      "q": "采购发票的应付余额在哪个字段？",
+      "expected": [
+        "Purchase Invoice.outstanding_amount"
+      ],
+      "domain": "accounts",
+      "expected_doctypes": [
+        "Purchase Invoice"
+      ],
+      "expected_doctype_rowcounts": {
+        "Purchase Invoice": 1
+      }
+    },
+    {
+      "q": "分期付款计划里每一期的到期日是哪个字段？",
+      "expected": [
+        "Payment Schedule.due_date"
+      ],
+      "domain": "accounts",
+      "expected_doctypes": [
+        "Payment Schedule"
+      ],
+      "expected_doctype_rowcounts": {
+        "Payment Schedule": 4
+      }
+    },
+    {
+      "q": "成本中心属于哪家公司？",
+      "expected": [
+        "Cost Center.company"
+      ],
+      "domain": "accounts",
+      "expected_doctypes": [
+        "Cost Center"
+      ],
+      "expected_doctype_rowcounts": {
+        "Cost Center": 2
+      }
+    },
+    {
+      "q": "质检单的检验结论是合格还是不合格？",
+      "expected": [
+        "Quality Inspection.status"
+      ],
+      "domain": "quality",
+      "expected_doctypes": [
+        "Quality Inspection"
+      ],
+      "expected_doctype_rowcounts": {
+        "Quality Inspection": 0
+      }
+    },
+    {
+      "q": "外协订单这一行的加工费单价是多少？",
+      "expected": [
+        "Subcontracting Order Item.rate"
+      ],
+      "domain": "subcontracting",
+      "expected_doctypes": [
+        "Subcontracting Order Item"
+      ],
+      "expected_doctype_rowcounts": {
+        "Subcontracting Order Item": 1
+      }
+    }
+  ]
+}
