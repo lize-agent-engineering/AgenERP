@@ -3,7 +3,6 @@ _tmp/
 tmp/
 .pytest_cache/
 __pycache__/
-_tmp/
 .pytest-gates.xml
 .mission-halt.json
 _smoke/
@@ -11,3 +10,4 @@ _smoke/
 .codex/
 .backups-*/
 .coverage
+.idea/
