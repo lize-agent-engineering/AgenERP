@@ -465,6 +465,14 @@
 > 格式：`[状态] 日期 · 触发条件 · WBS行ID · 最后一条失败命令原文 + 退出码 · sha · 处置`
 > 状态只有 `open` / `resolved`。**resolved 的行保留不删。**
 
+- [open] 2026-08-26T10:03Z · **P1.9 复盘的「判据抽查」这一项交 loop —— 人侧不抽自己写的判据（`04-RUNBOOK.md` §7.2.1）**
+  · **为什么交出去**：人 2026-08-26T10:03Z 把 P1.9 复盘委托给人侧代理执行。但 §7.2.1 逐字「**抽查者不得是这些判据的作者**」，而抽样池里**有多条正是人侧代理本人写的**（`test_agent_seam_stays_swappable.py` / `test_assertions_have_no_escape_hatch.py` / `test_configured_model_is_the_one_used.py` 等）。**自己抽自己，正是 P1 那次误放行的成因结构。**
+  · **抽样方式写死、可复算、不许事后挑**：池 = `git log --since=2026-08-24 --name-only -- tests/` 去重后仍存在的文件（**实测 40 条**）；排序键 = `sha256("P1.9-spotcheck-2026-08-26" + 路径)`，取前 3。**任何人复算都能得到同一组。**
+  · **抽中的三条**：`tests/gates/test_insight_rule_ablation.py` · `tests/unit/test_answer_judge.py` · `tests/unit/test_explain_cost_ledger.py`
+  · **要 loop 逐条回答的那一个问题（§7.2.1 逐字）**：**「它测的，是不是它名字说的那件事？」** —— 不是「它绿不绿」。对每条给出：① 判据名字承诺了什么 ② 断言体实际验了什么 ③ 两者有没有缺口，缺口具体在哪一行。
+  · **参照实例（P1 那次真误放行长什么样）**：`test_the_user_in_the_answer_is_the_person_the_real_sid_resolves_to` 的名字承诺「答案里的人是真 sid 解析出的那个人」，而断言体里 `assert payload["answer"] or payload["accepted"] is False` 让**空答案照过** ⇒ 名副其实的那一半（`payload["user"] == expected`）真验了，**「答案」那一半是空的**。
+  · **抽到一条名不副实的即为一次误放行**，按 §7.2 原规则处置。**结论落 loop 自己的提交**，人侧代理不代写、不代判。
+
 - [open] 2026-08-26T09:53Z · **人拆出 `P1.1-fix`（工作项 `3b`）—— `route()` 静默换模型，交 loop 执行它已起草的那个 plan**
   · **人裁定：做。** loop 已起草 `docs/plans/p1-insight/2026-08-26-1728-1-routing-honors-configured-model.md`（`Plan Status: draft`），本条给它一个能落的工作项。
   · **为什么拆行而不是回退 P1.1**：P1.1 的判据仍然成立、已 `done`，本条是**交付后发现的活缺陷**。同 `P1.8a-fix` 先例 —— **不回退状态，给独立 plan 预算**。⚠️ 人侧 2026-08-25 回退 P1.8a 那次的教训还在：**回退会把下游依赖搞成倒挂**。
