@@ -789,7 +789,7 @@ Exit Criteria:
 
 ### Phase 2 — 侧边栏本体 + 离线判据（不需要浏览器就能判的那一半）
 
-Status: planned
+Status: completed
 Targets: `agenerp/serve/assets/desk.js` · `tests/unit/test_desk_sidebar_static.py`（新建）
 Skill: `none`
 
@@ -797,7 +797,7 @@ Skill: `none`
   ⚠️ **第 9 轮独立评审改准：旧文写「5/6 项是 `Add`」，实数是 3/6** —— 远不足 80% 阈值，不作 Phase 级统一声明。
 - Prereqs: Phase 1 四条裁定全部落定
 
-- [ ] **`Add`** `desk.js` 扩成侧边栏本体，**六件事**：① 注册 `D-d-4` 裁定的快捷键（唤起 / 关闭 / `Esc` / 焦点归还）；
+- [x] **`Add`** `desk.js` 扩成侧边栏本体，**六件事**：① 注册 `D-d-4` 裁定的快捷键（唤起 / 关闭 / `Esc` / 焦点归还）；
       ② 按 `H4` 裁定的取法拿当前单据上下文，**取不到就不带**（§1.3 的「同时给或同时不给」）；
       ③ 同源 `fetch("/agenerp/explain", {method:"POST", credentials:"same-origin", …})`；
       ④ 请求体**只放** `question` / `task_class` / `doctype` / `name`（`H9`）；
@@ -823,7 +823,7 @@ Skill: `none`
       **整份资产必须仍是一个以 `)();` 逐字收尾的 IIFE。**
       `version` 往上走一格、`plan` 改成本 plan 号。
       - Skill: `none`
-- [ ] **`Add`** 判据 `tests/unit/test_desk_sidebar_static.py` —— **离线、零浏览器**，守**五**件事（第 5 轮独立评审把「响应体不外泄」补成第 ⑤ 件）：
+- [x] **`Add`** 判据 `tests/unit/test_desk_sidebar_static.py` —— **离线、零浏览器**，守**五**件事（第 5 轮独立评审把「响应体不外泄」补成第 ⑤ 件）：
       ① 资产里出现的请求路径与 `app.py` 的 `EXPLAIN_PATH` **各读一次再比**（**不写第三个字面量**，沿用 §7.22 口径）；
       ② 资产里出现的请求体键名集合 ⊆ `app.py` 的 `ALLOWED_BODY_KEYS`，**且与五个越权键的交集为空**
       （两个集合都从 `app.py` 读，不在判据里抄）；
@@ -862,19 +862,19 @@ Skill: `none`
       **分工写死**：**「兜底态真的接得住」由 `H8b`（浏览器里真喂 `418` / 真 `abort`）与 `M9` 承担，
       离线这一份不承担、也不假装承担。**
       - Skill: `none`
-- [ ] **`Proof`** 既有 22 条（`test_desk_asset_route.py` / `test_desk_injection_static.py`）**一条不许改松**，
+- [x] **`Proof`** 既有 22 条（`test_desk_asset_route.py` / `test_desk_injection_static.py`）**一条不许改松**，
       跑一遍确认仍全绿 —— 尤其那条「服务发出的体与仓里那份**逐字节相同**」（改了 `desk.js` 之后它必须仍绿）。
       - Skill: `none`
-- [ ] **`Proof`** `ruff check` 跑一遍**现有七个目录**（`agenerp tests/unit tests/contracts tests/tools tests/routing
+- [x] **`Proof`** `ruff check` 跑一遍**现有七个目录**（`agenerp tests/unit tests/contracts tests/tools tests/routing
       tests/context tests/experiments`）仍 exit 0。⚠️ **本 Phase 不把 `tests/ui` 加进参数** ——
       那个目录要到 Phase 3 才建，此时传进去 ruff 会因路径不存在直接报错
       （第 3 轮独立评审补：前两版把它写在 Phase 2，会造一条假红）。
       `tests/ui` 从 **Phase 3 起**进参数，见 §10 verification 那条**九**命令清单（⚠️ 第 6 轮由「七」改准成「八」，第 8 轮把 §1.4b 那条拆成 (A)(B) 后成「九」）。
       ⚠️ `ruff` 的 `exclude` 只排除 `tests/gates`，**`tests/ui` 建起来之后会被真扫**，别指望它被跳过。
       - Skill: `none`
-- [ ] **`Proof`** `python3 -m pytest tests/unit -q` 只增不减；`check_expected_red.py` 仍 exit 0。
+- [x] **`Proof`** `python3 -m pytest tests/unit -q` 只增不减；`check_expected_red.py` 仍 exit 0。
       - Skill: `none`
-- [ ] **`Add`** 落点节 §7.23 补「渲染状态机」那一格：**九个可分辨的已枚举码 + 200 + 一条兜底态**的映射表
+- [x] **`Add`** 落点节 §7.23 补「渲染状态机」那一格：**九个可分辨的已枚举码 + 200 + 一条兜底态**的映射表
       （并写明 §1.3 那条计数口径：十种来源 → 九个码，两个 `502` 合并且**合并是正确的**），
       与 §1.3 的服务端表**逐条对齐**。
       ⚠️ **这张表必须写成「开放枚举 + 兜底」，不许写成封闭枚举** —— 它是要落进 owner doc 的**持久制品**，
@@ -885,12 +885,12 @@ Skill: `none`
 
 Exit Criteria:
 
-- [ ] ⌘K（或 `D-d-4` 裁定的键，冲突时写死为 `Cmd/Ctrl+Shift+K`）唤起 / 关闭 / `Esc` / 焦点归还四条行为**都在代码里**，不是只有函数签名
-- [ ] 失败模式说清：**九个可分辨的已枚举码各自的可见态互不相同、非空、不 spinner**（与 `200` 一起共 10 条两两不等），**且兜底态接得住未枚举的码**；成功模式：200 时渲染 `answer` 与 `cost`
-- [ ] ⚠️ **响应体不外泄**：面板任何一态都不把响应体原样倾泻进 DOM（渲染只取 §1.3 四个已知键 + 状态码本身），判据⑤ 的三格源码守卫全绿 —— **⑤a** `innerHTML` / `outerHTML` / `insertAdjacentHTML` 零命中 · **⑤b** `document.cookie` 零命中 · **⑤c** `JSON.stringify(` **命中 ≤ 1 次**（⚠️ 第 8 轮独立评审改准：**不是零命中** —— 请求体必须是 JSON，见 `app.py:145`）（§1.8b / R9）
-- [ ] 新判据 `tests/unit/test_desk_sidebar_static.py` 全绿；既有 22 条**零改动**（`git diff` 证）
-- [ ] `docs/architecture/module-boundaries.md` §7.23 的状态机表落地
-- [ ] `docs/logs/2026/<执行当天>.md` 追加 Phase 2 条目 —— ⚠️ **第 9 轮改准：旧文写死 `08-25.md`，而起草日已过、今天是 `2026-08-26`** ⇒ **按执行当天的日期建/追加**（指南 When Executing 第 9 条：日志与 plan 进度同步；跨天的 Phase 各自入自己那天的文件，不许回写到起草日）
+- [x] ⌘K（或 `D-d-4` 裁定的键，冲突时写死为 `Cmd/Ctrl+Shift+K`）唤起 / 关闭 / `Esc` / 焦点归还四条行为**都在代码里**，不是只有函数签名
+- [x] 失败模式说清：**九个可分辨的已枚举码各自的可见态互不相同、非空、不 spinner**（与 `200` 一起共 10 条两两不等），**且兜底态接得住未枚举的码**；成功模式：200 时渲染 `answer` 与 `cost`
+- [x] ⚠️ **响应体不外泄**：面板任何一态都不把响应体原样倾泻进 DOM（渲染只取 §1.3 四个已知键 + 状态码本身），判据⑤ 的三格源码守卫全绿 —— **⑤a** `innerHTML` / `outerHTML` / `insertAdjacentHTML` 零命中 · **⑤b** `document.cookie` 零命中 · **⑤c** `JSON.stringify(` **命中 ≤ 1 次**（⚠️ 第 8 轮独立评审改准：**不是零命中** —— 请求体必须是 JSON，见 `app.py:145`）（§1.8b / R9）
+- [x] 新判据 `tests/unit/test_desk_sidebar_static.py` 全绿；既有 22 条**零改动**（`git diff` 证）
+- [x] `docs/architecture/module-boundaries.md` §7.23 的状态机表落地
+- [x] `docs/logs/2026/<执行当天>.md` 追加 Phase 2 条目 —— ⚠️ **第 9 轮改准：旧文写死 `08-25.md`，而起草日已过、今天是 `2026-08-26`** ⇒ **按执行当天的日期建/追加**（指南 When Executing 第 9 条：日志与 plan 进度同步；跨天的 Phase 各自入自己那天的文件，不许回写到起草日）
 
 ### Phase 3 — `tests/ui/test_sidebar.py` 活体门禁 + 变异自查 + 交接
 
