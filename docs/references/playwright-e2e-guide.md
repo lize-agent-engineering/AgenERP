@@ -1,3 +1,12 @@
+> ⚠️ **本文件是上游模板残留，它本身不构成本项目的技术选型批准。**
+> 2026-08-26 实测：`docs/masterplan` 与 `docs/backlog` 对 playwright/selenium **零命中**，
+> 34 笔带 `Approved-By` trailer 的提交里涉及浏览器驱动的是 **0**。
+> 下面那句「Playwright is the fixed e2e testing framework」**说得再确定也不是决策**。
+>
+> **真正的批准在 `docs/masterplan/DECISIONS.md` 的 D-25**（2026-08-26，人批准，形态为
+> `[project.optional-dependencies]` 的 `ui` extra，不进默认依赖）。
+> 本文的技术内容可参考，**权威性归 D-25**。
+
 # Playwright E2E Test Diagnostic Guide
 
 Technology choice: **Playwright** is the fixed e2e testing framework. Do not introduce alternatives.

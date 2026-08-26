@@ -422,6 +422,12 @@
 > 格式：`[状态] 日期 · 触发条件 · WBS行ID · 最后一条失败命令原文 + 退出码 · sha · 处置`
 > 状态只有 `open` / `resolved`。**resolved 的行保留不删。**
 
+- [resolved] 2026-08-26T01:47Z · **答完 P1.8b plan `§0.5` 的最后一条 —— ① 浏览器驱动，人已批准。该 plan 的 Review Hold 两条前置全部解除。**
+  · **① 裁定：批准，形态为 `[project.optional-dependencies]` 的 `ui = ["playwright>=1.47"]`**（人 2026-08-26T01:47Z 逐字「批准，加 ui extra」）。已落 `pyproject.toml`，**`[project].dependencies` 一个字未动**（实测仍只有 `certifi>=2024.2.2` 一条）。决策条 `DECISIONS.md` **D-25**。
+  · **② 早先已答**（模板残留不算数）。⇒ **`§0.5` 两条前置均已解除，plan 可转 `active`。**
+  · **⚠️ 给 loop 的三条硬约束，落地时必须照做**：① **装包不等于能跑** —— `pip install agenerp[ui]` 之后还要 `python -m playwright install chromium`，否则运行期报 `Executable doesn't exist`（已写进 `pyproject.toml` 注释）② **UI 门禁跑不起来必须红，不许 skip** —— 沿用 P1.8a 门禁那条收严，理由逐字「一条会 skip 的门禁等于一条不存在的门禁」③ **CI 装 chromium 会显著拉长 `gates-l2-live`** —— 是否单独 job 或加缓存，由 loop 在 plan 里给方案并实测，**不要默认塞进现有 job 就完事**
+  · **顺带**：`docs/references/playwright-e2e-guide.md` 已加抬头，写明它是模板残留、**权威性归 D-25**，免得下一轮又被当成批准来源。
+
 - [open] 2026-08-26T01:45Z · **停机机制缺陷：`auth-expired` 解除后不会自动复跑，白停了 12 小时**
   · **事实**：`.mission-halt.json` 记 `haltedAt 2026-08-25T13:16:07Z`、`signature` 逐字「`401 OAuth access token has expired`」。**当时确实过期，停机判得对。** 但此后令牌被刷新，而**停机标记没人删，循环就一直不跑** —— 从 13:16Z 到 2026-08-26T01:45Z，**12 小时零产出**，三个工作项（10 / 10b / 11）一个没动。
   · **为什么人侧昨晚没能自救**：remedy 逐字「在交互式终端执行 `claude login`」，人侧代理做不了交互式登录，于是判定「只能等人」。**这个判断是错的** —— 真正该做的是**先验证条件是否仍成立**，而不是照抄 remedy。

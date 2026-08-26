@@ -370,6 +370,18 @@
 | 为什么记这条 | ① 它是**跨会话有效的授权**，不记就会在下次上下文丢失后退回逐次请示 ② 更重要的是记下那条边界 —— **授权容易被读成「卡住就加预算」，那会把一个方法问题伪装成资源问题**，越加越远 |
 | loop 侧口径不变 | **loop 仍然不得自行加行。** 它判「无 plan 可派」并停下来是**正确行为**，本条不改这一点 —— 改的只是人侧响应的速度 |
 
+### D-25 · 批准引入浏览器驱动，但**只作可选 extra**
+
+| | |
+|---|---|
+| 裁定 | 人 2026-08-26：**「批准，加 ui extra」**。形态：`[project.optional-dependencies]` 的 `ui = ["playwright>=1.47"]`，**`[project].dependencies` 一个字不加** |
+| 为什么需要 | P1.8b 的验收逐字是 `pytest -m live tests/ui/test_sidebar.py`。「**按下 ⌘K 之后发生了什么**」没有真浏览器**验不了**。而本项目最硬的一条口径是「**一条会 skip 的门禁等于一条不存在的门禁**」—— **验不了的门禁同理** |
+| 为什么是 extra 而不是默认依赖 | `system-baseline.md` §3.3.3 的硬约束逐字：「内置 runtime 必须**纯 Python、零外部依赖**，保证 `git clone && docker compose up` 可跑」。`pip install agenerp` 装到的仍然只有 `certifi` 一条 —— **默认安装面一点没变** |
+| 项目内先例 | **D-22 对 harness 的处置就是同一形状**：「Harness adapter 为可选依赖（`pip install agenerp[harness]`），不进默认安装」。同一理由、同一形状，不是新发明 |
+| ⚠️ 装包不等于能跑 | `pip install agenerp[ui]` 之后**还要装浏览器二进制**：`python -m playwright install chromium`。只 pip 不装二进制，测试会在**运行期**报 `Executable doesn't exist` —— 这一条已写进 `pyproject.toml` 该段注释，免得下一个人踩 |
+| 与 `docs/references/playwright-e2e-guide.md` 的关系 | 那份文档**本身不是批准**（2026-08-26 已裁定它是上游模板残留：masterplan/backlog 零命中、34 笔 `Approved-By` 提交里涉及浏览器驱动的是 0）。**批准来自本条 D-25，不来自它。** 它的技术内容可以参考，但**权威性归本条** |
+| 未决（落地时再定） | ① CI 里要不要装 chromium —— 装它会显著拉长 `gates-l2-live` 的时长，可能需要单独 job 或缓存 ② UI 门禁跑不起来时的失败形态：**必须红，不许 skip**（沿用 P1.8a 门禁那条收严） |
+
 ---
 
 ## 2. 翻案条款登记簿

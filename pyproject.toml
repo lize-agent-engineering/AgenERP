@@ -15,6 +15,20 @@ dependencies = [
     "certifi>=2024.2.2",
 ]
 
+# 可选依赖。**装 agenerp 默认一个都不装** —— `pip install agenerp` 得到的仍是
+# 上面那一条 certifi。这是 `system-baseline.md` §3.3.3 那条硬约束的兑现：
+# 「内置 runtime 必须纯 Python、零外部依赖，保证 `git clone && docker compose up` 可跑」。
+[project.optional-dependencies]
+# ui —— 浏览器驱动，只给 UI 门禁用（人 2026-08-26 批准，见 DECISIONS.md D-25）。
+# 为什么需要它：P1.8b 的验收逐字是 `pytest -m live tests/ui/test_sidebar.py`，
+# 而「按下 ⌘K 之后发生了什么」**没有真浏览器就验不了**。本项目最硬的一条口径是
+# 「一条会 skip 的门禁等于一条不存在的门禁」—— 验不了的门禁同理。
+# ⚠️ 装了包还要装浏览器二进制：`python -m playwright install chromium`。
+#    只 pip install 不装二进制，测试会在运行期报 Executable doesn't exist。
+ui = [
+    "playwright>=1.47",
+]
+
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["agenerp*"]
