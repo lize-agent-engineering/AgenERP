@@ -64,7 +64,12 @@ Link 字段收敛）· 术语层反向索引（P2.7 的产物）· 行业包约�
   证据：[`docs/plans/p2-views/2026-08-26-P2.0-…-workspace-upgrade-overwrite.md`](../plans/p2-views/2026-08-26-P2.0-entry-gate-spike11-workspace-upgrade-overwrite.md)（`f7cc4bd` 预测 → `7ca312a` 结果）·
   [`module-boundaries.md` §11.4](../architecture/module-boundaries.md)（机制陈述已按实测订正）
 - 2. **schema 检索可用性**（P2.0R 🔴，头号风险）: `todo` —— 验收：真实 DocType 上自然语言问句 → 目标字段 **Top-5 命中率 ≥ 90%**（今日基线 75%）
-- 3. **视图 DSL v0**（P2.1，五种块）: `todo` —— 前置 P2.0
+- 3. **视图 DSL v0**（P2.1，五种块）: **`done`** —— 前置 P2.0（已过）。
+  `agenerp/dsl/`（声明格式 + 两层校验器 + 落回 Desk 的规则面判定）·
+  `pytest tests/dsl -q` → **退出码 0，42 passed**。
+  🔴 **L2「字段真的存在吗」是独立一层且不可跳过**，`validate(view, None)` 抛异常不返回 ok；
+  **四条变异逐条见血**（把 L2 改恒真 → 6 条红），复原后实现文件 `sha256` 逐字节相同。
+  证据：[plan](../plans/p2-views/2026-08-26-P2.1-view-dsl-v0.md)（`0bcf546` 先红 → 实现）
 - 4. **渲染器（frappe-ui）：未支持的一律落回 Desk**（P2.2）: `todo` —— 前置 P2.1
 - 5. **视图 Agent：自然语言 → DSL**（P2.3）: `todo` —— 前置 P2.2 **且 P2.0R**
 - 6. **定制包 GitOps v0**（P2.4）: `todo` —— 前置 P2.3
