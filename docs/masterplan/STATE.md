@@ -422,6 +422,14 @@
 > 格式：`[状态] 日期 · 触发条件 · WBS行ID · 最后一条失败命令原文 + 退出码 · sha · 处置`
 > 状态只有 `open` / `resolved`。**resolved 的行保留不删。**
 
+- [open] 2026-08-26T01:45Z · **停机机制缺陷：`auth-expired` 解除后不会自动复跑，白停了 12 小时**
+  · **事实**：`.mission-halt.json` 记 `haltedAt 2026-08-25T13:16:07Z`、`signature` 逐字「`401 OAuth access token has expired`」。**当时确实过期，停机判得对。** 但此后令牌被刷新，而**停机标记没人删，循环就一直不跑** —— 从 13:16Z 到 2026-08-26T01:45Z，**12 小时零产出**，三个工作项（10 / 10b / 11）一个没动。
+  · **为什么人侧昨晚没能自救**：remedy 逐字「在交互式终端执行 `claude login`」，人侧代理做不了交互式登录，于是判定「只能等人」。**这个判断是错的** —— 真正该做的是**先验证条件是否仍成立**，而不是照抄 remedy。
+  · **2026-08-26T01:45Z 实测，条件早已不成立**：① `~/.claude/.credentials.json` 的 `expiresAt` = `2026-08-21 15:20`（5 天前），**但那份是残留** ② **macOS 上生效的是 Keychain**：`security find-generic-password -s "Claude Code-credentials"` 里 `expiresAt` = **`2026-08-26 17:40`，仍有效** ③ `claude -p` 实跑**返回正常**。⇒ 认证好的，**停的是一个过期的标记**。
+  · **处置**：已删 `.mission-halt.json`、`launchctl kickstart` 踢起代理，循环已恢复且无新停机。
+  · **两条要改的（loop 可做，不占 plan 预算，属运维面）**：① **停机守卫应在每次拉起时复验条件**（对 `auth-expired`：跑一次最小 `claude -p` 探针；成功则自动清除标记并继续），而不是无条件停在标记上 ② **`remedy` 字段应写「先复验，再考虑人工介入」** —— 现在的措辞把人直接导向了「只能等人」。
+  · ⚠️ **人侧要记的**：`.credentials.json` 与 Keychain **两份凭据不一致**，只看文件会得出相反结论。**判认证状态必须查 Keychain**。
+
 - [open] 2026-08-25T13:27Z · **`P1.8a-fix`（工作项 10b）的归因取证 —— 人侧在 loop 停机期间做的，交给 loop 接手**
   · **背景**：loop 于 2026-08-25T13:27Z 前后因 `auth-expired` 停机（**今日第 3 次**，`claude login` 只能在交互式终端做，人侧代理做不了）。为不空转，人侧就手上的 CI 日志做了归因取证。**本条是证据交接，不是裁定，也不占用 plan 预算。**
   · **⚠️ 先撤销一条已过期的线索**：本节早先登记的「`frontend.depends_on` 有 `agenerp-serve: service_healthy` 而 `agenerp-serve.depends_on` 缺 `backend`」**今天已不成立** —— 2026-08-25T13:27Z 实读 `docker-compose.yml`：`frontend.depends_on` = `backend`(healthy) / `websocket`(healthy) / `bootstrap-homepage`(completed)，**不含 `agenerp-serve`**。**别再顺着那条查。**
