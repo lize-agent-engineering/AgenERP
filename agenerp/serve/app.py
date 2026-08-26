@@ -246,6 +246,14 @@ def handle_explain(deps: ServiceDeps, *, cookie_header: str | None, raw_body: by
             task_class=request["task_class"],
             client=client,
             models=deps.models,
+            # **`AGENERP_LLM_MODEL` 必须真的决定用哪个模型。**
+            # 2026-08-26 实测：不传 `requested` 时 `route()` 取的是「第一个满足
+            # 该任务类目的档案」，用的是 `profile.name` ——**配置里的模型名被完全
+            # 忽略**。实测配 `qwen3.7-flash`、实际走 `qwen3.8-max`，而后者没有免费
+            # 额度 ⇒ 每一次解释都 403，用户却只看到一个空答案。
+            # 点名的模型不在候选档案里时 `route()` 会明确抛 —— **那正是要的**：
+            # 配了一个系统不认识的模型，应当明确失败，不该悄悄换一个跑。
+            requested=config.model,
             config=config,
             transport=deps.llm_transport,
             doctypes=deps.doctypes,
@@ -265,7 +273,34 @@ def handle_explain(deps: ServiceDeps, *, cookie_header: str | None, raw_body: by
         # `reasoning` 是 `completion` 的细分、`cached` 是 `prompt` 的细分，
         # **`cached` 不进 `total`**。数由账本给，本模块不自己写加法。
         "cost": {"calls": len(ledger), "total": ledger.total.as_dict()},
+        # **不接受时必须说出为什么。** 2026-08-26 实测：模型端点回 403
+        # （免费额度耗尽）时，循环把 `RoutingError` 记进账本后正常返回，
+        # 服务于是回 `{"answer": "", "accepted": false}` —— **一个字的理由都没有**。
+        # 人侧当时是绕开服务、直接调路由层才逼出那条 403 的。
+        # 空答案 + 无理由是最难查的失败形态：它看起来像「模型没话说」，
+        # 实际是「根本没调成」。两者对使用者的意义完全不同。
+        **_failure_detail(result),
     }
+
+
+def _failure_detail(result) -> dict:
+    """`accepted` 为假时，把停下来的原因原样带回。接受时返回空 dict。
+
+    **只在不接受时出现**，因此不改变成功路径的回包形状（既有判据逐字断言
+    `set(payload["cost"]["total"])`，没有断言顶层键集合，本函数不与之冲突）。
+    """
+    if result.accepted:
+        return {}
+    trace = getattr(result, "trace", None)
+    stopped = getattr(trace, "stopped", None)
+    if stopped is None:
+        return {}
+    detail = ""
+    for turn in reversed(getattr(trace, "turns", []) or []):
+        if isinstance(turn, dict) and turn.get("detail"):
+            detail = str(turn["detail"])
+            break
+    return {"stopped": stopped, "reason": detail} if detail else {"stopped": stopped}
 
 
 def _make_handler(deps: ServiceDeps) -> type[BaseHTTPRequestHandler]:

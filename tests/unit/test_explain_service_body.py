@@ -245,7 +245,23 @@ def test_the_user_in_the_answer_is_the_person_the_real_sid_resolves_to():
         pytest.skip("活栈上一个 AI 变量都没配 —— 503 已判，答案面留给配了的那次跑")
 
     assert payload["user"] == expected
-    assert payload["answer"] or payload["accepted"] is False
+
+    # 🔴 **这一条 2026-08-26 由 `or` 收严成两条独立断言。**
+    #
+    # 原本逐字是 `assert payload["answer"] or payload["accepted"] is False` ——
+    # 一个 `or`。模型拒绝时 `accepted` 恰好就是 `False`，于是**空答案照过**。
+    # 实测后果：CI 里配的模型走到 `route()` 后被换成一个没有免费额度的模型，
+    # 每一次解释都 403、每一次都回空答案，而这条判据**一路绿着**。
+    # ⇒ 那阵子的「全绿」在「Agent 到底能不能答」这一维上是空的。
+    #
+    # 收严后两条各测一件事，谁坏了都指得出来：
+    assert payload["accepted"] is True, (
+        f"真 sid、真模型，解释却没被接受。回包：{payload!r}\n"
+        "服务在不接受时会带回 `stopped` / `reason` —— 先读那两个字段，不要靠猜。"
+    )
+    assert payload["answer"].strip(), (
+        f"`accepted` 为真却交回空答案 —— 判定面与产出面不一致。回包：{payload!r}"
+    )
     assert set(payload["cost"]["total"]) == {
         "prompt", "completion", "reasoning", "cached", "total"
     }
