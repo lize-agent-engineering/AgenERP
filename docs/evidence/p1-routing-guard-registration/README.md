@@ -192,9 +192,61 @@ M6 因此改成「把类名本身改掉」。
 后者正是 `docs/audits/2026-08-26-CP9-P1-retrospective.md` §1.2 逐字罚的那件事
 （「核了门禁绿不绿，没核绿的门禁在测什么」）。
 
+## 4b. Phase 3 · 新判据 `tests/routing/test_routing_guard_registration.py` 的变异自查（N1–N5）
+
+施加面全部是**本 plan 自己新增的文件与 owner doc**，逐条复原并 `sha256` 比对。
+每条都写明「**预测由哪一句断言捕获**」—— 只写「红」会让一条其实被别的断言顺带打红的变异冒充成守卫有效。
+
+| 变异 | 预测 | 预测的捕获者 | 实测 | 退出码 | 复原 |
+|---|---|---|---|---|---|
+| N1 删表里一行 | 红 | ② `A == B` | **红 ✅** | **1** | `RESTORED OK` |
+| N2 把表里的函数名改一个字 | 红 | ② `A == B` | **红 ✅**（⚠️ 第一次施加没落在表上，见下） | **1** | `RESTORED OK` |
+| N3 把表里的文件路径改一个字 | 红 | ④ 纳管边界 | **红 ✅** | **1** | `RESTORED OK` |
+| N4 把整张表删空 | 红 | ③ 存活守卫（**不是** `A == B`） | **红 ✅，捕获者正是 ③** | **1** | `RESTORED OK` |
+| N5 第 5 列证据路径改成不存在的目录 | 红 | ⑤ | **红 ✅** | **1** | `RESTORED OK` |
+
+失败文案首行逐字（`python3 -m pytest tests/routing/test_routing_guard_registration.py -q`）：
+
+```
+N1  E       AssertionError: `routing-guards` 表与仓里真实的判据对不上了。
+N2  E       AssertionError: `routing-guards` 表与仓里真实的判据对不上了。
+N3  E       AssertionError: `routing-guards` 表里出现了未纳管的判据文件：['tests/gates/test_agent_seam_stays_swappabl.py']
+N4  E       AssertionError: `routing-guards` 表为空 —— 判据静默失效。
+N5  E           AssertionError: 第 5 列指向的证据路径不存在：docs/evidence/p1-routing-guard-registration-gone/
+```
+
+⚠️ **N4 的捕获者逐字核对过**：文案是「表为空 —— 判据静默失效」，
+**不是** `A == B` 那条的「表与仓里真实的判据对不上了」⇒ **③ 确实被触发了，不是被别的断言顺带打红的。**
+这条是本 plan 的第二个「无存活守卫」病灶（`S1`）在新判据上被堵住的直接证据：
+若 `B` 由表自己导出（上一版正文的写法），清空表会让 `A == B == ∅` 成立而本条**转绿**。
+
+### ⚠️ N2 第一次施加是无效的，照实记，不抹掉
+
+**第一次施加 N2 时实测 exit 0（绿），与预测不符。** 复跑优先于分析 —— 原样复查施加内容后查明：
+变异脚本用的是「全文首次出现处替换」，而 `test_chat_adapter_is_only_constructed_inside_routing`
+这个名字在**改准后的 §12.5 正文里也出现了一次**（在表格上方那段），
+⇒ **第一次改的是散文里的那次提及，表格行一个字没动，判据当然绿。**
+
+**这是变异施加器的缺陷，不是判据的缺陷**：第二次把施加面限定在**表格行**（行首形如 `| ` + 反引号包住的 `tests/gates/…` 路径）上，
+同一条变异**立刻红**（`exit 1`，文案即上表 N2 那行）。**判据设计一个字未改**（硬约束：不在执行期改判据设计）。
+
+**这条教训与本文件 §4 记的那条打法同源，值得单独记一句**：
+变异自查里「绿」有两种读法 —— **「判据盖不住」**与**「变异根本没落地」**。
+两者在退出码上一模一样。⇒ **变异器必须自证变异真的落地了**（本轮第二次施加加了一句
+`assert new != before` 与「命中行必须是表格行」的定位约束），否则一条没落地的变异会伪装成一条覆盖缺口。
+
+### Phase 3 的复原自证与基线
+
+- `git status --porcelain -- docs/architecture/` → **零行**
+- `python3 -m pytest tests/routing -q` → **exit 0 · `181 passed, 1 skipped`**（基线 `179 passed, 1 skipped`，**只增不减**，新增 2 条即本判据）
+- `ruff check agenerp tests/unit tests/contracts tests/tools tests/routing tests/context tests/experiments tests/ui` → **exit 0 · `All checks passed!`**
+- `python3 tools/gates/check_expected_red.py` → **exit 0 · `门禁 29 项：预期红 0，绿 29，跳过 0`**
+  ⚠️ **「仍是 29 项」不是本 plan 的判据** —— 该脚本只跑 `tests/gates/`，而本 plan 一个字都不碰那里，
+  项数不变是**恒真**的，证明力为零。它在这里只作基线不回归的旁证。
+
 ## 5. 本次实测顺带看见、但**不在本 plan 结果面内**的一处同形漂移（照实登记，不代改）
 
-`docs/architecture/model-management.md:320-327` 逐字写着
+`docs/architecture/model-management.md:373-380`（本 plan 改动**之后**的行号；改动前是 `:320-327`）逐字写着
 「`tests/routing` 既**不在** `missions/p1-insight.json` 的 `commands.test` 里，也**不在**
 `.github/workflows/gates.yml` 的任何 job 里」——
 **前一半今天仍真**（`missions/p1-insight.json:16` 的 `commands.test` 确实只有

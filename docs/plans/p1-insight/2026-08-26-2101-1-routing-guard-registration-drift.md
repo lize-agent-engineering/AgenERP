@@ -1,6 +1,6 @@
 # 2026-08-26-2101-1 F8 的登记面与它的处置对不上 —— §12.5 仍写「没有任何判据拦得住」，而判据 2026-08-25 就已落地
 
-> Plan Status: active
+> Plan Status: completed
 > Mission: p1-insight
 > Work Item: 3. 模型路由 v0：OpenAI 兼容 adapter + 能力声明按任务分档（P1.1）—— **本 plan 是它的第 2 个 plan**（表规 3 的 1–2 个预算，本 plan 用掉最后一格）
 > Last Reviewed: 2026-08-26
@@ -152,19 +152,19 @@ Exit Criteria:
 
 ### Phase 2 - 把 §12.5 那段登记改成今天的真话
 
-Status: planned
+Status: completed
 Targets: `docs/architecture/model-management.md` · `docs/masterplan/STATE.md`（**只许追加，红线 5**）· `docs/backlog/p1-insight-roadmap.md`（**行下追加，状态词不动**）
 Skill: `none`
 Prereqs: Phase 1
 
 - Item Types: `Fix | Decision | Add`（6 项中 `Fix`×4 = **67%**，**够不上规则 7 逐字的 80% 门槛** ⇒ 不在 phase 级声明统一类型，逐项标注为准）
-- [ ] `Fix` — 改准 `:295` 「今天没有任何判据拦得住这条路」：写明判据文件、判据函数名、落地 commit `d18c05c` 与日期，
+- [x] `Fix` — 改准 `:295` 「今天没有任何判据拦得住这条路」：写明判据文件、判据函数名、落地 commit `d18c05c` 与日期，
       并**逐字列出 Phase 1 实测出的不覆盖形态**（不写成「已被拦住」）
       - Skill: `none`
-- [ ] `Fix` — 改准 `:297` 「真正的闸要等 P1.4 落地、有了唯一的调用入口」：P1.4 已落地，
+- [x] `Fix` — 改准 `:297` 「真正的闸要等 P1.4 落地、有了唯一的调用入口」：P1.4 已落地，
       **而「唯一入口」没有出现**（两个产品调用点，逐条点名）⇒ 照实写「这条预期没兑现」，不假装兑现
       - Skill: `none`
-- [ ] `Decision | Add` — 新增 `<!-- machine-read: routing-guards -->` 表，每行**五**列：判据文件 · 判据函数名 · 盖住的形态 · **明确不盖的形态** · **实测日期 + 证据路径**。
+- [x] `Decision | Add` — 新增 `<!-- machine-read: routing-guards -->` 表，每行**五**列：判据文件 · 判据函数名 · 盖住的形态 · **明确不盖的形态** · **实测日期 + 证据路径**。
       第 5 列（`R7`）指向 `docs/evidence/p1-routing-guard-registration/`，让读者一眼看出**这条覆盖断言有多老** —— 本 plan 修的就是一条没人知道它有多老的断言。
       **成员规则起草期写死，不留给执行期（`R1`）：选 (a) 文件级纳管** —— **一个文件进表，它里面的每一个顶层 `def test_*` 都必须各占一行**。
       ⇒ `tests/gates/test_agent_seam_stays_swappable.py` 实点 **2 条**（`:58` `test_agent_loop_lives_in_exactly_one_module` · `:87` `test_chat_adapter_is_only_constructed_inside_routing`），
@@ -176,7 +176,7 @@ Prereqs: Phase 1
       或 `tests/unit/test_configured_model_is_the_one_used.py`（实点 4 条），这张表会退化成全量测试清单，第 3/4 列没法逐行写实。
       ⇒ **本期表里只纳管那一个文件**；要纳管第二个文件时**必须先重开这条 `Decision`**，这句写进表的前言与判据模块头。
       - Skill: `none`
-- [ ] `Fix` — **第二处登记也要改准**：往 `docs/masterplan/STATE.md` §3 **追加**一条更正行（**只追加，零删除，红线 5**），
+- [x] `Fix` — **第二处登记也要改准**：往 `docs/masterplan/STATE.md` §3 **追加**一条更正行（**只追加，零删除，红线 5**），
       点名 `[open] 2026-08-24T08:12Z`（`:751`）那两句「今天没有任何判据拦得住这条路」/「真正的闸要等 P1.4」，
       声明它们已被 `d18c05c` 与工作项 6 的 `done` 证伪，并给出本 plan 的证据文件路径。
       ⚠️ **先堵一条会被收口审计误判的引证（`S5`）**：`D3` 引的 `docs/masterplan/01-EXECUTION-MODEL.md:14` 紧挨着的 `:15`
@@ -184,11 +184,11 @@ Prereqs: Phase 1
       `AGENTS.md:14`（红线 5）逐字「**`STATE.md` 只允许追加证据行**，不得改写已有行」是**更具体的限定**，
       且 `AGENTS.md:3-4` 逐字规定红线**优先于** `docs/masterplan/` 的执行协议；仓内先例 `STATE.md:758` / `:773` / `:781` / `:789`
       - Skill: `none`
-- [ ] `Fix` — **`docs/backlog/p1-insight-roadmap.md:43` 那句已假的一半改准**：逐字「`tests/routing` 既不在 `commands.test`
+- [x] `Fix` — **`docs/backlog/p1-insight-roadmap.md:43` 那句已假的一半改准**：逐字「`tests/routing` 既不在 `commands.test`
       也不在任何 CI job 里」—— **`commands.test` 那一半仍真，「任何 CI job」那一半已假**（`gates.yml:617-618` 步骤 ④ + `:631` `COVERED` 含 `routing`）。
       按本仓惯例**在该行下追加结清记录**，不改写原句
       - Skill: `none`
-- [ ] `Decision` — 「保留原句 + 追加改准」还是「就地改写」：选**就地改写**。
+- [x] `Decision` — 「保留原句 + 追加改准」还是「就地改写」：选**就地改写**。
       ⚠️ **本裁定只管 §12.5 那一段（`R8`）** —— 同 Phase 另两条 `Fix`（`STATE.md` / roadmap）用的是**追加**，
       那是**红线 5 与仓内惯例决定的，不是本裁定的选择结果**，两者不矛盾。
       备选是 `docs/bugs/01-…` 那种「原状态行保留 + 追加」的写法；否决理由是本段不是状态行而是**事实陈述**，
@@ -198,10 +198,10 @@ Prereqs: Phase 1
 
 Exit Criteria:
 
-- [ ] 该段无一句与今天的仓库不符（逐句附一条可复跑命令）
-- [ ] **`STATE.md` §3 的更正行已追加**：`git diff --numstat <BASE> -- docs/masterplan/STATE.md` **删除列为 0**，
+- [x] 该段无一句与今天的仓库不符（逐句附一条可复跑命令）
+- [x] **`STATE.md` §3 的更正行已追加**：`git diff --numstat <BASE> -- docs/masterplan/STATE.md` **删除列为 0**，
       且新行逐字点名 `[open] 2026-08-24T08:12Z` 与 `d18c05c`
-- [ ] **`docs/backlog/p1-insight-roadmap.md:43` 的结清记录已追加**：追加文字**分开说** `commands.test` 那一半仍真、「任何 CI job」那一半已假
+- [x] **`docs/backlog/p1-insight-roadmap.md:43` 的结清记录已追加**：追加文字**分开说** `commands.test` 那一半仍真、「任何 CI job」那一半已假
       ⚠️ **不用 `git diff --numstat` 判它**（`R3`）—— 那一行是**一整行**，行内追加必然让整行进 diff（`1 1`），numstat 判不出「有没有改写原句」。
       ⚠️ **也不用「`grep` 原句片段」**（`S2`）—— 该行实测长 **1066 字节 / 701 字符**
       （⚠️ `T3(d)`：第 3 轮记的「1066 字符」是 `awk length()` 按字节数读出来的，那行满是 CJK；**论点不变，数字照实更正**），只守被点名的那个片段，
@@ -218,20 +218,20 @@ Exit Criteria:
       ⇒ **一条不变式同时覆盖「原句任意处被改写」与「状态词被翻」**，并**天然容纳** `1618-1` 先例里那个「行尾 `）` 右移一个字符」的合法位移
       （那条口头提醒因此变成判据自身的定义，不再靠收口审计记得）。
       ⚠️ **定位不写死行号** —— 用工作项前缀（`- 3. 模型路由 v0`）定位，roadmap 上方一旦插行，写死的 `:43` 会指错行
-- [ ] `git diff docs/architecture/model-management.md` 的改动**全部落在 `:293-297` 那一段与新增表内**；
+- [x] `git diff docs/architecture/model-management.md` 的改动**全部落在 `:293-297` 那一段与新增表内**；
       三张既有 `machine-read` 表零改动（`python3 -m pytest tests/routing/test_capabilities.py -q` → exit 0 自证）
-- [ ] owner doc 已更新（本 plan 的结果面就是它）
-- [ ] `docs/logs/` 更新
+- [x] owner doc 已更新（本 plan 的结果面就是它）
+- [x] `docs/logs/` 更新
 
 ### Phase 3 - 钉住登记面，让下一次漂移变红
 
-Status: planned
+Status: completed
 Targets: `tests/routing/test_routing_guard_registration.py`（新增）· `docs/architecture/model-management.md`（N1–N5 的变异施加面，逐条复原）
 Skill: `none`
 Prereqs: Phase 2
 
 - Item Types: `Add | Proof`
-- [ ] `Add` — 新判据读 `routing-guards` 表（复用 `tests/routing/test_capabilities.py` 的 `_table_after()` 口径），
+- [x] `Add` — 新判据读 `routing-guards` 表（复用 `tests/routing/test_capabilities.py` 的 `_table_after()` 口径），
       断言的是**双向同构 + 一句存活守卫**，起草期就写死，不留给执行期补：
       **① 纳管文件集合写死进判据模块常量**：`_REGISTERED_FILES = {"tests/gates/test_agent_seam_stays_swappable.py"}`
       **② 令 `A` = 表里 (判据文件, 判据函数名) 的集合；`B` = `_REGISTERED_FILES` 内各文件的全部**顶层** `def test_*` 的集合。断言 `A == B`。**
@@ -252,11 +252,11 @@ Prereqs: Phase 2
       ⚠️ **`_REGISTERED_FILES` 同时把 `Decision`（本 Phase 2 那条）从散文变成机器约束**：
       想纳管第二个文件必须改那行常量，改常量就必须回来重开那条 `Decision`。
       - Skill: `none`
-- [ ] `Add` — **判据自己声明它验的是什么**：模块头逐字写明「本条只验**存在性同构**，不验语义。
+- [x] `Add` — **判据自己声明它验的是什么**：模块头逐字写明「本条只验**存在性同构**，不验语义。
       『那条判据到底盖住什么』由 `docs/evidence/p1-routing-guard-registration/` 的变异实测负责」——
       这是 CP9 §1.2「判据名不副实」的直接对冲
       - Skill: `none`
-- [ ] `Proof` — 变异自查**五条**，全部施加在**本 plan 自己新增的文件与 owner doc** 上：
+- [x] `Proof` — 变异自查**五条**，全部施加在**本 plan 自己新增的文件与 owner doc** 上：
       N1 删表里一行 → 预测**红** · N2 把表里的函数名改一个字 → 预测**红** ·
       N3 把表里的文件路径改一个字 → 预测**红（由 ④ 纳管边界捕获）** · N4 把整张表删空 → 预测**红（由 ③ 存活守卫捕获，不是由 `A == B` 捕获）** ·
       **N5 把第 5 列的证据路径改成不存在的目录 → 预测红（由 ⑤ 捕获）**。逐条复原并 `sha256` 比对
@@ -265,15 +265,15 @@ Prereqs: Phase 2
 
 Exit Criteria:
 
-- [ ] `python3 -m pytest tests/routing -q` → exit 0，且条数比基线 `179 passed, 1 skipped` **只增不减**
-- [ ] **五条**变异逐条有：预测 · **预测的捕获者** · 实测 · 退出码 · `RESTORED OK`；不吻合的照实记，并说明实测与预测差在哪 —— **不在执行期改判据设计**
-- [ ] **N1–N5 复原自证**：`git status --porcelain -- docs/architecture/` → **零行**（与 Phase 1 同口径，`T4`）
-- [ ] `ruff check agenerp tests/unit tests/contracts tests/tools tests/routing tests/context tests/experiments tests/ui` → exit 0
-- [ ] `python3 tools/gates/check_expected_red.py` → exit 0
+- [x] `python3 -m pytest tests/routing -q` → exit 0，且条数比基线 `179 passed, 1 skipped` **只增不减**
+- [x] **五条**变异逐条有：预测 · **预测的捕获者** · 实测 · 退出码 · `RESTORED OK`；不吻合的照实记，并说明实测与预测差在哪 —— **不在执行期改判据设计**
+- [x] **N1–N5 复原自证**：`git status --porcelain -- docs/architecture/` → **零行**（与 Phase 1 同口径，`T4`）
+- [x] `ruff check agenerp tests/unit tests/contracts tests/tools tests/routing tests/context tests/experiments tests/ui` → exit 0
+- [x] `python3 tools/gates/check_expected_red.py` → exit 0
       ⚠️ **不把「仍是 29 项」写成本 plan 的判据** —— 该脚本只跑 `tests/gates/`，而本 plan 一个字都不碰那里，
       「项数不变」是**恒真**的，证明力为零（独立评审 `Q6` 指出）。它在这里只作基线不回归的旁证。
-- [ ] No owner-doc update required（Phase 2 已交付 owner doc 那一半）
-- [ ] `docs/logs/` 更新
+- [x] No owner-doc update required（Phase 2 已交付 owner doc 那一半）
+- [x] `docs/logs/` 更新
 
 ## Draft Review Record
 
@@ -545,17 +545,17 @@ Exit Criteria:
 
 ## Closure Gates
 
-- [ ] in-scope behavior is complete
-- [ ] relevant docs are aligned
-- [ ] verification has run（`pytest tests/routing -q` · `pytest tests/unit tests/tools -q` · `pytest tests/contracts tests/routing tests/context -q` · `tools/gates/check_expected_red.py` · `ruff check …`，逐条附退出码）
-- [ ] scoped verification is not conflated with full verification —— 整仓 `pytest tests -q -m "not live"` **基线即红**（`gates`×`tools` 环境泄漏已单列 `docs/backlog/gates-and-tools-leak-env-across-directories.md`），本 plan 不声称跑绿它，写明 "verification scope limited"；
+- [x] in-scope behavior is complete
+- [x] relevant docs are aligned
+- [x] verification has run（`pytest tests/routing -q` · `pytest tests/unit tests/tools -q` · `pytest tests/contracts tests/routing tests/context -q` · `tools/gates/check_expected_red.py` · `ruff check …`，逐条附退出码）
+- [x] scoped verification is not conflated with full verification —— 整仓 `pytest tests -q -m "not live"` **基线即红**（`gates`×`tools` 环境泄漏已单列 `docs/backlog/gates-and-tools-leak-env-across-directories.md`），本 plan 不声称跑绿它，写明 "verification scope limited"；
       **并一并点名 `D3`（`R9`）**：本 plan 新增的判据**进 CI（`gates.yml` 步骤 ④）但不进 `GATE_VERIFY`**（`missions/p1-insight.json:16` 的 `commands.test` 不含 `tests/routing`）⇒ **`GATE_VERIFY` 退 0 不等于这条判据被跑过**
-- [ ] no in-scope item downgraded to deferred/follow-up
-- [ ] independent draft review completed and recorded
-- [ ] text consistency verified: status, phases, gates, and log all agree
+- [x] no in-scope item downgraded to deferred/follow-up
+- [x] independent draft review completed and recorded
+- [x] text consistency verified: status, phases, gates, and log all agree
 - [ ] closure audit was independent
-- [ ] closure evidence exists in files
-- [ ] **红线自证**：`git diff --name-only <BASE> -- tests/gates/ .github/workflows/ docs/masterplan/DECISIONS.md docs/masterplan/02-WBS.md missions/ docker-compose.yml industry-packs/ pyproject.toml` → **无输出**；`git diff --numstat <BASE> -- docs/masterplan/STATE.md` 删除列为 **0**
+- [x] closure evidence exists in files
+- [x] **红线自证**：`git diff --name-only <BASE> -- tests/gates/ .github/workflows/ docs/masterplan/DECISIONS.md docs/masterplan/02-WBS.md missions/ docker-compose.yml industry-packs/ pyproject.toml` → **无输出**；`git diff --numstat <BASE> -- docs/masterplan/STATE.md` 删除列为 **0**
 
 ## Deferred But Adjudicated
 
@@ -606,13 +606,51 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: 未收口。
+Status Note: 三个 Phase 全部 `completed`，执行项与 `Exit Criteria` 零 `[ ]` 残留。
+`Closure Gates` **只余 `closure audit was independent` 一条留 `[ ]`** —— 独立收口审计由收口审计步执行，
+**本轮执行者不代跑、不代批、不预填结论**（同 `1728-1` / `1618-1` 先例）。
+
+**逐条命令与退出码（`BASE = 7ed23c8`，全部本轮实跑）**：
+
+| 命令 | 退出码 | 首行 |
+|---|---|---|
+| `python3 tools/gates/check_expected_red.py` | **0** | `门禁 29 项：预期红 0，绿 29，跳过 0` |
+| `python3 -m pytest tests/unit -q` | **0** | `839 passed, 17 skipped` |
+| `python3 -m pytest tests/unit tests/tools -q` | **0** | `920 passed, 29 skipped` |
+| `python3 -m pytest tests/routing -q` | **0** | `181 passed, 1 skipped`（基线 `179 passed, 1 skipped`，只增不减） |
+| `python3 -m pytest tests/contracts tests/routing tests/context -q` | **0** | `386 passed, 1 skipped`（基线 `384 passed, 1 skipped`，只增不减；增的 2 条即本 plan 新增的判据） |
+| `python3 -m pytest tests/routing/test_capabilities.py -q` | **0** | `19 passed`（三张既有 `machine-read` 表零改动的自证） |
+| `ruff check agenerp tests/unit tests/contracts tests/tools tests/routing tests/context tests/experiments tests/ui` | **0** | `All checks passed!` |
+
+⚠️ **verification scope limited**：全程离线 —— 未起 docker 栈、未调任何模型、未读任何 `AGENERP_LLM_*`、
+未跑任何 `-m live` 门禁、未跑整仓 `pytest tests -q -m "not live"`（基线即红，已单列
+`docs/backlog/gates-and-tools-leak-env-across-directories.md`）、**未经 CI 服务端复跑**。
+⚠️ **并且（`D3`）**：新判据落 `tests/routing/`，`.github/workflows/gates.yml:617-618` 步骤 ④ 会跑到它，
+但 `missions/p1-insight.json:16` 的 `commands.test` 不含 `tests/routing`
+⇒ **`GATE_VERIFY` 退 0 不等于这条判据被跑过。**
+
+**红线自证**：`git diff --name-only 7ed23c8 -- tests/gates/ .github/workflows/ docs/masterplan/DECISIONS.md docs/masterplan/02-WBS.md missions/ docker-compose.yml industry-packs/ pyproject.toml` → **无输出**；
+`git diff --numstat 7ed23c8 -- docs/masterplan/STATE.md` → **`7 0`**（删除列为 0）；
+`git diff --numstat 7ed23c8 -- docs/backlog/p1-insight-roadmap.md` → **`4 0`**，
+且子串不变式实跑四格：**行内追加 PASS · 改写原句 FAIL · 翻状态词 FAIL · 本次真实交付 PASS**。
+全程未对 `${XM_PATH}` 发起任何读写；未生成任何运行时 Server Script。
 
 Closure Audit Evidence:
 
-- Auditor / Agent: 待独立收口审计
-- Evidence: 待填
+- Auditor / Agent: 待独立收口审计（本轮执行者不代跑）
+- Evidence: `docs/evidence/p1-routing-guard-registration/README.md`（M1–M6 · L1/L2 · N1–N5 共 **13 条**变异，
+  逐条：预测在前 · 捕获者 · 退出码 · `RESTORED OK`）· owner doc `docs/architecture/model-management.md` §12.5
+  新增 `<!-- machine-read: routing-guards -->` 表 · 新判据 `tests/routing/test_routing_guard_registration.py` ·
+  `docs/masterplan/STATE.md` §3 追加行 · `docs/backlog/p1-insight-roadmap.md` 工作项 3 行下追加记录 ·
+  `docs/logs/2026/08-26.md`
 
 Follow-up:
 
-- 待填
+- **归人（红线 1）**：`tests/gates/test_agent_seam_stays_swappable.py:100` 补一句 `:74` 那样的存活守卫，
+  或收严匹配形状（别名 / 属性式）。见 `D1`。
+- **归人（红线 2/红线内）**：`missions/p1-insight.json` 的 `commands.test` 是否扩到 `tests/routing`。见 `D3`。
+- **归人**：`route()` 调用入口要不要收敛成一处（D-22 接缝面）。见 `D2`。
+- **交下一轮起草步 / 人**：`docs/architecture/model-management.md:373-380`（本次改动前是 `:320-327`）
+  那句「`tests/routing` 也不在 `gates.yml` 的任何 job 里」与 roadmap 那句同源、同样已假一半，
+  但它落在本 plan Phase 2 判定面（`:293-297` 那一段与新增表）之外，**本轮未代改**，
+  已逐字登记在证据文件 §5。
