@@ -97,7 +97,7 @@ No infra prereqs beyond existing baseline —— **全程离线**：不起 docke
 
 ### Phase 1 - 先测牙口，再改字
 
-Status: planned
+Status: completed
 Targets: `agenerp/explain/loop.py`（临时变异，复原）· `agenerp/routing/adapter.py` + `agenerp/routing/__init__.py`（M5/M6 临时变异，复原）· `docs/evidence/p1-routing-guard-registration/`
 ⚠️ **`tools/experiments/p1_insight_live/run.py` 只读观测，零施加**（M4）；**`agenerp/routing/router.py` 已从 Targets 移除** —— 原 M6 打在那里是错的（`F1`）。
 Skill: `none`
@@ -130,25 +130,25 @@ Skill: `none`
 判据 `:92` 逐字 `if rel.startswith(_ALLOWED_ADAPTER_PREFIX): continue` ⇒ `agenerp/routing/**` 整份跳过，
 在那里改名「门禁仍绿」是**定义上必然**，证明不了任何事。**照实记这次更正，不抹掉。**
 
-- [ ] `Proof` — 把上表六行原样落进 `docs/evidence/p1-routing-guard-registration/README.md`，**先落盘再施加第一条变异**（`git log` 可验先后）
+- [x] `Proof` — 把上表六行原样落进 `docs/evidence/p1-routing-guard-registration/README.md`，**先落盘再施加第一条变异**（`git log` 可验先后）
       - Skill: `none`
-- [ ] `Proof` — 逐条施加、跑 `python3 -m pytest tests/gates/test_agent_seam_stays_swappable.py -q`、记退出码与失败文案首行、复原、`sha256` 逐字节比对
+- [x] `Proof` — 逐条施加、跑 `python3 -m pytest tests/gates/test_agent_seam_stays_swappable.py -q`、记退出码与失败文案首行、复原、`sha256` 逐字节比对
       - Skill: `none`
-- [ ] `Proof` — **预测与实测不吻合的，照实记在证据文件里，并且以实测为准写进 Phase 2 的文档措辞**；不回头改预测
+- [x] `Proof` — **预测与实测不吻合的，照实记在证据文件里，并且以实测为准写进 Phase 2 的文档措辞**；不回头改预测
       - Skill: `none`
 
 Exit Criteria:
 
-- [ ] **M1 / M2 / M3 / M5 / M6 五条**各有：命令原文 + 退出码 + 复原后的 `sha256` 比对结果（`RESTORED OK`）；
+- [x] **M1 / M2 / M3 / M5 / M6 五条**各有：命令原文 + 退出码 + 复原后的 `sha256` 比对结果（`RESTORED OK`）；
       **M4 是零施加**（只观测今天已存在的 `tools/experiments/p1_insight_live/run.py:159`）⇒ 它只有命令原文与退出码，**没有也不该有 `RESTORED OK`**
-- [ ] 施加完毕后 `git status --porcelain -- agenerp/ tools/ tests/` → **零行**（产品源码与实验设施零残留）
+- [x] 施加完毕后 `git status --porcelain -- agenerp/ tools/ tests/` → **零行**（产品源码与实验设施零残留）
       ⚠️ **不许用 `git checkout -- .` 兜底复原** —— 那会把本 plan 自己未入库的文件一并抹掉；复原必须逐文件按施加前的 `sha256` 比对（同 `1835-1` 口径）
-- [ ] 判据的真实覆盖边界有一句可引用的结论（「盖住 X 形态；不盖 Y/Z 形态」），**由实测支撑，不由读源码支撑**
-- [ ] `docs/evidence/p1-routing-guard-registration/README.md` 落盘
-- [ ] **把这条打法写进证据文件**（四轮评审的共同结论）：本 plan 两次栽在同一个病上
+- [x] 判据的真实覆盖边界有一句可引用的结论（「盖住 X 形态；不盖 Y/Z 形态」），**由实测支撑，不由读源码支撑**
+- [x] `docs/evidence/p1-routing-guard-registration/README.md` 落盘
+- [x] **把这条打法写进证据文件**（四轮评审的共同结论）：本 plan 两次栽在同一个病上
       （`F1` 门禁无存活守卫 · `S1` 新判据无存活守卫），**两次都是靠「按判据源码/正文口径做原型实跑」发现的，不是靠读文字发现的**
       —— 记为 CP9 §1.2 的一条可复用打法
-- [ ] `docs/logs/` 更新
+- [x] `docs/logs/` 更新
 
 ### Phase 2 - 把 §12.5 那段登记改成今天的真话
 
