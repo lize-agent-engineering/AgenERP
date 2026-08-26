@@ -307,6 +307,40 @@ jobs:
           python3 -m agenerp.seedsite --load-documents --site frontend
           python3 -m agenerp.seedusers --load-users --site frontend
 
+      # ⌘K 侧边栏活体门禁（P1.8b）。**没有这一步，新门禁在 CI 上零覆盖** ——
+      # `check_expected_red.py` 的判定面写死 `tests/gates`，而本门禁住在 `tests/ui/`，
+      # 光把 `ui` 加进上面那条 `COVERED=` 只让「目录没被漏下」这条守卫变绿，
+      # **不会让它真跑起来一次**。两件事，两处改。
+      #
+      # 装驱动用**方案三：只装 chromium-headless-shell**（人 2026-08-26 裁定，D-25 授权
+      # 「loop 给方案并实测、选哪个归人」）。loop 实测三条路的数字：
+      #   方案一 整包 chromium   254.4 MiB / 45.77s / 落盘 524M
+      #   方案二 单独 job + 缓存  命中时下载≈0，但 `playwright>=1.47` 是浮动下界
+      #                          ⇒ 上游发版即失效，**失效频率不可控**
+      #   方案三 headless-shell   92.1 MiB / 18.17s / 落盘 190M ← **三项都约为方案一的 36%**
+      # 且 loop **已实测**断言体那句 `chromium.launch(headless=True)` 在只装 headless-shell
+      # 的路径下真的起得来（`launched OK; version= 145.0.7632.6`）—— 不是纸上推断。
+      #
+      # ⚠️ **装包不等于能跑**（D-25）：`pip install -e '.[ui]'` 之后必须再 `playwright install`，
+      # 否则运行期报 `Executable doesn't exist`。
+      - name: ⌘K 侧边栏活体门禁（零 skip）
+        env:
+          AGENERP_LIVE: "1"
+          AGENERP_ADMIN_PASSWORD: admin
+          AGENERP_SITE: frontend
+          AGENERP_SITE_URL: http://127.0.0.1:8080
+          AGENERP_HTTP_PORT: "8080"
+        run: |
+          set -euo pipefail
+          pip install -e '.[ui]'
+          python3 -m playwright install chromium-headless-shell
+          python3 -m pytest -m live tests/ui/test_sidebar.py -q | tee /tmp/ui-gate.log
+          # 判据自身的判据：跳过就是没跑，没跑就是红。形态照抄本文件既有的那几条。
+          if grep -qE '[0-9]+ skipped' /tmp/ui-gate.log; then
+            echo "❌ ⌘K 侧边栏门禁出现 skip —— 判定器不接受 skip，未跑就是红。" >&2
+            exit 1
+          fi
+
       - name: 全部门禁的 live 判定（条数由 check_expected_red.py 自己数）
         env:
           AGENERP_LIVE: "1"
@@ -594,7 +628,7 @@ jobs:
       - name: ⑦ 没有测试目录被漏在 CI 之外
         run: |
           set -euo pipefail
-          COVERED="contracts context experiments fixtures gates routing tools unit"
+          COVERED="contracts context experiments fixtures gates routing tools ui unit"
           ACTUAL=$(ls -d tests/*/ | xargs -n1 basename | sort | tr '\n' ' ' | sed 's/ $//')
           EXPECTED=$(echo $COVERED | tr ' ' '\n' | sort | tr '\n' ' ' | sed 's/ $//')
           if [ "$ACTUAL" != "$EXPECTED" ]; then
@@ -637,13 +671,15 @@ jobs:
           python-version: "3.11"
       - run: pip install ruff==0.14.1
 
-      # 作用域三个目录逐字照抄 docs/context/project-context.md 的 Lint / static check 一行，
+      # 作用域**八个目录**（2026-08-26 随 tests/ui 落地改准）。此前这句逐字写「三个目录」，
+      # 而下面那行早已是七个 —— 数字与字面长期不一致，本次一并改准，不留第二处真相源。
+      # 仍逐字照抄 docs/context/project-context.md 的 Lint / static check 一行，
       # 一个字不加不减 —— 尤其不扩到 tests/gates（pyproject.toml 的 [tool.ruff] exclude 已排除它，
       # 理由是免得 lint 逼着去改裁判）。
       # tests/gates 由 pyproject 的 exclude + force-exclude 挡在外面（红线内，
       # 免得 lint 逼着去改裁判）。其余目录一律扫。
       - name: ruff check（agenerp + tests/ 全部非门禁目录）
-        run: ruff check agenerp tests/unit tests/contracts tests/tools tests/routing tests/context tests/experiments
+        run: ruff check agenerp tests/unit tests/contracts tests/tools tests/routing tests/context tests/experiments tests/ui
 
   # 集合判据（plan 2026-08-23-0337-2，见 docs/architecture/system-baseline.md §14.8）。
   # 与上面的 expected-red-ratchet 并存、判据不同：那个数行数，这个比条目集合。
