@@ -8,6 +8,18 @@ D-18 逐字「**两者的判据分开写，不许合并**」，所以两组判�
 **失控闸只做「停下来」这一件事**：不拦成本、不改模型、不降级。
 「贵」不归它管（D-18 取消了成本阈值），它管的是「**坏**」——
 一个陷入循环的 Agent 会无限调工具。
+
+⚠️ **只有 `MAX_TURNS == 40` 那一处是绊线。**
+本文件里其余的 `32` 是**测试自己显式传进去的上限**（`loop_for(..., max_tool_calls=32)`），
+与模块默认值无关 —— **改默认值时不要连它们一起改**（2026-08-26 人侧犯过这个错，
+盲目全局替换把三处显式参数一起改了，`tests/unit` 当场三红）。
+那一处钉住 `MAX_TURNS` 的**当时取值**，好让任何一次调整
+都必须先走到这里、把理由写下来 —— 而不是悄悄改个常量了事。
+
+2026-08-26 由 `32 / 25` 调到 `50 / 40`，**依据是实测**（D-16）：
+归因类问题（「这些库存是怎么来的」）在 `doc.links` 修好之后仍有 1/3 撞
+`max-turns` —— 实测 **23/32 工具调用却用满 25 轮**，卡的是轮数不是工具数。
+收敛的那几次用 **12–13 轮 / 19–25 次调用**；放到 40 轮后同一问题答了出来。
 """
 
 from __future__ import annotations
@@ -168,7 +180,7 @@ def test_h4_4_the_reverse_case_also_holds_under_the_default_limit():
     result = loop_for(model, max_turns=MAX_TURNS).run("细水长流问题")
 
     assert result.trace.stopped == STOP_MAX_TURNS
-    assert result.trace.model_tool_calls == MAX_TURNS == 25
+    assert result.trace.model_tool_calls == MAX_TURNS == 40
     assert result.trace.runaway_events == []
 
 
