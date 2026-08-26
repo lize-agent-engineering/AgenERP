@@ -69,3 +69,46 @@ def test_an_unknown_model_fails_loudly_instead_of_silently_swapping() -> None:
     assert "a-model-nobody-declared" in str(caught.value), (
         "拒绝时必须点名是哪个模型不认识，否则使用者无从下手"
     )
+
+
+# --- 不传 `requested` 的那一半（2026-08-26-1728-1 补齐）-----------------------
+#
+# ⚠️ 上面两条**都显式传了 `requested`** ⇒ 它们走的是点名分支，
+# **压根没经过缺陷所在的那条路**。所以它们全绿，而 bug 全须全尾地活着。
+# 下面两条不传 `requested`，钉的正是缺口本身：**配置里的模型名自己就是点名。**
+
+
+@pytest.mark.parametrize(
+    "model",
+    [p.name for p in capabilities.KNOWN_MODEL_PROFILES.values() if p.satisfies("explain")],
+)
+def test_the_configured_model_is_used_without_anyone_passing_requested(model: str) -> None:
+    """逐个已声明模型：**只配它、谁也不点名** ⇒ 用它。
+
+    这是「从环境配到实际调用」这条端到端路径的判据：`_cfg` 走的是真实的
+    `from_env()` 构造路径，`route()` 那一侧一个 `requested` 都不给。"""
+    adapter = route(
+        "explain",
+        models=capabilities.KNOWN_MODEL_PROFILES,
+        config=_cfg(model),
+    )
+    assert adapter.model == model, (
+        f"配的是 {model!r}，实际却用了 {adapter.model!r} —— 没人点名时配置仍然没生效。\n"
+        "这正是 2026-08-26 那个 bug 的形态：route() 不传 requested 时取"
+        "「第一个满足能力的档案」，配置里的模型名被完全忽略。"
+    )
+
+
+def test_an_unknown_configured_model_still_fails_loudly_without_requested() -> None:
+    """配了系统不认识的模型、且谁也没点名 ⇒ **仍然明确失败**，不许悄悄换一个跑。
+
+    「默认尊重 `config.model`」不能把「不认识就明确失败」这条一起改弱掉。"""
+    with pytest.raises(RoutingError) as caught:
+        route(
+            "explain",
+            models=capabilities.KNOWN_MODEL_PROFILES,
+            config=_cfg("a-model-nobody-declared"),
+        )
+    assert "a-model-nobody-declared" in str(caught.value), (
+        "拒绝时必须点名是哪个模型不认识，否则使用者无从下手"
+    )

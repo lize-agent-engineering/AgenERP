@@ -19,10 +19,13 @@ import pytest
 from agenerp.routing import route
 from agenerp.routing.adapter import ChatAdapter
 from agenerp.routing.capabilities import KNOWN_MODEL_PROFILES, ModelProfile
-from agenerp.routing.config import LlmConfig
+from agenerp.routing.config import LlmConfig, from_env
 from agenerp.routing.errors import DeclarationError, RoutingError
 
-CONFIG = LlmConfig(base_url="https://endpoint.invalid/v1", model="unused", api_key="sk-test")
+# `model=""` 而不是 `"unused"`：那个 `"unused"` 字面量编码的正是「`config.model` 反正会被忽略」
+# 这个缺陷本身。空串 = **不点名** ⇒「第一个满足的胜出」那条路径的全部既有判据原样继续有效。
+# `from_env()` 造不出空 model（它对空值抛「配置不全」），所以这个分支只在直接构造的判据里可达。
+CONFIG = LlmConfig(base_url="https://endpoint.invalid/v1", model="", api_key="sk-test")
 
 STRONG = KNOWN_MODEL_PROFILES["qwen3.6-plus"]
 WEAK = KNOWN_MODEL_PROFILES["qwen-plus"]
@@ -179,3 +182,109 @@ def test_route_falls_back_to_env_config_only_when_no_config_is_given(monkeypatch
         monkeypatch.delenv(name, raising=False)
     with pytest.raises(RoutingError, match="配置不全"):
         route("explain", models=[STRONG])
+
+
+# --- ⑤ `config.model` 就是点名（本节整段是 2026-08-26-1728-1 的新语义判据）-----
+#
+# 本节钉的是 `route()` 的**选择语义**：给定候选集与 `config.model`，选中的是哪一个、
+# 选不动时怎么失败。**从环境配到实际调用**那条端到端路径由
+# `tests/unit/test_configured_model_is_the_one_used.py` 钉，两者不互相冒充。
+
+
+def _cfg(model):
+    return LlmConfig(base_url="https://endpoint.invalid/v1", model=model, api_key="sk-test")
+
+
+def test_configured_model_is_used_even_when_it_is_not_the_first_satisfying_candidate():
+    """P2 · 成功面：点名的是候选里**第二个**满足的 —— 「第一个胜出」的旧实现蒙不过去。"""
+    assert STRONG.satisfies("explain"), "前提：候选里第一个本来就满足，旧实现会选它"
+    adapter = route(
+        "explain", models=[STRONG, WEAK], config=_cfg("qwen-plus"), transport=lambda p: {}
+    )
+    assert adapter.model == "qwen-plus"
+
+
+def test_configured_model_is_used_when_candidates_come_as_the_known_profile_mapping():
+    """P2 · 成功面第二组：候选是映射形态（生产路径的形状），点名的是表里最弱的那个。"""
+    adapter = route(
+        "explain",
+        models=KNOWN_MODEL_PROFILES,
+        config=_cfg("qwen3:14b"),
+        transport=lambda p: {},
+    )
+    assert adapter.model == "qwen3:14b"
+
+
+def test_a_configured_model_outside_the_candidates_fails_by_name():
+    """P3 · 失败面之一：点名了候选里没有的名字 ⇒ 抛，且**文本里含那个名字**。
+
+    只断「抛了」不够 —— 一个「永远抛」的假实现同样全绿（见本文件模块头第 3 行）。"""
+    with pytest.raises(RoutingError, match="不在候选档案里") as caught:
+        route("explain", models=[STRONG], config=_cfg("gpt-9-omni"), transport=lambda p: {})
+    assert "gpt-9-omni" in str(caught.value)
+
+
+def test_a_configured_model_that_lacks_the_capability_does_not_fall_back_to_a_stronger_one():
+    """P4 · 失败面之二：点名的在候选里但能力不够 ⇒ 抛，**不回**那个够格的强模型。
+
+    §12.1 ③「绝不静默降级」在新路径上的反测。"""
+    assert STRONG.satisfies("lineage"), "前提：候选里确实有一个够格的，回落是可能的"
+    with pytest.raises(RoutingError) as caught:
+        route(
+            "lineage", models=[LOCAL, STRONG], config=_cfg("qwen3:14b"), transport=lambda p: {}
+        )
+    assert "不降级" in str(caught.value)
+
+
+def test_an_explicit_request_wins_over_the_configured_model():
+    """P5 · 优先级：`requested` 与 `config.model` 同时给且不同 ⇒ **`requested` 胜出**。"""
+    adapter = route(
+        "explain",
+        models=[STRONG, WEAK],
+        requested="qwen3.6-plus",
+        config=_cfg("qwen-plus"),
+        transport=lambda p: {},
+    )
+    assert adapter.model == "qwen3.6-plus"
+
+
+def test_an_empty_configured_model_keeps_the_first_satisfying_candidate_path():
+    """P6 · 空模型名 ⇒ 不点名 ⇒ 「第一个满足的胜出」原样保留。"""
+    adapter = route(
+        "explain", models=[LOCAL, STRONG], config=_cfg(""), transport=lambda p: {}
+    )
+    assert adapter.model == "qwen3:14b"
+
+
+def test_a_blank_configured_model_is_also_treated_as_not_named():
+    """P6b（变异 M3 的判据化）· 纯空白的模型名同样视同**未点名**，不当成一个叫「   」的模型。"""
+    adapter = route(
+        "explain", models=[LOCAL, STRONG], config=_cfg("   "), transport=lambda p: {}
+    )
+    assert adapter.model == "qwen3:14b"
+
+
+def test_the_empty_model_branch_is_unreachable_from_env_config():
+    """P6 后半 · 那条空串分支**只在直接构造 `LlmConfig` 的判据里可达**。
+
+    `from_env()` 对空值抛「配置不全」⇒ 生产路径造不出它。"""
+    with pytest.raises(RoutingError, match="配置不全"):
+        from_env(
+            {
+                "AGENERP_LLM_BASE_URL": "https://endpoint.invalid/v1",
+                "AGENERP_LLM_API_KEY": "sk-test",
+                "AGENERP_LLM_MODEL": "",
+            }
+        )
+
+
+def test_env_built_config_always_names_a_model():
+    """P7 · 生产路径必然点名：三个变量都给全时 `from_env()` 造出的 `model` 恒非空。"""
+    built = from_env(
+        {
+            "AGENERP_LLM_BASE_URL": "https://endpoint.invalid/v1",
+            "AGENERP_LLM_API_KEY": "sk-test",
+            "AGENERP_LLM_MODEL": "qwen3.6-plus",
+        }
+    )
+    assert built.model == "qwen3.6-plus"
