@@ -456,6 +456,15 @@
 > 格式：`[状态] 日期 · 触发条件 · WBS行ID · 最后一条失败命令原文 + 退出码 · sha · 处置`
 > 状态只有 `open` / `resolved`。**resolved 的行保留不删。**
 
+- [resolved] 2026-08-26T06:49Z · **P1 出现了一次门禁误放行，已修并已写进复盘材料 —— 这条推翻了 P0 复盘的一项判定**
+  · **形态**：`test_the_user_in_the_answer_is_the_person_the_real_sid_resolves_to` 的断言原本逐字 `assert payload["answer"] or payload["accepted"] is False` —— **一个 `or`**。模型拒绝时 `accepted` 恰好就是 `False` ⇒ **空答案照过**。
+  · **实际后果**：CI 的路由器忽略 `AGENERP_LLM_MODEL`、改走没有免费额度的 `qwen3.8-max` ⇒ 端点 403 ⇒ **每一次解释都失败、每一次都回空答案**，而这条判据一路绿着。⇒ **那几天报的「54 项全绿」，在「Agent 到底能不能答」这一维上是空的。**
+  · **它不是被门禁发现的** —— 是人手动跑了一次真解释才撞出来的（2026-08-26T06:49Z）。
+  · ⚠️ **这条推翻了 `docs/audits/2026-08-23-CP9-P0-retrospective.md` 的一项判定**：那份复盘写死的判据之一逐字是「**门禁误放行（判 pass 但其实错）次数 = 0**」，当时判 ✅。**P1 产生了一个实例。** CP1 把「门禁误放行」列为头号风险 —— **该风险已实际发生，不再是理论风险**。
+  · **已修**（`6e118c2`，带 `Gates-Change-Approved-By:`）：三条一起 —— `requested=config.model` 让配置真的生效 · `_failure_detail()` 让不接受时带回 `stopped` + `reason` · 答案面判据的 `or` 收严成两条独立断言。**验了牙口**：好模型 `6 passed` / 坏模型 `1 failed`。
+  · **材料落盘**：`docs/audits/2026-08-26-P1-retrospective-material.md`。⚠️ **本文只摆证据不下结论** —— 结论归 P1.9（状态源 `人`）。第 3 节逐条记了**人侧代理自己的四次失误，其中三次由 loop 先发现**。
+  · **给 P1.9 的四个待判问题已列进材料第 4 节**，其中最要紧的一条：**今天的红线只约束 loop（红线 1/2/5），对人侧代理几乎没有约束** —— 要不要把「人侧改动也走独立复核」写进 RUNBOOK。
+
 - [resolved] 2026-08-26T04:21Z · **工作项 10（P1.8a）由人改回 `done` —— 撤销人自己 2026-08-25 的那次回退，因为回退的理由已不成立**
   · **为什么由人改而不是 loop**：**是人把它改回 `todo` 的**（2026-08-25，理由逐字「验收两条都不成立」）。**撤销自己的覆盖是对称的动作**，与状态源（`MD:p1-explain`）的日常维护权限无关 —— loop 从未把它改成过 `todo`。
   · **验收 ① 逐字命令实测**（2026-08-26T04:21Z，对活站点直跑）：`AGENERP_LIVE=1 AGENERP_SITE=frontend AGENERP_ADMIN_PASSWORD=admin AGENERP_SITE_URL=http://127.0.0.1:18080 python3 -m pytest -m live tests/gates/test_explain_service_live.py -q` ⇒ **`6 passed in 4.10s`**。
