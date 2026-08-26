@@ -553,7 +553,7 @@ Exit Criteria:
 - [x] no in-scope item downgraded to deferred/follow-up
 - [x] independent draft review completed and recorded
 - [x] text consistency verified: status, phases, gates, and log all agree
-- [ ] closure audit was independent
+- [x] closure audit was independent —— 由独立收口审计步执行（`MISSION_DRIVER:2026-08-26-205222-mission-driver`），**非本轮执行者**；逐条实测见下方 `Closure Audit Evidence`
 - [x] closure evidence exists in files
 - [x] **红线自证**：`git diff --name-only <BASE> -- tests/gates/ .github/workflows/ docs/masterplan/DECISIONS.md docs/masterplan/02-WBS.md missions/ docker-compose.yml industry-packs/ pyproject.toml` → **无输出**；`git diff --numstat <BASE> -- docs/masterplan/STATE.md` 删除列为 **0**
 
@@ -606,9 +606,10 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: 三个 Phase 全部 `completed`，执行项与 `Exit Criteria` 零 `[ ]` 残留。
-`Closure Gates` **只余 `closure audit was independent` 一条留 `[ ]`** —— 独立收口审计由收口审计步执行，
-**本轮执行者不代跑、不代批、不预填结论**（同 `1728-1` / `1618-1` 先例）。
+Status Note: 三个 Phase 全部 `completed`，执行项与 `Exit Criteria` 零 `[ ]` 残留，
+`Closure Gates` 九条全 `[x]`。最后一条 `closure audit was independent` **由独立收口审计步补勾**
+—— 执行期它留 `[ ]`，**本轮执行者不代跑、不代批、不预填结论**（同 `1728-1` / `1618-1` 先例）；
+补勾它的是独立审计步自己，逐条实测附在下方。
 
 **逐条命令与退出码（`BASE = 7ed23c8`，全部本轮实跑）**：
 
@@ -637,12 +638,38 @@ Status Note: 三个 Phase 全部 `completed`，执行项与 `Exit Criteria` 零 
 
 Closure Audit Evidence:
 
-- Auditor / Agent: 待独立收口审计（本轮执行者不代跑）
+- Auditor / Agent: **独立收口审计步**（`MISSION_DRIVER:2026-08-26-205222-mission-driver`，与执行者不同上下文，2026-08-26）· 判词 **`approved`**
 - Evidence: `docs/evidence/p1-routing-guard-registration/README.md`（M1–M6 · L1/L2 · N1–N5 共 **13 条**变异，
   逐条：预测在前 · 捕获者 · 退出码 · `RESTORED OK`）· owner doc `docs/architecture/model-management.md` §12.5
   新增 `<!-- machine-read: routing-guards -->` 表 · 新判据 `tests/routing/test_routing_guard_registration.py` ·
   `docs/masterplan/STATE.md` §3 追加行 · `docs/backlog/p1-insight-roadmap.md` 工作项 3 行下追加记录 ·
   `docs/logs/2026/08-26.md`
+
+**独立收口审计逐条实测（全部由审计步自己复跑，不采信 plan 正文的自报）**：
+
+| 审计项 | 命令 / 方法 | 结果 |
+|---|---|---|
+| 判据真的在跑，不是空壳 | `python3 -m pytest tests/routing -q` | **exit 0 · `181 passed, 1 skipped`**（基线 `179 passed, 1 skipped`，增 2 = 本 plan 新增两条） |
+| N1–N5 **独立重放**（把 owner doc + 两个判据文件复制到 `/tmp/closure-audit-2101` 施加，**活仓一个字节未碰**） | 每条施加后跑 `pytest tests/routing/test_routing_guard_registration.py -q`，跑完 `cp` 复原 + `diff -q` | baseline **`2 passed`** · N1 删表一行 **红** · N2 改函数名一字 **红** · N3 改文件路径一字 **红** · **N4 整表删空 `2 failed`（③ 与 ⑤ 各自的存活守卫双双打红，不是 `A == B` 顺带）** · N5 证据路径改成不存在目录 **红** · 复原后 **`2 passed` + `RESTORED OK`** |
+| roadmap 子串不变式（Phase 2 Exit 那条，**按正文写死的口径独立复跑**） | `git show 7ed23c8:docs/backlog/p1-insight-roadmap.md` 按前缀 `- 3. 模型路由 v0` 定位 → 恰 **1** 行 · `endswith("）")` 断言 **通过** · `core in new_text` | **True**；`core` 实测 **1063 字节 / 700 字符** ⇒ 整行 **1066 字节 / 701 字符**，与正文 `T3(d)` 更正后的数字**逐字吻合** |
+| 追加面零删除（红线 5） | `git diff --numstat 7ed23c8 -- docs/masterplan/STATE.md` · 同 `-- docs/backlog/p1-insight-roadmap.md` | **`7 0`** · **`4 0`**（删除列均为 0） |
+| 红线自证 | `git diff --name-only 7ed23c8 -- tests/gates/ .github/workflows/ docs/masterplan/DECISIONS.md docs/masterplan/02-WBS.md missions/ docker-compose.yml industry-packs/ pyproject.toml` | **无输出** |
+| BASE 以来改动面 | `git diff --name-only 7ed23c8` | 7 个文件，全部落在 Phase 1/2/3 的 `Targets` 与本 plan 自身内，**无越界文件** |
+| 复原自证 | `git status --porcelain` | **零行**（Phase 1 / Phase 3 两条复原 Exit 均成立） |
+| 三张既有 `machine-read` 表零改动 | `python3 -m pytest tests/routing/test_capabilities.py -q` | **exit 0 · `19 passed`** |
+| 其余判定面不回归 | `check_expected_red.py`（**exit 0**）· `pytest tests/unit tests/tools -q`（**`920 passed, 29 skipped`**）· `pytest tests/contracts tests/routing tests/context -q`（**`386 passed, 1 skipped`**）· `ruff check …`（**`All checks passed!`**）· `pytest tests/gates/test_agent_seam_stays_swappable.py -q`（**`2 passed`**） | 逐条与正文 `Closure` 表**吻合** |
+| 证据文件完整性 | `grep -cE '^\| *(M[1-6]\|L[12]\|N[1-5]) ' docs/evidence/p1-routing-guard-registration/README.md` | **13** 行（M1–M6 · L1/L2 · N1–N5），`RESTORED OK` 命中 **14** 次 |
+| owner doc 的事实断言逐条可复跑 | `grep -rn 'route(' --include='*.py' agenerp/` | 产品调用点**恰两处** `agenerp/explain/loop.py:664` · `agenerp/judging/judge.py:73` ⇒ 「唯一入口没兑现」**属实**；`tools/experiments/p1_insight_live/run.py:159` 的域外构造**今天确实在**；`tests/gates/test_agent_seam_stays_swappable.py` `:74` 是 `assert found` / `:100` 是 `assert not offenders` ⇒ **存活守卫的不对称属实** |
+| `D3` 的两半各自属实 | `.github/workflows/gates.yml:617-618` 步骤 ④ 逐字 `pytest tests/routing -q` ✓ · `missions/p1-insight.json:16` 的 `commands.test` 逐字**不含** `tests/routing` ✓ | **`GATE_VERIFY` 退 0 确实不等于这条判据被跑过** —— 登记准确，未粉饰 |
+
+**审计判词：`approved`。** 三条尤其值得记：
+① **新判据不是空壳** —— 审计步不采信正文的 N1–N5 自报，在隔离副本上自己重放五条，**逐条与正文预测及捕获者吻合**，
+其中 N4「整表删空」确实由存活守卫打红，不是被 `A == B` 顺带打红。
+② **`Deferred` 三条无一藏活缺陷** —— `D1`（判据盖不住的四种形态）已**逐字登记进 owner doc §12.5 与 `routing-guards` 表第 4 列**，
+不是塞进 plan 角落；`D1`/`D3` 的堵法都落在 `tests/gates/**` 与 `missions/**`（红线 1 / 红线内），loop 无权，**归人正确**；
+`D2` 是一次新 `Decision`（D-22 接缝面），归人正确。
+③ **五点一致**：`Plan Status: completed` · 三个 Phase 全 `completed` · 全部 `Exit Criteria` `[x]` ·
+`Closure Gates` 九条全 `[x]` · `docs/logs/2026/08-26.md:3` 有对应条目 —— **五处逐一核对，无一处对不上**。
 
 Follow-up:
 
