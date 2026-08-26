@@ -291,14 +291,14 @@ Exit Criteria:
 
 ### Phase 2 — 判据：登记表与三张判定面双向同构
 
-Status: planned
+Status: completed
 Targets: `tests/unit/test_ci_coverage_registration.py`（新增）
 Skill: `none`
 
 - Item Types: `Decision | Add | Proof`
 - Prereqs: Phase 1（表必须先存在）
 
-- [ ] **Decision** · **判据落 `tests/unit/`。**
+- [x] **Decision** · **判据落 `tests/unit/`。**
       备选 (A) 落 `tests/context/`（本 plan 归工作项 4）—— **否决**：本条判的是全仓复跑面登记，不是上下文层行为；
       且 `tests/context` 不在 `commands.test` 里，**一条防漂移的判据自己复跑不到等于降一档**。
       备选 (B) 落 `tests/gates/` —— **红线 1，无权**。
@@ -306,11 +306,11 @@ Skill: `none`
       `commands.test` 与 CI 的目录，§7.8 的 D5 是同一选择的先例。
       **残余风险**见 `D2`，缓解写进下一条。
       - Skill: `none`
-- [ ] **Add** · 失败文案硬要求：任何一条断言失败都必须逐字打印
+- [x] **Add** · 失败文案硬要求：任何一条断言失败都必须逐字打印
       「哪一行 · 表说什么 · 仓里实际是什么 · 该改哪个文件的哪一列」。
       ⚠️ **这是 `D2` 的唯一缓解** —— 不接受「把判据挪出 `commands.test` 以免拖红」这种缓解。
       - Skill: `none`
-- [ ] **Add** · **七条断言**，逐条对应一种漂移：
+- [x] **Add** · **七条断言**，逐条对应一种漂移：
       ① **目录集合三向同构**：表的目录列 == `ls -d tests/*/` 实扫 == `gates.yml:631` 的 `COVERED`
       （三者两两相等；`COVERED` 是 SF 指出的第二份机器可读副本，一并咬住）·
       ② **`unit-and-contracts` 步骤列双向**，**两个方向逐字分开写死**：
@@ -337,7 +337,7 @@ Skill: `none`
       或 `continue-on-error: true`，判据**仍然 exit 0**，而表和 §7.7 仍宣称「CI 复跑得到」。
       两种写法在该文件里**都已实际存在**（`gates.yml:211` · `:367-368`）。
       - Skill: `none`
-- [ ] **Add** · 解析器写死为**纯文本行扫描**（不 import `yaml`，Non-Goals 7），**两条形状约束缺一不可**：
+- [x] **Add** · 解析器写死为**纯文本行扫描**（不 import `yaml`，Non-Goals 7），**两条形状约束缺一不可**：
       ① **认出 job 边界** —— 只在 `unit-and-contracts:` 与下一个 job 之间找步骤 ·
       ② **步骤的目录参数必须是「裸目录」**（`pytest tests/<dir>` 后面紧跟空白或行尾），
       **不认文件路径** —— 否则 `gates.yml:208` 的 `pytest tests/gates/test_zero_dep_boot.py` 会把 `gates` 算成一步。
@@ -349,22 +349,22 @@ Skill: `none`
       **两条的活性各由一对变异证明，缺一不可**：`①` 由 `N7`（去边界则转绿）+ `N8`（去边界则转红）；
       `②` 由 `N10`（去②则转红，见 Phase 3）。
       - Skill: `none`
-- [ ] **Add** · 判据文件头逐字写清三件事：① 本条只验存在性同构、不验语义（沿用先例措辞）·
+- [x] **Add** · 判据文件头逐字写清三件事：① 本条只验存在性同构、不验语义（沿用先例措辞）·
       ② **为什么本条不需要 `_REGISTERED_FILES` 那样的纳管常量**（`B` 三路来源都不由表导出，
       `A == B == ∅` 按构造不成立）· ③ `D2` 那条残余风险。
       - Skill: `none`
-- [ ] **Proof** · `python3 -m pytest tests/unit/test_ci_coverage_registration.py -q` → exit 0，
+- [x] **Proof** · `python3 -m pytest tests/unit/test_ci_coverage_registration.py -q` → exit 0，
       **收集条数 == 断言体里 `def test_` 条数**（「零 skip」在一条都没跑时也成立，由条数钉住）。
       - Skill: `none`
 
 Exit Criteria:
 
-- [ ] 七条断言全部落地且默认全绿
-- [ ] `python3 tools/gates/check_expected_red.py` → exit 0，**`门禁 29 项` 不变**（本 plan 不新增门禁）
-- [ ] `python3 -m pytest tests/unit tests/tools -q` → exit 0，`passed` 数**只增不减**（基线 920）
-- [ ] `ruff check …`（B5 那条原样）→ exit 0
-- [ ] No owner-doc update required（判据说明已在 Phase 1 的 §7.26 落地）
-- [ ] `docs/logs/2026/08-26.md` 更新
+- [x] 七条断言全部落地且默认全绿
+- [x] `python3 tools/gates/check_expected_red.py` → exit 0，**`门禁 29 项` 不变**（本 plan 不新增门禁）
+- [x] `python3 -m pytest tests/unit tests/tools -q` → exit 0，`passed` 数**只增不减**（基线 920）
+- [x] `ruff check …`（B5 那条原样）→ exit 0
+- [x] No owner-doc update required（判据说明已在 Phase 1 的 §7.26 落地）
+- [x] `docs/logs/2026/08-26.md` 更新
 
 ### Phase 3 — 变异自查（活仓零改动）+ §7.7 与 §12.5 就地改准 + 收口落盘
 
