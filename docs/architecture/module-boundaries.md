@@ -3895,6 +3895,21 @@ CI 绿 run 推算单次 **≈3–6s**（上界可证 < 17.5s）· CI 红 run 里
 > 短预算有判别力）· `EXPLAIN_TIMEOUT = 180`（真解释，要等模型）。
 
 ⇒ **`P2-1` 那张表里「选中项：无」这一格，现在有值了：选中的是 `D-26` 的拆分方案。**
+
+**逐字点名选中修法改了哪个文件、哪个函数、哪几个配置项**（`P3-6` 绑定 4 要的就是这一句，
+它堵的是「绑定 2 只查 diff 非空，挡不住注释级改动或改 `expected-red.txt` 凑数」）：
+
+| 项 | 逐字 |
+|---|---|
+| 文件 | **`tests/unit/test_explain_service_body.py`**（唯一一个）—— 它是 `tests/gates/test_explain_service_live.py:57` 经 `_load` 整体 `exec_module` 的判据正文 |
+| 配置项（模块级常量） | `TIMEOUT = 30` **删除**；新增 **`CHEAP_TIMEOUT = 30`**（`:116`）与 **`EXPLAIN_TIMEOUT = 180`**（`:120`） |
+| 函数 | **`_request()`** —— 签名增 `timeout=CHEAP_TIMEOUT` 形参（`:139`），并把它传给 `http.client.HTTPConnection(host, port, timeout=timeout)`（`:146`） |
+| 调用点（4 处改用长预算） | `test_explain_without_any_cookie_is_401_...`（`:201`）· `test_the_user_in_the_answer_is_the_person_the_real_sid_resolves_to`（`:236`）· `test_no_response_through_the_front_ever_echoes_the_sid` 循环里 `path == EXPLAIN_PATH` 的**两发**（`:275`，逐条按 `path` 选） |
+| **保持短预算** | 健康检查 · `/agenerp/nope` 404 · 伪造 `sid`（401 挡下，`:213`）· 非法参数（400 挡下）· 登录 · `get_logged_user` |
+
+⚠️ **修复提交 `182ef2a` 的 diff 就是且只是上面这张表**（另加 `DECISIONS.md` 的 `D-26` 与 `STATE.md` 的答复行）
+—— **没有注释级凑数，没有动 `tools/gates/expected-red.txt` 一个字节**
+（`git diff --stat 182ef2a^ 182ef2a` ⇒ 三个文件：`DECISIONS.md` `12+`、`STATE.md` `11+`、断言体 `37+ 5-`）。
 被否的 (B)/(C)/(D)/(E)/(F)/(H) 六条**否决理由一条未变**，上面那张表原样有效。
 ⚠️ **候选 (A) 当初的红线归属判断也没有被推翻** —— 它确实在红线 1 内，所以**它是人落的，不是 loop 落的**。
 「loop 不能改裁判」与「人改了裁判之后 loop 接着验收」两件事并不矛盾。

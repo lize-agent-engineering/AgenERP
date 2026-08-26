@@ -1,6 +1,7 @@
 # 2026-08-25-1118-1 `gates-l2-live` 间歇红 —— 取证、定位、修到连续 3 次全绿
 
-> Plan Status: deferred
+> Plan Status: active
+> 🔴 **2026-08-26 由 `deferred` 转回 `active`**：**停机分支 A 与 C 均已由人解除** —— `182ef2a` 答③并落地修法（`D-26`），`cb3ad79` 答⑦（额度 99.98%，与本缺陷无关）。Phase 3 已执行，8 项完成 7 项，**`P3-6` 卡在绑定 2 的一句字面口径上，等人裁**。
 > Mission: p1-insight
 > Work Item: 10b（`02-WBS.md` 的 `P1.8a-fix` 行）
 > Last Reviewed: 2026-08-26
@@ -286,8 +287,12 @@ Exit Criteria:
 
 ### Phase 3 — 落地 + 验收：连续 3 次 run 全绿
 
-Status: planned
-Targets: 由 Phase 2 选中项决定（预期落在 `agenerp/serve/**` 或 `docker-compose.yml` / `tools/nginx/**`）
+Status: **8 项完成 7 项 —— `P3-6` 待人一句裁定（绑定 2 的路径清单口径），其余全部完成并验证**
+🔴 **不写 `completed`**：`P3-6` 的绑定 2 字面未满足（详见该条执行注记），而本 plan 逐字写死「**缺一条这次验收就不算数**」⇒ loop 不自批。
+Targets: ~~由 Phase 2 选中项决定（预期落在 `agenerp/serve/**` 或 `docker-compose.yml` / `tools/nginx/**`）~~
+🔴 **实际落点与这句「预期」不同，照实改准**：`D-26` 落在 **`tests/unit/test_explain_service_body.py`**（人落，红线 1）；
+loop 侧落点是 **`tests/unit/test_explain_service_timeout_budgets.py`**（新增判据）+ `docs/architecture/module-boundaries.md` §7.21。
+**`agenerp/**` / `docker-compose.yml` / `tools/**` 本轮一个字节未改** —— 这正是绑定 2 字面不满足的直接原因。
 Skill: `none`
 
 - Item Types: `Proof`（8 条里 6 条）+ `Fix`（P3-1 / P3-7）
@@ -310,23 +315,40 @@ Skill: `none`
       3. **三次都必须真调过模型。**⚠️ **验证手段起草时写错过，改正**：初稿说「逐次在日志里确认走 200 分支」，但 `tools/gates/check_expected_red.py` 起的 pytest 带 `-q --tb=no` 且 `capture_output=True`，而 `失败取证` 是 `if: failure()` ⇒ **绿 run 的日志里没有逐条明细，这条验不了。**⇒ **改用两条能验的**：(i) 逐次确认该 run 的**起栈步与判定步都拿到了非空的 `AGENERP_LLM_*`**（fork PR 拿不到 Secrets ⇒ 只取 `push` 事件，已是绑定的一部分）；(ii) 逐次记该 job 的**墙钟**并与 P1-3 量出的真解释耗时对照 —— 没真调模型的 run 会明显短。⚠️ **(ii) 是弱证据，必须逐字标注成弱证据**，不许写成「已证实真调过」。
       4. **修复提交的 diff 必须就是 `D-b-9` 里选中的那个修法本身**，`D-b-9` 逐字点名它改的文件与函数/配置项。⚠️ **绑定 2 只查「diff 非空」，挡不住注释级改动或改 `expected-red.txt` 凑数** —— 本条堵的正是那个。
       5. **Phase 1 的机制陈述必须已经成立**（P1-8）。⚠️ **若 CI 自己转绿而机制陈述始终写不出来 ⇒ 那不是修好了，是这一轮没咬到** ⇒ 走**停机分支 F**，不许结案。
+      🟡 **执行记（2026-08-26）：三次连绿已拿到并逐条核过，但绑定 2 的字面口径不满足 ⇒ 本条不打勾，交人一句裁定。**
+      **三次 run（`push` 事件，互不为同一 run 的 attempt，中间无红）**：
+
+      | # | run id | sha | 判定步原文 | 判定步墙钟 |
+      |---|---|---|---|---|
+      | 1 | `32924757237` | `182ef2a`（**修复提交本身**） | `门禁 54 项：红 0，绿 54，跳过 0` | 33s |
+      | 2 | `32924918686` | `cb3ad79` | `门禁 54 项：红 0，绿 54，跳过 0` | 33s |
+      | 3 | `32925450458` | `aae1843` | `门禁 54 项：红 0，绿 54，跳过 0` | 25s |
+
+      **五条绑定逐条核**：
+      - **绑定 1 ✅** `git merge-base --is-ancestor 182ef2a <sha>` 三个**全退 0**。⚠️ 按本条要求**开工时重取过** `gh run list`：修复提交之前的连绿此时已达 **8 次**（比第 7 轮记的 5 次又长了 `fecbd59` / `d69b335` / `653b281` 三次），**一次都不计**。
+      - **绑定 2 ❌ 字面不满足，逐字照实记，不自行放宽。**原样跑 `git diff --stat 182ef2a^ 182ef2a -- agenerp/ docker-compose.yml tools/` → **空输出**。原因是 **Phase 2 的裁定把落点挪出了这个路径清单**：本条的清单抄自 Phase 3 `Targets` 那句「**预期**落在 `agenerp/serve/**` 或 `docker-compose.yml` / `tools/nginx/**`」，而实际选中的 `D-26` 落在 `tests/unit/test_explain_service_body.py`。⚠️ **本条的立意逐字是「纯文档提交攒出来的绿不是验收」，而修复提交改的是门禁真正加载并执行的 Python（`37+ 5-`），不是文档** ⇒ **立意满足、字面不满足。**🔴 **loop 不自判「立意满足即通过」** —— 绑定 2 正是这五条里的防伪条款，放宽它等于 loop 给自己发豁免。⇒ **停机交人，问题只有一句：「绑定 2 的路径清单是不是应当读作『修复提交不得是纯文档提交』？」**已写进 `STATE.md` §3。
+      - **绑定 3 ✅（(i) 强证据）** 三次的**起栈步与判定步**都实读到非空 `AGENERP_LLM_*`（日志里是 `***` —— GitHub 只掩非空 secret，空值会打成空白），且三次**全是 `push` 事件**（fork PR 拿不到 Secrets）。**(ii) ⚠️ 弱证据，逐字标注成弱证据**：判定步墙钟 33s / 33s / 25s，与 `P1-3` 量到的「真解释 ≈3–6s × 2 发」同量级；**没真调模型的 run 会明显短，但这不是「已证实真调过」**。
+      - **绑定 4 ✅** `D-b-9` 续记已**逐字点名**改的文件（`tests/unit/test_explain_service_body.py`，唯一）· 函数（`_request()`，`:139` 签名 + `:146` 传参）· 配置项（`TIMEOUT` 删、`CHEAP_TIMEOUT = 30` / `EXPLAIN_TIMEOUT = 180` 新增）· 四个改用长预算的调用点与六处保持短预算的。**未动 `tools/gates/expected-red.txt` 一个字节。**
+      - **绑定 5 ✅** `P1-8` 的机制陈述成立（每个成分指得回一个数字）。⚠️ **不是停机分支 F**：分支 F 的触发条件是「CI 自己转绿而机制陈述写不出来」，而机制陈述**写出来了**；「长尾成因」是机制陈述**之外**的一格，`p1-8` 与 `D-b-9` 都逐字标注过它未查明。
 - [x] **P3-7 `Fix` owner-doc 对齐**：`module-boundaries.md` §7.21 的 `D-b-9` 补上实测结果；若改了 compose/nginx 则同步 `system-baseline.md` 对应节。
       ✅ **执行记**：`module-boundaries.md` §7.21 追加 **`D-b-9` 续记**一节（`git diff --numstat` → **`45  0`**，45 增 **0 删** ⇒ `D-b-1`…`D-b-8` **与 `D-b-9` 原有正文**一并零改动，原文逐字保留，不改写「本轮不落地修法」那句 —— 它记的是停机那一刻）。**未改 `system-baseline.md`** —— 本轮没动 compose/nginx，无对应节需要同步。
-- [ ] **P3-8 `Proof` 往 `STATE.md` §3 追加一条证据行**（**只追加，不改写既有行**，红线 5），含命令原文 + 退出码 + 三次 run id + commit sha。
+- [x] **P3-8 `Proof` 往 `STATE.md` §3 追加一条证据行**（**只追加，不改写既有行**，红线 5），含命令原文 + 退出码 + 三次 run id + commit sha。
       🔴 **第 6 轮独立评审改正本条的授权陈述 —— 原文写反了，现已过期**：原文逐字「⚠️ **不代人写 roadmap 10b 的状态词**（§0 的授权边界）—— 状态源是 `人`。」**`f144475` 之后状态源是 `` `MD:p1-explain` ``，即这一行的状态词本来就归 loop 维护**（表规 2 逐字：状态源就是这一格的定义）。⇒ **收口时 loop 应当写 `02-WBS.md:88` 与 roadmap `10b` 的状态词，不写反而是漏做。**
       ⚠️ **但这不是把闸门放开，而是把闸门挪到该在的地方 —— 三条硬约束写死**：
       ① **`02-WBS.md` 只许改 `P1.8a-fix` 那一行的「状态」一格**，行内其余文字、以及其余任何一行**一个字节不改**（红线 5 对 `docs/masterplan/` 其余文件仍然全效；`02-WBS.md` 的其他行不在本行的状态源覆盖范围内）。自证：`git diff $BASE..HEAD -- docs/masterplan/02-WBS.md` 的输出**必须只有 1 增 1 删且都在第 88 行**。
       ② **状态词与证据必须同一次提交落地** —— 改状态的那个 commit 里必须同时有三个 run id + 修复 sha（`02-WBS.md:88` 逐字要求「收口时必须点名那个 commit 的 sha，并列出 3 次 run 的 id —— 指不出来就不算达标」）。
       ③ **P3-6 五条绑定未全部满足时，一个状态词都不许写。**⚠️ **B1 已实测：`main` 上此刻就躺着三次连绿，全在修复之前** ⇒ **「CI 是绿的」从来不是写状态词的依据。**
 
+      ✅ **执行记**：`STATE.md` §3 已追加一条证据行（**只追加**，`git diff $BASE_3..HEAD -- docs/masterplan/STATE.md | grep -c '^-[^-]'` → **`0`**），含五条命令原文与退出码 · 三个 run id + sha + 判定步原文 · 修复提交 sha `182ef2a` + 守卫提交 sha `aae1843`。
+      🔴 **③ 逐字生效，状态词一个都没写**：`P3-6` 的**绑定 2 字面未满足** ⇒ 按本条 ③「五条绑定未全部满足时，一个状态词都不许写」，`02-WBS.md:88` 与 roadmap `10b` **本轮零改动**（自证：`git diff --name-only 182ef2a..HEAD -- docs/masterplan/02-WBS.md docs/backlog/p1-insight-roadmap.md` → **无输出**）。⚠️ **这不是漏做，是本条自己写死的闸门**；人裁定绑定 2 之后再写，那时 ①②③ 三条硬约束一并适用。
 Exit Criteria:
 
-- [ ] 修法落地且有离线判据守着，变异自查逐条记录（含打不红的）
-- [ ] P3-4 的**五条无条件命令全部 exit 0**（`check_expected_red.py` / `pytest tests/unit` / `pytest tests/contracts tests/tools tests/routing tests/context` / `ruff check` / `bash tools/check-masterplan-links.sh`），原文与退出码落盘；**两条有条件**命令（`pytest tests/unit/test_compose_zero_dep.py`、P3-5 冷起）只在改了 compose / nginx 时必跑，未触发时逐字写明「未触发，本轮未改 compose/nginx」
-- [ ] **`gates-l2-live` 连续 3 次 `push` run 全绿零跳过**，三个 run id 可 `gh run view` 复核
-- [ ] `module-boundaries.md` §7.21 已对齐（`D-b-1`…`D-b-8` 零改动）
-- [ ] `STATE.md` §3 已追加证据行（`git diff $BASE..HEAD -- docs/masterplan/STATE.md | grep -c '^-[^-]'` → **`0`**）。🔴 **口径由第 4 轮独立评审改正**：原文是裸 `git diff`，**只看工作区** —— 而 P3-8 的追加行**必然是提交出去的**，提交之后该命令恒输出 `0`，等于一条永远为真的红线 5 自证。与 `Closure Gates` 那条同口径。🆕 ⚠️ **第 7 轮补**：计数非零时按 `Closure Gates` 那条「逐 commit 归属」两步法读，**不许因为「可能是人改的」就略过归属**。
-- [ ] `docs/logs/` 更新
+- [x] 修法落地且有离线判据守着，变异自查逐条记录（含打不红的）—— ✅ 修法 `182ef2a`（人）· 判据 `tests/unit/test_explain_service_timeout_budgets.py` 6 条（3 条行为判据）· 变异 **7 条逐条打红、0 条打不红**（`p3-2-p3-3-guard-and-mutations.md` §3）
+- [x] P3-4 的**五条无条件命令全部 exit 0**（`check_expected_red.py` / `pytest tests/unit` / `pytest tests/contracts tests/tools tests/routing tests/context` / `ruff check` / `bash tools/check-masterplan-links.sh`），原文与退出码落盘；**两条有条件**命令（`pytest tests/unit/test_compose_zero_dep.py`、P3-5 冷起）只在改了 compose / nginx 时必跑，未触发时逐字写明「未触发，本轮未改 compose/nginx」
+- [x] **`gates-l2-live` 连续 3 次 `push` run 全绿零跳过**，三个 run id 可 `gh run view` 复核 —— ✅ `32924757237` / `32924918686` / `32925450458`，三次判定步原文均为 `门禁 54 项：红 0，绿 54，跳过 0`。⚠️ **本条只判「三次连绿且可复核」，它成立**；`P3-6` 那五条**防刷绑定**另有一条（绑定 2）字面未满足，见该条执行注记 —— **两者不是同一件事，不许拿本条的 `[x]` 去顶替 `P3-6`。**
+- [x] `module-boundaries.md` §7.21 已对齐（`D-b-1`…`D-b-8` 零改动）—— ✅ `git diff --numstat -- docs/architecture/module-boundaries.md` 两次追加合计 **`60  0`**（60 增 **0 删**）⇒ `D-b-1`…`D-b-8` 与 `D-b-9` 原有正文一并零改动
+- [x] `STATE.md` §3 已追加证据行（`git diff $BASE..HEAD -- docs/masterplan/STATE.md | grep -c '^-[^-]'` → **`0`**）。🔴 **口径由第 4 轮独立评审改正**：原文是裸 `git diff`，**只看工作区** —— 而 P3-8 的追加行**必然是提交出去的**，提交之后该命令恒输出 `0`，等于一条永远为真的红线 5 自证。与 `Closure Gates` 那条同口径。🆕 ⚠️ **第 7 轮补**：计数非零时按 `Closure Gates` 那条「逐 commit 归属」两步法读，**不许因为「可能是人改的」就略过归属**。
+- [x] `docs/logs/` 更新 —— ✅ `docs/logs/2026/08-26.md` 两条
 
 ## Execution Record（2026-08-26）
 
@@ -549,6 +571,10 @@ $ bash tools/check-masterplan-links.sh
 | — | — | — | — | 🔴 **探路闸 6/6 用尽 ⇒ 停机分支 C 的额度前置就此触发；此后一次调用都不再花** | — | **6** | — |
 | — | — | — | — | 🔴 **2026-08-26T03:0xZ 闸门状态变更**：人在 `182ef2a` 的 `STATE.md` 条目里逐字「⑦ 留给人……**它不阻塞本条**」，且逐字「**验收仍是『连续 3 次全绿且都在落地修复的 commit 及其之后』—— 本次就是那个 commit，从它开始数**」⇒ **验收（`P3-6`）获授权继续**；⚠️ **总闸仍未现算**（真实剩余额度仍读不到），故本表继续逐行登记，**一旦 `P3-6` 拿到 3 连绿即停，不多推一次** | — | **6** | — |
 | 4 | `32924757237` | `182ef2a` | `push`（**人推的**，非 loop） | `门禁 54 项：红 0，绿 54，跳过 0`（判定步 **33s**） | 2 | **8** | **验收（`P3-6` 第 1 次）· 预期绿 —— 实测绿** ✅ |
+| — | — | — | — | 🔴 **2026-08-26T03:01Z 总闸终于读出来了 —— 但不是 loop 读的**：人查百炼控制台（`cb3ad79`）⇒ CI 在用的 `qwen3.7-flash` 剩 **999,803 / 1,000,000（99.98%）**，过期 2026/10/23。⚠️ **本仓仍然没有读取通道**（`P1-0` 的结论一个字未变），这一格是**人代读的**，`P1-0` 那条出路 ② 不因此作废 | — | **8** | — |
+| 5 | `32924918686` | `cb3ad79` | `push`（**人推的**，非 loop） | `门禁 54 项：红 0，绿 54，跳过 0`（判定步 **33s**） | 2 | **10** | **验收（`P3-6` 第 2 次）· 预期绿 —— 实测绿** ✅ |
+| 6 | `32925450458` | `aae1843` | `push`（**loop 推的**，`P3-2`/`P3-3` 交付） | `门禁 54 项：红 0，绿 54，跳过 0`（判定步 **25s**） | 2 | **12** | **验收（`P3-6` 第 3 次）· 预期绿 —— 实测绿** ✅ |
+| — | — | — | — | 🔴 **三次连绿已凑齐，`P3-6` 就此停手，不多推一次去「保险」** —— 本表逐字规矩「一旦拿到 3 连绿即停」。此后 loop 还会有**一次**收口 push（本行所在的这次提交），按换算 **+2**，记在 loop 账上 | 2 | **14** | 收口（`P3-8` + 本表 + `D-b-9` 绑定 4 那张表）· 预期绿 |
 
 ⚠️ **重跑口径**：`gh run rerun` 产生的是**同一个 run id 下的新 attempt**，不是新 run。⇒ **取证（P1-6）可以用重跑**，**验收（P3-6）只认三个互相独立的 run id**，重跑 attempt **一律不计入那三次**。
 
@@ -752,7 +778,19 @@ $ bash tools/check-masterplan-links.sh
 
 ## Closure
 
-Status Note: **未收口。**本 plan 于 2026-08-26 由 `active` 转 `deferred` —— Phase 1/2 完成，Phase 2 以**停机分支 A** 收尾（唯一可行修法落在红线 1），Phase 3 未执行。收口审计**不在本轮做**：没有修法可审，也没有 `P3-6` 的三次绿可核。**重开事件：人裁定停机分支 A 那个问题之后。**详见 `## Execution Record（2026-08-26）`。
+Status Note: **未收口，但卡点已经换了一个 —— 而且只剩一句。**
+🔴 **2026-08-26 更新（原文那段保留在下面，不改写）**：**停机分支 A 与 C 都被人解除了**（`182ef2a` 的 `D-26` + `cb3ad79` 的额度答复），
+Phase 3 已执行：修法已落地（人）· 离线判据已配齐（loop，6 条含 3 条行为判据）· 变异 **7/7 打红** ·
+五条无条件命令全 exit 0 · **`gates-l2-live` 连续 3 次 `push` run 全绿零跳过已拿到**（`32924757237` / `32924918686` / `32925450458`）。
+⇒ **现在挡着收口的只有两件事**：
+① **`P3-6` 的绑定 2 字面未满足** —— 它要求「修复提交在 `agenerp/` / `docker-compose.yml` / `tools/` 里有非空 diff」，
+   而 `D-26` 落在 `tests/unit/test_explain_service_body.py`。**立意（「纯文档提交攒出来的绿不是验收」）满足，字面不满足。**
+   **loop 不自批** —— 那是这五条里的防伪条款。**要人答一句**：绑定 2 的路径清单是不是应当读作「修复提交不得是纯文档提交」？
+   （已写进 `STATE.md` §3。答「是」⇒ `P3-6` 打勾、`P3-8` 的三条硬约束解锁、写状态词、走收口审计；答「否」⇒ 这次验收不算数，回 Phase 3。）
+② **独立收口审计还没做** —— 本 plan 逐字「**执行者自己复跑不算**」，需要一位非本轮执行者的审计员。
+⚠️ **`02-WBS.md:88` 与 roadmap `10b` 的状态词本轮一个字都没写**（`P3-8` ③），**这是闸门，不是漏做。**
+
+~~原文（停机那一刻的实况，逐字保留）~~：**未收口。**本 plan 于 2026-08-26 由 `active` 转 `deferred` —— Phase 1/2 完成，Phase 2 以**停机分支 A** 收尾（唯一可行修法落在红线 1），Phase 3 未执行。收口审计**不在本轮做**：没有修法可审，也没有 `P3-6` 的三次绿可核。**重开事件：人裁定停机分支 A 那个问题之后。**详见 `## Execution Record（2026-08-26）`。
 
 Closure Audit Evidence:
 
