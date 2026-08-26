@@ -18,87 +18,86 @@ from __future__ import annotations
 from agenerp.dsl.blocks import Block, View
 from agenerp.dsl.fallback import RENDERABLE_FIELDTYPES, SUPPORTED_BLOCK_TYPES, plan_render
 
-from tests.dsl.conftest import SALES_SCHEMA
-
 
 def _view(*blocks: Block) -> View:
     return View(name="v", title="t", blocks=blocks)
 
 
-def test_a_fully_supported_view_renders_with_nothing_falling_back():
+def test_a_fully_supported_view_renders_with_nothing_falling_back(schema):
     plan = plan_render(_view(Block(type="list", doctype="Sales Order",
-                                   fields=("customer", "transaction_date"))), SALES_SCHEMA)
+                                   fields=("customer", "transaction_date"))), schema)
     assert len(plan.rendered) == 1
     assert plan.fallbacks == ()
 
 
-def test_a_block_type_this_renderer_does_not_support_falls_back_to_desk():
-    unsupported = next((t for t in ("chart", "metric", "explain")
-                        if t not in SUPPORTED_BLOCK_TYPES), None)
-    if unsupported is None:
-        # 这一版全支持 —— 用一个**未来的**块类型走同一条路，见下一条判据。
-        return
-    plan = plan_render(_view(Block(type=unsupported, doctype="Sales Order",
-                                   fields=("grand_total",), agg="sum")), SALES_SCHEMA)
-    assert plan.rendered == ()
-    assert len(plan.fallbacks) == 1
+def test_this_version_of_the_renderer_supports_all_five_block_types(schema):
+    """这一版五种块全支持 —— 这件事要写死，因为它决定了下一条判据在测什么。
+
+    ⚠️ 原本这里想写「渲染器不支持的块类型落回 Desk」，但这一版没有
+    「认识但画不了」的块类型 —— 那样的判据会**恒真而无判别力**，
+    也就是本仓说的「半条判据」。所以改成把当前支持面钉死；
+    「不认识的类型落回」由下一条（未来块类型）判据实测。
+    """
+    from agenerp.dsl.blocks import BLOCK_TYPES
+
+    assert SUPPORTED_BLOCK_TYPES == BLOCK_TYPES
 
 
-def test_a_block_type_from_the_future_falls_back_instead_of_raising():
+def test_a_block_type_from_the_future_falls_back_instead_of_raising(schema):
     # 渲染器读到一个它这一版根本不认识的类型时，**必须落回 Desk**。
     # 炸掉会让整个视图打不开；静默丢弃会让用户以为那块内容本来就不存在。
     plan = plan_render(_view(Block(type="kanban", doctype="Sales Order",
-                                   fields=("status",))), SALES_SCHEMA)
+                                   fields=("status",))), schema)
     assert plan.rendered == ()
     assert len(plan.fallbacks) == 1
     assert "kanban" in plan.fallbacks[0].reason
 
 
-def test_a_field_whose_type_this_renderer_cannot_draw_makes_its_block_fall_back():
+def test_a_field_whose_type_this_renderer_cannot_draw_makes_its_block_fall_back(schema):
     # `terms` 是 `Text Editor`（富文本）。渲染器画不了就整块落回，
     # **不许悄悄把这一列删掉再画** —— 那是「画出来了但画的不是用户要的东西」。
     assert "Text Editor" not in RENDERABLE_FIELDTYPES
     plan = plan_render(_view(Block(type="list", doctype="Sales Order",
-                                   fields=("customer", "terms"))), SALES_SCHEMA)
+                                   fields=("customer", "terms"))), schema)
     assert plan.rendered == ()
     assert len(plan.fallbacks) == 1
     assert "terms" in plan.fallbacks[0].reason
 
 
-def test_a_supported_block_still_renders_when_a_sibling_block_falls_back():
+def test_a_supported_block_still_renders_when_a_sibling_block_falls_back(schema):
     # 落回是**块粒度**的，不是整个视图一起陪葬。
     good = Block(type="list", doctype="Sales Order", fields=("customer",))
     bad = Block(type="kanban", doctype="Sales Order", fields=("status",))
-    plan = plan_render(_view(good, bad), SALES_SCHEMA)
+    plan = plan_render(_view(good, bad), schema)
     assert len(plan.rendered) == 1
     assert len(plan.fallbacks) == 1
     assert plan.fallbacks[0].index == 1
 
 
-def test_every_fallback_says_why():
+def test_every_fallback_says_why(schema):
     # §10.3：前端只做提示（「你看不到这个，因为…」）。
     # 一个没有理由的落回，用户看到的是一块凭空消失的内容。
     plan = plan_render(_view(Block(type="kanban", doctype="Sales Order", fields=("status",))),
-                       SALES_SCHEMA)
+                       schema)
     assert plan.fallbacks[0].reason.strip() != ""
 
 
-def test_a_field_that_does_not_exist_falls_back_rather_than_being_drawn():
+def test_a_field_that_does_not_exist_falls_back_rather_than_being_drawn(schema):
     # 渲染器不是校验器的替代品，但它**也不能**把一个不存在的字段画出来。
     # 两层各自 fail-closed，谁也不依赖对方跑过。
     plan = plan_render(_view(Block(type="list", doctype="Sales Order", fields=("custmoer",))),
-                       SALES_SCHEMA)
+                       schema)
     assert plan.rendered == ()
     assert "custmoer" in plan.fallbacks[0].reason
 
 
-def test_the_supported_sets_are_closed_tuples_not_open_containers():
+def test_the_supported_sets_are_closed_tuples_not_open_containers(schema):
     # 「未支持的一律落回」只有在「支持的是一张封闭表」时才有意义（D-15）。
     assert isinstance(SUPPORTED_BLOCK_TYPES, tuple)
     assert isinstance(RENDERABLE_FIELDTYPES, tuple)
 
 
-def test_deciding_what_falls_back_involves_no_model_call():
+def test_deciding_what_falls_back_involves_no_model_call(schema):
     """D-15 / 硬约束 ③：这一步是规则面，不许交给模型判。
 
     判法：`agenerp/dsl/fallback.py` 的源码里不许出现任何模型/路由/LLM 的入口。

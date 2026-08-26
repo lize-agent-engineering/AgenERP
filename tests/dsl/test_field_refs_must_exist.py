@@ -24,72 +24,70 @@ import pytest
 from agenerp.dsl.blocks import Block, View
 from agenerp.dsl.validate import SchemaUnavailable, validate
 
-from tests.dsl.conftest import SALES_SCHEMA
-
 
 def _view(block: Block) -> View:
     return View(name="v", title="t", blocks=(block,))
 
 
-def test_a_structurally_perfect_block_is_still_rejected_when_the_field_does_not_exist():
+def test_a_structurally_perfect_block_is_still_rejected_when_the_field_does_not_exist(schema):
     # 块本身挑不出毛病：类型对、doctype 对、fields 非空。错的只有一个字母。
     block = Block(type="list", doctype="Sales Order", fields=("customer", "custmoer"))
-    result = validate(_view(block), SALES_SCHEMA)
+    result = validate(_view(block), schema)
     assert not result.ok
     assert any("custmoer" in e for e in result.errors)
 
 
-def test_a_block_pointing_at_a_doctype_that_does_not_exist_is_rejected():
+def test_a_block_pointing_at_a_doctype_that_does_not_exist_is_rejected(schema):
     block = Block(type="list", doctype="Sales Ordr", fields=("customer",))
-    result = validate(_view(block), SALES_SCHEMA)
+    result = validate(_view(block), schema)
     assert not result.ok
     assert any("Sales Ordr" in e for e in result.errors)
 
 
-def test_the_field_check_looks_at_the_blocks_own_doctype_not_any_doctype():
+def test_the_field_check_looks_at_the_blocks_own_doctype_not_any_doctype(schema):
     # `qty` 在 `Sales Order Item` 上真实存在，但**不在 `Sales Order` 上**。
     # 一个只问「这个字段名在整个 schema 里出现过吗」的实现会放它过去 ——
     # 而那正是 P2.0R 实测出的头号错法：**语义对了，单据错了**。
     block = Block(type="list", doctype="Sales Order", fields=("qty",))
-    result = validate(_view(block), SALES_SCHEMA)
+    result = validate(_view(block), schema)
     assert not result.ok
     assert any("qty" in e for e in result.errors)
 
 
-def test_a_metric_aggregate_field_goes_through_the_same_existence_check():
+def test_a_metric_aggregate_field_goes_through_the_same_existence_check(schema):
     # 每一处字段引用都要过这一层，不是只有 list 的 fields 过。
     block = Block(type="metric", doctype="Sales Order", fields=("gross_total",), agg="sum")
-    result = validate(_view(block), SALES_SCHEMA)
+    result = validate(_view(block), schema)
     assert not result.ok
     assert any("gross_total" in e for e in result.errors)
 
 
-def test_a_chart_axis_field_goes_through_the_same_existence_check():
+def test_a_chart_axis_field_goes_through_the_same_existence_check(schema):
     block = Block(type="chart", doctype="Sales Order",
                   fields=("transaction_date", "grnd_total"), chart_kind="line")
-    result = validate(_view(block), SALES_SCHEMA)
+    result = validate(_view(block), schema)
     assert not result.ok
     assert any("grnd_total" in e for e in result.errors)
 
 
-def test_a_filter_field_goes_through_the_same_existence_check():
+def test_a_filter_field_goes_through_the_same_existence_check(schema):
     # 筛选条件里的字段同样是「自然语言 → 字段」的产物，同样要指回真实字段。
     block = Block(type="list", doctype="Sales Order", fields=("customer",),
                   filters=(("statuz", "=", "To Deliver"),))
-    result = validate(_view(block), SALES_SCHEMA)
+    result = validate(_view(block), schema)
     assert not result.ok
     assert any("statuz" in e for e in result.errors)
 
 
-def test_a_sort_field_goes_through_the_same_existence_check():
+def test_a_sort_field_goes_through_the_same_existence_check(schema):
     block = Block(type="list", doctype="Sales Order", fields=("customer",),
                   sort=("transation_date", "desc"))
-    result = validate(_view(block), SALES_SCHEMA)
+    result = validate(_view(block), schema)
     assert not result.ok
     assert any("transation_date" in e for e in result.errors)
 
 
-def test_every_field_ref_the_view_uses_can_be_enumerated():
+def test_every_field_ref_the_view_uses_can_be_enumerated(schema):
     # 「这个视图用到了哪些字段」必须有唯一答案 —— 否则 P2.5 的 schema.drift
     # 巡检没法知道该盯哪些列。
     block = Block(type="list", doctype="Sales Order", fields=("customer", "grand_total"),
@@ -103,7 +101,7 @@ def test_every_field_ref_the_view_uses_can_be_enumerated():
     )
 
 
-def test_validating_without_a_schema_raises_instead_of_reporting_success():
+def test_validating_without_a_schema_raises_instead_of_reporting_success(schema):
     """🔴 验不了的东西不许算过。
 
     这是 P1 那个 `or` 的教训的直接执行：当时
@@ -118,7 +116,7 @@ def test_validating_without_a_schema_raises_instead_of_reporting_success():
         validate(_view(block), None)
 
 
-def test_an_empty_schema_is_not_treated_as_permission_to_skip_the_check():
+def test_an_empty_schema_is_not_treated_as_permission_to_skip_the_check(schema):
     # 空的 schema 视图是「这个站点什么都没有」，不是「别查了」。
     from agenerp.dsl.schema import SchemaView
 

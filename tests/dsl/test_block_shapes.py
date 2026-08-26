@@ -15,14 +15,12 @@ import pytest
 from agenerp.dsl.blocks import BLOCK_TYPES, Block, View
 from agenerp.dsl.validate import DslError, validate
 
-from tests.dsl.conftest import SALES_SCHEMA
-
 
 def _view(*blocks: Block) -> View:
     return View(name="sales-overview", title="销售总览", blocks=blocks)
 
 
-def test_the_five_block_types_are_exactly_the_ones_the_owner_doc_lists():
+def test_the_five_block_types_are_exactly_the_ones_the_owner_doc_lists(schema):
     # §10.2 的表就是这五行。多一种少一种都是 DSL 与 owner doc 打架。
     assert BLOCK_TYPES == ("list", "detail", "metric", "chart", "explain")
 
@@ -39,83 +37,83 @@ def test_the_five_block_types_are_exactly_the_ones_the_owner_doc_lists():
     ],
     ids=list(BLOCK_TYPES),
 )
-def test_each_of_the_five_blocks_validates_when_it_is_well_formed(block):
-    result = validate(_view(block), SALES_SCHEMA)
+def test_each_of_the_five_blocks_validates_when_it_is_well_formed(block, schema):
+    result = validate(_view(block), schema)
     assert result.ok
     assert result.errors == ()
 
 
-def test_an_unknown_block_type_is_rejected_not_quietly_dropped():
+def test_an_unknown_block_type_is_rejected_not_quietly_dropped(schema):
     # 「宽容地忽略」等于 DSL 有一个没人看管的入口。
     result = validate(_view(Block(type="timeline", doctype="Sales Order", fields=("customer",))),
-                      SALES_SCHEMA)
+                      schema)
     assert not result.ok
     assert any("timeline" in e for e in result.errors)
 
 
-def test_a_list_block_with_no_fields_is_rejected():
-    result = validate(_view(Block(type="list", doctype="Sales Order", fields=())), SALES_SCHEMA)
+def test_a_list_block_with_no_fields_is_rejected(schema):
+    result = validate(_view(Block(type="list", doctype="Sales Order", fields=())), schema)
     assert not result.ok
     assert any("fields" in e for e in result.errors)
 
 
-def test_a_metric_block_without_an_aggregate_is_rejected():
+def test_a_metric_block_without_an_aggregate_is_rejected(schema):
     result = validate(_view(Block(type="metric", doctype="Sales Order", fields=("grand_total",))),
-                      SALES_SCHEMA)
+                      schema)
     assert not result.ok
     assert any("agg" in e for e in result.errors)
 
 
-def test_a_metric_block_with_an_aggregate_outside_the_closed_set_is_rejected():
+def test_a_metric_block_with_an_aggregate_outside_the_closed_set_is_rejected(schema):
     result = validate(
         _view(Block(type="metric", doctype="Sales Order", fields=("grand_total",), agg="median")),
-        SALES_SCHEMA,
+        schema,
     )
     assert not result.ok
     assert any("median" in e for e in result.errors)
 
 
-def test_a_chart_block_needs_exactly_two_fields():
+def test_a_chart_block_needs_exactly_two_fields(schema):
     # 一根轴画不出图，三根轴 v0 不支持 —— 两种都得当场说清楚，不是运行期才炸。
     result = validate(
         _view(Block(type="chart", doctype="Sales Order", fields=("grand_total",), chart_kind="bar")),
-        SALES_SCHEMA,
+        schema,
     )
     assert not result.ok
     assert any("chart" in e for e in result.errors)
 
 
-def test_an_explain_block_without_a_question_is_rejected():
-    result = validate(_view(Block(type="explain", question="")), SALES_SCHEMA)
+def test_an_explain_block_without_a_question_is_rejected(schema):
+    result = validate(_view(Block(type="explain", question="")), schema)
     assert not result.ok
     assert any("question" in e for e in result.errors)
 
 
-def test_an_explain_block_must_not_carry_fields():
+def test_an_explain_block_must_not_carry_fields(schema):
     # explain 是解释性文本块（§10.2），它不投影字段。
     # 允许它带 fields 会让「哪些字段被这个视图用到」这个问题有两个答案。
     result = validate(_view(Block(type="explain", question="为什么？", doctype="Sales Order",
-                                  fields=("customer",))), SALES_SCHEMA)
+                                  fields=("customer",))), schema)
     assert not result.ok
     assert any("explain" in e for e in result.errors)
 
 
-def test_a_view_with_zero_blocks_is_rejected():
-    result = validate(View(name="empty", title="空", blocks=()), SALES_SCHEMA)
+def test_a_view_with_zero_blocks_is_rejected(schema):
+    result = validate(View(name="empty", title="空", blocks=()), schema)
     assert not result.ok
     assert any("blocks" in e for e in result.errors)
 
 
-def test_errors_name_which_block_went_wrong():
+def test_errors_name_which_block_went_wrong(schema):
     # 十个块里错一个，不该靠人肉找 —— 与 agenerp/contracts.py 的校验器同一条纪律。
     bad = Block(type="list", doctype="Sales Order", fields=())
     good = Block(type="detail", doctype="Sales Order", fields=("customer",))
-    result = validate(_view(good, bad), SALES_SCHEMA)
+    result = validate(_view(good, bad), schema)
     assert not result.ok
     assert any("blocks[1]" in e for e in result.errors)
 
 
-def test_blocks_are_frozen_so_a_validated_view_cannot_be_mutated_afterwards():
+def test_blocks_are_frozen_so_a_validated_view_cannot_be_mutated_afterwards(schema):
     # 校验过的东西还能改，等于没校验。
     block = Block(type="list", doctype="Sales Order", fields=("customer",))
     with pytest.raises((AttributeError, DslError)):
