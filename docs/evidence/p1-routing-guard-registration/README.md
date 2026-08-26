@@ -146,6 +146,35 @@ M6 因此改成「把类名本身改掉」。
 **L2 的预测与 M6 的预测刻意相反** —— 两条判据在同一个文件里，一条有存活守卫、一条没有。
 这正是第 3/4 列必须逐条分开写实的原因。
 
+### L1 实测 · 第二处 agent 循环
+
+- 预测：**红** —— **实测：红 ✅ 吻合**
+- `python3 -m pytest tests/gates/test_agent_seam_stays_swappable.py -q` → **exit 1**
+- 失败文案首行逐字：
+
+  ```
+  E       AssertionError: 出现了第二处 agent 循环：{'agenerp/judging/judge.py': [101]}
+  ```
+- `sha256 agenerp/judging/judge.py`：`534aa0bd…` → 同值 **RESTORED OK**
+
+### L2 实测 · 守护对象消失（`.chat` 整体改名）
+
+- 预测：**红，由 `:74` 的存活守卫捕获** —— **实测：红 ✅ 吻合，且捕获者正是那一句**
+- 同一条命令 → **exit 1**
+- 失败文案首行逐字：
+
+  ```
+  E       AssertionError: 一处 agent 循环都没找到 —— 判据本身可能已失效（比如 `.chat` 被改名）。这不是好消息：门禁静默地什么都不再检查。请核对判据而不是删掉本条。
+  ```
+- `sha256`：`agenerp/routing/adapter.py` · `agenerp/explain/loop.py` · `agenerp/judging/judge.py` 三份**同值 RESTORED OK**
+- **判词**：**同一个文件里的两条判据，在「守护对象消失」这一格上表现相反** ——
+  循环那条 **红**（`:74` `assert found`），adapter 那条 **绿**（`:100` 只有 `assert not offenders`）。
+  ⇒ `routing-guards` 表的第 3/4 列**必须逐条分开写实**，不能按文件笼统写一句。
+
+### L1/L2 之后的复原自证
+
+`git status --porcelain -- agenerp/ tools/ tests/` → **零行**。
+
 ## 4. 这条打法本身值得记一句（CP9 §1.2 的可复用打法）
 
 本 plan 的四轮独立评审里，**两次栽在同一个病上**：
