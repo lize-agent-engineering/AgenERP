@@ -1,0 +1,43 @@
+# sha=7a217a2 run=32853424473 conclusion=GREEN
+
+## 取证 —— 服务状态 (docker compose ps)
+ [36;1mdocker compose -f docker-compose.yml ps[0m
+ shell: /usr/bin/bash -e {0}
+ env:
+   pythonLocation: /opt/hostedtoolcache/Python/3.11.16/x64
+   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.11.16/x64/lib/pkgconfig
+   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.16/x64
+   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.16/x64
+   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.16/x64
+   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.11.16/x64/lib
+ ##[endgroup]
+ NAME                      IMAGE                      COMMAND                  SERVICE         CREATED         STATUS                    PORTS
+ agenerp-agenerp-serve-1   frappe/erpnext:v15.119.3   "/usr/local/bin/entr…"   agenerp-serve   2 minutes ago   Up 57 seconds (healthy)
+ agenerp-backend-1         frappe/erpnext:v15.119.3   "/usr/local/bin/entr…"   backend         2 minutes ago   Up 57 seconds (healthy)
+ agenerp-db-1              mariadb:10.6               "docker-entrypoint.s…"   db              2 minutes ago   Up 2 minutes (healthy)    3306/tcp
+ agenerp-frontend-1        frappe/erpnext:v15.119.3   "/usr/local/bin/entr…"   frontend        2 minutes ago   Up 52 seconds (healthy)   127.0.0.1:8080->8080/tcp
+ agenerp-queue-long-1      frappe/erpnext:v15.119.3   "/usr/local/bin/entr…"   queue-long      2 minutes ago   Up 57 seconds
+ agenerp-queue-short-1     frappe/erpnext:v15.119.3   "/usr/local/bin/entr…"   queue-short     2 minutes ago   Up 57 seconds
+ agenerp-redis-cache-1     redis:6.2-alpine           "docker-entrypoint.s…"   redis-cache     2 minutes ago   Up 2 minutes (healthy)    6379/tcp
+ agenerp-redis-queue-1     redis:6.2-alpine           "docker-entrypoint.s…"   redis-queue     2 minutes ago   Up 2 minutes (healthy)    6379/tcp
+ agenerp-scheduler-1       frappe/erpnext:v15.119.3   "/usr/local/bin/entr…"   scheduler       2 minutes ago   Up 57 seconds
+ agenerp-websocket-1       frappe/erpnext:v15.119.3   "/usr/local/bin/entr…"   websocket       2 minutes ago   Up 2 minutes (healthy)
+
+## 取证 —— backend 日志 (--tail 200)
+ [36;1mdocker compose -f docker-compose.yml logs backend --tail 200[0m
+ shell: /usr/bin/bash -e {0}
+ env:
+   pythonLocation: /opt/hostedtoolcache/Python/3.11.16/x64
+   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.11.16/x64/lib/pkgconfig
+   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.16/x64
+   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.16/x64
+   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.16/x64
+   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.11.16/x64/lib
+ ##[endgroup]
+ backend-1  | Linking fresh assets to volume...
+ backend-1  | Booting Gunicorn with 2 workers and 4 threads...
+ backend-1  | [2026-08-25 13:29:27 +0000] [1] [INFO] Starting gunicorn 23.0.0
+ backend-1  | [2026-08-25 13:29:27 +0000] [1] [INFO] Listening at: http://0.0.0.0:8000 (1)
+ backend-1  | [2026-08-25 13:29:27 +0000] [1] [INFO] Using worker: gthread
+ backend-1  | [2026-08-25 13:29:27 +0000] [12] [INFO] Booting worker with pid: 12
+ backend-1  | [2026-08-25 13:29:27 +0000] [13] [INFO] Booting worker with pid: 13

@@ -1,0 +1,44 @@
+
+======================================================================
+# sha=758b7bc run=32839163713 —— 失败取证步（if: failure()）原文摘录
+======================================================================
+ [36;1mecho "───── 解释服务容器最近 60 行 ─────"[0m
+ /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/http/client.py:337:
+ >       line = str(self.fp.readline(_MAXLINE + 1), "iso-8859-1")
+ /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/http/client.py:298:
+ >               return self._sock.recv_into(b)
+ E               TimeoutError: timed out
+ /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/socket.py:718: TimeoutError
+ E       Failed: 127.0.0.1:8080 够不到（timed out）—— 同源前端没在跑
+ =========================== short test summary info ============================
+ FAILED tests/gates/test_explain_service_live.py::test_no_response_through_the_front_ever_echoes_the_sid - Failed: 127.0.0.1:8080 够不到（timed out）—— 同源前端没在跑
+ 1 failed, 25 passed, 28 deselected in 64.49s (0:01:04)
+ ───── 解释服务容器最近 60 行 ─────
+ Exception occurred during processing of request from ('172.18.0.10', 44618)
+   File "/opt/agenerp/agenerp/serve/app.py", line 329, in do_POST
+   File "/opt/agenerp/agenerp/serve/app.py", line 377, in _respond
+ BrokenPipeError: [Errno 32] Broken pipe
+
+======================================================================
+# sha=82a144a run=32841381171 —— 失败取证步（if: failure()）原文摘录
+======================================================================
+ [36;1mecho "───── 解释服务容器最近 60 行 ─────"[0m
+ /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/http/client.py:337:
+ >       line = str(self.fp.readline(_MAXLINE + 1), "iso-8859-1")
+ /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/http/client.py:298:
+ >               return self._sock.recv_into(b)
+ E               TimeoutError: timed out
+ /opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/socket.py:718: TimeoutError
+ E       Failed: 127.0.0.1:8080 够不到（timed out）—— 同源前端没在跑
+ =========================== short test summary info ============================
+ FAILED tests/gates/test_explain_service_live.py::test_the_user_in_the_answer_is_the_person_the_real_sid_resolves_to - Failed: 127.0.0.1:8080 够不到（timed out）—— 同源前端没在跑
+ FAILED tests/gates/test_explain_service_live.py::test_no_response_through_the_front_ever_echoes_the_sid - Failed: 127.0.0.1:8080 够不到（timed out）—— 同源前端没在跑
+ 2 failed, 24 passed, 28 deselected in 81.20s (0:01:21)
+ ───── 解释服务容器最近 60 行 ─────
+   File "/opt/agenerp/agenerp/serve/app.py", line 329, in do_POST
+   File "/opt/agenerp/agenerp/serve/app.py", line 377, in _respond
+ BrokenPipeError: [Errno 32] Broken pipe
+ Exception occurred during processing of request from ('172.18.0.10', 45408)
+   File "/opt/agenerp/agenerp/serve/app.py", line 329, in do_POST
+   File "/opt/agenerp/agenerp/serve/app.py", line 377, in _respond
+ BrokenPipeError: [Errno 32] Broken pipe
