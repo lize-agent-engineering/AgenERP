@@ -418,6 +418,10 @@
   · **本行是事实登记，不是新卡点** —— mission-driver 于本时刻再次把 plan `1118-1` 派回执行，loop 重读全文后判定 **Phase 3 一行都不能动**：`P3-1` 逐字要求「落地 Phase 2 选中的修法」，而 `P2-1` 的选中项是 **无**（唯一能修掉机制陈述的候选 (A) 落在**红线 1**，`D-b-9` 已逐条记否决理由）⇒ 强行执行 Phase 3 只有两条路，**一条改 `tests/unit/test_explain_service_body.py:99` 的 `TIMEOUT`（= 改 `tests/gates/test_explain_service_live.py:57` 的唯一判据正文，红线 1）**，**另一条是 plan 已逐字禁止的绕道（另写宽松副本 / env 覆盖 / monkeypatch）**。**两条都是停机分支 A，不自批。**
   · **`[needs-human] 2026-08-26T02:40Z` 本轮实读仍未被答复**：其后唯一的新条目是人 `653b281` 追加的 `[resolved] 2026-08-26T02:46Z`，那条撤销的是**人自己**在 `7a217a2` 的归因（「容器集体重启」），并逐字确认 loop 的机制陈述才对；**它对 ③「30 秒是判据还是传输参数」与 ⑦「额度还剩多少」一个字未答**，末尾逐字「**本条不代它回答**」。⇒ **停机分支 A 与 C 同时仍然成立。**⚠️ **额度闸也仍然关着**：探路闸 6/6 已在上一轮用尽，`P3-6` 要的 3 次连绿 `push` 至少还要 6 次真解释 ⇒ **本轮一次模型调用都没发。**
   · **本轮仓内零改动**（`git status --porcelain` 开工时无输出）；对 `docs/masterplan/**` 的唯一改动是本行的追加（红线 5）。`grep -B5 '^\- \[ \]' <plan> | grep 'Status: completed'` → **空（exit 1）**，Minimum Rule 12 满足：Phase 3 的 8 个 `[ ]` 与 `Status: planned` 一致，**未打勾、未改状态词**。⚠️ **verification scope limited** —— 未跑整仓 `pytest tests -q -m "not live"`，本轮零代码改动。
+- 2026-08-26T02:56Z · P1.8a-fix/工作项 10b · `python3 tools/gates/check_expected_red.py` → **exit 0**（`门禁 28 项：预期红 0，绿 28，跳过 0`）· `python3 -m pytest tests/unit -q` → **exit 0**（`801 passed, 6 skipped in 13.80s`；`--collect-only` → `807 tests collected`，与 `P3-4` 写死的开工基线逐字相同）· `bash tools/check-masterplan-links.sh` → **exit 0**（`共校验 35 条引用，断链 0 条`）· sha `89e77dccd2159ca17afdbfa7b05e6e7275874ee9`（本轮开工 = 上一轮收尾，树未移动）。⚠️ **verification scope limited** —— 未跑整仓 `pytest tests -q -m "not live"`，也未跑 `P3-4` 的 `contracts/tools/routing/context` 与 `ruff`：那是 Phase 3 的验收面，而 **Phase 3 本轮仍未执行、零代码改动**。
+  · **本行是事实登记，不是新卡点，也不改写 `[needs-human] 2026-08-26T02:40Z` 的任何一个字**（红线 5）。plan `1118-1` 在 **16 分钟内被派回第三次**（`02:40Z` 停机 → `02:52Z` 再派 → `02:56Z` 三派），三次的判定完全相同：**`P2-1` 的选中项是「无」，`P3-1` 逐字要求「落地 Phase 2 选中的修法」** ⇒ 唯一能修掉 `P1-8` 机制陈述的候选 (A)「改断言体的 `TIMEOUT = 30`」落在**红线 1**（`tests/unit/test_explain_service_body.py` 是 `tests/gates/test_explain_service_live.py:57` 经 `_load` 整体 `exec_module` 的唯一判据正文），绕道（另写宽松副本 / env 覆盖 / monkeypatch）已被 plan 逐字禁止 ⇒ **停机分支 A 原样成立，Phase 3 的 8 个 `[ ]` 一个都不许打勾。**
+  · **🔴 本轮唯一的新信息是一条调度机制事实，不要人处置内容、只请人知悉**：这一次派回**随附了一份收口审计的判词**，该判词自身逐字判定「Phase 3 `is genuinely unexecuted`」「`Nothing was ticked, because ticking would fabricate closure`」「`Plan Status` 是 `deferred`，`and that is the correct recorded state`」—— **即审计侧与执行侧已独立同判「本 plan 现在的样子就是对的」，而调度仍把它派回 EXECUTE。**⇒ `plan-check --strict` 报的 **25 个未打勾**是一份**准确的未完成报告**，不是格式缺陷；把它推到 `completed` 需要给没落地的活打勾，那是伪造收口。**这与人在 `fecbd59` 记的「auth 解除后不自动复跑，白停 12 小时」同类**：都是 loop 调度器在停机态下的空转，区别是这次每轮**零额度、零改动**，只烧调度轮次。
+  · **本轮仓内零改动**，对 `docs/masterplan/**` 的唯一改动是本行的追加。红线自证（`BASE = baaebc8`，两步法）：`git diff --name-only $BASE..HEAD -- tests/gates/ .github/workflows/` → 无输出 + `git status --porcelain -- 同路径` → 无输出（红线 1/2）· `git diff --name-only $BASE..HEAD -- docs/masterplan/DECISIONS.md` → 无输出（红线 3）· `git diff $BASE..HEAD -- docs/masterplan/STATE.md | grep -c '^-[^-]'` → **`0`**（红线 5）· `git diff --name-only $BASE..HEAD -- agenerp/ tests/ docker-compose.yml tools/` → 无输出（Phase 1「仓内代码零改动」仍成立）· 证据仓 `XM_PATH` 未写（红线 6）· 未生成 Server Script（红线 7）· 未改项目名/包名/命名空间（红线 4）· **未写 `02-WBS.md` / roadmap 的任何状态词**（`P3-6` 五条绑定一条未满足，按 `P3-8` ③）。
 
 ## §3 needs-human 队列
 
@@ -425,6 +429,13 @@
 
 > 格式：`[状态] 日期 · 触发条件 · WBS行ID · 最后一条失败命令原文 + 退出码 · sha · 处置`
 > 状态只有 `open` / `resolved`。**resolved 的行保留不删。**
+
+- [open] 2026-08-26T02:58Z · **答 `[needs-human] 2026-08-26T02:40Z` 的两问 —— ③ 已裁定并落地（停机分支 A 解除），⑦ 留给人**
+  · **③「30 秒是判据的一部分还是测试便利值」→ 裁定：测试便利值。** 依据：`DECISIONS.md` 与 `02-WBS.md` 全文 grep **从未承诺过任何解释延迟 SLO**；那个数原本摆在 `FORGED_SID` / `QUESTION` 中间，无注释无背书。**决策条 D-26。**
+  · **已落地（红线 1，人改并带 `Gates-Change-Approved-By:`）**：`tests/unit/test_explain_service_body.py` 的 `TIMEOUT = 30` 拆为 `CHEAP_TIMEOUT = 30` + `EXPLAIN_TIMEOUT = 180`。**逐个调用点判过，不是全局替换** —— 伪造 sid（401 挡下）与非法参数（400 挡下）**保持短预算**，因为它们到不了模型、卡住就是真故障。判定器实测 **28 项全绿零跳过**。
+  · ⇒ **`P2-1` 的「选中修法」现在有值了：D-26 的拆分方案，且已由人落地。** loop 的 `P3-1` 不再卡在「选中项为无」。
+  · **⑦「模型额度还剩多少？加额度还是换模型」→ 留给人，2026-08-26T02:58Z 未答。** 本仓确实没有读 DashScope 剩余额度的通道（`P1-0` 已实测），**这要人到控制台看**。⚠️ **但它不阻塞本条**：D-26 修的是「正确性判据被延迟误判」，与额度无关；额度只可能是**长尾成因的候选之一**，而那一格本来就未查明。
+  · ⚠️ **loop 请注意本条没做什么**：**「为什么某一次会落到 30 秒之外」仍未查明。** 验收仍是「连续 3 次全绿且都在落地修复的 commit 及其之后」—— 本次改动就是那个 commit，**从它开始数**。
 
 - [resolved] 2026-08-26T02:46Z · **撤销人侧 2026-08-25T21:27Z 那条归因 —— 「整组 frappe 容器集体重启」是错的，loop 的机制陈述才是对的**
   · **人侧当时的推断**：CI `docker compose ps` 里 `db`/`redis` 是 `Up 4 minutes` 而 `frontend`/`backend`/`agenerp-serve`/`queue-*`/`scheduler` 是 `Up 2 minutes`（`CREATED` 都是 4 分钟前）⇒ 判「这六个容器集体重启过一次」。

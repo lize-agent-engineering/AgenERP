@@ -96,7 +96,28 @@ LOGGED_USER_PATH = "/api/method/frappe.auth.get_logged_user"
 FORGED_SID = "deadbeefdeadbeefdeadbeefdeadbeef"
 QUESTION = "这张单据现在什么情况？"
 
-TIMEOUT = 30
+# 两个预算，**故意分开**（人 2026-08-26 改，见 `DECISIONS.md` D-26）。
+#
+# 原先只有一个 `TIMEOUT = 30`，便宜请求与真解释共用 —— 那是 `gates-l2-live`
+# 间歇红的**唯一机制**（loop 的机制陈述：`docs/evidence/p1-8a-fix/`）：
+# 某一次真解释的服务端墙钟越过 30 秒，客户端在 `recv_into` 抛 `TimeoutError`，
+# 判据红；**而服务端没坏** —— 它算完仍去写 200，因对端已断开抛 `BrokenPipeError`。
+# 次数逐一对得上：`758b7bc` 1 次 ↔ 1 failed，`82a144a` 2 次 ↔ 2 failed。
+#
+# ⚠️ **为什么是「分开」而不是「把 30 调大」**：调大单个值会把便宜请求的预算
+# 一起放宽 —— 而健康检查/404 那几条**卡住就是真故障**，它们的短预算有判别力，
+# 不能陪着一起松。**一个判据只测一件事。**
+#
+# ⚠️ **30 从来不是产品承诺**：2026-08-26 实读 `DECISIONS.md` 与 `02-WBS.md`，
+# **本项目从未承诺过任何解释延迟 SLO**；这个数原本就摆在 `FORGED_SID` /
+# `QUESTION` 这些测试夹具中间，无注释、无决策条背书 —— **是测试便利值**。
+# 若将来要立延迟 SLO，那是**另一条独立判据**的事，不该由这几条正确性判据
+# 顺带承担（它们问的是「答案里的人对不对」，不是「答案多久回来」）。
+CHEAP_TIMEOUT = 30
+# 真解释要等模型。实测墙钟：本机 1.72s / 1.90s，CI 绿 run ≈3–6s；长尾越过 30s。
+# 180 是「服务真挂了仍能失败退出」与「不被模型长尾误判」之间的取值 ——
+# **它不是承诺，只是判据的上限**；长尾成因（P1-8 未查明那一格）不因本改动而消失。
+EXPLAIN_TIMEOUT = 180
 
 
 def _target() -> tuple[str, int, str]:
@@ -115,14 +136,14 @@ def _target() -> tuple[str, int, str]:
     return host, port, site
 
 
-def _request(method, path, *, headers=None, payload=None, expect_reachable=True):
+def _request(method, path, *, headers=None, payload=None, expect_reachable=True, timeout=CHEAP_TIMEOUT):
     host, port, site = _target()
     head = {"Host": site, **(headers or {})}
     raw = None
     if payload is not None:
         raw = json.dumps(payload, ensure_ascii=False).encode("utf-8")
         head["Content-Type"] = "application/json"
-    conn = http.client.HTTPConnection(host, port, timeout=TIMEOUT)
+    conn = http.client.HTTPConnection(host, port, timeout=timeout)
     try:
         conn.request(method, path, body=raw, headers=head)
         response = conn.getresponse()
@@ -177,7 +198,7 @@ def test_health_is_200_through_the_same_origin_front():
 
 def test_explain_without_any_cookie_is_401_through_the_same_origin_front():
     """没有 cookie → **401**。这是「身份只从 `sid` 来」在活栈上的那一半。"""
-    status, raw, _ = _request("POST", EXPLAIN_PATH, payload={"question": QUESTION})
+    status, raw, _ = _request("POST", EXPLAIN_PATH, payload={"question": QUESTION}, timeout=EXPLAIN_TIMEOUT)
 
     assert status == 401, f"没带 cookie 却拿到了 HTTP {status}：{raw[:200]!r}"
 
@@ -212,6 +233,7 @@ def test_the_user_in_the_answer_is_the_person_the_real_sid_resolves_to():
         "POST", EXPLAIN_PATH,
         headers={"Cookie": f"sid={sid}"},
         payload={"question": QUESTION},
+        timeout=EXPLAIN_TIMEOUT,   # 真 sid ⇒ 会真调模型，用长预算
     )
 
     assert status in (200, 503), f"真 sid 却拿到了 HTTP {status}：{raw[:200]!r}"
@@ -246,7 +268,12 @@ def test_no_response_through_the_front_ever_echoes_the_sid():
         ("POST", EXPLAIN_PATH, {"question": QUESTION}),
         ("POST", EXPLAIN_PATH, {"role": "System Manager"}),
     ):
-        _, raw, _ = _request(method, path, headers=header, payload=payload)
+        # 本循环混着便宜请求与真解释：**逐条按 path 选预算**，不要为了少写
+        # 一行就把便宜的那几条也放宽（理由见文件头 CHEAP_TIMEOUT 注释）。
+        _, raw, _ = _request(
+            method, path, headers=header, payload=payload,
+            timeout=EXPLAIN_TIMEOUT if path == EXPLAIN_PATH else CHEAP_TIMEOUT,
+        )
         assert raw_sid not in raw, f"{method} {path} 的回包里回显了 sid"
 
 
