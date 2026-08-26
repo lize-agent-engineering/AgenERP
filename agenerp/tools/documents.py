@@ -48,8 +48,20 @@ def _filtered(names: tuple[str, ...], filters: list, **extra: str) -> dict[str, 
 
 
 def doctype_flags(session: Session) -> dict[str, dict]:
-    """全站 DocType 的结构标志：`istable` 决定扫子表还是主表，`is_submittable` 是必须回的字段。"""
-    rows = session.list_rows("DocType", _fields(("name", "istable", "is_submittable")))
+    """全站 DocType 的结构标志。
+
+    `istable` 决定扫子表还是主表，`is_submittable` 是必须回的一列。
+
+    ⚠️ **`issingle` 必须一起查出来。** 2026-08-26 之前这里只取三列，
+    `scan_links()` 因此**无从知道哪个宿主是 Single** —— 而 Single 没有实体表，
+    `GET /api/resource/<它>` 直接 HTTP 500，整个 `doc.links` 随之失败，
+    模型拿到失败**原样重试同一个调用**，实测一次解释里同一调用被逐字节相同地
+    调了六次、烧掉 13.6 万 token 后撞熔断。**只在下面加跳过判断而不查这一列，
+    跳过会静默失效** —— 判据绿着，事故照旧。
+    """
+    rows = session.list_rows(
+        "DocType", _fields(("name", "istable", "is_submittable", "issingle"))
+    )
     return {row["name"]: row for row in rows}
 
 
@@ -100,6 +112,11 @@ def scan_links(session: Session, doctype: str, name: str) -> tuple[list[dict], d
         holder, fieldname = candidate.get("parent"), candidate.get("fieldname")
         if not holder or not fieldname:
             continue
+        # **Single 宿主一律跳过**（人 2026-08-25 对 C1 的裁定，逐字「排除 Single
+        # 宿主，不留痕」）。Single 是单例设置/工具页，它那一格的值是「上一个用户
+        # 刚输入的那个」，**不是业务关联**；而它没有实体表，查它必 HTTP 500。
+        if flags.get(holder, {}).get("issingle"):
+            continue
         is_child = bool(flags.get(holder, {}).get("istable"))
         level = LEVEL_CHILD_TABLE if is_child else LEVEL_DOCTYPE
         if level not in levels:
@@ -128,9 +145,16 @@ def scan_links(session: Session, doctype: str, name: str) -> tuple[list[dict], d
                     parent_name, parent_type, docstatus, flags, via
                 )
         else:
-            for row in session.list_rows(
-                holder, _filtered(("name", "docstatus"), [[fieldname, "=", name]])
-            ):
+            # **单个宿主查失败不整次作废**（C1 裁定第 ② 条）。Single 只是「宿主
+            # 会失败」的一种成因，权限、软删、上游 bug 都能让某一个宿主查崩。
+            # 整次作废 = 一个坏宿主瘫痪整条归因链，而模型看到失败就重试 ⇒ 熔断。
+            try:
+                holder_rows = session.list_rows(
+                    holder, _filtered(("name", "docstatus"), [[fieldname, "=", name]])
+                )
+            except Exception:  # noqa: BLE001 —— 宿主千奇百怪，这里只负责「别带走整次」
+                continue
+            for row in holder_rows:
                 hits[(holder, row["name"])] = _link_row(
                     row["name"], holder, row.get("docstatus"), flags, via
                 )
