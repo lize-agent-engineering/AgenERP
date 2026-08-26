@@ -81,7 +81,11 @@ _FIX_HINT = (
 
 
 def _table_rows() -> list[list[str]]:
-    """读 `<!-- machine-read: ci-coverage -->` 之后的第一张表，回**数据行**（跳表头与分隔行）。
+    """读**成对标记之间**的那张表，回**数据行**（跳表头与分隔行）。
+
+    ⚠️ **扫描必须在闭合标记处截断，不能只从起始标记往下找第一张表**：
+    §7.26.2 下面还有一张四列表，越界读到它会让「整表删空」红在解析上（八条全红），
+    而那一格必须**只**由断言 ⑤ 捕获。这是执行期 `N3` 实测撞出来的，不是设计时想到的。
 
     ⚠️ **刻意不写 `assert len(rows) >= 2`**（口径同先例）：留着它，「整表删空」会红在解析上，
     而那一格必须由断言 ⑤ 的存活守卫捕获 —— 一条变异被别的断言顺带打红，
@@ -89,10 +93,16 @@ def _table_rows() -> list[list[str]]:
     """
     text = OWNER_DOC.read_text(encoding="utf-8")
     anchor = f"<!-- machine-read: {_MARKER} -->"
+    closer = f"<!-- /machine-read: {_MARKER} -->"
     assert anchor in text, f"owner doc 里找不到标记 {anchor} —— §7.26 的登记表被删了或改名了"
+    assert closer in text, (
+        f"owner doc 里找不到闭合标记 {closer} —— 标记必须成对。\n"
+        "少了它，扫描会越过本表读到下一张表（§7.26.2 那张四列表），"
+        "「整表删空」就会红在解析上而不是红在存活守卫上。"
+    )
     rows: list[list[str]] = []
     started = False
-    for line in text.split(anchor, 1)[1].splitlines():
+    for line in text.split(anchor, 1)[1].split(closer, 1)[0].splitlines():
         stripped = line.strip()
         if not stripped.startswith("|"):
             if started:
