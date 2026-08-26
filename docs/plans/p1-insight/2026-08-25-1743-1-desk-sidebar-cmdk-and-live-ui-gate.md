@@ -1,43 +1,25 @@
 # P1.8b 下半 · ⌘K 侧边栏本体与 `tests/ui/test_sidebar.py` 活体门禁
 
-> Plan Status: draft
-> Review Hold: §0.5 的两条前置只有人能答（① 准不准把浏览器驱动引进本仓 —— 前一个 plan 逐字保留给人的依赖决策；
-> ② `docs/references/playwright-e2e-guide.md` 算不算数）。**第 8 轮独立评审第七次实读复核、不是转述**
-> （`HEAD` = `96a208f`，工作树**干净**）：`docs/masterplan/STATE.md:875` 仍是 `[needs-human]` 而非 `[resolved]`
-> （⚠️ **这一轮行号没漂**，仍是 `:875`；全文由 908 涨到 **916 行**，新增的两条都追加在它**之后**：
-> `:901` `[needs-human] 11:18Z`（P1.8a-fix 归属）· `:910` `[open] 12:30Z`（起草步派 0 个 plan），
-> 连同更早的 `:882` `[open] 14:05Z` · `:892` `[open] 11:07Z`，**四条都不覆盖它**），
-> `git log --grep=Approved-By` 今天是 **33 条**（第 7 轮 32、第 6 轮 31），**无一条涉及浏览器驱动**；
-> `grep -rn -i "playwright\|selenium" docs/masterplan docs/backlog` 仍**只命中 `STATE.md` 自己那条 needs-human**
-> （`:876` `:877` `:878` `:897` 四行，全在那一条的正文里）。
-> ⇒ Phase 1 停机分支 4 仍是 100% 触发 ⇒ 不具备「可执行契约」，**不转 `active`**。人答完第 ① 条即可转。
-> ⚠️ **第 8 轮的新内容不在「仓库又动了」上，而在「本文件自己有两条判据是不可满足 / 自相否决的」**（详见 §9 iteration 8）：
-> **(甲)** 判据⑤ 的 `JSON.stringify(` **零命中**与本 Phase 第 ③ 件事（同源 `POST` JSON 体）**正面互相否决**
-> —— `app.py:145` 逐字 `json.loads(raw)`，请求体**必须**是 JSON（已改准成 `≤ 1` 次，见 Phase 2 判据 ⑤c）；
-> **(乙)** `-p no:playwright` **不等价于「runner 上没装 playwright」**（它只关插件、不挡 `import playwright`），
-> 而 §1.5 实读本机**装着** ⇒「全部 `skipped`」这条 Exit Criteria **在执行者本机不可满足**
-> （已拆成 (A)(B) 两条命令，见 §1.4b；**第 8 轮实跑证伪，不是推演**）。
-> ⚠️ **第 8 轮实跑复核了 §1.9 那四条开工基线，四条全部与本文件所记逐字吻合**
-> （`门禁 28 项：预期红 0，绿 28，跳过 0` · `801 passed, 6 skipped` · `456 passed, 13 skipped` · `All checks passed!`，
-> 四条**均 exit 0**）—— 第 7 轮记的「本轮未复跑」这条 `verification scope limited` **本轮已补上**。
-> ⚠️ **必须挡住的误读之一（第 5 轮写下，第 8 轮复核仍然有效）**：`Approved-By` 命中里有 `e3afd77` / `758b7bc` 两条
-> **就带着 `Gates-Change-Approved-By: lize`、且确实改了 `.github/workflows/gates.yml`**。
-> **那两条批的是 CI 变量接线与失败取证步，与浏览器驱动毫无关系。**
-> **拿它们当第 ① 条的批准，就是把别人给另一件事的许可挪用到自己头上。免停条件必须逐字点名浏览器驱动。**
-> ⚠️ **必须挡住的误读之二（第 6 轮新增，第 8 轮实读扩到 6 条）**：那 33 条里有 **6 条是本 plan 自己的评审提交**
-> （`7550b3f` / `d02b208` / `ede9944` / `2163e19` / `45ee997` / `b02fd7a`）—— 它们命中只是因为**正文里引用了「免停条件」这句话本身**，
-> **逐条实读确认：没有一条带真 trailer**（`2163e19` 看似带、实为正文里引用了那串字，不是 trailer 行），**也没有一条是人写的**。
-> ⇒ 执行期跑那条 grep 会看到「命中数在涨」，**涨的是本 plan 自己写的字。拿它当批准，就是拿自己的评审记录给自己发许可。**
-> ⚠️ **第 4 轮写在这里的「工作树有人侧未提交改动」自第 5 轮起已不成立**：那两处改动已由人落盘
-> （`e3afd77` + `758b7bc`），`git status --porcelain` 第 8 轮实测仍**无输出**。
-> 处置与它留下的**真**影响（判定环境已配 AI 变量、行号全体漂移）写在 **§0.6**；
-> ⚠️ **第 8 轮逐锚点复核 §0.6 那张对照表：`gates.yml` 自第 6 轮起一行未动，表内每一格仍准**
-> （`COVERED` `:597` · `pip install pytest certifi` `:567` · ruff `:646` · 「作用域三个目录」`:640` ·
-> 「这几个目录由 loop 写在红线外」`:579` · 零 skip 断言 `:528-530` · 「配上之后它走答案面」`:321` · 「把判据调整到迁就环境」`:293`；
-> 「判据自身的判据」实读为 `:528` / `:592` **两处**，与表内所记一致）。
-> ⚠️ **第 7 轮记的 (甲)(乙)(丙) 三处人侧变更，第 8 轮逐条复核仍准**（`02-WBS.md:89` = P1.8b 实读确认 ·
-> `DECISIONS.md` D-24 在 · P1.8a-fix 行在 `:88`），详见 §0.7。
-> Last Reviewed: 2026-08-25
+> Plan Status: active
+> Review Hold Released: 2026-08-26 —— §0.5 那两条**只有人能答**的前置，人已在 2026-08-26T01:47Z 全部答完。
+> **第 9 轮独立评审逐条实读复核、不是转述**（`HEAD` = `d69b335`，工作树只有另一份 plan 的 ` M`，本文件之外零改动）：
+> ① **准不准引浏览器驱动 —— 已批准**：`docs/masterplan/DECISIONS.md` **D-25**（人逐字「批准，加 ui extra」）·
+> `docs/masterplan/STATE.md:425` **`[resolved] 2026-08-26T01:47Z`**（逐字「该 plan 的 Review Hold 两条前置全部解除」）·
+> commit **`d69b335`**（`pyproject.toml` 已落 `[project.optional-dependencies]` 的 `ui = ["playwright>=1.47"]`，
+> `[project].dependencies` 实读仍只有 `certifi>=2024.2.2` 一条）。
+> ② **`docs/references/playwright-e2e-guide.md` 算不算数 —— 已裁定「不算数，是上游模板残留」**：
+> `STATE.md:450` + 该文件 `:1-9` 已由人加上抬头，逐字「**权威性归 D-25**」。
+> ⇒ **Phase 1 停机分支 4 的免停条件今天已满足**（免停出处见该分支改写后的正文），
+> ⇒ 本 plan 具备「可执行契约」，**转 `active`**。
+> ⚠️ **前八轮写在这里的那两条误读防线仍然有效，已挪进 §0.5 保存，不随本行删除**：
+> (一) `Approved-By` 命中里的 `e3afd77` / `758b7bc` 批的是 CI 变量接线与失败取证步，**与浏览器驱动无关**；
+> (二) 那些命中里有 6 条是本 plan 自己的评审提交（正文引用了「免停条件」这句话而已）。
+> **今天的免停出处是 D-25 / `[resolved]` 行 / `d69b335` 三者，不是它们。**
+> ⚠️ **第 9 轮实跑复核了 §1.9 那四条开工基线，四条全部与本文件所记逐字吻合、均 exit 0**
+> （`门禁 28 项：预期红 0，绿 28，跳过 0` · `801 passed, 6 skipped` · `456 passed, 13 skipped` · `All checks passed!`）。
+> ⚠️ **`active` 不等于「§0 可以跳过」** —— §0 那六条重取基线**逐条照跑**，
+> 本行记的一切（含上面那三处出处）执行期都要按 §0 第 4/5 条**重取一次**，行号一律不认。
+> Last Reviewed: 2026-08-26
 > Source: `docs/backlog/p1-insight-roadmap.md` 工作项 11（P1.8b）· `docs/masterplan/02-WBS.md` §4 第 89 行 ·
 > 前一个 plan `2026-08-25-1615-1` §11 第一条写死的后继指派（重开事件「该 plan 转 `completed`」已于 2026-08-25 触发）
 > Related: `docs/plans/p1-insight/2026-08-25-1615-1-desk-injection-seam-and-asset-route.md`（第 1 个 plan，`completed`）·
@@ -62,6 +44,11 @@
 4. `python3 -c "import playwright, pytest_playwright"` + `python3 -m pip list | grep -iE 'playwright|selenium'` +
    `ls ~/Library/Caches/ms-playwright` —— 浏览器驱动在本机到底装没装、装的是哪一版。
    **取不到就走 §7 Phase 1 的停机分支 ①**，不许改成「用 curl 凑合」（那撞硬约束①）。
+   ⚠️ **同一条里再重取两件（第 9 轮独立评审补，理由见 §0.5）**：
+   **(a)** `grep -n -A6 'optional-dependencies' pyproject.toml` —— 人已在 `d69b335` 落了 `ui` extra，
+   **确认它还在、且 `[project].dependencies` 仍只有 `certifi`**；不在了就是被 revert 了 ⇒ 停机分支 4 重新触发。
+   **(b)** `grep -n 'D-25' docs/masterplan/DECISIONS.md` + `grep -n '\[resolved\].*浏览器驱动' docs/masterplan/STATE.md`
+   —— 免停出处的**执行期实读**（**不认 §0.5 写的行号**）。
 5. ⚠️ **重取本文件引用的每一处 `gates.yml` / `project-context.md` / `02-WBS.md` 行号**（第 4 轮独立评审补，
    `02-WBS.md` 一项由第 7 轮补，理由见 §0.6 与 §1.1）：
    先跑 `grep -n '^| P1.8b' docs/masterplan/02-WBS.md` —— **本 plan 的验收命令就在那一行**，
@@ -78,57 +65,64 @@
    **数出来非 0 ⇒ H6/H9 那一次「未打桩的真请求」会真调模型**（真烧 token、真花约 50 秒），
    按 `H7b` 走，**不许当没看见**。结果（**变量名与个数，不含值**）抄进 §1.9 的开工基线表。
 
-## 0.5 ⚠️ 本 plan 为什么停在 `draft` —— 一件只有人能做的裁定卡在最前面
+## 0.5 ✅ 那两条**只有人能做**的裁定，人已在 2026-08-26 答完 —— 本节改成「答案与出处」
 
-**独立评审 iteration 2 实测打出来的，不是推演**：
+**前八轮这一节写的是「本 plan 为什么停在 `draft`」。那件事今天已经结束了，照实改，不留旧文当活事实。**
+（旧文的完整推演见 §9 iteration 1–8 的记录，那是**有日期的评审记录**，不是活事实，原样保留。）
 
-- `grep -rl -i "playwright\|selenium" docs/masterplan docs/backlog` → 起草期 iteration 2 实测**零命中**
-- `git log --grep=Approved-By` 里**无一条**涉及浏览器驱动；`DECISIONS.md` 无对应条目
+### 前置① 准不准把浏览器驱动引进本仓 —— **已批准**
 
-⚠️ **这条 grep 今天已经不是零命中了，别读错（第 3 轮独立评审实测补）**：
-`docs/masterplan/STATE.md:868-870` 现在命中 —— 那是**本轮追加的 `[needs-human]` 提问本身**，
-状态词是 `[needs-human]` 而**不是** `[resolved]`。
-⇒ **命中 ≠ 已批准。** 免停条件仍然是「人已批准的具体出处」（`[resolved]` 行 / commit / trailer），
-**拿这条 needs-human 行当批准，就是拿自己写的提问给自己发许可。**
+**第 9 轮独立评审逐条实读（`HEAD` = `d69b335`），三处出处彼此独立、任取其一即满足免停条件**：
 
-⇒ **`D-d-2` 那条「唯一的免停条件（人已批准的具体出处）」今天在仓里不存在。**
-而 (c) 不用浏览器撞硬约束①、(d) 引 node 引第二套运行时，两条都已被否 ⇒
-**`D-d-2` 必然裁成「必须引第三方驱动」⇒ Phase 1 停机分支 4 是 100% 触发的。**
+| 出处 | 实读到的逐字内容 |
+|---|---|
+| `docs/masterplan/DECISIONS.md` **D-25 · 批准引入浏览器驱动，但只作可选 extra** | 裁定栏逐字「人 2026-08-26：**「批准，加 ui extra」**。形态：`[project.optional-dependencies]` 的 `ui = ["playwright>=1.47"]`，**`[project].dependencies` 一个字不加**」 |
+| `docs/masterplan/STATE.md:425` | `[resolved] 2026-08-26T01:47Z ·` 逐字「**答完 P1.8b plan `§0.5` 的最后一条 —— ① 浏览器驱动，人已批准。该 plan 的 Review Hold 两条前置全部解除。**」 |
+| commit **`d69b335`**（`feat(deps): D-25 批准浏览器驱动，只作 ui extra —— 解除 P1.8b 的最后一条前置`） | `pyproject.toml` 已落 `ui = ["playwright>=1.47"]`；实读 `[project].dependencies` **仍只有** `certifi>=2024.2.2` 一条 |
 
-**如果现在转 `active`**：执行到 Phase 1 就停，Phase 2 / 3 一行跑不到，
-Goal 1–4 与 WBS 第 89 行全部落空 —— 而**工作项 11 的最后一格预算已经花掉**（§1.10），
-后继只能由人在 `02-WBS.md` 拆行（红线 5）。
-⚠️ **第 7 轮改准这一段的力度，因为 `D-24` 让它的后半句过强了**（§0.7 (乙) / §1.10）：
-人已常设授权「预算满了就再加预算」⇒ **「拆行」这条出口今天是快的，不再是「出不来」。**
-⇒ **本条不再作为停在 `draft` 的理由，只作为一条成本记账。**
-**真正的、也是唯一的停机理由仍然是上面那条**：`D-d-2` 的免停出处（人已批准的具体出处）**今天在仓里不存在**
-⇒ Phase 1 停机分支 4 **100% 触发** ⇒ 转 `active` 换来的是一份**一行产品代码都跑不到**的执行，
-而指南 `Plan Status Flow` 给 `active` 的定义逐字是「独立评审已收敛成**可执行**契约、**实现可以开始**」。
-**一份 100% 会在 Phase 1 第一条裁定上停机的 plan 不满足『实现可以开始』。**
-⚠️ **顺带把 `D-24` 的边界一并记在这里，免得被读反**：D-24 逐字「**loop 仍然不得自行加行**」，
-且「同一工作项**连续第 3 次**要预算而判据没有任何前进 ⇒ 那是方法问题，停下来报人」。
-⇒ **它不是「卡住就加预算」的通行证**，本 plan 不拿它当免停理由。
+⚠️ **`d69b335` 本身不带 `Approved-By` trailer，带的是 `Co-Authored-By`。这不影响免停** ——
+Phase 1 停机分支 4 写死的免停条件是三选一（`commit` / `STATE.md` 的 `[resolved]` 行 / `Gates-Change-Approved-By` trailer），
+**`[resolved]` 行与 D-25 各自独立成立**，且 `DECISIONS.md` 是红线 3（只有人能写）。
 
-**⚠️ 与此纠缠的第二件事，同样只有人能定**（`D-d-0`）：
-`docs/references/playwright-e2e-guide.md:3` 逐字
-「**Playwright** is the fixed e2e testing framework. **Do not introduce alternatives.**」，
-`docs/index.md:45` 还把「e2e / Playwright」这一类路由到它。
-**但它是上游模板残留**：它引的 `playwright.config.ts` 本仓不存在（本仓是纯 Python），
-它随 `a959410 chore(age): 安装 AGE 骨架（W0.2）` 进来，
-**从未进 `DECISIONS.md` / `02-WBS.md` / `project-context.md`**；
-且 `AGENTS.md` 逐字「**不得把强制规则藏在 `docs/references/`**」。
-⇒ **它到底是「本项目已批准 Playwright」还是「模板垃圾」，只有人能定。
-loop 不许顺势把它当批准用** —— 那正是「用一份自己找来的文件给自己发许可」。
+⚠️⚠️ **D-25 同时给 loop 压了三条硬约束，一条都不许漏**（逐字抄自 `STATE.md:428` 与 D-25「未决」栏）：
 
-### 本 plan 转 `active` 的前置（写死，两条都要人答）
+1. **装包不等于能跑** —— `pip install agenerp[ui]` 之后还要 `python -m playwright install chromium`，
+   否则运行期报 `Executable doesn't exist`。⇒ 落进 §5、Phase 3 断言体的自建 fixture 与交接项 (2)。
+2. **UI 门禁跑不起来必须红，不许 skip** —— 沿用 P1.8a 那条收严。⇒ 本 plan 的 `D-d-3` ①–⑥ 正是它的实现，一个字不改。
+3. ⚠️ **CI 装 chromium 会显著拉长 `gates-l2-live`；是否单独 job 或加缓存，逐字「由 loop 在 plan 里给方案并实测，
+   **不要默认塞进现有 job 就完事**」。** ⇒ **这是 D-25 新压给本 plan 的一件在范围内的活**，
+   落进 **Phase 3 新增的那条 `Proof`（装驱动的时间成本实测）** 与**改写后的交接项 (2)**（给方案 + 带实测数，不是一句「装上去」）。
 
-1. **准不准把浏览器驱动引进本仓**（形态：`[project.optional-dependencies]` 的 `ui` extra，
-   `[project].dependencies` 一个字不加）。**不准 ⇒ 本 plan 整体作废**，
-   `tests/ui/test_sidebar.py` 这条验收命令的出路改由人在 `02-WBS.md` 定（表规 6 允许改字符串）。
-2. **`docs/references/playwright-e2e-guide.md` 算不算数**（已批准 / 模板残留待清理）。
+### 前置② `docs/references/playwright-e2e-guide.md` 算不算数 —— **已裁定：不算数，是上游模板残留**
 
-**这两条已由本轮 mission-driver 追加进 `docs/masterplan/STATE.md` §3 的 needs-human 队列**（只追加，不改写已有行）。
-**人答完之前，本文件的 `Plan Status` 保持 `draft`，不执行。**
+`STATE.md:450` 逐字：「**裁定：不算数，它是上游模板残留。**……**一份没有决策背书的文档，说得再确定也不是决策**。
+⚠️ **这不等于说 Playwright 是错的选择**，只是说**这件事还没被决定过**。」
+人并已就地给该文件加了抬头（实读 `:1-9`）：逐字「**本文件是上游模板残留，它本身不构成本项目的技术选型批准**」·
+「**真正的批准在 `docs/masterplan/DECISIONS.md` 的 D-25**」·「本文的技术内容可参考，**权威性归 D-25**」。
+
+⇒ **`D-d-0` 因此变成一条「记录已有裁定」的 `Decision`，不是要 loop 自己去分类**（指南 Minimum Rule 9 的
+`constrained`（外部规则强制）那一档）。**本 plan 对该文件仍是只读**（§4 Owner Docs）。
+
+### ⚠️ 前八轮立起来的两条误读防线**继续有效**，挪到这里保存
+
+**这两条不因为「已经批了」而作废** —— 它们挡的是**下一次**有人拿错东西当批准：
+
+- **误读一**：`git log --grep=Approved-By` 的命中里有 `e3afd77` / `758b7bc` 两条**确实**带
+  `Gates-Change-Approved-By: lize`、也确实改了 `.github/workflows/gates.yml`。
+  **那两条批的是 CI 变量接线与失败取证步，与浏览器驱动毫无关系。**
+  **拿它们当第 ① 条的批准，就是把别人给另一件事的许可挪用到自己头上。**
+- **误读二**：那批命中里有 6 条（`7550b3f` / `d02b208` / `ede9944` / `2163e19` / `45ee997` / `b02fd7a`）
+  **是本 plan 自己的评审提交** —— 命中只因为正文引用了「免停条件」这句话本身，**无一带真 trailer、无一是人写的**。
+  **拿它当批准，就是拿自己的评审记录给自己发许可。**
+- **误读三（本轮新增）**：`grep -rn -i "playwright\|selenium" docs/masterplan docs/backlog` 今天**会命中很多行**
+  —— 其中既有 D-25（**真批准**），也有 `STATE.md` 里本 plan 自己那条早已被 `[resolved]` 覆盖的 `[needs-human]` 提问。
+  **命中数不是判据，`[resolved]` 行 + D-25 才是。**
+
+⇒ **今天的免停出处只有三个：D-25 · `STATE.md:425` 的 `[resolved]` 行 · commit `d69b335`。**
+
+⚠️ **执行期仍须按 §0 第 4 / 5 条重取一次**（行号会漂，本文件写的数字一律不认；
+按 `D-25` 三个字定位 `DECISIONS.md`、按 `[resolved]` + `浏览器驱动` 定位 `STATE.md`）。
+**若届时三处出处都不在了（例如被 revert），那就是停机分支 4 重新触发，照它走。**
 
 ## 0.6 ⚠️ 人侧那两处改动**已经落盘了**（第 5 轮独立评审实测改准）
 
@@ -177,7 +171,7 @@ loop 不许顺势把它当批准用** —— 那正是「用一份自己找来�
 | # | 人侧新动作 | 实读出处 | 它改掉了本文件的哪一段 |
 |---|---|---|---|
 | **(甲)** | 新拆出 **`P1.8a-fix`** 一整行（`frontend` 间歇不可达 —— 起栈时序缺陷，🔴，验收是「`gates-l2-live` 连续 **3 次** run 全绿零跳过，且 3 次都在修复 commit 之后」） | `02-WBS.md:88`（**插在 P1.8b 之前**）· `p1-insight-roadmap.md` 工作项 **10b** · `STATE.md:901` `[needs-human] 11:18Z` | **① 行号**：P1.8b 从 `:88` 移到 **`:89`**（§1.1 已改准，全文 8 处）· **② 新风险**：见 **R10** |
-| **(乙)** | 新裁 **`D-24` · 常设授权：plan 预算满了就加，不必逐次请示**（人逐字「预算满了就再加预算」；拆出来的行**预算独立计**） | `DECISIONS.md` D-24 | §1.10 / §3.1 / §0.5 里「预算满了就**没有出口**」那半句说理（三处已改准） |
+| **(乙)** | 新裁 **`D-24` · 常设授权：plan 预算满了就加，不必逐次请示**（人逐字「预算满了就再加预算」；拆出来的行**预算独立计**） | `DECISIONS.md` D-24 | §1.10 / §3.1 / §0.5 里「预算满了就**没有出口**」那半句说理（三处已改准）。⚠️ **第 9 轮补**：§0.5 本轮整节重写，该段说理今天的落点是 §1.10 与 §3.1 |
 | **(丙)** | 人已把 P1.8a 那条 CI 红**查到根并单独立行**：症状逐字「**`127.0.0.1:8080` 够不到（timed out）—— 同源前端没在跑**」，且「**服务容器自己正常**……**掉的是 `frontend`**」 | `02-WBS.md:88` 的 `P1.8a-fix` 行 · 断言体 `tests/unit/test_explain_service_body.py:133` 逐字 `pytest.skip(f"{host}:{port} 够不到（{exc}）—— 同源前端没在跑")` | **§1.8b 后半段与 R9 那段「不排除是某条错误路径把 `sid` 带了出去」已过期**（两处已改准） |
 
 ⚠️ **(乙) 的边界必须一起抄下来，不许只抄授权那半句**（D-24 自己写死的两条）：
@@ -359,11 +353,17 @@ runner 上的结果是 **`fixture 'page' not found` / `ModuleNotFoundError` —�
 | `python3 -m pip list \| grep -i playwright` | `playwright 1.58.0` · `pytest-playwright 0.7.2` · （另有 `playwright-stealth 2.0.2`，本 plan 不用） |
 | `ls ~/Library/Caches/ms-playwright` | `chromium-1208` / `chromium-1223` / `chromium-1228` / `chromium_headless_shell-*` **已下载** |
 | `python3 -m pip list \| grep -i selenium` | `selenium 4.39.0`（备选，本 plan 不选，理由见 `D-d-2`） |
-| `grep dependencies pyproject.toml` | 运行期依赖**只有** `certifi>=2024.2.2`；**没有任何 `optional-dependencies` 段** |
+| `grep dependencies pyproject.toml` | ⚠️ **第 9 轮独立评审实读改准，旧文不留**：原文写的是「~~没有任何 `optional-dependencies` 段~~」，**`d69b335` 之后不成立**。今天是：`[project].dependencies` **仍只有** `certifi>=2024.2.2`（一个字未动），**且已有** `[project.optional-dependencies]` 段，内含 `ui = ["playwright>=1.47"]`（人落的，D-25） |
 
 ⇒ **「本机装着」与「本仓声明了」是两件事**（这正是 `pyproject.toml` 那段注释记着的旧亏：
 「本机碰巧装着 certifi，所以直到把 `tests/routing` 接进 CI 才暴露」）。
-`D-d-2` 要正面裁的就是这一格：**怎么声明才不把「本机碰巧有」当成「仓里有」。**
+⚠️ **这一格今天已经由人补齐了，`D-d-2` 因此不再是「要正面裁的那一格」，而是「记录已落地的裁定」**（§0.5 前置①）：
+声明形态由 **D-25** 定死（`ui` extra，`[project].dependencies` 一个字不加），**本 plan 不重裁、也不改它**。
+⚠️ **但那条旧亏没有被消掉，只是换了位置** —— `ui` extra 声明的是 **`playwright` 包**，
+**不含 `pytest-playwright`**，也**不含浏览器二进制**（D-25 逐字「装包不等于能跑」）。
+⇒ ① 本机那份 `pytest-playwright 0.7.2` **仍然是「本机碰巧装着」**，本 plan 因此**明令不许依赖它**（`D-d-3` ⑥ / §1.4b）——
+**这不是巧合，是 `ui` extra 的形态与 `D-d-3` ⑥ 正好互相印证**；
+② 浏览器二进制要靠 `python -m playwright install chromium` 单独装，**它的时间成本是本 plan 要实测的一件活**（§0.5 硬约束 3）。
 
 ### 1.6 前车之鉴：**一条会 skip 的门禁等于一条不存在的门禁**
 
@@ -494,7 +494,9 @@ roadmap 工作项 10 与 11 各记过一次同一条空缺：「**真浏览器�
 人 2026-08-25 新裁 `DECISIONS.md` **`D-24 · 常设授权：plan 预算满了就加，不必逐次请示`**，逐字「预算满了就再加预算」，
 授权范围是「当 **loop 判『无 plan 可派』且原因是预算满**时，**人侧代理可直接拆行 / 加行**，不必逐次请示」，
 且「拆出来的行**预算独立计**」。本仓已有它的第一个实例：**`P1.8a-fix`**（§0.7 (甲)）。
-⇒ **「预算满了就再也出不来」这个说法今天过强，本 plan 不再这么写**（§0.5 / §3.1 / §11 三处同步改准）。
+⇒ **「预算满了就再也出不来」这个说法今天过强，本 plan 不再这么写**（第 7 轮在 §0.5 / §3.1 / §11 三处同步改准）。
+⚠️ **第 9 轮补一句指路**：§0.5 已在本轮**整节重写**成「答案与出处」（那两条前置人已答完），
+**第 7 轮写在那里的这段 `D-24` 说理不再在 §0.5 里** —— 它今天的落点就是本节与 §3.1，§0.7 (乙) 是它的出处记录。
 ⚠️ **但下面三条一个字不松，逐条抄自 D-24 自己**：
 ① **「loop 仍然不得自行加行。它判『无 plan 可派』并停下来是正确行为，本条不改这一点」** ⇒ **红线 5 原样有效**，
 本 plan 的一切「归人」写法**一条都不改**；
@@ -557,7 +559,7 @@ Minimum Rule 4 原文同时禁止 over-split（「共享同一行为契约与闭
 人已常设授权「预算满了就再加预算」⇒ 出口存在，只是**仍然只有人能开**（D-24 逐字「loop 仍然不得自行加行」）。
 ⇒ **不拆的理由因此不再靠「没有出口」撑着，而是靠上面那条 —— 四块共享同一条闭合判据，拆开就是 over-split**
 （Minimum Rule 4 原文同时禁止 over-split）。**这仍然是裁定，不是图省事**；
-独立评审 iteration 1 / 2 / 3 / 4 / 5 / 6 逐轮独立复核后均同意「不该拆」，第 7 轮维持。
+独立评审 iteration 1–6 逐轮独立复核后均同意「不该拆」，第 7、8、9 轮维持（第 9 轮实读复核，结论未变）。
 
 ## 4. Task Route
 
@@ -634,7 +636,9 @@ Targets: `docs/analysis/2026-08-25-1743-desk-sidebar-probe.md`（探测记录，
 `docs/architecture/module-boundaries.md` §7.23（落点节，新建）
 Skill: `none`
 
-- Item Types: `Decision | Proof`（4/6 项是 `Decision`）
+- Item Types: 逐项标注为准（本 Phase 共 **7** 项：`Decision` **5**（`D-d-0`…`D-d-4`）· `Explore` 1 · `Proof` 1）。
+  ⚠️ **第 9 轮独立评审改准：旧文写「4/6 项是 `Decision`」，实数是 5/7** —— 不足指南 Minimum Rule 7 的 80% 阈值，
+  故**不作 Phase 级统一声明**，以每一项自己的类型标注为准。（同族计数不一致本文件已挡过三处，这是第四处。）
 - Prereqs: §0 **六条**重取基线已跑完（⚠️ 第 6 轮改准，原写「四条」）；`H1` / `H2` 已有实际值
 
 - [ ] **Explore**：跑 `H1` / `H2` / **`H2b`** / `H3` / `H4` / `H5` **六条**探针，逐条把实际值填进 §6 与探测记录。
@@ -649,9 +653,17 @@ Skill: `none`
       `H2b` 的实际值（走了哪一条）**同时是 Phase 3 自建 fixture 的输入**，两处引同一个值，不各测一遍。
       - Skill: `none`
 - [ ] **`D-d-0` `docs/references/playwright-e2e-guide.md` 的效力分类**（`Decision`，**前置于 `D-d-1` / `D-d-2`**）。
-      把它分类为 **`已批准的技术选型`** 还是 **`上游模板残留（stale）`**，并写清依据。
-      ⚠️ **loop 只能陈述证据、不能自己定**（§0.5）：本条的结论**必须来自人在 §0.5 前置第 2 条上的回答**；
-      人没答就走停机分支 4。**不许用「反正它写着 Playwright」当批准。**
+      ⚠️ **第 9 轮独立评审改准：这一条已由人答完，本项从「去分类」变成「记录已有裁定」**（指南 Minimum Rule 9 的
+      `constrained` 那一档 —— 外部规则已强制，不做完整备选分析）。
+      **裁定（人 2026-08-26，出处见 §0.5 前置②）：`上游模板残留（stale）`。**
+      依据逐字二选一即可：`STATE.md:450`「**不算数，它是上游模板残留**……一份没有决策背书的文档，
+      说得再确定也不是决策」· 该文件 `:1-9` 人加的抬头「**权威性归 D-25**」。
+      **残余风险**：`docs/index.md:45` 仍把「e2e / Playwright」这一类路由到它 ⇒
+      下一个人仍可能把它读成批准。**本 plan 不改 `docs/index.md`**（不在任何 Target 内，也不在本 plan 的结果面上），
+      **只把这条残余登记进探测记录**；它不阻塞收口，因为权威性问题已由人加的抬头就地解决。
+      ⚠️ **执行期照做的只有两件**：① 按 §0 第 4 条 (b) 重取那两处出处、抄进探测记录；
+      ② **不许用「反正它写着 Playwright」当批准** —— 批准来自 D-25，不来自它。
+      **三处出处若届时都不在了 ⇒ 停机分支 4 重新触发。**
       - Skill: `none`
 - [ ] **`D-d-1` 判据的目录与形态**（`Decision`）。候选三个，逐条写清否决/选中理由与残余风险：
       **(A)** 落 `tests/ui/test_sidebar.py`，形态**照抄本仓既有先例**——
@@ -671,8 +683,21 @@ Skill: `none`
       ⇒ 引入第二套运行时与第二个包管理器，且仍不是真浏览器。
       **声明形态一并裁死**：写进 `[project.optional-dependencies]` 的一个 **`ui` extra**，
       **`[project].dependencies` 一个字不加**（§5）；并在探测记录里写明「本机装着 ≠ 仓里声明了」这条旧亏（§1.5）。
-      ⚠️ **`D-d-2` 若判定「必须引第三方驱动」，那是一次需人拍板的依赖决策**（`1615-1` §11 逐字写死的）
-      ⇒ 裁定文本必须**显式点名这一点**，并把「人不批怎么办」的出口写死（出口 = §11 登记 + 判据先建后绿）。
+      ⚠️ **第 9 轮独立评审改准：声明形态这一半已由人裁死，本项不重裁**（Minimum Rule 9 的 `constrained` 档）。
+      **D-25 逐字**：`[project.optional-dependencies]` 的 `ui = ["playwright>=1.47"]`，
+      **`[project].dependencies` 一个字不加**；且 `d69b335` **已经落盘**（§1.5 实读确认）。
+      ⇒ **`D-d-2` 今天要交的是三件，不是「选一个驱动」**：
+      **(i)** 记录**选中 (a) playwright、否决 (b)(c)(d) 的理由**（(c) 撞硬约束①、(d) 引第二套运行时，两条起草期已否；
+      (b) selenium 是**被 D-25 的形态排除的** —— extra 里逐字只有 `playwright`，改选它等于改 D-25，红线 3）；
+      **(ii)** 记录**残余风险两条**：① `ui` extra **不含 `pytest-playwright`** ⇒ 断言体不许依赖它（`D-d-3` ⑥ / §1.4b），
+      本机那份是「碰巧装着」；② `ui` extra **不含浏览器二进制** ⇒ `python -m playwright install chromium` 是**另一件事**
+      （D-25 逐字「装包不等于能跑」），它的时间成本由本 Phase 之外那条新增 `Proof` 实测；
+      **(iii)** 记录**`playwright>=1.47` 是浮动下界**这一处残余：本机是 `1.58.0`，CI 上会装当时的最新版，
+      而 `playwright install chromium` 装的 chromium 版本**由 playwright 包版本决定** ⇒
+      **本 plan 不去钉版本**（钉它要改 `pyproject.toml` 里人刚落的那一行，属重开 D-25 的形态裁定），
+      只把这一处**照实登记**进探测记录与交接项 (2)。
+      ⚠️ **「人不批怎么办」那条出口今天已经用不上了（人已批），但规则保留**：
+      三处出处若届时都不在 ⇒ 停机分支 4 重新触发，出口仍是 §11 登记 + 判据先建后绿。
       - Skill: `none`
 - [ ] **`D-d-3` 零 skip 怎么做到**（`Decision`）。⚠️ **起草期第一版这条是错的，独立评审实读打回，下面是改准后的形态。**
 
@@ -739,10 +764,15 @@ Skill: `none`
 4. ⚠️ **`D-d-2` 裁定为「必须引第三方浏览器驱动」时也停一次**（独立评审打回后新增；起草期漏了这条）。
    前一个 plan `1615-1` §11 第二条逐字：「那是一次**需人拍板的依赖决策**……**本 plan 只指明，不代人选**」。
    ⇒ **`H2` 吻合（驱动可用）不是免停理由** —— 恰恰是「结论已确定」的那一刻。
-   **动 `pyproject.toml` 之前**先往 `STATE.md` §3 **追加**一条 needs-human（写清：要装什么、装在哪、
-   不装的后果是判据先建后绿），**然后停**。
    **唯一的免停条件**：能指出**人已批准**的具体出处（commit / `STATE.md` 里的 `[resolved]` 行 / `Gates-Change-Approved-By` trailer）。
    **指不出就是没批，不许用「本机已经装着」当批准。**
+
+   ✅ **这条免停条件在 2026-08-26 已经满足，本分支因此不触发**（第 9 轮独立评审实读，出处见 §0.5 前置①）：
+   `DECISIONS.md` **D-25** · `STATE.md:425` 的 **`[resolved] 2026-08-26T01:47Z`** · commit **`d69b335`**。
+   ⇒ **执行期不必再往 `STATE.md` 追加那条 needs-human，也不必停**；
+   `pyproject.toml` 那件事**人已经做完了**，本 plan 只复核不改（Phase 3 该项已由 `Add` 改成 `Proof`）。
+   ⚠️ **但免停是「实读到出处」换来的，不是本行写着就算**：执行期按 §0 第 4 条 (b) **重取一次**；
+   **三处出处若届时都不在了（例如被 revert），本分支重新 100% 触发，照上面的原文走。**
 
 Exit Criteria:
 
@@ -751,10 +781,11 @@ Exit Criteria:
 - [ ] **`D-d-0`** / `D-d-1` / `D-d-2` / `D-d-3` / `D-d-4` **五条**裁定各有：选中项、被否项、**否决依据是执行期探针还是外部规则（写明哪一条）**、残余风险
       （⚠️ **第 6 轮补进 `D-d-0`**：它是 Phase 1 的执行项、且被写死为 `D-d-1` / `D-d-2` 的**前置**，
       前五轮却不在任何一条 Exit Criteria 里 —— 指南 Minimum Rule 10「在范围内的项必须落在四态之一」。
-      ⚠️ **`D-d-0` 的结论只能来自人在 §0.5 前置第 2 条上的回答**；人没答就走停机分支 4，
-      **此时本条 Exit Criteria 记「未满足 · 卡在停机分支 4」，不许拿「反正它写着 Playwright」填绿**）
+      ⚠️ **第 9 轮改准：`D-d-0` 与 `D-d-2` 的「选中项」这一半已由人裁定**（`stale` / `ui` extra，见 §0.5），
+      ⇒ 这两条落 `constrained` 档，**执行期交的是「记录裁定 + 出处 + 残余风险」，不是重新分类/重新选型**；
+      **仍然不许拿「反正它写着 Playwright」当依据** —— 依据必须是 D-25 或那条 `[resolved]` 行的实读原文）
 - [ ] 落点节 `docs/architecture/module-boundaries.md` **§7.23** 建好；`§7.13/§7.20/§7.21/§7.22` 经 `git diff` 确认**零行改动**
-- [ ] `docs/logs/2026/08-25.md` 追加 Phase 1 条目
+- [ ] `docs/logs/2026/<执行当天>.md` 追加 Phase 1 条目 —— ⚠️ **第 9 轮改准：旧文写死 `08-25.md`，而起草日已过、今天是 `2026-08-26`** ⇒ **按执行当天的日期建/追加**（指南 When Executing 第 9 条：日志与 plan 进度同步；跨天的 Phase 各自入自己那天的文件，不许回写到起草日）
 
 ### Phase 2 — 侧边栏本体 + 离线判据（不需要浏览器就能判的那一半）
 
@@ -762,7 +793,8 @@ Status: planned
 Targets: `agenerp/serve/assets/desk.js` · `tests/unit/test_desk_sidebar_static.py`（新建）
 Skill: `none`
 
-- Item Types: `Add`（5/6 项是 `Add`）
+- Item Types: 逐项标注为准（本 Phase 共 **6** 项：`Add` **3** · `Proof` **3**）。
+  ⚠️ **第 9 轮独立评审改准：旧文写「5/6 项是 `Add`」，实数是 3/6** —— 远不足 80% 阈值，不作 Phase 级统一声明。
 - Prereqs: Phase 1 四条裁定全部落定
 
 - [ ] **`Add`** `desk.js` 扩成侧边栏本体，**六件事**：① 注册 `D-d-4` 裁定的快捷键（唤起 / 关闭 / `Esc` / 焦点归还）；
@@ -858,19 +890,23 @@ Exit Criteria:
 - [ ] ⚠️ **响应体不外泄**：面板任何一态都不把响应体原样倾泻进 DOM（渲染只取 §1.3 四个已知键 + 状态码本身），判据⑤ 的三格源码守卫全绿 —— **⑤a** `innerHTML` / `outerHTML` / `insertAdjacentHTML` 零命中 · **⑤b** `document.cookie` 零命中 · **⑤c** `JSON.stringify(` **命中 ≤ 1 次**（⚠️ 第 8 轮独立评审改准：**不是零命中** —— 请求体必须是 JSON，见 `app.py:145`）（§1.8b / R9）
 - [ ] 新判据 `tests/unit/test_desk_sidebar_static.py` 全绿；既有 22 条**零改动**（`git diff` 证）
 - [ ] `docs/architecture/module-boundaries.md` §7.23 的状态机表落地
-- [ ] `docs/logs/2026/08-25.md` 追加 Phase 2 条目
+- [ ] `docs/logs/2026/<执行当天>.md` 追加 Phase 2 条目 —— ⚠️ **第 9 轮改准：旧文写死 `08-25.md`，而起草日已过、今天是 `2026-08-26`** ⇒ **按执行当天的日期建/追加**（指南 When Executing 第 9 条：日志与 plan 进度同步；跨天的 Phase 各自入自己那天的文件，不许回写到起草日）
 
 ### Phase 3 — `tests/ui/test_sidebar.py` 活体门禁 + 变异自查 + 交接
 
 Status: planned
 Targets: `tests/ui/test_sidebar.py`（新建，加载器）· `tests/unit/test_desk_sidebar_body.py`（新建，断言体）·
 **`tests/unit/test_desk_sidebar_static.py`（Phase 2 建的那份，本 Phase **追加**四条源码级守卫；第 4 轮独立评审补）** ·
-`pyproject.toml`（`ui` extra）· `docs/evidence/p1-desk-sidebar/README.md`（新建）·
+**`pyproject.toml`（⚠️ 第 9 轮改准：`ui` extra 已由人在 `d69b335` 落盘 ⇒ 本 plan 对它是**只读复核**，
+一个字节不改，见本 Phase 那条 `Proof`）** · `docs/evidence/p1-desk-sidebar/README.md`（新建）·
 **`docs/context/project-context.md`（第 52 行 Lint / static check 那一格的作用域漂移，`Fix`，见本 Phase 交接项 (5) 下方；
 第 3 轮独立评审补 —— 前两轮把这件事写进了正文却漏进 Targets）**
 Skill: `closure-audit-prompt.md`（仅收口那一步）
 
-- Item Types: `Proof`（5/7 项是 `Proof`）
+- Item Types: 逐项标注为准（本 Phase 共 **10** 项：`Proof` **6** · `Add` **3** · `Fix | Follow-up` **1**）。
+  ⚠️ **第 9 轮独立评审改准：旧文写「5/7 项是 `Proof`」，当时实数是 4/9；本轮把 `pyproject` 那项由 `Add` 改成 `Proof`
+  并新增一条 `Proof`（装驱动的时间成本实测）⇒ 今天是 6/10** —— 不足指南 Minimum Rule 7 的 80% 阈值，
+  故**不作 Phase 级统一声明**，以每一项自己的类型标注为准。
 - Prereqs: Phase 2 全部完成；活栈按 §5 起好并**真登录**过一次
 
 - [ ] **`Add`** 断言体 `tests/unit/test_desk_sidebar_body.py`：真浏览器、真登录、真 Desk 页面，
@@ -914,9 +950,38 @@ Skill: `closure-audit-prompt.md`（仅收口那一步）
       **任一条不退 0 / (A) 出 `error` / (B) 出 `error` ⇒ 今天绿着的 `unit-and-contracts` 会在下一次推送时红，
       而那是纯回归、不是设计内的代价**（与 §1.4 那条红分开算，见 §1.4b）。
       - Skill: `none`
-- [ ] **`Add`** `pyproject.toml` 加 `[project.optional-dependencies]` 的 `ui` extra
-      （`D-d-2` 裁定的形态）。⚠️ **`[project].dependencies` 与 `[tool.pytest.ini_options]` 的
-      `testpaths` / `markers` 逐字不动**；`ruff` 的 `exclude` 也不动。
+- [ ] **`Proof`** ⚠️ **`pyproject.toml` 的 `ui` extra —— 人已在 `d69b335` 落盘，本项由 `Add` 改成 `Proof`**
+      （第 9 轮独立评审改准；旧文是「**`Add`** 加 `[project.optional-dependencies]` 的 `ui` extra」，
+      **照旧文走要么写出第二个同名 TOML 表 ⇒ 解析报错，要么发现「已经有了」而无处存证**）。
+      **本项要做的是复核 + 存证，一个字节都不改 `pyproject.toml`**：
+      ① `grep -n -A6 'optional-dependencies' pyproject.toml` ⇒ 实读到 `ui = ["playwright>=1.47"]`；
+      ② `python3 -c "import tomllib,pathlib;d=tomllib.loads(pathlib.Path('pyproject.toml').read_text());
+      print(d['project']['dependencies'], d['project']['optional-dependencies'])"`
+      ⇒ **`dependencies` 仍逐字只有 `certifi>=2024.2.2`**（D-25 的硬边界）；
+      ③ `git diff --name-only <本 plan 基线 sha>..HEAD -- pyproject.toml` ⇒ **无输出**（本 plan 未改它的自证）。
+      **三条的命令原文与输出入证据文件。**
+      ⚠️ **`[tool.pytest.ini_options]` 的 `testpaths` / `markers` 与 `ruff` 的 `exclude` 同样一个字不动**
+      （`live` marker 已注册、`testpaths = ["tests"]`、`exclude = ["tests/gates"]`，均已实读确认）。
+      ⚠️ **不在仓里了（被 revert）⇒ 停机分支 4 重新触发**，不许自己补写那一段。
+      - Skill: `none`
+- [ ] **`Proof`** ⚠️ **装浏览器二进制的时间成本实测 —— D-25 逐字压给 loop 的一件活**
+      （第 9 轮独立评审新增；D-25「未决」栏与 `STATE.md:428` ③ 逐字：「**CI 装 chromium 会显著拉长 `gates-l2-live`**……
+      **由 loop 在 plan 里给方案并实测，不要默认塞进现有 job 就完事**」）。
+      **它是在范围内的活，不是 follow-up** —— 旧版交接项 (2) 只写「装 `ui` extra 并 `playwright install --with-deps chromium`」，
+      **那正是 D-25 点名禁止的「默认塞进现有 job 就完事」**。
+      **写死三步，全部离线、零红线面**：
+      **(a)** `python3 -m playwright install --dry-run chromium` ⇒ 抄下**安装位置与下载 URL**
+      （实读确认该命令可用、exit 0）；
+      **(b)** **冷装一次并计时**：`PLAYWRIGHT_BROWSERS_PATH=/tmp/agenerp-pw-cold /usr/bin/time -p
+      python3 -m playwright install chromium` ⇒ **墙钟秒数 + 下载字节数**（`du -sh /tmp/agenerp-pw-cold`）逐字入证据文件。
+      ⚠️ **必须用临时 `PLAYWRIGHT_BROWSERS_PATH`，不许污染 `~/Library/Caches/ms-playwright`**（那是 `H2` 的判定面）；
+      跑完 `rm -rf /tmp/agenerp-pw-cold`。
+      ⚠️ **拿不到网络就照实记 `verification scope limited`**，只交 (a) 的下载体积推算，**不许拿本机已缓存的秒数冒充冷装**。
+      **(c)** 用 (b) 的数**给出至少两个方案并各写一句代价**（交接项 (2) 照抄它，不许只给一句「装上去」）：
+      **方案一** 塞进现有 `gates-l2-live`（最简单，代价 = 每次 run 多这么多墙钟）·
+      **方案二** 单独 job + artifact/缓存（`actions/cache` 键为 playwright 版本，代价 = 多一个 job 与缓存失效时的回退成本）·
+      **方案三** 只装 `chromium-headless-shell`（体积更小，代价 = 与本 plan 断言体实际启动的浏览器形态必须一致，否则 CI 与本机不同源）。
+      ⚠️ **本项只给方案与数，不动 `.github/workflows/**` 任何一个字节**（红线 2）—— **选哪个方案归人。**
       - Skill: `none`
 - [ ] **`Proof`** 跑 WBS 那条命令原文：`AGENERP_LIVE=1 AGENERP_HTTP_PORT=18080 AGENERP_ADMIN_PASSWORD=admin
       python3 -m pytest -m live tests/ui/test_sidebar.py -q -rs` ⇒ **必须 exit 0 且零 skip**。
@@ -969,7 +1034,13 @@ Skill: `closure-audit-prompt.md`（仅收口那一步）
       不会让这条门禁在 CI 上跑起来一次**。交接必须**逐件写清人要做的六件**
       （第 4 轮独立评审把原第 (5) 件拆成 (5a)(5b)，理由见该件下方）：
       **(1)** 把 `ui` 加进 `unit-and-contracts` 第 ⑦ 步的 `COVERED`（否则那一步红）；
-      **(2)** 在 `gates-l2-live` 里装 `ui` extra 并 `playwright install --with-deps chromium`；
+      **(2)** ⚠️ **第 9 轮独立评审改准，旧文不留** —— 原文是「~~在 `gates-l2-live` 里装 `ui` extra 并
+      `playwright install --with-deps chromium`~~」，**那正是 D-25 逐字点名禁止的「默认塞进现有 job 就完事」**。
+      改准后交出去的是**三个方案 + 本 plan 实测的墙钟与体积**（由本 Phase 那条 `Proof` 产出）：
+      方案一塞进现有 job · 方案二单独 job + 缓存 · 方案三只装 `chromium-headless-shell`，**各带一句代价**；
+      **选哪个归人**。同时逐字交代 D-25 的两条边界：**装包不等于能跑**（还要 `playwright install chromium`）·
+      **`ui` extra 不含 `pytest-playwright`**（本 plan 的断言体本来就不依赖它，`D-d-3` ⑥）·
+      以及 `playwright>=1.47` 是**浮动下界**这一处残余（`D-d-2` (iii)）；
       **(3)** 在 `gates-l2-live` 里加一条 `python3 -m pytest -m live tests/ui/test_sidebar.py` 的 step
       —— **没有这一步，新门禁在 CI 上零覆盖**；
       **(4)** 那条 step 照抄 `gates.yml:492-495` 既有的**零 skip 断言**形态（否则 skip 又变成静默出口）；
@@ -1007,6 +1078,13 @@ Exit Criteria:
 - [ ] `H6` 有**直接观测值**：浏览器发出的请求带上了 `sid`（回的不是 401）—— 本仓第一次
 - [ ] `H2b` 的实际值（Phase 1 已测出、已落进探测记录）**确已被自建 fixture 采用**：
       浏览器到底怎么够到 `frontend` 站（默认站回落 / `--host-resolver-rules`），fixture 里用的与探测记录里记的**是同一条**
+- [ ] ⚠️ **`pyproject.toml` 的 `ui` extra 已复核且本 plan 零改动**（第 9 轮新增）：三条命令的原文与输出入证据文件
+      （`grep` 实读到 `ui = ["playwright>=1.47"]` · `tomllib` 读出 `dependencies` 仍只有 `certifi>=2024.2.2` ·
+      `git diff --name-only <基线sha>..HEAD -- pyproject.toml` **无输出**）
+- [ ] ⚠️ **装 chromium 的时间成本已实测并折成方案**（第 9 轮新增，D-25 逐字压给 loop 的活）：
+      `--dry-run` 输出 + **冷装墙钟秒数 + 下载体积**（用临时 `PLAYWRIGHT_BROWSERS_PATH`，跑完已清理）入证据文件；
+      交接项 (2) 里**至少三个方案各带一句代价**，且**没有替人选**。
+      ⚠️ 拿不到网络 ⇒ 逐字记 `verification scope limited`，**不许拿本机已缓存的秒数冒充冷装**
 - [ ] `H7b` 有**实际值**：起栈前 `AGENERP_LLM_*` 的**个数与变量名**（不含值）已记；走了哪一支已记。⚠️ **走 (乙) 支时，「本轮真实烧掉一次解释（中位约 11 万 token）」必须逐字落进证据文件与收口表**，**不许写成零成本**（§5 / R8）
 - [ ] 变异表 `M1`–`M16` **十六条 / 18 次施加**（`M13`、`M16` 各两变体）逐次有结论（打红 / 未打红 + 处置 + **是哪一格打的红**），全部 `RESTORED OK`
 - [ ] 不回归三条全绿；`check_expected_red.py` exit 0；`tests/unit` 只增不减
@@ -1022,7 +1100,7 @@ Exit Criteria:
       收口文字里**不许**出现「照抄重新成立 / 漂移已消除」这类说法。
       **本 plan 只负责把真相源（`project-context.md:52`）摆正**，让人有得照抄
 - [ ] `STATE.md` §3 两条**追加**（needs-human + `[Proof]`），**已有行零改写**（`git diff` 证）
-- [ ] `docs/evidence/p1-desk-sidebar/README.md` 落盘；`docs/logs/2026/08-25.md` 追加 Phase 3 条目
+- [ ] `docs/evidence/p1-desk-sidebar/README.md` 落盘；`docs/logs/2026/<执行当天>.md` 追加 Phase 3 条目（⚠️ 同上，第 9 轮改准，不再写死 `08-25.md`）
 
 ## 8. 风险
 
@@ -1455,6 +1533,74 @@ Exit Criteria:
   **人答完 §0.5 第 ① 条之后，越早执行越好** —— 拖得越久，§0 要重取的东西越多。
   这条不是催促，是把「延迟本身的代价」记在账上（同 §1.10 的预算账，只是这一格记的是时间）。
 
+- **Independent draft review iteration 9: `needs revision`（已就地修完）+ 裁定 `可以转 active: yes`**
+  （mission-driver 评审步，2026-08-26，`HEAD` = `d69b335`，工作树只有另一份 plan `1118-1` 的 ` M`，本文件之外零改动）
+  —— **不受前八轮结论约束**地重审全文，并逐条实读活仓核对（不采信 plan 自报）。
+
+  **⚠️ 本轮的性质是第三种，与前八轮都不同**：第 5、7 轮是「仓库动了、plan 没跟上」，第 8 轮是「plan 自己的判据不可满足」，
+  **本轮是「挡了八轮的那道门被人从外面打开了」** —— `d69b335` 落地之后，
+  §0.5 那两条只有人能答的前置**全部有了答案**，而这份文件从 front matter 到 Phase 3 有**一整条链**仍写着「答案不存在」。
+
+  **对停机裁定的复核（三处出处逐条实读，任取其一即满足免停条件）**：
+  `DECISIONS.md` **D-25**（人 2026-08-26 逐字「批准，加 ui extra」，形态写死为 `ui = ["playwright>=1.47"]`）·
+  `STATE.md:425` **`[resolved] 2026-08-26T01:47Z`**（逐字「该 plan 的 Review Hold 两条前置全部解除」）·
+  commit **`d69b335`**（`pyproject.toml` 实读已含 `[project.optional-dependencies]` 的 `ui` extra，
+  `[project].dependencies` 仍逐字只有 `certifi>=2024.2.2`）。
+  ⚠️ **`d69b335` 不带 `Approved-By` trailer（带的是 `Co-Authored-By`）—— 已核过，不影响免停**：
+  免停条件是三选一，`[resolved]` 行与 D-25 各自独立成立，且 `DECISIONS.md` 是红线 3。
+  前置② 同样已答（`STATE.md:450` 逐字「不算数，它是上游模板残留」；该文件 `:1-9` 人已加抬头「权威性归 D-25」）。
+  ⇒ **Phase 1 停机分支 4 今天不触发 ⇒ 这份 plan 具备「可执行契约」⇒ 转 `active`。**
+
+  **对前八轮其余结论的复核（逐条实读，全部仍成立，无一需改）**：
+  `ls -d tests/*/` 仍是那八个目录 = `gates.yml:597` 的 `COVERED`（`H1` 预测仍成立）·
+  **`gates.yml` 自第 6 轮起仍一行未动**，§0.6 那张对照表逐锚点复核仍准
+  （`:597` `COVERED` · `:567` `pip install pytest certifi` · `:646` ruff 七个目录 · `:640`「作用域三个目录」·
+  `:579`「这几个目录由 loop 写在红线外」· `:528-530` 零 skip 断言 · `:321`「配上之后它走答案面」·
+  `:293`「把判据调整到迁就环境」·「判据自身的判据」仍为 `:528` / `:592` 两处）·
+  `project-context.md:52` 仍是**三个**目录、`gates.yml:646` 仍是**七个** ⇒ **交接项 (5a)(5b) 仍成立** ·
+  `check_expected_red.py` 判定面仍写死 `tests/gates` · `module-boundaries.md` 现存最末编号节仍是 **§7.22**（`:3820`，全文 4129 行）
+  ⇒ **§7.23 仍是正确的下一个编号** · `02-WBS.md:89` 逐字仍是 P1.8b 那一行 ·
+  `DECISIONS.md` `## 3. 重开记录` 仍逐字「（暂无）」⇒ **零 `R-x`**。
+  ⚠️ **§1.9 四条开工基线本轮全部实跑，四条均 exit 0 且与本文件所记逐字吻合**：
+  `门禁 28 项：预期红 0，绿 28，跳过 0` · `801 passed, 6 skipped` · `456 passed, 13 skipped` · `All checks passed!`
+  ⇒ **`d69b335` 那次 `pyproject.toml` 改动没有动到任何判据**（另核：`tests/` 与 `tools/` 对 `optional-dependencies` 零命中）。
+
+  **本轮新提 7 条（3 Blocker + 4 Major），全部已就地修完**：
+
+  | # | 级别 | 新发现 | 改在哪 |
+  |---|---|---|---|
+  | 1 | **Blocker** | **免停出处已存在，而全文仍写着「不存在」。** front matter 的 `> Review Hold:`、§0.5 整节、Phase 1 停机分支 4、`D-d-0` / `D-d-2` 的执行项与 Exit Criteria，**五处一致地要求执行者停机**。照旧文走 ⇒ 一份人已经解锁的 plan 会在 Phase 1 第一条裁定上自我停机 | front matter 换成 `> Plan Status: active` + `> Review Hold Released:`（三处出处逐条列出）· **§0.5 整节重写**成「答案与出处」并把前八轮那两条误读防线原样保存、另加第三条（「命中数不是判据」）· 停机分支 4 加 `✅ 已满足` 段并保留「被 revert 就重新触发」的回退 · `D-d-0` / `D-d-2` 改成 `constrained` 档（记录裁定 + 出处 + 残余风险）· Phase 1 Exit Criteria 同步 |
+  | 2 | **Blocker** | **Phase 3 那条 `Add pyproject.toml` 要做的事人已经做完了。** 实读 `d69b335`：`[project.optional-dependencies]` 已在仓里。照旧文走只有两种结局：**写出第二个同名 TOML 表 ⇒ 解析报错**，或发现「已经有了」**而这件在范围内的活无处存证**（撞 Minimum Rule 10） | 该项由 **`Add` 改成 `Proof`**：三条只读复核命令（`grep` / `tomllib` 读出两个键 / `git diff --name-only … -- pyproject.toml` 无输出），**一个字节不改该文件**；Phase 3 `Targets` 里那一格标注为「只读复核」；新增一条 Exit Criteria |
+  | 3 | **Blocker** | **D-25 压给 loop 的第 ③ 条硬约束，本 plan 一处都没接。** D-25「未决」栏与 `STATE.md:428` ③ 逐字：「CI 装 chromium 会显著拉长 `gates-l2-live`……**由 loop 在 plan 里给方案并实测，不要默认塞进现有 job 就完事**」，而旧交接项 (2) 逐字就是「在 `gates-l2-live` 里装 `ui` extra 并 `playwright install --with-deps chromium`」—— **正是被点名禁止的那一种**。这是**新的在范围内的活**，不是 follow-up | Phase 3 **新增一条 `Proof`**：(a) `--dry-run`（本轮实读该命令可用、exit 0）· (b) 用临时 `PLAYWRIGHT_BROWSERS_PATH` **冷装计时 + 量体积**，跑完清理，**不许污染 `~/Library/Caches/ms-playwright`**（那是 `H2` 的判定面），拿不到网络就记 `verification scope limited` **不许拿缓存秒数冒充冷装** · (c) 折成**三个方案各带一句代价**，**选哪个归人**。交接项 (2) 整条改写 · §10 verification 九→**十一**条 · Phase 3 新增 Exit Criteria · §11 第一条补一句 |
+  | 4 | **Major** | **§1.5 那张实读表里「没有任何 `optional-dependencies` 段」今天是假的**，而这一格正是 `D-d-2` 的立论依据 | 该行整格改准（旧文划掉），并写清**旧亏没消掉、只是换了位置**：`ui` extra **不含 `pytest-playwright`**（⇒ 本机那份仍是「碰巧装着」，与 `D-d-3` ⑥ 互相印证）、**不含浏览器二进制**（⇒ 第 3 条那件实测） |
+  | 5 | **Major** | **三个 Phase 的 `Item Types:` 自报比例全部与实数不符**：Phase 1 写「4/6 是 `Decision`」实为 **5/7** · Phase 2 写「5/6 是 `Add`」实为 **3/6** · Phase 3 写「5/7 是 `Proof`」实为 **4/9**。且**三者都不足**指南 Minimum Rule 7 的 80% 阈值 ⇒ 本就不该作 Phase 级统一声明。**与本文件已挡过三处的同族计数不一致是第四处** | 三处全改成「逐项标注为准」+ 实数（Phase 3 经本轮两处改动后为 **6/10 `Proof`**），并写明为何不作 Phase 级声明 |
+  | 6 | **Major** | **四处 Exit Criteria 把日志文件写死成 `docs/logs/2026/08-25.md`**，而起草日已过、今天是 `2026-08-26`（`docs/logs/2026/` 实读最末是 `08-25.md`）。照旧文走就是把执行当天的进度回写进起草日的文件，撞指南 When Executing 第 9 条 | 四处（Phase 1/2/3 Exit Criteria + §10 relevant docs）改成 `docs/logs/2026/<执行当天>.md`，并写明跨天的 Phase 各自入自己那天 |
+  | 7 | **Major** | **§0 那六条重取基线里没有一条重取「免停出处还在不在」**。本 plan 转 `active` 的全部理由建在三处出处上，而 §0 逐条重取的是行号、目录、驱动、AI 变量 —— **唯独不重取这三处**。一旦被 revert，执行者按 §0 走**看不见** | §0 第 4 条扩成三件：原驱动探针 + **(a)** `grep -n -A6 'optional-dependencies' pyproject.toml` + **(b)** 按 `D-25` / `[resolved]` 字面重取两处出处（**不认本文件写的行号**）；`D-d-0` / `D-d-2` / 停机分支 4 三处均写明「都不在了 ⇒ 停机分支 4 重新触发」 |
+
+  ⚠️ **本轮复核了四件「不该改」**：**Minimum Rule 4 不该拆**（与前八轮同结论：四块共享同一条闭合判据）·
+  **Anti-Slacking 禁用词全文零命中**（`optional` 的命中逐处实读，全是 TOML 键名与 §11 的 `Classification` 取值）·
+  **`D-d-3` ①–⑥ 一个字不改** —— 它正是 D-25 硬约束 ② 的实现（「UI 门禁跑不起来必须红，不许 skip」）·
+  **§1.4b 的 (A)(B) 两条命令一个字不改** —— `ui` extra 落地不影响它们的语义（extra 里没有 `pytest-playwright`，
+  而 (A) 的 `-p no:playwright` 与 (B) 的遮蔽模块各自证的仍是原来那两件事）。
+
+  ⚠️ **本轮的 `verification scope limited`，照实写**：**活栈、浏览器、docker 本轮一概未起**（评审轮不做活体取证）
+  ⇒ `H2b`–`H11` 那批探针**全部仍是预测值**，本轮一格都没落实际值。
+  新增的那条冷装计时**本轮只实读了 `--dry-run` 可用（exit 0）与它打印的安装位置/下载 URL，没有真跑冷装** ——
+  **秒数与体积必须由 Phase 3 执行期实测**，本文件不预填任何数字。
+
+- **第 9 轮收敛结论：转 `active`。** 九轮共 **50** 条（第 9 轮 3 Blocker + 4 Major）已全部改进本文件。
+  **挡了八轮的那件事已经结束**：`D-d-2` 的免停出处（人已批准、且逐字点名浏览器驱动的具体出处）
+  **今天在仓里存在且被本轮三处独立实读确认**，Phase 1 停机分支 4 **不触发**
+  ⇒ 满足指南 `Plan Status Flow` 对 `active` 的定义（「独立评审已收敛成**可执行**契约、**实现可以开始**」）。
+  ⚠️ **`active` 只解锁「可以开始」，不解锁任何一条红线** —— 三个 Phase 的归人写法、§10 六条红线自证、
+  §11 四条 deferred 的「归人」归属，**本轮一个字未松**。
+  ⚠️ **前八轮记在这里的那笔账仍然有效，而且本轮又兑现了一次**：
+  ① 停得越久，plan 记的活事实越烂 —— 本轮 7 条里有 **4 条（第 1、2、4、6 条）**的成因就是「仓库/日历动了、plan 没跟上」；
+  ② **一份从未被执行过的 plan，它写死的每一条「可执行验证」都只是一句没跑过的话** ——
+  本轮新增的冷装计时也还只是一句没跑过的话，`H2b`–`H11` 十格探针今天仍然一格都没落实际值。
+  ⇒ **§0 那六条重取基线不是形式，是这份 plan 能不能用的前提；越早执行，要重取的东西越少。**
+
+
 ## 10. Closure Gates
 
 - [ ] in-scope behavior is complete（唤起 / 上下文保留 / 同源请求 / 九个码 + `200` 共 10 态 + 兜底态渲染，五项都**有行为**不只有签名）
@@ -1466,9 +1612,11 @@ Exit Criteria:
       —— 本条只能落 `landed`）。
       ⚠️ **不许把「没退 0」挪进 §11**：§11 里已登记的四条，**没有一条**是它。
 - [ ] relevant docs are aligned（`module-boundaries.md` §7.23 · **`docs/context/project-context.md:52` 的 lint 作用域** ·
-      `docs/logs/2026/08-25.md` · `docs/evidence/p1-desk-sidebar/`）；
+      `docs/logs/2026/<执行当天>.md`（⚠️ 第 9 轮改准，不再写死 `08-25.md`） · `docs/evidence/p1-desk-sidebar/`）；
       对 `docs/design/agents-and-roles.md` §9 风险档表 **`No owner-doc update required`**（理由见 §4）
-- [ ] verification has run —— 至少这**九**条（⚠️ 第 8 轮独立评审把 §1.4b 那条拆成 (A)(B) 两条，八→九），命令原文 + 退出码入 `## Closure`：
+- [ ] verification has run —— 至少这**十一**条（⚠️ 第 8 轮把 §1.4b 那条拆成 (A)(B)，八→九；
+      ⚠️ **第 9 轮再加两条，九→十一**：`pyproject.toml` 的 `ui` extra 只读复核 · 装 chromium 的冷装计时），
+      命令原文 + 退出码入 `## Closure`：
       `python3 tools/gates/check_expected_red.py` ·
       `python3 -m pytest tests/unit -q` ·
       `python3 -m pytest tests/contracts tests/tools tests/routing tests/context -q` ·
@@ -1480,6 +1628,12 @@ Exit Criteria:
       **(B) `PYTHONPATH=/tmp/agenerp-nodriver python3 -m pytest tests/unit/test_desk_sidebar_body.py -q -p no:playwright -rs`**
       （先按 §1.4b 建好那个只含一行 `raise ImportError` 的遮蔽模块；**必须 exit 0、全 `skipped`、零 `error`**
       —— **这一条才是**无驱动 runner 上 `unit-and-contracts` 不被弄红的实证）·
+      **`python3 -c "import tomllib,pathlib;d=tomllib.loads(pathlib.Path('pyproject.toml').read_text());print(d['project']['dependencies'],d['project']['optional-dependencies'])"`**
+      （第 9 轮新增；⇒ `dependencies` 仍逐字只有 `certifi>=2024.2.2`、`optional-dependencies` 含 `ui = ["playwright>=1.47"]`，
+      **且 `git diff --name-only <基线sha>..HEAD -- pyproject.toml` 无输出** —— 本 plan 对它只读）·
+      **`PLAYWRIGHT_BROWSERS_PATH=/tmp/agenerp-pw-cold /usr/bin/time -p python3 -m playwright install chromium`**
+      （第 9 轮新增，D-25 逐字压给 loop 的实测；墙钟秒数 + `du -sh` 体积入 `## Closure`，跑完 `rm -rf`；
+      ⚠️ **不许污染 `~/Library/Caches/ms-playwright`**；拿不到网络 ⇒ 逐字记 `verification scope limited`）·
       `docker compose up -d --wait --wait-timeout 900`（冷起）·
       `git diff -- .github/workflows tests/gates docs/masterplan/DECISIONS.md docs/masterplan/02-WBS.md` → **0 行**
       ⚠️ **第 4 轮在这里写死的那个陷阱已经消失了，第 5 轮实测改准**：
@@ -1525,6 +1679,8 @@ Exit Criteria:
   （独立评审 iteration 2 逐件核过，无一件是 loop 能自己做的）。
   本仓已有同形态先例（`tests/tools` / `tests/routing` / `tests/context` / `tests/experiments` 均由人接进 CI）。
   ⚠️ **代价不是「第 ⑦ 步红」一条，是「第 ⑦ 步红 + 新门禁在 CI 上零覆盖 + `tests/ui` 零 lint 覆盖」三条**（§1.4）。
+  ⚠️ **第 9 轮补：交接项 (2) 已按 D-25 改成「三个方案 + 实测数」，不是一句「装上去」** ——
+  **本 plan 负责把数测出来、把方案摆出来；选哪个、以及一切落在 `.github/workflows/**` 的动作，全部归人。**
 - Successor Required: `yes`，**归人**。重开事件：**人下一次推送 `main` 看到第 ⑦ 步红的那一刻**
   （交接文字已在 Phase 3 写死，含可直接照做的一行修法）。
 - ⚠️ **这不是「顺手没做」，是「做了就越线」。** 本 plan 明知它会红仍然落目录，理由写在 §1.4 与 `D-d-1`。
