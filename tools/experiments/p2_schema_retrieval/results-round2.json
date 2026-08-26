@@ -1,0 +1,902 @@
+{
+  "n_items": 40,
+  "embed_model": "qwen3-embedding:0.6b",
+  "families": 279,
+  "largest_family": 9,
+  "shared_children": 62,
+  "selfcheck_field_business_described": {
+    "top1": 30.0,
+    "top3": 55.0,
+    "top5": 65.0,
+    "top10": 70.0
+  },
+  "selfcheck_matches_previous": true,
+  "Q1a_doctype_max_agg": {
+    "top1": 37.5,
+    "top3": 67.5,
+    "top5": 77.5,
+    "top10": 85.0
+  },
+  "Q1b_doctype_level_embedding": {
+    "top1": 20.0,
+    "top3": 40.0,
+    "top5": 42.5,
+    "top10": 65.0
+  },
+  "Q2_family_max_agg": {
+    "top1": 45.0,
+    "top3": 70.0,
+    "top5": 82.5,
+    "top10": 85.0
+  },
+  "Q3_two_stage_family_top3": {
+    "top1": 30.0,
+    "top3": 55.0,
+    "top5": 60.0,
+    "top10": 67.5
+  },
+  "Q3_candidate_field_count": {
+    "median": 310.5,
+    "min": 84,
+    "max": 678
+  },
+  "Q3_detail": [
+    {
+      "q": "这张销售订单是什么时候下的？",
+      "rank": 9,
+      "expected": [
+        "Sales Order.transaction_date"
+      ],
+      "families_top3": [
+        "Production Plan",
+        "Sales Order",
+        "Blanket Order"
+      ],
+      "n_candidates": 362,
+      "top5": [
+        "Production Plan Sales Order.sales_order_date",
+        "Sales Order.po_date",
+        "Sales Order.from_date",
+        "Blanket Order.order_date",
+        "Sales Order Item.transaction_date"
+      ]
+    },
+    {
+      "q": "这张销售订单的客户是谁？",
+      "rank": 1,
+      "expected": [
+        "Sales Order.customer",
+        "Sales Order.customer_name"
+      ],
+      "families_top3": [
+        "Sales Order",
+        "Purchase Order",
+        "Production Plan"
+      ],
+      "n_candidates": 534,
+      "top5": [
+        "Sales Order.customer_name",
+        "Sales Order.customer",
+        "Purchase Order.customer_name",
+        "Production Plan Sales Order.customer",
+        "Purchase Order.customer"
+      ]
+    },
+    {
+      "q": "销售订单承诺的交货日期在哪个字段？",
+      "rank": 2,
+      "expected": [
+        "Sales Order.delivery_date",
+        "Sales Order Item.delivery_date"
+      ],
+      "families_top3": [
+        "Supplier Quotation",
+        "Sales Order",
+        "Purchase Order"
+      ],
+      "n_candidates": 550,
+      "top5": [
+        "Supplier Quotation Item.expected_delivery_date",
+        "Sales Order Item.delivery_date",
+        "Purchase Order Item.expected_delivery_date",
+        "Sales Order.delivery_date",
+        "Purchase Order Item.schedule_date"
+      ]
+    },
+    {
+      "q": "销售订单这一行订了多少数量？",
+      "rank": 4,
+      "expected": [
+        "Sales Order Item.qty",
+        "Sales Order Item.stock_qty"
+      ],
+      "families_top3": [
+        "Sales Order",
+        "Quotation",
+        "Sales Invoice"
+      ],
+      "n_candidates": 617,
+      "top5": [
+        "Sales Order Item.ordered_qty",
+        "Sales Order.total_qty",
+        "Quotation Item.ordered_qty",
+        "Sales Order Item.qty",
+        "Sales Order Item.requested_qty"
+      ]
+    },
+    {
+      "q": "销售订单里这一行已经发了多少了？",
+      "rank": 1,
+      "expected": [
+        "Sales Order Item.delivered_qty"
+      ],
+      "families_top3": [
+        "Sales Order",
+        "POS Invoice",
+        "Sales Invoice"
+      ],
+      "n_candidates": 672,
+      "top5": [
+        "Sales Order Item.delivered_qty",
+        "POS Invoice Item.delivered_qty",
+        "Sales Invoice Item.delivered_qty",
+        "Sales Order.per_delivered",
+        "Sales Order Item.ordered_qty"
+      ]
+    },
+    {
+      "q": "销售订单的含税总额是多少？",
+      "rank": 5,
+      "expected": [
+        "Sales Order.grand_total",
+        "Sales Order.base_grand_total"
+      ],
+      "families_top3": [
+        "Sales Order",
+        "Purchase Order",
+        "Sales Invoice"
+      ],
+      "n_candidates": 674,
+      "top5": [
+        "Sales Order.total_taxes_and_charges",
+        "Sales Order.base_total_taxes_and_charges",
+        "Sales Taxes and Charges.total",
+        "Purchase Order.total_taxes_and_charges",
+        "Sales Order.base_grand_total"
+      ]
+    },
+    {
+      "q": "客户的默认结算货币是什么？",
+      "rank": 2,
+      "expected": [
+        "Customer.default_currency"
+      ],
+      "families_top3": [
+        "Company",
+        "Customer",
+        "Supplier"
+      ],
+      "n_candidates": 175,
+      "top5": [
+        "Company.default_currency",
+        "Customer.default_currency",
+        "Supplier.default_currency",
+        "Company.default_cash_account",
+        "Company.default_bank_account"
+      ]
+    },
+    {
+      "q": "报价单的有效期到什么时候？",
+      "rank": null,
+      "expected": [
+        "Quotation.valid_till"
+      ],
+      "families_top3": [
+        "Supplier Quotation",
+        "Pricing Rule",
+        "Promotional Scheme"
+      ],
+      "n_candidates": 252,
+      "top5": [
+        "Supplier Quotation.valid_till",
+        "Pricing Rule.valid_upto",
+        "Promotional Scheme.valid_upto",
+        "Pricing Rule.valid_from",
+        "Promotional Scheme.valid_from"
+      ]
+    },
+    {
+      "q": "采购订单是向哪个供应商下的？",
+      "rank": 1,
+      "expected": [
+        "Purchase Order.supplier",
+        "Purchase Order.supplier_name"
+      ],
+      "families_top3": [
+        "Purchase Order",
+        "Request for Quotation",
+        "Payment Order"
+      ],
+      "n_candidates": 264,
+      "top5": [
+        "Purchase Order.supplier_name",
+        "Purchase Order.supplier",
+        "Request for Quotation.vendor",
+        "Payment Order.party",
+        "Purchase Order.ref_sq"
+      ]
+    },
+    {
+      "q": "采购订单要求的到货日期在哪？",
+      "rank": 3,
+      "expected": [
+        "Purchase Order.schedule_date",
+        "Purchase Order Item.schedule_date"
+      ],
+      "families_top3": [
+        "Supplier Quotation",
+        "Purchase Order",
+        "Subcontracting Order"
+      ],
+      "n_candidates": 415,
+      "top5": [
+        "Supplier Quotation Item.expected_delivery_date",
+        "Purchase Order Item.expected_delivery_date",
+        "Purchase Order Item.schedule_date",
+        "Subcontracting Order Item.expected_delivery_date",
+        "Purchase Order.schedule_date"
+      ]
+    },
+    {
+      "q": "采购订单这一行已经收了多少货？",
+      "rank": 2,
+      "expected": [
+        "Purchase Order Item.received_qty"
+      ],
+      "families_top3": [
+        "Purchase Order",
+        "Purchase Invoice",
+        "Purchase Receipt"
+      ],
+      "n_candidates": 678,
+      "top5": [
+        "Purchase Order.per_received",
+        "Purchase Order Item.received_qty",
+        "Purchase Invoice Item.received_qty",
+        "Purchase Receipt Item.received_qty",
+        "Purchase Order Item.amount"
+      ]
+    },
+    {
+      "q": "采购收货单上这一行的验收仓库是哪个？",
+      "rank": 2,
+      "expected": [
+        "Purchase Receipt Item.warehouse"
+      ],
+      "families_top3": [
+        "Purchase Receipt",
+        "Subcontracting Receipt",
+        "POS Invoice"
+      ],
+      "n_candidates": 497,
+      "top5": [
+        "Purchase Receipt.set_warehouse",
+        "Purchase Receipt Item.warehouse",
+        "Subcontracting Receipt.set_warehouse",
+        "Subcontracting Receipt Item.warehouse",
+        "POS Invoice.set_warehouse"
+      ]
+    },
+    {
+      "q": "供应商的付款条件模板记在哪个字段？",
+      "rank": 1,
+      "expected": [
+        "Supplier.payment_terms"
+      ],
+      "families_top3": [
+        "Supplier",
+        "Payment Terms Template",
+        "Quotation"
+      ],
+      "n_candidates": 189,
+      "top5": [
+        "Supplier.payment_terms",
+        "Payment Terms Template Detail.description",
+        "Payment Terms Template.template_name",
+        "Payment Terms Template.terms",
+        "Quotation.payment_terms_template"
+      ]
+    },
+    {
+      "q": "某个仓库里这个物料的库存数量是多少？",
+      "rank": null,
+      "expected": [
+        "Bin.actual_qty"
+      ],
+      "families_top3": [
+        "Production Plan",
+        "POS Invoice",
+        "Asset Capitalization"
+      ],
+      "n_candidates": 360,
+      "top5": [
+        "Material Request Plan Item.actual_qty",
+        "POS Invoice Item.actual_qty",
+        "Asset Capitalization Stock Item.actual_qty",
+        "POS Invoice Item.actual_batch_qty",
+        "Material Request Plan Item.requested_qty"
+      ]
+    },
+    {
+      "q": "某个仓库里这个物料的库存价值是多少？",
+      "rank": null,
+      "expected": [
+        "Bin.stock_value"
+      ],
+      "families_top3": [
+        "Project",
+        "Asset Capitalization",
+        "POS Invoice"
+      ],
+      "n_candidates": 306,
+      "top5": [
+        "Project.total_consumed_material_cost",
+        "Asset Capitalization Stock Item.actual_qty",
+        "POS Invoice Item.actual_qty",
+        "Asset Capitalization.stock_items_total",
+        "POS Invoice Item.actual_batch_qty"
+      ]
+    },
+    {
+      "q": "这个物料的默认计量单位是什么？",
+      "rank": 1,
+      "expected": [
+        "Item.stock_uom"
+      ],
+      "families_top3": [
+        "Item",
+        "POS Invoice",
+        "Item Manufacturer"
+      ],
+      "n_candidates": 315,
+      "top5": [
+        "Item.stock_uom",
+        "Item.purchase_uom",
+        "Item.sales_uom",
+        "Item.weight_per_unit",
+        "POS Invoice Item.weight_per_unit"
+      ]
+    },
+    {
+      "q": "物料的估价方法是先进先出还是移动加权？",
+      "rank": 1,
+      "expected": [
+        "Item.valuation_method"
+      ],
+      "families_top3": [
+        "Item",
+        "BOM Creator",
+        "BOM"
+      ],
+      "n_candidates": 272,
+      "top5": [
+        "Item.valuation_method",
+        "BOM Creator.set_rate_based_on_warehouse",
+        "BOM Creator.rm_cost_as_per",
+        "BOM.rm_cost_as_per",
+        "Item.valuation_rate"
+      ]
+    },
+    {
+      "q": "库存流水这一笔之后的结存数量是多少？",
+      "rank": 2,
+      "expected": [
+        "Stock Ledger Entry.qty_after_transaction"
+      ],
+      "families_top3": [
+        "Stock Reconciliation",
+        "Stock Ledger Entry",
+        "Bin"
+      ],
+      "n_candidates": 84,
+      "top5": [
+        "Stock Reconciliation Item.current_qty",
+        "Stock Ledger Entry.qty_after_transaction",
+        "Stock Reconciliation Item.current_amount",
+        "Bin.reserved_stock",
+        "Stock Reconciliation Item.qty"
+      ]
+    },
+    {
+      "q": "库存流水里这一笔的单位成本是多少？",
+      "rank": null,
+      "expected": [
+        "Stock Ledger Entry.valuation_rate"
+      ],
+      "families_top3": [
+        "BOM",
+        "Project",
+        "Subcontracting Order"
+      ],
+      "n_candidates": 262,
+      "top5": [
+        "BOM Operation.cost_per_unit",
+        "BOM Operation.base_cost_per_unit",
+        "Project.total_consumed_material_cost",
+        "Subcontracting Order Item.rm_cost_per_qty",
+        "BOM Operation.operating_cost"
+      ]
+    },
+    {
+      "q": "库存调拨单这一行是从哪个仓库出的？",
+      "rank": null,
+      "expected": [
+        "Stock Entry Detail.s_warehouse"
+      ],
+      "families_top3": [
+        "Production Plan",
+        "Purchase Receipt",
+        "POS Invoice"
+      ],
+      "n_candidates": 487,
+      "top5": [
+        "Material Request Plan Item.from_warehouse",
+        "Purchase Receipt Item.from_warehouse",
+        "POS Invoice.set_warehouse",
+        "Purchase Receipt.set_from_warehouse",
+        "Purchase Receipt.supplier_warehouse"
+      ]
+    },
+    {
+      "q": "库存调拨单这一行入到哪个仓库？",
+      "rank": null,
+      "expected": [
+        "Stock Entry Detail.t_warehouse"
+      ],
+      "families_top3": [
+        "Stock Ledger Entry",
+        "Stock Reservation Entry",
+        "POS Invoice"
+      ],
+      "n_candidates": 254,
+      "top5": [
+        "Stock Ledger Entry.warehouse",
+        "Stock Reservation Entry.warehouse",
+        "POS Invoice.set_warehouse",
+        "Serial and Batch Entry.warehouse",
+        "POS Invoice Item.warehouse"
+      ]
+    },
+    {
+      "q": "发货单上这一行实际发了多少数量？",
+      "rank": null,
+      "expected": [
+        "Delivery Note Item.qty",
+        "Delivery Note Item.stock_qty"
+      ],
+      "families_top3": [
+        "Sales Order",
+        "Sales Invoice",
+        "Material Request"
+      ],
+      "n_candidates": 540,
+      "top5": [
+        "Packed Item.actual_qty",
+        "Packed Item.actual_batch_qty",
+        "Sales Invoice Item.actual_qty",
+        "Sales Order Item.actual_qty",
+        "Material Request Item.actual_qty"
+      ]
+    },
+    {
+      "q": "这个仓库属于哪家公司？",
+      "rank": 1,
+      "expected": [
+        "Warehouse.company"
+      ],
+      "families_top3": [
+        "Warehouse",
+        "Supplier Quotation",
+        "POS Invoice"
+      ],
+      "n_candidates": 333,
+      "top5": [
+        "Warehouse.company",
+        "Warehouse.warehouse_name",
+        "Supplier Quotation Item.warehouse",
+        "POS Invoice.set_warehouse",
+        "POS Invoice Item.warehouse"
+      ]
+    },
+    {
+      "q": "物料是否走批次管理，看哪个字段？",
+      "rank": null,
+      "expected": [
+        "Item.has_batch_no"
+      ],
+      "families_top3": [
+        "Sales Order",
+        "Packing Slip",
+        "Quality Inspection"
+      ],
+      "n_candidates": 301,
+      "top5": [
+        "Packed Item.batch_no",
+        "Packed Item.use_serial_batch_fields",
+        "Packing Slip Item.batch_no",
+        "Quality Inspection.batch_no",
+        "Packed Item.serial_and_batch_bundle"
+      ]
+    },
+    {
+      "q": "这张 BOM 的原材料成本合计是多少？",
+      "rank": 2,
+      "expected": [
+        "BOM.raw_material_cost",
+        "BOM.base_raw_material_cost"
+      ],
+      "families_top3": [
+        "BOM Creator",
+        "BOM",
+        "Production Plan"
+      ],
+      "n_candidates": 260,
+      "top5": [
+        "BOM Creator.raw_material_cost",
+        "BOM.base_raw_material_cost",
+        "BOM.raw_material_cost",
+        "BOM.base_total_cost",
+        "BOM.operating_cost_per_bom_quantity"
+      ]
+    },
+    {
+      "q": "BOM 里这道工序每小时的费率是多少？",
+      "rank": 1,
+      "expected": [
+        "BOM Operation.hour_rate"
+      ],
+      "families_top3": [
+        "BOM",
+        "BOM Creator",
+        "BOM Website Operation"
+      ],
+      "n_candidates": 160,
+      "top5": [
+        "BOM Operation.hour_rate",
+        "BOM Operation.base_hour_rate",
+        "BOM.operating_cost_per_bom_quantity",
+        "BOM Operation.base_cost_per_unit",
+        "BOM Operation.set_cost_based_on_bom_qty"
+      ]
+    },
+    {
+      "q": "工单计划要生产多少件？",
+      "rank": 9,
+      "expected": [
+        "Work Order.qty"
+      ],
+      "families_top3": [
+        "Production Plan",
+        "Sales Order",
+        "Work Order"
+      ],
+      "n_candidates": 425,
+      "top5": [
+        "Production Plan Item.planned_qty",
+        "Production Plan.total_planned_qty",
+        "Sales Order Item.production_plan_qty",
+        "Production Plan Item.ordered_qty",
+        "Material Request Plan Item.reserved_qty_for_production"
+      ]
+    },
+    {
+      "q": "工单已经完工入库了多少件？",
+      "rank": null,
+      "expected": [
+        "Work Order.produced_qty"
+      ],
+      "families_top3": [
+        "Work Order",
+        "Job Card",
+        "Material Request"
+      ],
+      "n_candidates": 221,
+      "top5": [
+        "Work Order Operation.completed_qty",
+        "Job Card.total_completed_qty",
+        "Work Order Operation.status",
+        "Work Order.status",
+        "Job Card Operation.completed_qty"
+      ]
+    },
+    {
+      "q": "工人报工完成了多少数量？",
+      "rank": 1,
+      "expected": [
+        "Job Card.total_completed_qty"
+      ],
+      "families_top3": [
+        "Job Card",
+        "Work Order",
+        "Workstation"
+      ],
+      "n_candidates": 182,
+      "top5": [
+        "Job Card.total_completed_qty",
+        "Work Order Operation.completed_qty",
+        "Workstation.production_capacity",
+        "Work Order.produced_qty",
+        "Job Card Operation.completed_qty"
+      ]
+    },
+    {
+      "q": "这道工序在哪个工作站上做？",
+      "rank": 1,
+      "expected": [
+        "BOM Operation.workstation",
+        "Work Order Operation.workstation"
+      ],
+      "families_top3": [
+        "Work Order",
+        "BOM",
+        "Operation"
+      ],
+      "n_candidates": 207,
+      "top5": [
+        "Work Order Operation.workstation",
+        "BOM Operation.workstation",
+        "Operation.workstation",
+        "Work Order Operation.workstation_type",
+        "BOM Operation.workstation_type"
+      ]
+    },
+    {
+      "q": "这张销售发票还有多少钱没收回来？",
+      "rank": null,
+      "expected": [
+        "Sales Invoice.outstanding_amount"
+      ],
+      "families_top3": [
+        "Purchase Invoice",
+        "Purchase Receipt",
+        "Invoice Discounting"
+      ],
+      "n_candidates": 505,
+      "top5": [
+        "Purchase Invoice.taxes_and_charges_deducted",
+        "Purchase Invoice.base_taxes_and_charges_deducted",
+        "Purchase Receipt.taxes_and_charges_deducted",
+        "Invoice Discounting.total_amount",
+        "Purchase Receipt.base_taxes_and_charges_deducted"
+      ]
+    },
+    {
+      "q": "总账分录的借方金额字段叫什么？",
+      "rank": 6,
+      "expected": [
+        "GL Entry.debit",
+        "GL Entry.debit_in_account_currency"
+      ],
+      "families_top3": [
+        "Journal Entry",
+        "GL Entry",
+        "Account Closing Balance"
+      ],
+      "n_candidates": 110,
+      "top5": [
+        "Journal Entry.total_debit",
+        "Journal Entry.total_amount",
+        "Journal Entry Account.debit_in_account_currency",
+        "Journal Entry.total_credit",
+        "Journal Entry.difference"
+      ]
+    },
+    {
+      "q": "总账分录记在哪个科目上？",
+      "rank": null,
+      "expected": [
+        "GL Entry.account"
+      ],
+      "families_top3": [
+        "Journal Entry",
+        "Journal Entry Template",
+        "Company"
+      ],
+      "n_candidates": 154,
+      "top5": [
+        "Journal Entry.accounts",
+        "Journal Entry Account.debit_in_account_currency",
+        "Journal Entry.total_debit",
+        "Journal Entry Account.account",
+        "Journal Entry Account.against_account"
+      ]
+    },
+    {
+      "q": "会计科目的类型（资产/负债/收入）在哪个字段？",
+      "rank": 2,
+      "expected": [
+        "Account.root_type",
+        "Account.account_type"
+      ],
+      "families_top3": [
+        "Journal Entry",
+        "Account",
+        "POS Invoice"
+      ],
+      "n_candidates": 274,
+      "top5": [
+        "Journal Entry Account.account_type",
+        "Account.account_type",
+        "POS Invoice Item.income_account",
+        "Journal Entry.accounts",
+        "Journal Entry Account.account"
+      ]
+    },
+    {
+      "q": "付款单实际付了多少钱？",
+      "rank": 2,
+      "expected": [
+        "Payment Entry.paid_amount",
+        "Payment Entry.base_paid_amount"
+      ],
+      "families_top3": [
+        "POS Invoice",
+        "Payment Entry",
+        "Purchase Invoice"
+      ],
+      "n_candidates": 591,
+      "top5": [
+        "POS Invoice.paid_amount",
+        "Payment Entry.paid_amount",
+        "Payment Schedule.paid_amount",
+        "POS Invoice.base_paid_amount",
+        "Purchase Invoice.paid_amount"
+      ]
+    },
+    {
+      "q": "采购发票的应付余额在哪个字段？",
+      "rank": null,
+      "expected": [
+        "Purchase Invoice.outstanding_amount"
+      ],
+      "families_top3": [
+        "Payment Entry",
+        "POS Invoice",
+        "Sales Invoice"
+      ],
+      "n_candidates": 542,
+      "top5": [
+        "Payment Entry.party_balance",
+        "POS Invoice.outstanding_amount",
+        "Payment Entry Reference.outstanding_amount",
+        "Sales Invoice Payment.amount",
+        "POS Invoice.paid_amount"
+      ]
+    },
+    {
+      "q": "分期付款计划里每一期的到期日是哪个字段？",
+      "rank": 1,
+      "expected": [
+        "Payment Schedule.due_date"
+      ],
+      "families_top3": [
+        "Purchase Invoice",
+        "Payment Term",
+        "POS Invoice"
+      ],
+      "n_candidates": 497,
+      "top5": [
+        "Payment Schedule.due_date",
+        "Payment Schedule.due_date_based_on",
+        "Payment Term.due_date_based_on",
+        "POS Invoice.due_date",
+        "Payment Schedule.discount_date"
+      ]
+    },
+    {
+      "q": "成本中心属于哪家公司？",
+      "rank": null,
+      "expected": [
+        "Cost Center.company"
+      ],
+      "families_top3": [
+        "Company",
+        "POS Invoice",
+        "Subscription"
+      ],
+      "n_candidates": 298,
+      "top5": [
+        "Company.cost_center",
+        "POS Invoice Item.cost_center",
+        "Subscription.cost_center",
+        "POS Invoice.cost_center",
+        "Company.round_off_cost_center"
+      ]
+    },
+    {
+      "q": "质检单的检验结论是合格还是不合格？",
+      "rank": 1,
+      "expected": [
+        "Quality Inspection.status"
+      ],
+      "families_top3": [
+        "Quality Inspection",
+        "Quality Review",
+        "BOM"
+      ],
+      "n_candidates": 166,
+      "top5": [
+        "Quality Inspection.status",
+        "Quality Inspection Reading.status",
+        "Quality Review.status",
+        "Quality Review Objective.status",
+        "Quality Inspection.manual_inspection"
+      ]
+    },
+    {
+      "q": "外协订单这一行的加工费单价是多少？",
+      "rank": 3,
+      "expected": [
+        "Subcontracting Order Item.rate"
+      ],
+      "families_top3": [
+        "Subcontracting Order",
+        "Quotation",
+        "Subcontracting Receipt"
+      ],
+      "n_candidates": 352,
+      "top5": [
+        "Subcontracting Order Item.rm_cost_per_qty",
+        "Subcontracting Order Item.service_cost_per_qty",
+        "Subcontracting Order Item.rate",
+        "Subcontracting Order Item.additional_cost_per_qty",
+        "Subcontracting Order Service Item.rate"
+      ]
+    }
+  ],
+  "Q4_right_family_wrong_table": {
+    "n_miss": 14,
+    "right_family_wrong_table": 3,
+    "examples": [
+      {
+        "q": "这张销售订单是什么时候下的？",
+        "expected": [
+          "Sales Order.transaction_date"
+        ],
+        "top5": [
+          "Production Plan Sales Order.sales_order_date",
+          "Sales Order.po_date",
+          "Sales Order.from_date",
+          "Blanket Order.order_date",
+          "Sales Invoice.po_date"
+        ]
+      },
+      {
+        "q": "工单已经完工入库了多少件？",
+        "expected": [
+          "Work Order.produced_qty"
+        ],
+        "top5": [
+          "Work Order Operation.completed_qty",
+          "Job Card.total_completed_qty",
+          "Work Order Operation.status",
+          "Work Order.status",
+          "Job Card Operation.completed_qty"
+        ]
+      },
+      {
+        "q": "这张销售发票还有多少钱没收回来？",
+        "expected": [
+          "Sales Invoice.outstanding_amount"
+        ],
+        "top5": [
+          "Purchase Invoice.taxes_and_charges_deducted",
+          "Purchase Invoice.base_taxes_and_charges_deducted",
+          "Purchase Receipt.taxes_and_charges_deducted",
+          "Invoice Discounting.total_amount",
+          "Sales Invoice.total_taxes_and_charges"
+        ]
+      }
+    ]
+  }
+}
