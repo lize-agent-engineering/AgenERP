@@ -371,19 +371,25 @@ P1.4（roadmap 工作项 6）已 `done`（2026-08-24），而**「唯一的调�
 | `test_live_endpoint.py` | `-m live`。一次真实调用，断言 `usage.reasoning > 0`。无凭据 **skip 并打印理由** |
 
 ⚠️ **判定面缺口，照实记，不假装没有。**
-`tests/routing` 既**不在** `missions/p1-insight.json` 的 `commands.test` 里，
-也**不在** `.github/workflows/gates.yml` 的任何 job 里（`unit-and-contracts` 的作用域是
-`tests/unit` `tests/contracts`，`lint` 的是 `agenerp tests/unit tests/contracts`）。
-`tests/tools` 是同形态的第一条缺口，`tests/routing` 是第二条。
-两者都要人来接（`missions/**` 与 `.github/workflows/**` 都在红线内，loop 不得动），
+`tests/routing` **不在** `missions/p1-insight.json` 的 `commands.test` 里。
+**CI 侧的复跑面以 `module-boundaries.md` §7.26 的登记表为准**（这件事在本仓的单一真相源），本处不复述。
+`tests/tools` 是**同形态的第一条缺口，`tests/routing` 是第二条 —— 缺口今天只剩 `commands.test` 这一侧**。
+`commands.test` 那一侧要人来接（`missions/**` 在 `docs/context/ai-autonomy-policy.md` 的
+Protected Areas 里标 `blocked`，loop 不得动 —— ⚠️ **它不在 `AGENTS.md` 的七条红线里**），
 已在 `STATE.md` §3 追加 needs-human。
-**在人接进去之前，不得声称 CI 覆盖了 `tests/routing`。**
-本层现有的代偿控制只有三条：本节的同构判据、`test_router.py` 的降级反测、
-以及 P1.1 收口时跑过的 M1–M5 假实现变异自查（结果表在 plan 的 Phase 3 记录里）。
+**不得声称 `GATE_VERIFY` 复跑得到 `tests/routing`。**
+本层现有的代偿控制见本节的同构判据、`test_router.py` 的降级反测、
+P1.1 收口时跑过的 M1–M5 假实现变异自查（结果表在 plan 的 Phase 3 记录里），
+以及 `d18c05c` 落地的静态判据与本节的 `routing-guards` 登记表。
 
-⚠️ **`pyproject.toml` 没有声明 `dependencies`**，`certifi` 至今是一个未声明的依赖。
-本层用惰性 import 与两道反测把它挡在"被 CI import 到"的路径之外，
-**这不等于依赖问题解决了** —— 真正解决要和"把 `tests/routing` 接进 CI"一起做，同属人的活。
+本层用惰性 import 与两道反测把 `certifi` 挡在"被 CI import 到"的路径之外
+（该依赖今天已由 `pyproject.toml:14-16` 逐字声明，`d5f0a04`）。
+
+⚠️ **本段 2026-08-26 就地改准，只删被证伪的从句 + 加指针，重述零个事实**
+（plan `2026-08-26-2213-1`）：删掉的是「不在任何 job 里」「都在红线内」「在人接进去之前」
+「只有三条」「`pyproject.toml` 没有声明 `dependencies`」「真正解决要和把 `tests/routing` 接进 CI 一起做」
+六处已被 `b0ad632` / `d5f0a04` / `d18c05c` 证伪的说法；判「真」的三句一个字未动。
+原两段逐字留痕在 `docs/evidence/p1-ci-coverage-registration/README.md` §4.2。
 
 **落点指针（2026-08-25，纯新增，本节其余结论一个字未改）**：**答案判定任务走 `explain` 档 +
 `requested` 点名**（`requested="qwen3.7-plus-2026-05-26"`），出处与全部裁定理由在

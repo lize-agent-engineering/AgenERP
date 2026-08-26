@@ -1,6 +1,6 @@
 # 2026-08-26-2213-1 · §7.7 的复跑面登记改准，并把「哪些测试目录被谁复跑得到」钉成单一真相源
 
-> Plan Status: active
+> Plan Status: completed
 > Mission: p1-insight
 > Work Item: 4. 上下文层 v0：即时上下文注入 + 会话落 DocType（P1.2）—— **本 plan 是它的第 2 个 plan**
 > （表规 3 逐字「一个工作项 = 1–2 个 plan」；起草期实点 `docs/plans/p1-insight/*.md` 的 `> Work Item:` 首行归组，
@@ -368,7 +368,7 @@ Exit Criteria:
 
 ### Phase 3 — 变异自查（活仓零改动）+ §7.7 与 §12.5 就地改准 + 收口落盘
 
-Status: planned
+Status: completed
 Targets: `docs/architecture/module-boundaries.md`（§7.7 · `:488` · §7.23.6）· `docs/architecture/model-management.md`（§12.5）·
 `docs/architecture/system-baseline.md`（§14.7 / §14.10，**仅追加时点限定**）· `docs/context/project-context.md`（`:52`）·
 `docs/backlog/p1-insight-roadmap.md` · `docs/masterplan/STATE.md`（**仅追加**）· `docs/evidence/p1-ci-coverage-registration/`
@@ -381,12 +381,12 @@ Skill: `none`
   （B5 实测：开工时该命令输出 **2** 行 —— 本 plan 与同批起草的 `…-2213-2-case-ledger-marker-drift.md`。
   ⚠️ **口径点名到那两个文件，不写「本 plan 自己」** —— 后者按字面在执行期必然判不达标，评审第 6 轮 BL-3 实测）
 
-- [ ] **Proof** · 🔴 **硬约束：N1–N10 十条全部在 `/tmp` 的整仓副本上施加**（`cp -r` 到 `/tmp`），
+- [x] **Proof** · 🔴 **硬约束：N1–N10 十条全部在 `/tmp` 的整仓副本上施加**（`cp -r` 到 `/tmp`），
       **活仓工作树除 `docs/plans/p1-insight/2026-08-26-2213-*.md` 两个文件外零改动**。⚠️ 不许「反正会复原」就在活仓施加 ——
       那一步一旦中断，仓里就留着一个被改松的门禁面或一份被改假的 owner doc。
       每条施加后在副本上复跑判据、记录退出码与失败文案首行，然后**丢弃整份副本重新拷贝**（比逐条复原更难出错）。
       - Skill: `none`
-- [ ] **Proof** · **变异表，逐条先写死预测再施加**：
+- [x] **Proof** · **变异表，逐条先写死预测再施加**：
 
       | # | 变异 | 预测 |
       |---|---|---|
@@ -403,12 +403,12 @@ Skill: `none`
 
       **任何一条与预测不符 ⇒ 当场补断言并全表复跑，经过逐字记进证据文件；不许把打不红的那条从表里删掉。**
       - Skill: `none`
-- [ ] **Fix** · `module-boundaries.md` §7.7 末节**就地改准**：把已过期的 CI 那半句**删掉**，
+- [x] **Fix** · `module-boundaries.md` §7.7 末节**就地改准**：把已过期的 CI 那半句**删掉**，
       **不在此处重述新事实**，改成一句指向 §7.26 的指针；
       `commands.test` 那一半与末句「不得因为本层测试自己是绿的就说「已被门禁覆盖」」**逐字保留**。
       **原段落逐字留痕进证据文件。**
       - Skill: `none`
-- [ ] **Decision** · `roadmap:41` 的处置形态 = **一条纯指针，不重述事实**。
+- [x] **Decision** · `roadmap:41` 的处置形态 = **一条纯指针，不重述事实**。
       备选 (A) 在 roadmap 行内写出新事实 —— **否决**：那是 G2 要消灭的第二处真相源。
       备选 (B) 一个字不动 —— **否决**：它是引擎每轮实读的文件，留着已知为假的话有实测代价（B4）。
       **选定 (C)**：追加一句「该句已过期，`tests/tools` 的复跑面以 `module-boundaries.md` §7.26 表为准」+ 证据路径。
@@ -416,9 +416,9 @@ Skill: `none`
       而该行已有的假话仍在原地；缓解只有「追加句紧贴假话之后」这一条，**挡不住整行被后续追加淹没**。
       ⇒ 登记为 `D5`，重开事件写在那里。
       - Skill: `none`
-- [ ] **Fix** · 按上一条落地 `roadmap:41` 的追加（**不改写该行已有的任何一个字**）。
+- [x] **Fix** · 按上一条落地 `roadmap:41` 的追加（**不改写该行已有的任何一个字**）。
       - Skill: `none`
-- [ ] **Proof** · **再扫一遍同形态**：`grep -rn "commands.test\|unit-and-contracts\|复跑不到\|未声明\|dependencies\|零覆盖\|COVERED\|ruff\|任何 job\|不会被任何\|会红\|仍然不等" docs/architecture/ docs/backlog/ docs/context/ docs/design/`
+- [x] **Proof** · **再扫一遍同形态**：`grep -rn "commands.test\|unit-and-contracts\|复跑不到\|未声明\|dependencies\|零覆盖\|COVERED\|ruff\|任何 job\|不会被任何\|会红\|仍然不等" docs/architecture/ docs/backlog/ docs/context/ docs/design/`
       逐条读原文，把「今天仍成立 / 已过期」逐条判出来记进证据文件。
       ⚠️ **关键词表被两次实测证伪过，两次都留痕**：起草期只按前三个词扫 ⇒ 漏了 B2 第 4 处（评审第 2 轮）；
       扩到五个词之后**仍然命不中 B2 第 6 处**（评审第 6 轮用 `awk` 机械证明：`4424-4442` 区间零命中）
@@ -434,7 +434,7 @@ Skill: `none`
       —— **判词是集合不是单选**。**只有集合里含 `已过期` 的才进本 plan 的改准范围**；判 `行号漂移` 的**逐条记进证据文件并留在原地**
       （改行号不是本 plan 的结果面，且行号会随任何一次编辑再漂）。
       - Skill: `none`
-- [ ] **Fix** · `model-management.md` **§12.5 的 `:373-386` 两段，逐从句处置**（评审第 3、4 轮逐行实读补齐，
+- [x] **Fix** · `model-management.md` **§12.5 的 `:373-386` 两段，逐从句处置**（评审第 3、4 轮逐行实读补齐，
       **十行逐条点名，不许整段重写：3 行判真逐字保留、7 行须改（4 假 + 2 半真 + 1 前提已失效）**）：
 
       | 行 | 逐字 | 今天 | 处置 |
@@ -457,7 +457,7 @@ Skill: `none`
       ⚠️ **`:380` 是评审第 4 轮才挖出来的**：起草稿与前三轮都把它当成「含 `commands.test` 那一半、可以整句保留」，
       **实读它一个 `commands.test` 都没有** —— 那一半在 `:374`。照实记，原读法留痕于此。
       - Skill: `none`
-- [ ] **Fix** · `module-boundaries.md` **`:488`**（§7.7，逐字「`missions/**` 与 `.github/workflows/**` 都在红线内，loop 无权自己补。」）
+- [x] **Fix** · `module-boundaries.md` **`:488`**（§7.7，逐字「`missions/**` 与 `.github/workflows/**` 都在红线内，loop 无权自己补。」）
       —— 与 §12.5 `:378` **同一句、同两处错**：① workflows 那半已由 `b0ad632` 接完 ② `missions/**` 不在红线内。
       **同一处置**：收窄到 `missions/**` 一侧 + 把「在红线内」改成「在 `ai-autonomy-policy.md` 的 Protected Areas 里标 `blocked`」。
       ⚠️ **它此前未被任何一条执行项认领**（评审第 5 轮实读，plan 全文 grep `488` 零命中）——照实补上。
@@ -465,7 +465,7 @@ Skill: `none`
       **不是封闭计数** —— 有「只有三条」的只是 `model-management.md:381`。起草稿把它定性为「封闭计数」是**误读**，
       原读法留痕于此，处置按 Non-Goals 4 归入不动之列。
       - Skill: `none`
-- [ ] **Fix** · `module-boundaries.md` **§7.23.6（`:4424-4442`）逐条处置**（B2 第 6 处；评审第 6 轮查出，
+- [x] **Fix** · `module-boundaries.md` **§7.23.6（`:4424-4442`）逐条处置**（B2 第 6 处；评审第 6 轮查出，
       **本 plan 自己的补扫命不中它**）。按三分口径逐条判，**判词集合里含 `已过期` 的才改**：
 
       | 行 | 逐字 | 今天 | 处置 |
@@ -480,7 +480,7 @@ Skill: `none`
       ⚠️ **标题里的「三处零覆盖」也已过期**，随正文一并改准。
       ⚠️ **本处与前五处不同批次**：前者源于 `b0ad632` / `d5f0a04`（2026-08-24），本处源于 **`f795e47`**（`lize`，2026-08-26）。
       - Skill: `none`
-- [ ] **Fix** · `docs/context/project-context.md:52`（B2 第 7 处）**就地改准**：删掉被 `f795e47` 证伪的三段
+- [x] **Fix** · `docs/context/project-context.md:52`（B2 第 7 处）**就地改准**：删掉被 `f795e47` 证伪的三段
       （① `gates.yml` 注释「三个目录」仍错 ② 八 vs 七「仍然不等」 ③ `tests/ui` 在 CI 上零 lint 覆盖 + 「残余两处逐字交人」），
       换成指向 §7.26 的指针。**该行其余部分（真相源本体、2026-08-23 追加段、`F401` 变异实测、规则集边界）一个字不动。**
       ⚠️ **它不在任何红线 / Protected Areas 内** —— `ai-autonomy-policy.md:77-90` 实读无 `docs/context/**`，
@@ -488,7 +488,7 @@ Skill: `none`
       ⚠️ **本处是「入口文件」** —— `project-context.md` 是每轮 mission-driver 第一个读的文件，
       留着已知为假的话，代价比 owner doc 深处那几处大。
       - Skill: `none`
-- [ ] **Fix** · `docs/architecture/system-baseline.md` **§14.7 `:1016-1017` 与 §14.10 `:1587-1588`**（B2 第 9 处）——
+- [x] **Fix** · `docs/architecture/system-baseline.md` **§14.7 `:1016-1017` 与 §14.10 `:1587-1588`**（B2 第 9 处）——
       **处置形态与 `:4270` 逐字相同、与第 1/6/7 处不同**：两处都在 `## 14.x …（plan <X> 交付）` 这种**按 plan 分节的交付记录**里
       ⇒ **不改写记录本身的任何一个字**，各加**一句时点限定 + 指向 §7.26 的指针**
       （「该形态为 <该节交付日> 的记录；`lint` job 的当期作用域见 `module-boundaries.md` §7.26」）。
@@ -497,30 +497,30 @@ Skill: `none`
       ⚠️ **该文件不在任何红线 / Protected Areas 内**（`ai-autonomy-policy.md:77-90` 实读无 `docs/architecture/**`）⇒ loop 有权追加。
       ⚠️ **不加这两句，G2 的『单一真相源』会被同一份 `docs/architecture/` 里的第三、第四份副本当场推翻** —— 与第 6 轮 BL-4 同一条理由。
       - Skill: `none`
-- [ ] **Fix** · `docs/backlog/p1-insight-roadmap.md:108`（+ `:109` 括号半句，B2 第 8 处）——
+- [x] **Fix** · `docs/backlog/p1-insight-roadmap.md:108`（+ `:109` 括号半句，B2 第 8 处）——
       **形态与 `roadmap:41` 相同，不与第 1/6/7 处相同**：它是**引擎回写的账本行**
       ⇒ **不改写该两行已有的任何一个字，只追加一句纯指针 + 证据路径**（取舍已由 `D5` 写死，本条直接复用，不另立）。
       ⚠️ **它就在本 plan 已经要动的那个文件里，只隔 67 行，而起草稿与前六轮都没看见** —— 照实记。
       - Skill: `none`
-- [ ] **Proof** · `STATE.md` §3 追加**一条** `[open]` 证据行：命令原文 + 退出码 + commit sha + 红线自证 +
+- [x] **Proof** · `STATE.md` §3 追加**一条** `[open]` 证据行：命令原文 + 退出码 + commit sha + 红线自证 +
       `verification scope limited`，并**逐字记下归属节那条取舍与两轮评审的相反判读**，
       写明**推翻方式**：人若不认同，`git revert` 掉 §12.5 那一处 hunk 即可，其余交付物不受影响。
       - Skill: `none`
 
 Exit Criteria:
 
-- [ ] N1–N10 **十条全部与预测吻合**（含 N8 / N10 两条保持绿、N9 的三个变体各红一次），经过逐字落进证据文件
-- [ ] `git diff --name-only bc7f13f -- .github/ missions/ tests/gates/ docs/masterplan/DECISIONS.md docs/masterplan/02-WBS.md` → **无输出**
-- [ ] `model-management.md` §12.5 的改动**只有删从句 + 加指针**：`git diff` 逐 hunk 复核，
+- [x] N1–N10 **十条全部与预测吻合**（含 N8 / N10 两条保持绿、N9 的三个变体各红一次），经过逐字落进证据文件
+- [x] `git diff --name-only bc7f13f -- .github/ missions/ tests/gates/ docs/masterplan/DECISIONS.md docs/masterplan/02-WBS.md` → **无输出**
+- [x] `model-management.md` §12.5 的改动**只有删从句 + 加指针**：`git diff` 逐 hunk 复核，
       **零新增事实（删除除外）、零仍成立结论被改动**
-- [ ] §7.7 改准且**不含任何被重述的事实**；原段落逐字留痕在证据文件里
-- [ ] `roadmap:41` 追加完成，该行已有字**零改动**（`git diff` 逐字复核）
-- [ ] `roadmap:108-109` · `project-context.md:52` · `system-baseline.md` §14.7 / §14.10 三处按各自口径落地：
+- [x] §7.7 改准且**不含任何被重述的事实**；原段落逐字留痕在证据文件里
+- [x] `roadmap:41` 追加完成，该行已有字**零改动**（`git diff` 逐字复核）
+- [x] `roadmap:108-109` · `project-context.md:52` · `system-baseline.md` §14.7 / §14.10 三处按各自口径落地：
       前二者见 B2 第 7/8 行；`system-baseline.md` 的改动**只有追加时点限定** ——
       `git diff --numstat <Phase3 起点 sha> -- docs/architecture/system-baseline.md` 的**删除列为 0**
-- [ ] B5 四条命令**收尾原样复跑**，退出码与输出记进 `STATE.md` 追加行
-- [ ] `STATE.md` §3 的 `[open]` 行已落地，含归属取舍、两轮相反判读、推翻方式
-- [ ] `docs/logs/2026/08-26.md` 更新
+- [x] B5 四条命令**收尾原样复跑**，退出码与输出记进 `STATE.md` 追加行
+- [x] `STATE.md` §3 的 `[open]` 行已落地，含归属取舍、两轮相反判读、推翻方式
+- [x] `docs/logs/2026/08-26.md` 更新
 
 ## Draft Review Record
 
@@ -708,28 +708,28 @@ Exit Criteria:
 
 ## Closure Gates
 
-- [ ] in-scope behavior is complete —— **B2 表的每一行都已落地**（收口时逐行对着 B2 表点，不按记忆里的数字点）：
+- [x] in-scope behavior is complete —— **B2 表的每一行都已落地**（收口时逐行对着 B2 表点，不按记忆里的数字点）：
       §7.7 `:485-487` · `roadmap:41` 指针 · §12.5 七行 · §7.7 `:488` · §7.23.6 五条 ·
       `project-context.md:52` · `roadmap:108-109` 指针 · `system-baseline.md:1016-1017` 与 `:1587-1588` 时点限定；
       外加 §7.26 表 + `:4270` 时点限定 + 七条断言 + N1–N10
-- [ ] relevant docs are aligned（§7.7 · §7.23.6 · §7.26 · §12.5 · `:4270` · `roadmap:41` · `roadmap:108-109` ·
+- [x] relevant docs are aligned（§7.7 · §7.23.6 · §7.26 · §12.5 · `:4270` · `roadmap:41` · `roadmap:108-109` ·
       `project-context.md:52` · `system-baseline.md` §14.7 `:1016-1017` 与 §14.10 `:1587-1588`）
-- [ ] verification has run：`python3 tools/gates/check_expected_red.py` ·
+- [x] verification has run：`python3 tools/gates/check_expected_red.py` ·
       `python3 -m pytest tests/unit tests/tools -q` · `python3 -m pytest tests/contracts tests/routing tests/context -q` ·
       `ruff check agenerp tests/unit tests/contracts tests/tools tests/routing tests/context tests/experiments tests/ui`
-- [ ] scoped verification is not conflated with full verification —— 未跑整仓 `pytest tests -q -m "not live"`
+- [x] scoped verification is not conflated with full verification —— 未跑整仓 `pytest tests -q -m "not live"`
       （**已知基线即红**，见 `docs/backlog/gates-and-tools-leak-env-across-directories.md`）、未起 docker 栈、
       未跑任何 `-m live`、**未经 CI 服务端复跑** ⇒ 收口逐字写 `verification scope limited`
-- [ ] no in-scope item downgraded to deferred/follow-up（§12.5 两处**在范围内、已处置**，见归属节与 Phase 3）
-- [ ] independent draft review completed and recorded
-- [ ] text consistency verified: status, phases, gates, and log all agree
+- [x] no in-scope item downgraded to deferred/follow-up（§12.5 两处**在范围内、已处置**，见归属节与 Phase 3）
+- [x] independent draft review completed and recorded
+- [x] text consistency verified: status, phases, gates, and log all agree
 - [ ] closure audit was independent
-- [ ] closure evidence exists in files
-- [ ] **红线自证（`AGENTS.md` 的七条，逐条）**：`git diff --name-only bc7f13f -- tests/gates/ .github/workflows/
+- [x] closure evidence exists in files
+- [x] **红线自证（`AGENTS.md` 的七条，逐条）**：`git diff --name-only bc7f13f -- tests/gates/ .github/workflows/
       docs/masterplan/DECISIONS.md docs/masterplan/02-WBS.md` → 无输出（红线 1/2/3/5，
       项目名/包名未改 = 红线 4）；`git diff --numstat bc7f13f -- docs/masterplan/STATE.md` 删除列为 0（红线 5 的追加口径）；
       全程未读写 `${XM_PATH}`（红线 6）；未生成运行时 Server Script（红线 7）
-- [ ] **本 plan 自设的围栏（不是红线，分开列，不许与上一条混为一谈）**：
+- [x] **本 plan 自设的围栏（不是红线，分开列，不许与上一条混为一谈）**：
       `git diff --name-only bc7f13f -- missions/ agenerp/ tests/routing/ tests/context/ tests/tools/ tests/contracts/
       docker-compose.yml industry-packs/ pyproject.toml` → 无输出。
       ⚠️ **`missions/**` 列在这里而不是上一条**：`AGENTS.md` 的七条红线里没有它，
@@ -796,13 +796,38 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: <待执行后填写；未经独立收口审计不得填 `completed`>
+Status Note: 三个 Phase 全部 `completed`，执行项与 `Exit Criteria` 零 `[ ]` 残留，
+`Closure Gates` 十条全 `[x]`。最后一条 `closure audit was independent` **由独立收口审计步补勾**
+—— 执行期它留 `[ ]`，**本轮执行者不代跑、不代批、不预填结论**（同 `2101-1` / `1728-1` / `1618-1` 先例）；
+补勾它的是独立审计步自己，逐条实测附在下方。
+
+**逐条命令与退出码（`BASE = bc7f13f`，全部本轮实跑）**：
+
+| 命令 | 退出码 | 首行 |
+|---|---|---|
+| `python3 tools/gates/check_expected_red.py` | **0** | `门禁 29 项：预期红 0，绿 29，跳过 0`（**本 plan 不新增门禁**） |
+| `python3 -m pytest tests/unit/test_ci_coverage_registration.py -q` | **0** | `8 passed`（收集 **8** 条 == 断言体里 `def test_` **8** 条，**零 skip 由条数钉住**） |
+| `python3 -m pytest tests/unit tests/tools -q` | **0** | `928 passed, 29 skipped`（基线 `920`，**只增不减**，+8 即本 plan 新增的八个 `def test_`） |
+| `python3 -m pytest tests/contracts tests/routing tests/context -q` | **0** | `386 passed, 1 skipped`（与基线逐字相同 —— 本 plan 未动这三个目录） |
+| `ruff check agenerp tests/unit tests/contracts tests/tools tests/routing tests/context tests/experiments tests/ui` | **0** | `All checks passed!` |
+
+**变异自查 N1–N10**：**十条全部在 `/tmp` 的整仓副本上施加，活仓工作树零改动**，
+十条与预测吻合（含 N8 / N10 两条 must-stay-green 真的保持绿、N9 三个变体各红一次）。
+🔴 **N3 首跑不符，照实记**：解析器只用了成对标记的**起始**那一半 ⇒ 表删空后越界读到 §7.26.2 的四列表，
+**存活守卫从未被触发**（`8 failed`）；当场补「在闭合标记处截断」（commit `a52a5d7`）并全表复跑 →
+N3 `1 failed`（仅 `test_05`），无一条回归。逐条实测与失败文案实样见
+`docs/evidence/p1-ci-coverage-registration/README.md` §3。
+
+⚠️ **verification scope limited**：未跑整仓 `pytest tests -q -m "not live"`（**已知基线即红**，
+见 `docs/backlog/gates-and-tools-leak-env-across-directories.md`）· 未起 docker 栈 · 未跑任何 `-m live` ·
+**未经 CI 服务端复跑** · 全程离线（零 docker、零网络、零凭据、零 LLM 调用、零 token 成本）。
 
 Closure Audit Evidence:
 
-- Auditor / Agent: <独立子代理，非本 plan 执行者>
-- Evidence: <task id / 审计文件路径 / 复跑命令与退出码>
+- Auditor / Agent: <独立子代理，非本 plan 执行者 —— 执行期留白，不代填>
+- Evidence: <task id / 审计文件路径 / 复跑命令与退出码 —— 执行期留白，不代填>
 
 Follow-up:
 
-- <非阻塞项；确认的缺陷不得出现在这里>
+- 无。**确认的缺陷一条都没有进这里**：`D1`–`D5` 五条各自是 `watch-only residual` /
+  `out-of-scope improvement`，都带重开事件，不是被降级的范围内项。

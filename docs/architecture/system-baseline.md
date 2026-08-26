@@ -1016,6 +1016,11 @@ job 里连一句 `pip install` 都没有）。**没有走「加 `pip install -e 
 `pip install ruff==0.14.1`（D2）+ 一条判据命令，逐字 `ruff check agenerp tests/unit tests/contracts`。
 **作用域三个目录逐字照抄 `docs/context/project-context.md` 的 `Lint / static check` 一行，一个字不加不减。**
 
+⚠️ **上面两行是 plan `2026-08-23-0337-1` 交付当日（2026-08-23）的记录，本节按交付记录处理、不改写一个字。**
+`lint` job 的 ruff 作用域此后被人扩过（`b0ad632` 2026-08-24 · `f795e47` 2026-08-26），
+**当期作用域见 `module-boundaries.md` §7.26 的登记表**（那是「哪些测试目录被谁复跑得到 / 被谁 lint 到」
+在本仓的单一真相源）。**「一个字不加不减」这条口径本身仍然成立** —— 变的是它照抄的那一行。
+
 两个 job 的公共形态与 §14.6 的 `unit-and-contracts` 逐字相同：
 `runs-on: ubuntu-latest` · `timeout-minutes: 10` · `actions/checkout@v4` · `actions/setup-python@v5`
 with `python-version: "3.11"`。**两个 job 都不带任何 `if:`**（`gates.yml` 现有 10 处 `if: always()`
@@ -1587,6 +1592,12 @@ grep -rn "expected-red-ratchet\|只能变短" AGENTS.md docs/context/ docs/archi
 **它们此刻仍在**（红线 1 内，loop 一个字节都不许改）。既有 `lint` job（`.github/workflows/gates.yml:426`）
 的判据 step 是显式列目录的 `ruff check agenerp tests/unit tests/contracts`；
 下一个把 `.` 或 `tests/gates` 写进那一行的人，会当场拿到两条**只有改裁判才能变绿**的告警。
+
+⚠️ **上面那段是 plan `2026-08-23-0859-2` 交付当日（2026-08-23）的记录，本节按交付记录处理、不改写一个字。**
+它引的 `.github/workflows/gates.yml:426`（`lint` job 键）与那条显式目录列表**都已随此后的落地漂移**，
+**当期真值见 `module-boundaries.md` §7.26**。⚠️ **本节的结论没有失效** ——
+`tests/gates` 至今**不在** ruff 作用域里（`[tool.ruff]` 的 `exclude` + `force-exclude`），
+「写进那一行就会拿到两条只有改裁判才能变绿的告警」照旧成立。
 
 ### D1 —— 怎么让 `tests/gates` 在所有调用形态下都被挡住
 

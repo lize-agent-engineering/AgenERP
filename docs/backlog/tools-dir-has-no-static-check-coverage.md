@@ -18,6 +18,13 @@
 | 4 | 既有 `lint` job **不含 `tools/`** | `.github/workflows/gates.yml:426` 的判据 step 逐字是 `ruff check agenerp tests/unit tests/contracts` |
 | 5 | shell 侧**一条静态检查都没有** | 本仓无 shellcheck 配置、无对应 CI job；`tools/loop-supervisor.sh` / `tools/ab-run.sh` 等零覆盖 |
 
+⚠️ **2026-08-26 追加时点限定（plan `2026-08-26-2213-1`，纯指针，上表一个字未改）**：
+上表是 2026-08-23 的实读记录，本条按账本处理、不改写。**事实 4 的结论今天仍然成立**
+（`lint` job 的 ruff 参数至今不含 `tools/`），但它取证列引的那条 step 已漂：
+今天是 `.github/workflows/gates.yml:682`、逐字八个目录。
+**`lint` 作用域的当期真值以 `docs/architecture/module-boundaries.md` §7.26 的登记表为准**
+（这件事在本仓的单一真相源），证据 `docs/evidence/p1-ci-coverage-registration/README.md`。
+
 **这 9 条全是文体项**（`F541` f-string 无占位符 · `E401` 一行多 import · `E741` 变量名 `l`），
 **没有一条是行为缺陷**。照实说，不夸大。
 

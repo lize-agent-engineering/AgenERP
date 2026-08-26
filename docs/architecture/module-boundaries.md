@@ -482,10 +482,15 @@ P1.1 里没有这个概念，也不该有 —— 所以聚合归本层。
 
 #### 判据缺口，如实记在这里
 
-`tests/context` **不在** `missions/p1-insight.json` 的 `commands.test` 里，
-也不在 `.github/workflows/gates.yml` 的 `unit-and-contracts` / `lint` 任何一个 job 的作用域里
-（那两个 job 的作用域是 `tests/unit` `tests/contracts`）。因此 **`GATE_VERIFY` 与 CI 都复跑不到本层的主判据**。
-`missions/**` 与 `.github/workflows/**` 都在红线内，loop 无权自己补。
+`tests/context` **不在** `missions/p1-insight.json` 的 `commands.test` 里
+⇒ **`GATE_VERIFY` 复跑不到本层的主判据**。
+**CI 侧的复跑面以 §7.26 的登记表为准**（这件事在本仓的单一真相源），本处不复述 ——
+此前这里逐字写着「也不在 `unit-and-contracts` / `lint` 任何一个 job 的作用域里」，
+**那句在两个 job 上各错一次**，人早在 2026-08-24（`b0ad632`）就把本层接进去了，
+原句逐字留痕在 `docs/evidence/p1-ci-coverage-registration/README.md` §4.1。
+`missions/**` 在 `docs/context/ai-autonomy-policy.md` 的 Protected Areas 里标 `blocked`，loop 无权自己补
+（⚠️ **它不在 `AGENTS.md` 的七条红线里** —— 此前这里与 `model-management.md` §12.5 同句式地写成
+「都在红线内」，两处都不准；`.github/workflows/**` 那半也已由 `b0ad632` 接完，一并删掉）。
 代偿控制：变异自查（plan Phase 3 的 M1–M8）+ 独立关闭审计 + STATE §3 的 needs-human 行。
 **不得因为本层测试自己是绿的就说「已被门禁覆盖」。**
 
@@ -4426,25 +4431,34 @@ Phase 3 的变异自查又补了两条断言（`test_asset_content_type_is_javas
 ⚠️ **(B) 里 `-p no:playwright` 不能省**：不关插件的话，插件自己加载时就会 `import playwright`、撞上遮蔽模块
 ⇒ 整轮起不来，红在插件上而不是红在断言体上。
 
-#### 7.23.6 CI 覆盖面：本节落地后**三处零覆盖**，全部归人（红线 2）
+#### 7.23.6 CI 覆盖面：本节落地时点名的三处，**2026-08-26 已全部结案**（`f795e47`，人做，红线 2）
 
-**照实说，不粉饰**：`tests/ui/` 落地之后
+**照实说，不粉饰**：`tests/ui/` 落地之后本节曾点名三处零覆盖。**当期真值以 §7.26 的登记表为准**
+（那是「哪些测试目录被谁复跑得到」在本仓的单一真相源），本节不复述，只记结案。
 
-1. `gates.yml:597` 第 ⑦ 步「没有测试目录被漏在 CI 之外」**会红** —— 它的名字逐字叫「判据自身的判据」，
-   **红正是它的目的**。本仓已有四个同形态先例（`tests/tools` / `tests/routing` / `tests/context` / `tests/experiments`）。
-2. **新门禁在 CI 上零覆盖**：`tools/gates/check_expected_red.py` 的判定面写死 `"tests/gates"`，
-   而 `gates-l2-live` 只有一条判定步就是跑它 ⇒ `tests/ui/test_sidebar.py` **不会被任何 job 跑到一次**。
-   **「把 `ui` 加进 `COVERED` 就好了」是错的** —— 那只让第 ⑦ 步不红。
-3. **`tests/ui` 在 CI 上零 lint 覆盖**：`gates.yml:646` 的 ruff 参数是七个目录的**字面量**
-   （本机会被真扫，因为 `[tool.ruff]` 的 `exclude` 只排除 `tests/gates`）。
+1. `gates.yml:628`（本节落地时是 `:597`）第 ⑦ 步「没有测试目录被漏在 CI 之外」—— 它的名字逐字叫
+   「判据自身的判据」，**当时红正是它的目的**。本仓已有四个同形态先例
+   （`tests/tools` / `tests/routing` / `tests/context` / `tests/experiments`）。**已结案**：`:631` 的
+   `COVERED` 今天含 `ui`（见 §7.26）。
+2. 新门禁在 CI 上的覆盖 —— `tools/gates/check_expected_red.py` 的判定面写死 `"tests/gates"`，
+   所以**「把 `ui` 加进 `COVERED` 就好了」当时是错的**（那只让第 ⑦ 步不红）。**已结案**：
+   `gates-l2-live` 里今天有一条**专跑它**的步骤（见 §7.26 表下点名的那一条）。
+3. `tests/ui` 的 lint 覆盖（本机会被真扫，因为 `[tool.ruff]` 的 `exclude` 只排除 `tests/gates`）——
+   本节落地时 `gates.yml:646` 的 ruff 参数是七个目录的**字面量**。**已结案**：那一行今天是 `:682`，见 §7.26 第 4 列。
 
 ⇒ 六件人要做的事逐件写在交付 plan 的 Phase 3 交接项与 `STATE.md` §3。
-**六件全部落在 `.github/workflows/**` 里 ⇒ 红线 2，本节与本 plan 一个字节都不碰。**
+**六件全部落在 `.github/workflows/**` 里 ⇒ 红线 2，归人**（这一条今天仍然成立，逐字保留）；
+`STATE.md:1152-1153` 逐字记着**六件全部做掉**（`f795e47`，带 `Gates-Change-Approved-By:`）。
 
 ⚠️ **`project-context.md:52` 的 lint 作用域由本 plan 就地改准**（它不在任何红线内），
-让交接项有真相源可照抄。**但改完之后漂移并没有消除**：`gates.yml:640` 那句注释逐字写的是
-「**作用域三个目录**逐字照抄……」，改完之后「三个目录」**仍然是错的**；
-且真相源变成**八个**目录而 `:646` 是**七个**，两边**仍然不等**。**这两处残余都在红线 2，交人，不假装修好了。**
+让交接项有真相源可照抄。**改完之后当时还剩两处残余**（`gates.yml` 那句「三个目录」的注释、
+以及真相源八个而 `lint` job 七个），**两处也已随 `f795e47` 一并结案** ——
+当期的作用域与两边是否相等，**一律以 §7.26 为准，本节不再登记**。
+
+⚠️ **本节 2026-08-26 就地改准**（plan `2026-08-26-2213-1`）：只删被证伪的从句 + 加指针，重述零个事实。
+删掉的是「会红」「不会被任何 job 跑到一次」「零 lint 覆盖 / 七个目录」「本节与本 plan 一个字节都不碰」
+「三个目录仍然是错的 / 两边仍然不等」五处已被 `f795e47` 证伪的说法，行号 `:597` / `:646` 一并改准。
+原段落逐字留痕在 `docs/evidence/p1-ci-coverage-registration/README.md` §4.3。
 
 #### 7.23.7 翻案条件（出现任一条即回来重读本节）
 
