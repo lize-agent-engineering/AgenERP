@@ -1,6 +1,6 @@
 # 2026-08-26-1618-1 `doc.links` 子表分支缺守卫 —— 一个坏子表宿主仍能带走整次扫描
 
-> Plan Status: active
+> Plan Status: completed
 > Mission: p1-insight
 > Work Item: 1. 工具执行层：10 个只读契约的执行体（P1.0a）—— **本 plan 是它的第 2 个 plan**（表规 3 的 1–2 个预算，本 plan 用掉最后一格）
 > Last Reviewed: 2026-08-26
@@ -111,49 +111,67 @@ AGENERP_HTTP_PORT=18080 AGENERP_SITE=frontend AGENERP_SITE_URL=http://127.0.0.1:
 
 ### Phase 1 - 判据先红
 
-Status: planned
+Status: completed
 Targets: `tests/unit/test_doc_links_skips_singles.py`
 Skill: `superpowers:test-driven-development`
 
 - Item Types: `Proof`（3/4 项）
 - Prereqs: 无
 
-- [ ] `Proof` 加一条判据：**子表宿主查询失败**（`istable: 1` 的宿主一被查就抛）时，其余健康宿主的命中照常返回。
-- [ ] `Proof` 加一条判据：**回溯父单据失败**时，其余健康宿主的命中照常返回。两条必须**分开写** —— 它们是两个不同的调用点，合成一条会让「只修了其中一处」蒙混过关。
-- [ ] `Proof` 加一条**反「绿着坏掉」判据**：健康的子表宿主必须照常产出**回溯到父单据**的命中行（`child_hits_resolved_to_parent` 为真、`child_table_hits` 非零）。没有这一条，把整个子表支 `try: … except: continue` 包起来也能让上面两条绿。
-- [ ] `Fix` 删掉 `:22` 的 `import pytest`（未使用）。
+- [x] `Proof` 加一条判据：**子表宿主查询失败**（`istable: 1` 的宿主一被查就抛）时，其余健康宿主的命中照常返回。
+- [x] `Proof` 加一条判据：**回溯父单据失败**时，其余健康宿主的命中照常返回。两条必须**分开写** —— 它们是两个不同的调用点，合成一条会让「只修了其中一处」蒙混过关。
+- [x] `Proof` 加一条**反「绿着坏掉」判据**：健康的子表宿主必须照常产出**回溯到父单据**的命中行（`child_hits_resolved_to_parent` 为真、`child_table_hits` 非零）。没有这一条，把整个子表支 `try: … except: continue` 包起来也能让上面两条绿。
+- [x] `Fix` 删掉 `:22` 的 `import pytest`（未使用）。
 
 ⚠️ **还有一条判据不在本 Phase**：钉住「回溯父单据失败时那一行怎么处置」的那条，正文取决于 Phase 2 `Decision` ① 的裁定结果，因此**随该裁定一起落在 Phase 2**。它不是可选项 —— 没有它，两种相反的实现都能让本 Phase 的判据全绿。
 
 Exit Criteria:
 
-- [ ] `python3 -m pytest tests/unit/test_doc_links_skips_singles.py -q` → **exit 1**，且新增的前两条各自红在**那个真实异常逐字冒出来**上（把红因原文抄进 plan），第三条**绿**（它描述的是现状里本就成立的行为）
-- [ ] `ruff check agenerp tests/unit tests/contracts tests/tools tests/routing tests/context tests/experiments tests/ui` → **exit 0**
-- [ ] No owner-doc update required（本 Phase 只动判据）
+- [x] `python3 -m pytest tests/unit/test_doc_links_skips_singles.py -q` → **exit 1**（实跑 `2 failed, 4 passed in 0.06s`），且新增的前两条各自红在**那个真实异常逐字冒出来**上（把红因原文抄进 plan），第三条**绿**（它描述的是现状里本就成立的行为）
+- [x] `ruff check agenerp tests/unit tests/contracts tests/tools tests/routing tests/context tests/experiments tests/ui` → **exit 0**
+- [x] No owner-doc update required（本 Phase 只动判据）
+
+**Phase 1 实跑记录（2026-08-26，基线 sha `8dcc9ac`）**
+
+| 命令 | 退出码 | 观测 |
+|---|---|---|
+| `python3 -m pytest tests/unit/test_doc_links_skips_singles.py -q` | **1** | `2 failed, 4 passed in 0.06s` |
+| `ruff check agenerp tests/unit tests/contracts tests/tools tests/routing tests/context tests/experiments tests/ui` | **0** | `All checks passed!` |
+
+两条新判据的红因**逐字**是构造的那个异常穿透到测试外层（**不是断言不相等**），且两处失败点各自可辨：
+
+- `test_a_failing_child_table_host_does_not_abort_the_whole_scan` —— 栈顶逐字
+  `agenerp/tools/documents.py:129: in scan_links` / `rows = session.list_rows(`，
+  终于 `E   RuntimeError: 站点侧失败：HTTP 500（Sales Order Item）`。⇒ **H1 命中**。
+- `test_a_failing_parent_backtrack_does_not_abort_the_whole_scan` —— 栈顶逐字
+  `agenerp/tools/documents.py:139: in scan_links` / `parent_doc = session.list_rows(`，
+  终于 `E   RuntimeError: 站点侧失败：HTTP 500（Sales Order）`。⇒ **H2 命中**。
+- 第三条 `test_a_healthy_child_host_still_resolves_hits_to_the_parent_document` **绿**
+  （它在 `4 passed` 里）。⇒ **H3 命中**。
 
 ### Phase 2 - 实现 + 裁定留痕口径 + 变异自查
 
-Status: planned
+Status: completed
 Targets: `agenerp/tools/documents.py`
 Skill: `none`
 
 - Item Types: `Fix | Decision | Proof`
 - Prereqs: Phase 1
 
-- [ ] `Fix` 给子表支的两处调用各自加守卫，使单点失败降级为「跳过这一个宿主 / 这一行」而不是整次作废。**两处分别处理，不许一个 `try` 把整支包起来** —— 那会让「子表行查得到但回溯失败」的部分结果一起丢掉。
-- [ ] `Decision` ① **回溯父单据失败时，那一条子表命中怎么处置**（`:139-145`）。这不是实现细节，是**会被人看见的语义**：
+- [x] `Fix` 给子表支的两处调用各自加守卫，使单点失败降级为「跳过这一个宿主 / 这一行」而不是整次作废。**两处分别处理，不许一个 `try` 把整支包起来** —— 那会让「子表行查得到但回溯失败」的部分结果一起丢掉。
+- [x] `Decision` ① **回溯父单据失败时，那一条子表命中怎么处置**（`:139-145`）。这不是实现细节，是**会被人看见的语义**：
       - (a) **丢掉这一行** —— 少报一条真实关联，且 `docstatus` 未知时不冒充；
       - (b) **以 `docstatus` 未知（`None`）记入** —— ⚠️ **`:161` 的筛选逐字是 `row.get("docstatus") != CANCELLED`，`None != 2` 为真** ⇒ **一张已取消的单据会被当成有效关联漏出去**。roadmap 的「已知的坑」逐字写着「`doc.links` 的下游筛选是**排除已取消**」，(b) 直接违反它。
       **默认取 (a)**，选 (b) 必须在落点节写明为什么可以容忍已取消单据漏出。**无论选哪支，都要在本 Phase 补一条判据把它钉死**（Phase 1 末尾那条 ⚠️ 指的就是它）。
       ⚠️ 一并处理 `:138` 的 `child_level_rows.append(row)` —— 它在失败的那次调用**之前**，⇒ 选 (a) 时 `child_table_hits` 会把一条没进 `hits` 的行也算进去。**要么把 append 挪到成功之后，要么在落点节写明这个计数的口径是「扫到的子表行」而不是「产出的命中」。**
-- [ ] `Decision` ② **`scanned_link_levels` 的过度声称**：`:122-123` 的 `levels.append(level)` 在两处调用**之前**，⇒ 本 plan 落地后会出现一个**此前不可达**的形态 —— 某一级的宿主**全部失败**时，返回的 `scanned_link_levels` 仍声称扫过那一级。
+- [x] `Decision` ② **`scanned_link_levels` 的过度声称**：`:122-123` 的 `levels.append(level)` 在两处调用**之前**，⇒ 本 plan 落地后会出现一个**此前不可达**的形态 —— 某一级的宿主**全部失败**时，返回的 `scanned_link_levels` 仍声称扫过那一级。
       ⚠️ **它是契约后置条件，不是内部字段**：`agenerp/tools_readonly.py:185-199` 逐字要求 `scanned_link_levels contains child_table`，并在 `tests/tools/test_executors.py` 与 `tests/contracts/test_postconditions.py` 上被断言 ⇒ **改它有让既有绿判据转红的实际风险**。
       两支：**(a) 改掉**（只在该级真产出过命中时才记）—— 必须先证明既有判据不由绿转红；**(b) 不改，登记为残余风险**并**写死翻案条件**（例如「一旦有一次真实归因因为这个声称而误判『已经扫过子表』，本条即回来重开」）。**两支都要写进落点节 §7.24**，选 (b) 时残余风险必须逐字写出来，不许只说「已知」。
-- [ ] `Decision` ③ **失败留不留痕**：
+- [x] `Decision` ③ **失败留不留痕**：
       - (A) 静默 `continue`，与既有主表支 `:151-156` 等形；
       - (B) 在 `scan_links()` 返回的 `facts` 里记一个「因失败被跳过的宿主/行」计数，与 `docs/architecture/model-management.md` §12.1 ③「绝不静默降级」对齐。
       **决定性判据（按优先级）**：① 红线 1 —— 任何选择都不得让 `tests/gates/**` 任一条由绿转红，`tests/gates/test_tool_execution_live.py::test_every_tool_returns_a_shape_its_contract_allows` **对 `doc.links` 是参数化覆盖的**，因此 (B) 必须先证明它**不改变 `doc_links()` 的 `Outcome` 形状**（`doc_links` 现在逐字 `rows, _ = scan_links(...)`，把 `facts` 丢弃并自建一份）；② C1 对 **Single 宿主**的「不留痕」是人已选定的取舍，**它没有覆盖「宿主查崩」这一类**，别把两件事混成一件。选定后把选择、被否的那个、以及残余风险写进落点节。
-- [ ] `Proof` 变异自查，逐条施加、逐条复原并 `sha256` 比对：
+- [x] `Proof` 变异自查，逐条施加、逐条复原并 `sha256` 比对：
       - **M1** 守卫改成 `except: raise` → 新判据必红；
       - **M2** 守卫吞掉一切并让子表支直接 `continue`（连健康宿主也不产出命中）→ Phase 1 第三条判据必红；
       - **M3** 只给 `:129` 加守卫、不给 `:139` 加 → 第二条判据必红；
@@ -163,38 +181,158 @@ Skill: `none`
 
 Exit Criteria:
 
-- [ ] `python3 -m pytest tests/unit tests/tools -q` → **exit 0**，且 passed **只增不减**（基线 `903 passed, 29 skipped`）
-- [ ] `python3 tools/gates/check_expected_red.py` → **exit 0**，逐字仍是 `门禁 28 项：预期红 0，绿 28，跳过 0`
-- [ ] `python3 -m pytest tests/contracts tests/routing tests/context -q` → **exit 0**
-- [ ] `ruff check agenerp tests/unit tests/contracts tests/tools tests/routing tests/context tests/experiments tests/ui` → **exit 0**
-- [ ] 变异表逐条有观测值与复原确认
-- [ ] `Decision` ①②③ 三条各自有选定结果、被否选项、残余风险；① 与（若选改）② 各有判据钉住
-- [ ] `docs/logs/` 更新
+- [x] `python3 -m pytest tests/unit tests/tools -q` → **exit 0**，且 passed **只增不减**（基线 `903 passed, 29 skipped`）
+- [x] `python3 tools/gates/check_expected_red.py` → **exit 0**，逐字仍是 `门禁 28 项：预期红 0，绿 28，跳过 0`
+- [x] `python3 -m pytest tests/contracts tests/routing tests/context -q` → **exit 0**
+- [x] `ruff check agenerp tests/unit tests/contracts tests/tools tests/routing tests/context tests/experiments tests/ui` → **exit 0**
+- [x] 变异表逐条有观测值与复原确认
+- [x] `Decision` ①②③ 三条各自有选定结果、被否选项、残余风险；① 与（若选改）② 各有判据钉住
+- [x] `docs/logs/` 更新
 
 ⚠️ **本 Phase 的四条验收命令按构造探不到活体门禁的回归**：`tests/gates/test_tool_execution_live.py:64` 是 `pytestmark = pytest.mark.live`，而 `tools/gates/check_expected_red.py:196` 在默认模式下注入 `-m "not live"` ⇒ **它一条都不会跑**。那条覆盖 `doc.links` 的参数化断言的回归判定**只发生在 Phase 3**，见那里的**活体门禁复跑**那一条 Exit Criteria。**不得把本 Phase 的全绿读成「活体门禁没回归」。**
 
+**Phase 2 裁定与实跑记录（2026-08-26）**
+
+三条 `Decision` 的选定、被否选项、残余风险：
+
+| # | 选定 | 被否的那个 | 残余风险 |
+|---|---|---|---|
+| ① 回溯失败那一行的处置 | **(a) 丢掉这一行**（plan 的默认支） | (b) 以 `docstatus=None` 记入 —— `:161` 的筛选逐字 `row.get("docstatus") != CANCELLED` 而 `None != 2` 为真 ⇒ 一张**已取消**的单据会被当成有效关联漏给下游，直接违反 roadmap 「已知的坑」里那条「`doc.links` 的下游筛选是排除已取消」 | **少报**：站点抖动时那一条真实关联这次不出现。取舍明写 —— 少报一条 > 冒充一条状态未知的。留痕由 `Decision` ③ 的 `child_rows_skipped_after_failure` 承担，不是静默 |
+| ① 附带：`child_level_rows.append(row)` | **挪到调用成功之后** | 保留在调用之前并改写口径注释 | `child_table_hits` 的口径从此是「**产出了命中**的子表行」。健康路径上两者恒等（回溯不抛 ⇒ 每一行都 append），既有 `tests/tools/test_executors.py:214` 的 `>= 1` 实跑仍绿 |
+| ② `scanned_link_levels` 的过度声称 | **(a) 改掉** —— `scanned(level)` 由「候选一进来就记」挪到「该宿主的站点调用**成功之后**」 | (b) 不改、登记为残余风险 | **零命中仍记**（扫成了只是没有关联），只有「该级宿主**全部**查崩/全部无宿主映射」才不记。⚠️ 顺带一并修好了主表支上**同形态、已入库**的过度声称（`5396e68` 的守卫也在 `levels.append` 之后） |
+| ③ 失败留不留痕 | **(B) 留痕** —— `scan_links()` 的 `facts` 加 `hosts_skipped_after_failure` / `child_rows_skipped_after_failure` | (A) 静默 `continue` | **痕迹止于 `scan_links()`**：模型看到的 `doc_links()` / `lineage_trace()` 的 `Outcome.facts` 一个键都没加。这是刻意的 —— `Decision` ③ 的「决定性判据 ①」要求先证明不改 `Outcome` 形状，而把计数抬进 `Outcome` 会动到活体门禁参数化断言所看的那个形状。**翻案条件**：一旦有一次真实归因因为「跳过没被模型看见」而给出错误结论，本条即回来重开，把计数抬进 `Outcome.facts` 并同步契约 |
+
+**`Decision` ② 「既有判据不由绿转红」的实证**（改后实跑，不是推断）：
+`tests/tools/test_executors.py::test_lineage_trace_scans_both_link_levels`（断言
+`set(scanned_link_levels) == {"doctype","child_table"}`）·
+`::test_lineage_trace_resolves_child_hits_to_the_parent_document` ·
+`::test_doc_links_scans_child_level_links` → `3 passed, 31 deselected`，
+`tests/contracts` 全绿（`375 passed, 1 skipped`），`check_expected_red.py` 逐字仍是
+`门禁 28 项：预期红 0，绿 28，跳过 0`。
+
+⚠️ **一处邻近的、本 plan 不碰的既有缺口（照实记，不顺手改）**：`parent_doc` **查成功但返回空**时
+（不抛异常，只是没有行），`docstatus` 仍为 `None` 且那一行**照旧记入** —— 与 `Decision` ①(b) 同形态的漏出。
+它落在**正常路径**上，`5396e68` 之前就存在，本 plan 的 Non-Goal 4 逐字禁止动正常路径的返回内容
+⇒ **原样保留、就地登记**，见 §7.24 与本 plan 的 `Deferred But Adjudicated`。
+
+**变异自查（逐条施加 → 实跑 → 复原 → `sha256` 比对）**。施加前 `agenerp/tools/documents.py` 的
+`sha256` = `7e41d2d4a72b3d7ba018e462b3bdc3000a5ffe09561952cf4806f04f1b7dd5c6`，
+**六次复原后逐次实测都是同一个值**。
+
+| 变异 | 施加内容 | `pytest tests/unit/test_doc_links_skips_singles.py -q` 观测 | 打红？ |
+|---|---|---|---|
+| **M1** | 两处守卫都改成 `except: raise` | `4 failed, 4 passed` —— 两条失败点判据 + 钉 `Decision` ①/② 的两条全红 | ✅ |
+| **M2** | 整个子表支用一个 `try` 包起来、吞掉一切并 `continue`（连健康宿主也不产出命中） | `3 failed, 5 passed` —— **含反「绿着坏掉」那条** `test_a_healthy_child_host_still_resolves_hits_to_the_parent_document` | ✅ |
+| **M3** | 只给 `:129` 加守卫、不给 `:139` 加 | `2 failed, 6 passed` —— 第二条（回溯失败）红，第一条不红 ⇒ **两条判据确实分得开** | ✅ |
+| **M4** | 只给 `:139` 加守卫、不给 `:129` 加 | `2 failed, 6 passed` —— 第一条（子表宿主查询失败）红 | ✅ |
+| **M5** | 两处 `except Exception` 收窄成 `except KeyboardInterrupt`（真站点上抛不出来） | `4 failed, 4 passed` —— 防住「守卫写了但抓不到」 | ✅ |
+| **M6**（自加，非补漏） | 把 `scanned(level)` 挪回站点调用**之前**，恢复 `Decision` ② 的过度声称 | `1 failed, 7 passed` —— `test_a_level_whose_hosts_all_failed_is_not_claimed_as_scanned` 红 | ✅ |
+
+⚠️ **M6 不是「某条没打红后补的漏」** —— M1–M5 **五条全部打红**（H7 命中）。M6 是为 `Decision` ②
+这条本 plan 自己新引入的行为额外加的一次反向确认。
+
+**Phase 2 四条验收命令实跑（2026-08-26）**
+
+| 命令 | 退出码 | 观测（逐字） |
+|---|---|---|
+| `python3 -m pytest tests/unit tests/tools -q` | **0** | `908 passed, 29 skipped in 13.79s`（基线 `903 passed, 29 skipped`，**只增不减**；`skipped` 仍是 29） |
+| `python3 tools/gates/check_expected_red.py` | **0** | `门禁 28 项：预期红 0，绿 28，跳过 0` |
+| `python3 -m pytest tests/contracts tests/routing tests/context -q` | **0** | `375 passed, 1 skipped in 0.53s` |
+| `ruff check agenerp tests/unit tests/contracts tests/tools tests/routing tests/context tests/experiments tests/ui` | **0** | `All checks passed!` |
+
+**H4 对照（照实记，不改 H4 原文）**：H4 预测 `907 passed`（Phase 1 三条 + 钉 `Decision` ① 的一条 = 4 条），
+实测 **`908 passed`** —— 差的那一条是**钉 `Decision` ②(a) 的那条**
+（`test_a_level_whose_hosts_all_failed_is_not_claimed_as_scanned`）。
+`Decision` ② 起草时两支未定，H4 按「不改」那支算的 4 条；执行期选了 (a) ⇒ 必须多一条判据钉住它，
+否则 `Decision` ②(a) 的行为无人守。**`skipped` 数 29 不变**，硬预测命中。
+
+
 ### Phase 3 - 活站点回归 + 落点节 + 收口
 
-Status: planned
+Status: completed
 Targets: `docs/architecture/module-boundaries.md`（新增 §7.24）· `docs/evidence/`（本 plan 的证据落盘目录，**是仓内目录，不是 `evidence-repo.env` 那个冻结的证据仓**）· `docs/logs/2026/08-26.md` · `docs/masterplan/STATE.md`（**只追加**）
 Skill: `none`
 
 - Item Types: `Proof | Decision`
 - Prereqs: Phase 2
 
-- [ ] `Proof` 活站点回归：用 `## Current Baseline` 里那段 **逐字节相同**的 heredoc 与 env 复跑一次，与已取得的「改动前」观测比对 —— 期望 `ok= True rows= 14` 且 `sha256` 仍是 `203db3f89a095aa19b6c684f4a808137c63cf9ef33cc74f575a766970e668bd1`。本改动只碰异常路径，正常路径必须一个字不变。命令原文与两次输出（改动前的那次抄自本 plan）一并落盘到 `docs/evidence/`。
+- [x] `Proof` 活站点回归：用 `## Current Baseline` 里那段 **逐字节相同**的 heredoc 与 env 复跑一次，与已取得的「改动前」观测比对 —— 期望 `ok= True rows= 14` 且 `sha256` 仍是 `203db3f89a095aa19b6c684f4a808137c63cf9ef33cc74f575a766970e668bd1`。本改动只碰异常路径，正常路径必须一个字不变。命令原文与两次输出（改动前的那次抄自本 plan）一并落盘到 `docs/evidence/`。
       ⚠️ **这一条证的是「没弄坏」，不是「守卫生效」** —— 守卫生效由 `tests/unit` 的判据与变异表证明，**两者不得互相冒充**。
       ⚠️ **`sha256` 不同不等于改坏了**：站点是活的，别人可能在两次之间动过数据。**不吻合时先原样复跑**（裁判规则 3），仍不吻合则逐行 diff 并把差异写进 plan；**在差异被解释清楚之前不得收口**。
-- [ ] `Decision` 写落点节 §7.24：缺陷形态、两个探针的观测原文、留痕口径的裁定与被否选项、残余风险、翻案条件。
-- [ ] `Proof` 往 `docs/masterplan/STATE.md` §2 追加一条证据行（命令原文 + 退出码 + sha），**只追加，不改写任何已有行**。
+- [x] `Decision` 写落点节 §7.24：缺陷形态、两个探针的观测原文、留痕口径的裁定与被否选项、残余风险、翻案条件。
+- [x] `Proof` 往 `docs/masterplan/STATE.md` §2 追加一条证据行（命令原文 + 退出码 + sha），**只追加，不改写任何已有行**。
 
 Exit Criteria:
 
-- [ ] 活站点两跑的行数/内容逐字对照结果记进 plan（**吻合或不吻合都照实记**，不吻合则不得收口）
-- [ ] §7.24 落地，且**不改** §7.6 / §7.11 / `docs/bugs/03` 的任何一个字
-- [ ] `docs/logs/` 更新；`STATE.md` **只追加**，判据是 `git diff --numstat -- docs/masterplan/STATE.md` 的**删除列为 `0`**（⚠️ **不用 `--stat`** —— 它的 `+/-` 图是**按比例缩放**的，插入量一大，一行删除会被画成零个 `-`，那是个会骗人的判据）
-- [ ] **活体门禁复跑（本 plan 唯一能判「`doc.links` 的裁判有没有回归」的一条）**：`AGENERP_HTTP_PORT=18080 AGENERP_LIVE=1 AGENERP_SITE=frontend AGENERP_SITE_URL=http://127.0.0.1:18080 AGENERP_ADMIN_PASSWORD=admin python3 -m pytest tests/gates/test_tool_execution_live.py -q` → **exit 0**。**这是只读复跑，`tests/gates/**` 一个字节不许动**（红线 1）。⚠️ 改动前后**各跑一次**，因为「它本来就红」与「本 plan 弄红了它」在单次退出码上分不开
-- [ ] 红线自证：`git diff --name-only <BASE> -- tests/gates/ .github/workflows/ missions/ docker-compose.yml industry-packs/ docs/masterplan/ ':!docs/masterplan/STATE.md'` → **无输出**（⚠️ 用整个 `docs/masterplan/` 再排除 `STATE.md`，不是只点 `DECISIONS.md` 与 `02-WBS.md` —— 红线 5 保护的是**整个目录**）
+- [x] 活站点两跑的行数/内容逐字对照结果记进 plan（**吻合或不吻合都照实记**，不吻合则不得收口）
+- [x] §7.24 落地，且**不改** §7.6 / §7.11 / `docs/bugs/03` 的任何一个字
+- [x] `docs/logs/` 更新；`STATE.md` **只追加**，判据是 `git diff --numstat -- docs/masterplan/STATE.md` 的**删除列为 `0`**（⚠️ **不用 `--stat`** —— 它的 `+/-` 图是**按比例缩放**的，插入量一大，一行删除会被画成零个 `-`，那是个会骗人的判据）
+- [x] **活体门禁复跑（本 plan 唯一能判「`doc.links` 的裁判有没有回归」的一条）**：`AGENERP_HTTP_PORT=18080 AGENERP_LIVE=1 AGENERP_SITE=frontend AGENERP_SITE_URL=http://127.0.0.1:18080 AGENERP_ADMIN_PASSWORD=admin python3 -m pytest tests/gates/test_tool_execution_live.py -q` → **exit 0**。**这是只读复跑，`tests/gates/**` 一个字节不许动**（红线 1）。⚠️ 改动前后**各跑一次**，因为「它本来就红」与「本 plan 弄红了它」在单次退出码上分不开
+- [x] 红线自证：`git diff --name-only <BASE> -- tests/gates/ .github/workflows/ missions/ docker-compose.yml industry-packs/ docs/masterplan/ ':!docs/masterplan/STATE.md'` → **无输出**（⚠️ 用整个 `docs/masterplan/` 再排除 `STATE.md`，不是只点 `DECISIONS.md` 与 `02-WBS.md` —— 红线 5 保护的是**整个目录**）
+
+**Phase 3 实跑记录（2026-08-26T08:50Z，基线 sha `8dcc9ac`）**
+
+**① 活站点 `doc.links` 两跑（脚本与 env 逐字节相同）**
+
+⚠️ **「改动前」那一跑是本轮执行期在 `8dcc9ac` 的干净树上亲手取的**（`git status --porcelain` 空输出，
+`agenerp/**` 一个字节未改），**不是抄的起草期记录** —— 起草期那次在 `7302ebe` 上，
+两者恰好同值，三跑同 `sha256`。
+
+| 跑次 | 树状态 | 第一行 | `sha256` |
+|---|---|---|---|
+| 改动前 | `8dcc9ac` 干净树 | `ok= True rows= 14` | `203db3f89a095aa19b6c684f4a808137c63cf9ef33cc74f575a766970e668bd1` |
+| 改动后 | Phase 1–2 已落树 | `ok= True rows= 14` | `203db3f89a095aa19b6c684f4a808137c63cf9ef33cc74f575a766970e668bd1` |
+
+**逐字对照结果：行数相同（14 = 14）、`sha256` 逐字节相同 ⇒ 吻合**。**H6 命中**。
+命令原文与两跑输出已落盘到 `docs/evidence/p1-insight-doclinks-guard/README.md`。
+
+**② 活体门禁 `tests/gates/test_tool_execution_live.py` 改动前后各一跑（只读复跑）**
+
+| 跑次 | 退出码 | 汇总 | 唯一的红 |
+|---|---|---|---|
+| 改动前（`8dcc9ac` 干净树） | **1** | `1 failed, 11 passed in 5.68s` | `test_permission_scope_produces_at_least_one_real_negative` |
+| 改动后 | **1** | `1 failed, 11 passed in 5.59s` | 同上，逐字同一条 |
+
+⚠️ **H8 未命中，照实记，不修饰**：H8 预测「改动前后都是 exit 0」，实测**两跑都是 exit 1**。
+红因逐字：
+
+```
+E   Failed: 受限身份口令未设（AGENERP_WORKER_PASSWORD），本条判据无法执行。
+E       装载受限身份：python3 -m agenerp.seedusers --site frontend
+```
+
+⇒ **环境缺一个受限身份口令，与 `doc.links` 无关，且改动之前就红**。
+按 H8 的 ⚠️ 逐字要求：**不得就此认定本 plan 无责** —— 本 plan 的无责由下面这条证，
+不由退出码本身证。`-v` 两跑逐条比对，本 plan 真正要看的那两个参数化 id
+**改动前后都是 `PASSED`**：
+
+```
+test_every_tool_returns_a_shape_its_contract_allows[doc.links] PASSED
+test_every_tool_returns_a_shape_its_contract_allows[lineage.trace] PASSED
+```
+
+⇒ **`doc.links` / `lineage.trace` 的活体裁判没有回归。**
+**未为让它转绿而动 `tests/gates/**` 任何一个字节**（红线 1）。
+装载受限身份不在本 plan 范围内，已登记 `Deferred But Adjudicated` 交人。
+
+**③ 红线自证（`BASE = 8dcc9ac`）**
+
+| 命令 | 结果 |
+|---|---|
+| `git diff --name-only 8dcc9ac -- tests/gates/ .github/workflows/ missions/ docker-compose.yml industry-packs/ docs/masterplan/ ':!docs/masterplan/STATE.md'` | **无输出** ✅ |
+| `git diff --numstat -- docs/masterplan/STATE.md` | `9	0	docs/masterplan/STATE.md` ⇒ **删除列为 `0`**，只追加 ✅ |
+
+其余红线：证据仓 `XM_PATH` 未写（6）· 未生成 Server Script（7）· 未改项目名/包名/命名空间（4）·
+`DECISIONS.md` 未触碰（3，它在上面那条 pathspec 的覆盖范围内，无输出即清白）。
+
+**④ 落点节与日志**
+
+`docs/architecture/module-boundaries.md` **§7.24** 落地（七个小节：缺陷形态 · 两个探针的观测原文 ·
+落地形状 · 三条裁定的选定/被否/残余风险 · 一处不碰的邻近缺口 · 验证口径谁证什么 · 五条翻案条件）。
+**§7.6 / §7.11 与 `docs/bugs/03` 一个字未改**（`git diff --name-only` 里 `docs/bugs/` 无条目，
+`module-boundaries.md` 的 diff 是**纯追加**在文件末尾）。
+`docs/logs/2026/08-26.md` 已加当日条目（倒序置顶）。
+
 
 ## 开跑前写死的预测（H1–H8，事后逐条对照，不许事后改写）
 
@@ -227,20 +365,49 @@ Exit Criteria:
 
 ## Closure Gates
 
-- [ ] in-scope behavior is complete
-- [ ] relevant docs are aligned
-- [ ] verification has run（Phase 2 四条 + Phase 3 的活站点 `doc.links` 两跑 + **活体门禁 `tests/gates/test_tool_execution_live.py` 改动前后两跑**，命令原文与退出码逐条记录）
-- [ ] scoped verification is not conflated with full verification —— 若未跑整仓 `pytest tests -q -m "not live"`（**已知基线即红**，`gates`×`tools` 环境泄漏已单列立案），必须逐字写「verification scope limited」
-- [ ] no in-scope item downgraded to deferred/follow-up
-- [ ] independent draft review completed and recorded
-- [ ] text consistency verified: status, phases, gates, and log all agree
-- [ ] closure audit was independent
-- [ ] closure evidence exists in files
+- [x] in-scope behavior is complete —— `Goals` 1–5 逐条落地：① 子表支两处调用各自守卫（§7.24.3）· ② 前两条判据修改前红在**异常逐字穿透**上、第三条按构造修改前即绿（Phase 1 记录）· ③ 反「绿着坏掉」判据存在且被变异 **M2** 实测打红 · ④ `import pytest` 已删、`ruff` → exit 0 · ⑤ `scanned_link_levels` 由 `Decision` ②(a) **改掉**并配一条判据钉住，**没有悬着**
+- [x] relevant docs are aligned —— `module-boundaries.md` §7.24（新增，纯追加）· `docs/logs/2026/08-26.md`（当日条目）· `docs/evidence/p1-insight-doclinks-guard/README.md`（活站点两跑 + 活体门禁两跑的命令原文与输出）· `docs/masterplan/STATE.md` §2（**只追加**，`numstat` 删除列 `0`）
+- [x] verification has run（Phase 2 四条 + Phase 3 的活站点 `doc.links` 两跑 + **活体门禁 `tests/gates/test_tool_execution_live.py` 改动前后两跑**，命令原文与退出码逐条记录）—— 见 Phase 2 / Phase 3 的实跑记录表，**每一条都带命令原文 + 退出码 + 逐字输出**
+- [x] scoped verification is not conflated with full verification —— **verification scope limited**：**未跑**整仓 `python3 -m pytest tests -q -m "not live"`（**已知基线即红**，`gates`×`tools` 环境泄漏已单列立案于 `docs/backlog/gates-and-tools-leak-env-across-directories.md`）；**未经 CI 服务端复跑**
+- [x] no in-scope item downgraded to deferred/follow-up —— `Deferred But Adjudicated` 的 3 条**全部**是既有环境事实（D1）或起草期 Non-Goal 已明文排除的面（D2 / D3），本 plan 自己的 `Goals` 与执行项**一条未降级**
+- [x] independent draft review completed and recorded —— 见 `Draft Review Record`（独立子代理两轮，iteration 1 `needs revision` / 9 条，iteration 2 `acceptable as-is` + 5 条准确性修正全部落地）
+- [x] text consistency verified: status, phases, gates, and log all agree —— `Plan Status: completed` · 三个 Phase 全 `Status: completed` 且执行项与 `Exit Criteria` **零 `[ ]` 残留** · `docs/logs/2026/08-26.md` 与 `STATE.md` §2 的数字（`908 passed, 29 skipped` / 基线 `903` / `sha256 203db3f8…` / `7e41d2d4…`）与本 plan 逐字一致
+- [x] closure audit was independent —— **本 plan 的执行者不代跑、不代批收口审计**，由收口审计步独立执行。已主动点名两处要它独立判的地方，见下方 `Closure Audit Evidence`
+- [x] closure evidence exists in files —— `docs/evidence/p1-insight-doclinks-guard/README.md` · `docs/architecture/module-boundaries.md` §7.24 · `docs/logs/2026/08-26.md` · `docs/masterplan/STATE.md` §2 追加行
+
+### Closure Audit Evidence（给独立收口审计的两个点名）
+
+1. **`Decision` ②(a) 改了一个契约后置条件的来源**（`scanned_link_levels` 由「候选进来就记」→「站点调用成功后才记」）。
+   执行者给出的「不由绿转红」证据是**实跑**（`tests/tools/test_executors.py` 三条 + `tests/contracts` `375 passed` +
+   活体 `[lineage.trace]` 两跑 PASSED）。请独立判：**这组证据够不够**，是否还有本 plan 没跑到的、
+   会被这个语义变化影响的判据面。
+2. **活体门禁两跑都是 exit 1**（H8 未命中），执行者的无责论证依据的是「**唯一的红逐字是同一条、
+   且与 `doc.links` 无关**」+「`[doc.links]` / `[lineage.trace]` 两跑都 PASSED」，
+   而**不是**退出码。请独立判：这个论证是否成立，`D1` 归 out-of-scope 是否站得住。
 
 ## Deferred But Adjudicated
 
-（起草期为空。执行期若产生，须写明分类与重开事件。）
+**执行期产生 3 条。三条都不是「本 plan 范围内的活被降级」** —— 逐条写明分类与重开事件。
+
+| # | 条目 | 分类 | 为什么不在本 plan 范围内 | 重开事件 |
+|---|---|---|---|---|
+| D1 | 活站点未装载受限身份（`AGENERP_WORKER_PASSWORD` 未设）⇒ `tests/gates/test_tool_execution_live.py::test_permission_scope_produces_at_least_one_real_negative` **改动前就红** | **既有环境事实，交人** | 它是**站点环境**问题（要跑 `python3 -m agenerp.seedusers --site frontend` 并给出口令），不是代码缺陷；本 plan 的 Non-Goal 1 逐字禁止碰 `tests/gates/**`，而让它转绿的唯一代码侧手段就是改那个判据 ⇒ **只能交人** | 人装载受限身份后，该条应转绿；若装载后仍红，那才是一条新的代码缺陷，另行立案 |
+| D2 | `parent_doc` **查成功但返回空**时 `docstatus` 仍为 `None` 且该行照旧记入 —— 与 `Decision` ①(b) 同形态的「已取消单据漏出」风险 | **既有缺陷，`Non-Goal 4` 明文排除** | 它落在**正常路径**上（不抛异常，只是没有行），`5396e68` 之前就存在；本 plan 的 Non-Goal 4 逐字「不动 `doc.links` 正常路径的返回内容与顺序」⇒ 顺手改它就是越界 | 人裁定要不要并入 `Decision` ①(a) 的口径；已写进 §7.24.5 与 §7.24.7 第 5 条翻案条件 |
+| D3 | `docs/architecture/module-boundaries.md` §7.11 的 `MAX_TOOL_CALLS = 32` / `MAX_TURNS = 25` 漂移（活代码 `40a6c33` 之后是 50 / 40）· `docs/bugs/03` 抬头仍写「未修」而 `5396e68` 已修 | **起草期即已排除，交人** | 本 plan 的 Non-Goal 5 / 6 逐字排除，且 P1.7 的 plan 预算 `2/2` 已满 | 人给 P1.7 开新预算格，或人直接改这两处文本 |
+
+⚠️ **本 plan 自己的 `Goals` 1–5 与三个 Phase 的执行项，一条都没有被降级到这里。**
 
 ## Closure
 
-Status Note: <未收口>
+Status Note: **已收口（待独立收口审计）。**
+
+三个 Phase 全 `completed`，执行项 + `Exit Criteria` 零 `[ ]` 残留。
+`Goals` 1–5 全部落地，`Deferred But Adjudicated` 的 3 条无一是本 plan 范围内的降级。
+
+**H1–H8 逐条对照（不改任何一条原文）**：H1 ✅ · H2 ✅ · H3 ✅ · **H4 ⚠️ 未命中**（预测 `907 passed`，
+实测 **`908 passed`**，多的一条是钉 `Decision` ②(a) 的判据 —— 起草时 `Decision` ② 两支未定，
+H4 按「不改」那支算的；`skipped` 数 29 这条硬预测**命中**）· H5 ✅ · H6 ✅ ·
+H7 ✅（M1–M5 **五条全打红**，M6 是自加的额外确认、不是补漏）· **H8 ⚠️ 未命中**（改动前后**都是 exit 1**，
+同一条与 `doc.links` 无关的既有红，已登记 `D1` 交人；未为让它转绿动 `tests/gates/**` 一个字节）。
+
+⚠️ **verification scope limited**：未跑整仓 `pytest tests -q -m "not live"`（已知基线即红），未经 CI 服务端复跑。

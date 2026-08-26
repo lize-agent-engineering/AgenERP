@@ -108,6 +108,16 @@ def scan_links(session: Session, doctype: str, name: str) -> tuple[list[dict], d
     levels: list[str] = []
     hits: dict[tuple[str, str], dict] = {}
     child_level_rows: list[dict] = []
+    hosts_skipped_after_failure = 0
+    child_rows_skipped_after_failure = 0
+
+    def scanned(level: str) -> None:
+        # **查成功之后才记这一级**：`levels` 是契约后置条件 `scanned_link_levels`
+        # 的来源，记在调用之前 ⇒ 某一级的宿主全部查崩时仍声称扫过那一级，
+        # 下游会把「没扫成」读成「扫过、没有关联」。零命中仍要记 —— 那是扫成了。
+        if level not in levels:
+            levels.append(level)
+
     for candidate in link_fields_to(session, doctype):
         holder, fieldname = candidate.get("parent"), candidate.get("fieldname")
         if not holder or not fieldname:
@@ -119,27 +129,40 @@ def scan_links(session: Session, doctype: str, name: str) -> tuple[list[dict], d
             continue
         is_child = bool(flags.get(holder, {}).get("istable"))
         level = LEVEL_CHILD_TABLE if is_child else LEVEL_DOCTYPE
-        if level not in levels:
-            levels.append(level)
         via = f"{holder}.{fieldname}"
         if is_child:
             host = hosts.get(holder)
             if host is None:
                 continue
-            rows = session.list_rows(
-                holder,
-                _filtered(("name", "parent", "parenttype"), [[fieldname, "=", name]], parent=host),
-            )
-            for row in rows:
+            # 子表支的两处站点调用**各自**守卫，不许一个 `try` 把整支包起来 ——
+            # 那会把「子表行查得到、只是某一行回溯失败」的部分结果一起丢掉。
+            try:
+                child_rows = session.list_rows(
+                    holder,
+                    _filtered(("name", "parent", "parenttype"), [[fieldname, "=", name]],
+                              parent=host),
+                )
+            except Exception:  # noqa: BLE001 —— 宿主千奇百怪，这里只负责「别带走整次」
+                hosts_skipped_after_failure += 1
+                continue
+            scanned(level)
+            for row in child_rows:
                 parent_type = row.get("parenttype") or host
                 parent_name = row.get("parent")
                 if not parent_name:
                     continue
+                # 回溯失败**丢掉这一行**，不以 `docstatus=None` 记入：下游筛选逐字是
+                # `docstatus != CANCELLED`，而 `None != 2` 为真 ⇒ 记入等于把一张
+                # 可能已取消的单据当成有效关联漏出去。少报一条 > 冒充一条。
+                try:
+                    parent_doc = session.list_rows(
+                        parent_type,
+                        _filtered(("name", "docstatus"), [["name", "=", parent_name]]),
+                    )
+                except Exception:  # noqa: BLE001 —— 同上
+                    child_rows_skipped_after_failure += 1
+                    continue
                 child_level_rows.append(row)
-                parent_doc = session.list_rows(
-                    parent_type,
-                    _filtered(("name", "docstatus"), [["name", "=", parent_name]]),
-                )
                 docstatus = parent_doc[0].get("docstatus") if parent_doc else None
                 hits[(parent_type, parent_name)] = _link_row(
                     parent_name, parent_type, docstatus, flags, via
@@ -153,7 +176,9 @@ def scan_links(session: Session, doctype: str, name: str) -> tuple[list[dict], d
                     holder, _filtered(("name", "docstatus"), [[fieldname, "=", name]])
                 )
             except Exception:  # noqa: BLE001 —— 宿主千奇百怪，这里只负责「别带走整次」
+                hosts_skipped_after_failure += 1
                 continue
+            scanned(level)
             for row in holder_rows:
                 hits[(holder, row["name"])] = _link_row(
                     row["name"], holder, row.get("docstatus"), flags, via
@@ -169,6 +194,11 @@ def scan_links(session: Session, doctype: str, name: str) -> tuple[list[dict], d
             row["doctype"] not in child_doctypes for row in rows
         ),
         "child_table_hits": len(child_level_rows),
+        # **失败不静默**：跳过是降级，降级要留痕（`model-management.md` §12.1 ③）。
+        # 只记在 `scan_links()` 的返回里 —— `doc_links()` / `lineage_trace()` 的
+        # `Outcome.facts` 一个键都不加，契约后置条件与活体门禁的形状因此不变。
+        "hosts_skipped_after_failure": hosts_skipped_after_failure,
+        "child_rows_skipped_after_failure": child_rows_skipped_after_failure,
     }
     return rows, facts
 

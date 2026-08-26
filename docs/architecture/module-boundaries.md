@@ -4450,3 +4450,158 @@ Phase 3 的变异自查又补了两条断言（`test_asset_content_type_is_javas
 | 3 | Desk 开始占用 `Cmd/Ctrl+K`（`frappe.ui.keys.handlers["k"]` 不再 `ABSENT`） | 换 `Cmd/Ctrl+Shift+K`，并把与 `02-WBS.md:89`「⌘K」字面的偏差**交人**（改 WBS 是红线 5） |
 | 4 | 服务端新增一种状态码 | 7.23.3 那张表加一行。**兜底态不许删** |
 | 5 | 上游开始对 `/app` 回 gzip（`sub_filter` 静默失效） | 见 §7.22 的翻案条件那条（补 `proxy_set_header Accept-Encoding "";`）——**那是 §7.22 的面，不是本节的** |
+
+### 7.24 `doc.links` 子表分支的失败守卫与降级留痕在本仓的落点（P1.0a 第 2 个 plan · 2026-08-26）
+
+> 交付 plan：`docs/plans/p1-insight/2026-08-26-1618-1-doc-links-child-host-guard.md`
+> 证据：`docs/evidence/p1-insight-doclinks-guard/`
+> 上游裁定：人 2026-08-25T09:44Z 对 `docs/masterplan/STATE.md` §3 内 **C1** 的裁定第 ② 条 ——
+> 逐字「单个宿主查失败**不整次作废**，继续扫其余宿主」，且逐字「**实现交 loop**」
+> 本节**不改** §7.6 / §7.11 与 `docs/bugs/03` 的任何一个字。
+
+#### 7.24.1 缺陷形态：守卫只落了一半，而没落的那一半是多数路径
+
+`5396e68` 把 C1 裁定的 ① （跳过 Single 宿主）完整落地，把 ② **只落在 `scan_links()` 的
+主表支**（`else` 那一支）。子表支有**两处**站点调用，两处**都没有守卫**：
+
+| 站点调用 | 位置 | 失败后果 |
+|---|---|---|
+| 查子表行 `session.list_rows(holder, …)` | 子表支第一处 | 异常穿透整个 `scan_links()` |
+| 逐行回溯父单据 `session.list_rows(parent_type, …)` | 子表支 `for row in rows` **循环内** | 同上；命中越多调用越多，撞上失败的机会也越多 |
+
+`lineage_trace()` 逐跳复用 `scan_links()` ⇒ **同一个洞**。
+
+**为什么这不是边角情形**：roadmap 的「已知的坑」逐字写着「`lineage.trace` 必须扫子表：
+21 个指向 `Sales Order` 的 Link 里 **14 个在子表**」；本项目活站点上
+`doc.links{doctype: Item, name: HRD-PACK-5K}` 返回的 14 行里 **8 行的 `linked_via` 是子表字段**
+（`Sales Order Item.item_code` / `Delivery Note Item.item_code` / `Purchase Order Item.fg_item` /
+`Sales Invoice Item.item_code` / `Stock Entry Detail.*` 等）⇒ **没守卫的那支才是多数路径**。
+
+而 C1 那条裁定本身是被一次 **136,331 token、答案为空** 的真实事故逼出来的（`docs/bugs/03`）：
+模型拿到失败会**原样重试同一个调用**，直到撞满 `MAX_TOOL_CALLS` 熔断。
+守卫只落一半 ⇒ **同一事故形态在多数路径上仍然可达**。
+
+#### 7.24.2 两个探针的观测原文（起草期实测，仓内零施加）
+
+| 探针 | 构造 | 观测（逐字） |
+|---|---|---|
+| 子表宿主查询失败 | `Sales Order Item`（`istable: 1`）一被查就抛，`Sales Order` 健康 | `ABORTED whole scan -> RuntimeError 站点侧失败：HTTP 500（子表宿主）`，`calls: ['DocType', 'DocField', 'DocField', 'Sales Order Item']` —— **健康宿主 `Sales Order` 一次都没被扫到** |
+| 回溯父单据失败 | 子表行查得到，回溯 `Sales Order` 时抛；`Delivery Note` 健康 | `ABORTED whole scan -> RuntimeError 站点侧失败：回溯父单据时 HTTP 500`，`calls: [… , 'Sales Order Item', 'Sales Order']` —— **健康宿主 `Delivery Note` 一次都没被扫到** |
+
+执行期把同一构造固化成判据后，改动前的红因逐字是构造的那个异常**穿透到测试外层**
+（栈顶分别是 `agenerp/tools/documents.py:129` 与 `:139`），**不是断言不相等** ——
+这一点是刻意验的：断言不等只说明数不对，异常穿透才说明是**这个洞**。
+
+#### 7.24.3 落地形状：两处**各自**守卫，不许一个 `try` 包整支
+
+子表支的两处调用**分别**包 `try / except Exception`，**禁止**用一个 `try` 把整支包起来 ——
+那会把「子表行查得到、只是某一行回溯失败」的**部分结果**一起丢掉，
+在可观测行为上与「整个宿主查崩」无法区分。
+
+判据在 `tests/unit/test_doc_links_skips_singles.py` 里也**分成两条**写，理由同上：
+合成一条会让「只修了其中一处」蒙混过关。另有一条**反「绿着坏掉」判据**
+钉住健康子表宿主必须照常产出回溯到父单据的命中 —— 没有它，
+「把整支包起来吞掉一切」也能让前两条绿（变异 **M2** 实测正是这条打红）。
+
+#### 7.24.4 三条裁定：选定 · 被否的那个 · 残余风险
+
+**① 回溯父单据失败时，那一条子表命中怎么处置 → 选 (a)「丢掉这一行」**
+
+被否的是 (b)「以 `docstatus` 未知（`None`）记入」。否掉它的理由是**可算的**，不是偏好：
+`scan_links()` 末尾的下游筛选逐字是 `row.get("docstatus") != CANCELLED`，
+而 **`None != 2` 为真** ⇒ (b) 会把一张**可能已取消**的单据当成有效关联漏给下游，
+直接违反 roadmap「已知的坑」里那条「`doc.links` 的下游筛选是**排除已取消**」。
+
+**取舍明写**：少报一条真实关联 > 冒充一条状态未知的。
+**残余风险**：站点抖动时那一条真实关联这次不出现。它由裁定 ③ 的
+`child_rows_skipped_after_failure` 计数留痕，**不是静默丢失**。
+
+一并处理的口径问题：`child_level_rows.append(row)` 原本在回溯调用**之前**
+⇒ 选 (a) 后会把一条没进 `hits` 的行也算进 `child_table_hits`。
+**处置：把 `append` 挪到调用成功之后**，`child_table_hits` 的口径从此逐字是
+「**产出了命中**的子表行数」，不是「扫到的子表行数」。健康路径上两者恒等
+（回溯不抛 ⇒ 每一行都 append），既有判据 `tests/tools/test_executors.py` 的
+`child_table_hits >= 1` 实跑仍绿。
+
+**② `scanned_link_levels` 的过度声称 → 选 (a)「改掉」**
+
+原本 `levels.append(level)` 在两处站点调用**之前** ⇒ 某一级的宿主**全部**查崩时，
+返回的 `scanned_link_levels` 仍声称扫过那一级。加了守卫之后这个形态从
+「异常会先炸掉整次」变成**真正可达** ⇒ 必须就地裁定。
+
+它**是契约后置条件、不是内部字段**：`agenerp/tools_readonly.py` 逐字要求
+`scanned_link_levels contains child_table`，并在 `tests/tools/test_executors.py`
+与 `tests/contracts/test_postconditions.py` 上被断言 ⇒ 改它有让既有绿判据转红的实际风险。
+
+落地形状是**窄的**：把记级动作挪到「该宿主的站点调用**成功之后**」。因此
+
+- **零命中仍记** —— 扫成了只是没有关联，与全崩是两回事；
+- 只有「该级宿主**全部**查崩、或全部无宿主映射」才不记。
+
+**「既有判据不由绿转红」是实证的，不是推断**：改后实跑
+`test_lineage_trace_scans_both_link_levels`（断言 `set(...) == {"doctype","child_table"}`）·
+`test_lineage_trace_resolves_child_hits_to_the_parent_document` ·
+`test_doc_links_scans_child_level_links` → `3 passed`；`tests/contracts` 全绿
+（`375 passed, 1 skipped`）；`check_expected_red.py` 逐字仍是 `门禁 28 项：预期红 0，绿 28，跳过 0`；
+活体门禁 `[lineage.trace]` 改动前后两跑都 `PASSED`。
+
+**顺带修好的**：主表支上**同形态、已入库**的过度声称（`5396e68` 的守卫也在 `levels.append`
+之后）——它此前就已可达，本次一并落在正确的位置上。
+
+**残余风险**：`scanned_link_levels` 现在的语义是「**扫成了**的层级」，而契约文本写的是
+「必须扫……级 Link 字段」。若某天出现「该级宿主真的全崩」的活站点，
+`lineage.trace` 的后置条件会**红** —— 那是**期望行为**（没扫成就不该说扫过），
+但它会表现为门禁转红而不是一条降级信息。**翻案条件**：一旦活站点上出现一次
+「因宿主全崩导致 `lineage.trace` 后置条件红」的实例，本条回来重开，
+考虑把「全崩」升为一种显式的、契约认识的返回态，而不是靠后置条件失败来表达。
+
+**③ 失败留不留痕 → 选 (B)「留痕」，但痕迹止于 `scan_links()`**
+
+被否的是 (A)「静默 `continue`，与既有主表支等形」。选 (B) 的理由是
+`docs/architecture/model-management.md` §12.1 ③ 逐字「**绝不静默降级**」。
+
+`scan_links()` 返回的 `facts` 新增两个计数：`hosts_skipped_after_failure`
+（因失败被跳过的宿主数）· `child_rows_skipped_after_failure`（因回溯失败被丢掉的子表行数）。
+
+**只加在 `scan_links()` 的返回上** —— `doc_links()` / `lineage_trace()` 的
+`Outcome.facts` **一个键都没加**。这是刻意的，且是**红线 1 要求先证明的那件事**：
+`tests/gates/test_tool_execution_live.py::test_every_tool_returns_a_shape_its_contract_allows`
+对 `doc.links` 是参数化覆盖的，把计数抬进 `Outcome` 会动到它所看的那个形状。
+`doc_links()` 现在逐字是 `rows, _ = scan_links(...)`（丢弃 `facts` 自建一份），
+`lineage_trace()` 的 `facts` 逐键显式构造 ⇒ 新键不会自动外溢。
+
+⚠️ 同时要认下 (B) 在这个落点上的**局限**：痕迹**模型看不见**。
+C1 对 **Single 宿主**的「不留痕」是人已选定的取舍，它**没有覆盖「宿主查崩」这一类** ——
+两件事不许混成一件。**翻案条件**：一旦有一次真实归因因为「跳过没被模型看见」
+而给出错误结论，本条即回来重开，把计数抬进 `Outcome.facts` 并同步契约。
+
+#### 7.24.5 一处邻近的、本次不碰的既有缺口（照实记）
+
+`parent_doc` **查成功但返回空**时（不抛异常，只是没有行），`docstatus` 仍为 `None`
+且那一行**照旧记入** —— 与裁定 ①(b) **同形态**的「已取消单据漏出」风险。
+
+它落在**正常路径**上、`5396e68` 之前就存在，而交付 plan 的 Non-Goal 4 逐字禁止
+改动 `doc.links` 正常路径的返回内容与顺序 ⇒ **原样保留、就地登记，不顺手改**。
+交人裁定要不要把它并入 ①(a) 的口径。
+
+#### 7.24.6 验证口径：哪一条证什么，不许互相冒充
+
+| 要证的事 | 由谁证 | 不由谁证 |
+|---|---|---|
+| 守卫**生效** | `tests/unit/test_doc_links_skips_singles.py` 的五条判据 + 变异表 M1–M6 全打红 | 活站点探针 —— 它跑的是正常路径 |
+| **没弄坏**正常路径 | 活站点 `doc.links{Item, HRD-PACK-5K}` 改动前后两跑 `sha256` 逐字节相同 | 离线判据 —— 它跑的是构造的假站点 |
+| `doc.links` 的**裁判**没回归 | 活体门禁 `tests/gates/test_tool_execution_live.py` 改动前后两跑，`[doc.links]` / `[lineage.trace]` 都 `PASSED` | `check_expected_red.py` —— 它默认注入 `-m "not live"`，**那条一次都不会跑** |
+
+⚠️ 最后一行是本次实测坐实的一个**判据错觉**：`tests/gates/test_tool_execution_live.py`
+是 `pytestmark = pytest.mark.live`，而 `tools/gates/check_expected_red.py` 在默认模式下
+注入 `-m "not live"` ⇒ **`check_expected_red.py` 全绿读不出「活体门禁没回归」**。
+
+#### 7.24.7 翻案条件（出现任一条即回来重读本节）
+
+| # | 条件 | 第一处置 |
+|---|---|---|
+| 1 | 有一次真实归因因为「跳过没被模型看见」而给出错误结论 | 裁定 ③ 回来重开：把两个计数抬进 `Outcome.facts` 并同步契约与活体门禁的形状预期 |
+| 2 | 活站点上出现「某级宿主全崩 ⇒ `lineage.trace` 后置条件红」的实例 | 裁定 ② 回来重开：考虑把「全崩」升为契约认识的显式返回态 |
+| 3 | 有一次因裁定 ①(a) 丢行而**少报**了关键关联，且该少报造成了错误结论 | 不回到 (b)（已取消漏出更糟），改为把 `child_rows_skipped_after_failure` 抬到模型可见（同第 1 条） |
+| 4 | `scan_links()` 末尾的下游筛选不再是「排除已取消」 | 裁定 ① 的整个推理前提消失，本节 7.24.4 ① 全部重算 |
+| 5 | §7.24.5 那处「查成功但返回空」的缺口被人裁定要修 | 按裁定并入 ①(a) 的口径，并补一条与 `test_a_row_whose_parent_backtrack_failed_is_dropped_not_faked` 同形的判据 |
