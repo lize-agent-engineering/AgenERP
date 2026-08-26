@@ -292,9 +292,62 @@ Spike 02 实测（`claude:sonnet`，四道探针的通过态）：
 
 ⚠️ **「绝不静默降级」只对走 `route()` 的调用方成立。** `ChatAdapter` 是导出的、可直接构造的，
 `ChatAdapter(config, model="qwen3:14b").chat(...)` 会**绕过全部能力校验**发出一次
-本该按 `lineage` 分档的调用，而今天**没有任何判据拦得住这条路**。
-本期不收窄导出面（那是 plan 写死的交付形状），照实登记为残余风险：
-真正的闸要等 P1.4 解释 Agent 落地、有了唯一的调用入口才谈得上。
+本该按 `lineage` 分档的调用。**这条路今天有判据守着，但守得有边界 —— 两句都要写在明处：**
+
+- **有判据，且是人落的。** `tests/gates/test_agent_seam_stays_swappable.py` 的
+  `test_chat_adapter_is_only_constructed_inside_routing`，失败文案逐字引「独立收口审计 F8」。
+  人 2026-08-25 裁定「加静态判据，**不收窄导出面**」，由 commit `d18c05c`（2026-08-25，带门禁审批）落地，至今绿着 ——
+  `python3 -m pytest tests/gates/test_agent_seam_stays_swappable.py -q` → **exit 0 · `2 passed`**。
+  ⚠️ **本节此前逐字写着「今天没有任何判据拦得住这条路」** —— 那句话从 2026-08-25 起就已不成立，
+  2026-08-26 **就地改准**（原句逐字留痕在 `docs/evidence/p1-routing-guard-registration/`）。
+  留一句已不成立的事实陈述在这里，正是本次要修的病本身。
+- **它盖不住四种形态，逐条由 2026-08-26 的变异实测判定**（不是读源码推的，逐格见下方 `routing-guards` 表第 4 列）：
+  别名导入（`as _CA`）· 属性式构造（`_r.ChatAdapter(...)`）· `agenerp/` **之外**的调用方 ·
+  **判据自身没有存活守卫**（类名一改，它永久静默绿）。
+  ⚠️ **第三种今天就有一个真实实例，不是假想**：`tools/experiments/p1_insight_live/run.py:159` 逐字
+  `self._poster = None if inner is not None else ChatAdapter(config)`，而该文件 `:151` 逐字写明它**打真端点**。
+  ⇒ **本条不得读成「这个口子已经被堵上」。** 准确的读法只有一句：
+  **「`agenerp/**` 里以裸名直呼 `ChatAdapter(...)` 这一种形态被拦住了」，其余四种没有。**
+- **本期仍不收窄导出面**（那是 plan 写死的交付形状，人 2026-08-25 逐字裁定，本节不重开）。
+  收严匹配形状、或给它补一句 `:74` 那样的存活守卫，都要改 `tests/gates/**` —— **那是人的活**，
+  已按残余风险登记在 plan `docs/plans/p1-insight/2026-08-26-2101-1-routing-guard-registration-drift.md` 的 `D1`。
+
+⚠️ **此前这里还写着「真正的闸要等 P1.4 解释 Agent 落地、有了唯一的调用入口才谈得上」——
+这条预期今天可以判了，判词是：没兑现。**
+P1.4（roadmap 工作项 6）已 `done`（2026-08-24），而**「唯一的调用入口」没有出现**：
+`route()` 在产品代码里今天有**两个**调用点 —— `agenerp/explain/loop.py:664` 与 `agenerp/judging/judge.py:73`
+（`grep -rn 'route(' --include='*.py' agenerp/` 可复跑）。
+**照实写「这条预期没兑现」，不假装它兑现了、也不改写成「还没到时候」。**
+要不要把入口收敛成一处，是一次新的 `Decision`（D-22 接缝面），归人。
+
+#### 本节登记的接缝判据
+
+<!-- machine-read: routing-guards -->
+
+**前言，四条规矩（改任何一条都要先回去重开 plan `2026-08-26-2101-1` Phase 2 里的那条 `Decision`）**：
+
+1. **表名 `routing-guards` 指的是「本节登记的接缝判据」，不是「只登记 routing 语义的判据」。**
+   同一个文件里的 agent 循环判据照实登记它自己的语义（「第二处循环」），**不硬塞成 routing 语义**。
+2. **纳管口径是文件级**：一个文件进表，它里面的**每一个顶层 `def test_*` 都必须各占一行**。
+   纳管的文件集合写死在 `tests/routing/test_routing_guard_registration.py` 的 `_REGISTERED_FILES` 常量里，
+   由该文件判定本表与仓里真实判据**双向同构**（多一行、少一行、写错函数名、写错文件、整表删空，五种都红）。
+3. **本期只纳管一个文件。** 文件级口径只能纳管「整份都是接缝判据」的文件；
+   把一份十几条的普通测试文件纳进来会让本表退化成全量测试清单，**第 3/4 列就没法逐行写实了**。
+   ⇒ **要纳管第二个文件，必须先重开那条 `Decision`。**
+4. **第 3/4 列是散文，没有任何判据钉着** —— 同构判据只钉「文件 + 函数名」与第 5 列的
+   「路径存在 + 日期可解析」，**不钉「盖住什么」这句话本身对不对**。
+   ⚠️ 这与本节修的那条漂移**同形**，照实登记为残余风险（plan `D1`）：**要真钉住它，只能周期性重跑那张变异表。**
+   第 5 列存在的意义就是让读者一眼看出**这条覆盖断言有多老**。
+
+⚠️ **本表不属于本节开头那句「三张 `machine-read` 表与 `agenerp/routing/capabilities.py` 逐行同构」所指的三张** ——
+它同构的对象是 `tests/gates/` 里的判据文件，不是 `capabilities.py`，判它的也是另一个文件。
+
+| 判据文件 | 判据函数名 | 盖住的形态（变异实测打红） | 明确不盖的形态（变异实测未红） | 实测日期 + 证据路径 |
+|---|---|---|---|---|
+| `tests/gates/test_agent_seam_stays_swappable.py` | `test_agent_loop_lives_in_exactly_one_module` | `agenerp/**` 里出现**第二处** `for` / `while` 体内的 `.chat(...)` —— **L1 实测 exit 1**，文案点名 `{'agenerp/judging/judge.py': [101]}` | `agenerp/` **之外**的第二处循环（扫描域 `_PKG = <repo>/agenerp`，与下一行同源；⚠️ 本轮**未单独实测**这一条，照实标注）。✅ **但它有存活守卫**：把 `.chat` 整体改名 → **L2 实测 exit 1**，捕获者是 `:74` 的 `assert found` —— **它不会静默失效**，与下一行相反 | `2026-08-26` · `docs/evidence/p1-routing-guard-registration/` |
+| `tests/gates/test_agent_seam_stays_swappable.py` | `test_chat_adapter_is_only_constructed_inside_routing` | `agenerp/**`（`agenerp/routing/**` 除外）里**以裸名** `ChatAdapter(...)` 直接构造 —— **M1 实测 exit 1**；允许面也实测过：`agenerp/routing/` 之内构造 **M5 exit 0**，不是空话 | ① 别名导入 `as _CA` —— **M2 exit 0** · ② 属性式 `_r.ChatAdapter(...)` —— **M3 exit 0** · ③ `agenerp/` 之外的调用方 —— **M4 exit 0**，且**今天就有实例** `tools/experiments/p1_insight_live/run.py:159` · ④ **判据自身无存活守卫** —— 类名整体改掉后 **M6 门禁仍 exit 0**（永久静默绿），而同一次改名让 `pytest tests/routing -q` **exit 2**（collection 阶段 ImportError） | `2026-08-26` · `docs/evidence/p1-routing-guard-registration/` |
+
+<!-- /machine-read: routing-guards -->
 
 **三个环境变量，一个默认值都没有**（缺任一个 → 指名报错）：
 
