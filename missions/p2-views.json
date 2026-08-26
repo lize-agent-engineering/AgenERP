@@ -1,0 +1,32 @@
+{
+  "name": "p2-views",
+  "goal": "让 Agent 能按自然语言生成用户看得懂的视图，并且能证明生成的视图指向真实字段。②③端仍只读，本阶段不写业务数据。三条硬约束继承自 P1 且各加一条 P2 专属：① 判据不许只验「调得通」——渲染出来不等于渲染对了，DSL 校验过不等于字段存在；② 预测在前结果在后逐条吻合；③ 规则能覆盖的流程不 Agent 化（视图 DSL 的校验、落回 Desk 的判定都是规则面）；④ **P2 专属：任何「自然语言 → 字段」的产出，必须能指回一个真实存在的 DocType 字段** —— schema 检索 Top-5 实测只有 75%（U6 不成立），这是本阶段头号技术风险，不解决它，视图 Agent 与后续写入 Agent 都是空中楼阁。",
+  "flowName": "mission-driver",
+  "driver": "claude",
+  "model": "opus",
+  "parseModel": "haiku",
+  "maxCycles": 8,
+  "maxTotalSteps": 60,
+  "roadmapPath": "docs/backlog/p2-views-roadmap.md",
+  "plansDir": "docs/plans/p2-views",
+  "planGuide": "docs/plans/00-plan-authoring-and-execution-guide.md",
+  "auditsDir": "docs/audits",
+  "contextDir": "docs/context",
+  "commands": {
+    "test": "python3 tools/gates/check_expected_red.py && python3 -m pytest tests/unit -q"
+  },
+  "scripts": {
+    "gate-verify": "tools/gates/gate-verify.mjs"
+  },
+  "commitFormat": "<type>(<scope>): <description>",
+  "_notes": {
+    "commands": "只列现在真跑得起来的。本机 ruff / mypy / docker 都还没有，写进去等于每个 plan 一开局就 fail —— 它们是 P0 的交付物，装上了再往这里加 lint / typecheck / build。",
+    "test": "这条不是 `pytest tests/gates`。门禁按 TDD 故意全红，直接跑 pytest 必然非 0。check_expected_red.py 比对的是「实际结果 vs 预期红名单」：名单内红=正常，名单内绿=名单过期，名单外红=真坏了，出现 skip=有人放松裁判。 2026-08-21 追加 tests/unit：首轮实测循环实现了 snapshot.capture/diff 却没更新自己写的契约测试，因为 commands.test 里没有单测，GATE_VERIFY 看不见 —— 判定面漏了一块，循环就不会自己发现。",
+    "scripts": "gate-verify 由引擎自身 spawn 子进程复跑上面的 commands，以退出码判定，AI 不参与。需要 fork 的补丁 P1（SCRIPT_REGISTRY 可扩展），见 tools/mission-driver/VENDOR.md。",
+    "driver_model": "driver/model 必须写在 mission 里。base.json 自称是 shared defaults，但实测主运行路径上 config.js 的 loadBaseAndInjectEnv() 只做 env 注入、返回值被丢弃 —— base.model / base.driver 只在 draft/analyze 两条路径生效。写在 base.json 里会安静地不起作用。",
+    "budget": "**2026-08-21 按实测校准。** 原先 120 步是拿冒烟数字（1.6M token/循环）估的，而首轮真实工作实测 **约 1,500 万 token/循环**（2 循环 = 2,990 万 / 墙钟 70 分钟 / ≈\\$31.5 当量），差了近十倍——120 步 ≈ 15 循环 ≈ 2.2 亿 token ≈ \\$240 当量，那不叫阈值。改为 60 步（≈7–8 循环 ≈1 亿 token ≈\\$110 当量），仍是「人该回来看一眼」的量级。真实瓶颈其实是订阅限流窗口（首轮日志已出现 backing off … likely rate-limited），钱只是代理指标。阈值再改之前先在 STATE 留证据行。",
+    "p1_specific": "P1 引入 LLM，与 P0 的两点不同：① 判据必须能区分「答对了」与「蒙对了」——结果层面它们长得一样；② 涉及模型调用的工作项要记 token 用量（qwen3.6-plus 是推理模型，回两个字烧约 195 reasoning token）。LLM 凭据在 .env 的 DASHSCOPE_API_KEY，**绝不可进 git、不可打印到日志**。",
+    "d15": "D-15：规则能覆盖的流程不 Agent 化。写代码前先问「这一步能不能写成确定性规则」。P1.5 已据此拆成巡检器（纯规则引擎，零 LLM 调用）+ 洞察 Agent（只做归因）。",
+    "p2": "P2 与 P1 的关键差异：P1 是只读解释，错了是一个错答案；P2 生成视图，错了是**用户天天看到的错字段**。因此 P2.0R（schema 检索）被人 2026-08-26 立为头号技术风险，且它与 agent harness 无关——换任何框架都不会让 Top-5 从 75% 变 90%。"
+  }
+}

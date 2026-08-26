@@ -100,7 +100,7 @@
 | **P2.0R** 🔴 | **schema 检索可用性 —— P2 头号技术风险**（详见本节下方风险块）| — | 🔴 `tests/gates/test_schema_retrieval_recall.py`：在本站点真实 DocType 上，自然语言问句 → 目标字段的 **Top-5 命中率 ≥ 90%**（今日基线 75%，Spike 07）| 人 |
 | P2.1 | 视图 DSL v0（`list`/`detail`/`metric`/`chart`/`explain` 五种块） | P2.0 | `pytest tests/dsl -q` 退 0 | `MD:p2-views` |
 | P2.2 | 渲染器（frappe-ui）：**未支持的一律落回 Desk** | P2.1 | `pytest -m live tests/render -q` 退 0 | `MD:p2-views` |
-| P2.3 | 视图 Agent：自然语言 → DSL（含 `dsl.validate`/`dsl.preview`） | P2.2 | `pytest tests/agents/test_view_agent.py -q` 退 0 | `MD:p2-views` |
+| P2.3 | 视图 Agent：自然语言 → DSL（含 `dsl.validate`/`dsl.preview`） | P2.2 **+ P2.0R**（人 2026-08-26 接线：视图 Agent 的产出必须指回真实字段，而 schema 检索今日实测 Top-5 = 75% —— **不先解决它，本项是空中楼阁**） | `pytest tests/agents/test_view_agent.py -q` 退 0 | `MD:p2-views` |
 | P2.4 | 定制包 GitOps v0（依赖 P0.4 / P0.5） | P2.3 | `scripts/verify-gitops.sh` 退 0：改 → diff → revert → 迁站点四步 | `MD:p2-views` |
 | P2.5 | `schema.drift` 巡检（检出孤儿列） | P2.4 | `pytest tests/tools/test_schema_drift.py -q` 退 0 | `MD:p2-views` |
 | P2.6 | 角色首页（②③端按角色渲染） | P2.2 | 🔴 `tests/gates/test_no_empty_workspace.py` | `MD:p2-views` |

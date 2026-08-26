@@ -465,6 +465,22 @@
 > 格式：`[状态] 日期 · 触发条件 · WBS行ID · 最后一条失败命令原文 + 退出码 · sha · 处置`
 > 状态只有 `open` / `resolved`。**resolved 的行保留不删。**
 
+- [open] 2026-08-26T10:10Z · **P2 规划已落地（人 2026-08-26T10:10Z）—— 设施齐、依赖接好，但 P2.0 的入口关口尚未跑**
+  · **新建两份执行设施**：`missions/p2-views.json`（mission 配置，`roadmapPath` / `plansDir` 按 WBS 已写死的 `MD:p2-views` 对齐）· `docs/backlog/p2-views-roadmap.md`（10 个工作项，编号与 `02-WBS.md` §5 一一对应，**判据以 WBS 为准，roadmap 不重定**）· `docs/plans/p2-views/` 目录。
+  · **接了一条 WBS 里漏掉的依赖**：`P2.3`（视图 Agent）的前置由 `P2.2` 改为 **`P2.2 + P2.0R`** —— 视图 Agent 的产出必须指回真实字段，而 schema 检索今日实测 **Top-5 = 75%**。**不先解决它，P2.3 是空中楼阁。**
+  · **P2 的第四条硬约束是新加的**（前三条从 P1 原样继承）：**任何「自然语言 → 字段」的产出，必须能指回一个真实存在的 DocType 字段**。理由逐字写进 roadmap：**P1 是只读解释，错了是一个错答案；P2 生成视图，错了是用户天天看到的错字段。**
+  · **从 P1 带过来四条必须照做的**：门禁抽查制（§7.2.1，抽查者不得是作者）· 人侧改动走独立复核（§7.2.2）· 断言不许有失败逃逸（已有门禁在守）· **状态回退必须同时写「什么条件成立可以改回来」**（P1 期间人侧回退 P1.8a 没写复原条件，把下游依赖搞成了倒挂）。
+  · **另记了「已知会咬人的」四条**（`AGENERP_LLM_MODEL` 曾是死配置 · 归因类问题会打爆预算 · 单次问答能吃掉 60% 月度额度 · 停机标记会残留白停 12 小时），P2 直接继承教训，不重新踩。
+  · ⚠️ **本条不启动 P2**：`P2.0` 是入口关口（🚪 Spike 11 · Workspace 升级覆盖），**前置 P1.9 已完成，但关口本身还没跑**。且**工作项 3b 尚未收完**。**启不启动、什么时候启动，归人。**
+
+- [open] 2026-08-26T10:15Z · **`AGENERP_LLM_MODEL` 配错名字时服务回 502 而不是 503 —— 交人（loop 无处置权）**
+  · **来源**：`P1.1-fix`（工作项 3b）plan `docs/plans/p1-insight/2026-08-26-1728-1-routing-honors-configured-model.md` 的 `Deferred But Adjudicated` D1；该 plan 的 `route()` 本体已改完并全绿（见本行末的命令与退出码）。
+  · **本轮亲自实测复现（零网络，探针跑完即删、工作树无残留）**：伪造 `config_factory` 回 `model="typo-model"` → `ServiceError.status = **502**`，文本逐字 `点名的模型 'typo-model' 不在候选档案里；候选是 ['fake-explainer']`。**502 的语义是「上游坏了」，而这是「配置写错了」** —— 与 `agenerp/serve/app.py:239-242` 自己写死的结构性分法（拿到配置之后才叫上游坏了）**直接冲突**。运维照 502 去查端点会查错方向。
+  · **⚠️ 本次改动把它的暴露面放大了，照实说**：改之前 `config.model` 根本不被 `route()` 读，配错名字**不会**触发这条路；现在它是点名分支的正常失败态 ⇒ **同一个错配从「静默换模型」变成「502」**。后者远好于前者（不再无声），但状态码仍然是错的。
+  · **为什么 loop 不动它**：修法面在 `agenerp/serve/**` = 工作项 10（`P1.8a`），**该工作项 plan 预算 `2/2` 已满**；本 plan 的 Non-Goal 3 逐字排除它。
+  · **重开事件**：人给工作项 10 开新的预算格，或人直接在 `02-WBS.md` 为 `P1.8a` 拆行 / 加行（红线 5，loop 无权）。
+  · **本行所属交付的验证**：`python3 tools/gates/check_expected_red.py` → exit 0（`门禁 29 项：预期红 0，绿 29，跳过 0`）· `python3 -m pytest tests/unit tests/contracts tests/tools tests/routing tests/context tests/experiments -q -m "not live"` → exit 0（`1314 passed, 23 skipped, 7 deselected`，由 `1299 passed` **只增不减**）· `ruff check agenerp tests/unit tests/contracts tests/tools tests/routing tests/context tests/experiments tests/ui` → exit 0。
+
 - [open] 2026-08-26T10:03Z · **P1.9 复盘的「判据抽查」这一项交 loop —— 人侧不抽自己写的判据（`04-RUNBOOK.md` §7.2.1）**
   · **为什么交出去**：人 2026-08-26T10:03Z 把 P1.9 复盘委托给人侧代理执行。但 §7.2.1 逐字「**抽查者不得是这些判据的作者**」，而抽样池里**有多条正是人侧代理本人写的**（`test_agent_seam_stays_swappable.py` / `test_assertions_have_no_escape_hatch.py` / `test_configured_model_is_the_one_used.py` 等）。**自己抽自己，正是 P1 那次误放行的成因结构。**
   · **抽样方式写死、可复算、不许事后挑**：池 = `git log --since=2026-08-24 --name-only -- tests/` 去重后仍存在的文件（**实测 40 条**）；排序键 = `sha256("P1.9-spotcheck-2026-08-26" + 路径)`，取前 3。**任何人复算都能得到同一组。**
