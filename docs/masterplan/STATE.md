@@ -422,6 +422,14 @@
 > 格式：`[状态] 日期 · 触发条件 · WBS行ID · 最后一条失败命令原文 + 退出码 · sha · 处置`
 > 状态只有 `open` / `resolved`。**resolved 的行保留不删。**
 
+- [resolved] 2026-08-26T02:46Z · **撤销人侧 2026-08-25T21:27Z 那条归因 —— 「整组 frappe 容器集体重启」是错的，loop 的机制陈述才是对的**
+  · **人侧当时的推断**：CI `docker compose ps` 里 `db`/`redis` 是 `Up 4 minutes` 而 `frontend`/`backend`/`agenerp-serve`/`queue-*`/`scheduler` 是 `Up 2 minutes`（`CREATED` 都是 4 分钟前）⇒ 判「这六个容器集体重启过一次」。
+  · **错在哪（2026-08-26T02:46Z 独立复核，两条各自独立成立）**：① **backend 日志里 `Linking fresh assets` 与 `Starting gunicorn` 各只有 1 次** —— 真重启会有两套 ② **`db`/`redis` 的 `depends_on` 是 `None`，而 `backend`/`agenerp-serve` 是 `create-site: service_completed_successfully`** ⇒ 后者在 compose 创建时就存在、但**要等 create-site 跑完约 2 分钟才启动**。**「CREATED 4 分钟前 / Up 2 分钟」是分阶段启动的正常形态，不是重启。**
+  · **教训（人侧）**：`docker ps` 的 `CREATED` 与 `STATUS` 之差**不等于重启**，在有 `service_completed_successfully` 闸的栈里更是常态。**判重启要看日志里的启动序列出现几次**，不能靠时间差推。这条推断当时写着「新证据（实读…不是推断）」—— **实读的是数字，但从数字到结论那一步是推断，措辞把两者混了。**
+  · **loop 查明的机制（`docs/evidence/p1-8a-fix/p1-8-mechanism-statement.md`）**：断言体写死 `TIMEOUT = 30` 秒；某一次真解释的服务端墙钟越过它，客户端在 `recv_into` 抛 `TimeoutError` ⇒ 那条判据红；**而服务端没坏**，它算完仍去写 `200`，因对端已断开抛 `BrokenPipeError`。**次数对得上**：`758b7bc` `BrokenPipeError` 1 次 ↔ 1 failed；`82a144a` 2 次 ↔ 2 failed。同一 sha 判定步墙钟 **70s（红）→ 33s（绿）→ 23s（绿）**。
+  · ⇒ **不是「连不上」、不是起栈时序、不是容器重启，是「这一次解释落在 30 秒之外的长尾」。** 人侧此前把方向指向 `depends_on` 与「稳定性等待」，**那条方向是错的，已作废**。
+  · ⚠️ **loop 自己点明了尚未查明的一格**：**「为什么某一次会落到 30 秒之外」本轮未查明。** 本条不代它回答。
+
 - [resolved] 2026-08-26T01:47Z · **答完 P1.8b plan `§0.5` 的最后一条 —— ① 浏览器驱动，人已批准。该 plan 的 Review Hold 两条前置全部解除。**
   · **① 裁定：批准，形态为 `[project.optional-dependencies]` 的 `ui = ["playwright>=1.47"]`**（人 2026-08-26T01:47Z 逐字「批准，加 ui extra」）。已落 `pyproject.toml`，**`[project].dependencies` 一个字未动**（实测仍只有 `certifi>=2024.2.2` 一条）。决策条 `DECISIONS.md` **D-25**。
   · **② 早先已答**（模板残留不算数）。⇒ **`§0.5` 两条前置均已解除，plan 可转 `active`。**
