@@ -4274,6 +4274,11 @@ Phase 3 的变异自查又补了两条断言（`test_asset_content_type_is_javas
 | `H4` | URL / `frappe.get_route()` / `cur_frm.doc` 三者都能取到且一致 | 三者一致 | ⚠️ **不吻合** —— 三者**都取不到**（见 7.23.2） |
 | `H5` | 注入的 `<script src="/agenerp/desk.js">` 在不在、几次 | 在，恰好 1 次 | **恰好 1 次**（`/app` · `/app/user/Administrator` · `/app/user` 三条路径各测一次），**且 `window.agenerpDesk` 读得到** |
 
+⚠️ **`H1` 那一格是 2026-08-25 执行期探针的观测值，不是一条当期断言** ——
+本仓对带日期的探针快照按追加式账本处理，**内容不改写**。
+该值（八项、引 `gates.yml:597`）今天已不成立：两端都是**九项**（含 `ui`），行号已漂到 `:628`/`:631`。
+**「哪些测试目录被谁复跑得到」的当期真值以本文件 §7.26 的登记表为准**（那是这件事的单一真相源）。
+
 ⇒ **`H2b` 吻合 ⇒ `--host-resolver-rules="MAP frontend 127.0.0.1"` 那条对冲分支未被触发**，
 本节落地的 fixture **不带**该参数，基址逐字 `http://127.0.0.1:18080`。
 ⚠️ 它是**留了记录的备用件**：站点哪天不再 `--set-default`、或 compose 起多站，这一跳会**静默**落到别的站
@@ -4713,3 +4718,80 @@ C1 对 **Single 宿主**的「不留痕」是人已选定的取舍，它**没有
 不是 **503**（「未配置」）—— 与 `agenerp/serve/app.py:239-242` 自己写死的结构性分法冲突。
 修法面在 `agenerp/serve/**` = 工作项 10（P1.8a），其 plan 预算 `2/2` 已满 ⇒ **本 plan 不动它**，
 已追加登记在 `docs/masterplan/STATE.md` §3。
+
+---
+
+### 7.26 哪些测试目录被谁复跑得到（**这件事在本仓的单一真相源** · 2026-08-26）
+
+来源 plan：`docs/plans/p1-insight/2026-08-26-2213-1-ci-coverage-registration-drift.md`。
+判据：`tests/unit/test_ci_coverage_registration.py`。证据：`docs/evidence/p1-ci-coverage-registration/README.md`。
+
+**为什么要有这一节**：`tests/tools` / `tests/routing` / `tests/context` / `tests/experiments` 四个目录
+由人在 2026-08-24（`b0ad632`）接进 CI、`tests/ui` 在 2026-08-26（`f795e47`）接进，
+而各处 owner doc 里写着「它不在任何 job 的作用域里」的登记文字**一处都没跟上**。
+CI 侧早有一条防漏接的元判据（`gates.yml:628` 第 ⑦ 步），**owner doc 侧一条都没有**。
+本节把那件事写成一张机器可读的表，并由上面那条判据钉住 —— **下一次「判定面变了而文档没跟上」当场红。**
+
+<!-- machine-read: ci-coverage -->
+
+| 目录 | `unit-and-contracts` 里的哪一步 | 步骤是否被条件/软失败削弱 | `lint`（ruff）作用域 | `missions/p1-insight.json` 的 `commands.test` | 实测日期 · 证据路径 |
+|---|---|---|---|---|---|
+| `tests/context` | `⑤` | 否 | 在 | 不在 | `2026-08-26` · `docs/evidence/p1-ci-coverage-registration/README.md` |
+| `tests/contracts` | `②` | 否 | 在 | 不在 | `2026-08-26` · `docs/evidence/p1-ci-coverage-registration/README.md` |
+| `tests/experiments` | `⑥` | 否 | 在 | 不在 | `2026-08-26` · `docs/evidence/p1-ci-coverage-registration/README.md` |
+| `tests/fixtures` | 本 job 里不跑 | 否 | 不在 | 不在 | `2026-08-26` · `docs/evidence/p1-ci-coverage-registration/README.md` |
+| `tests/gates` | 本 job 里不跑 | 否 | 不在 | 不在 | `2026-08-26` · `docs/evidence/p1-ci-coverage-registration/README.md` |
+| `tests/routing` | `④` | 否 | 在 | 不在 | `2026-08-26` · `docs/evidence/p1-ci-coverage-registration/README.md` |
+| `tests/tools` | `③` | 否 | 在 | 不在 | `2026-08-26` · `docs/evidence/p1-ci-coverage-registration/README.md` |
+| `tests/ui` | 本 job 里不跑 | 否 | 在 | 不在 | `2026-08-26` · `docs/evidence/p1-ci-coverage-registration/README.md` |
+| `tests/unit` | `①` | 否 | 在 | 在 | `2026-08-26` · `docs/evidence/p1-ci-coverage-registration/README.md` |
+
+<!-- /machine-read: ci-coverage -->
+
+⚠️ **第 2 列写的是「本 job 里不跑」，不是「不跑」** —— 三行里有两行**在别的 job 里确实跑着**，
+少了下面这一句，这张表就会让读它的人**低估**已有覆盖（那正是本节要治的病）：
+
+- **`tests/ui`** —— `gates.yml:326` `- name: ⌘K 侧边栏活体门禁（零 skip）` / `:337`
+  逐字 `python3 -m pytest -m live tests/ui/test_sidebar.py -q | tee /tmp/ui-gate.log`，在 **`gates-l2-live`**（job 键 `:236`）里。
+- **`tests/gates`** —— `:208` `python3 -m pytest tests/gates/test_zero_dep_boot.py -q`（**`gates-l2`**，job 键 `:162`）·
+  `:561` `python3 -m pytest tests/gates/test_tool_execution_live.py -q`（**`gates-l2-seed`**，job 键 `:491`）·
+  以及本地的 `tools/gates/check_expected_red.py`（它的判定面写死 `tests/gates`）。
+- **`tests/fixtures`** 是数据目录，没有 `def test_*`。它在表里占一行是**纳管口径的结果，不是缺口**。
+
+#### 7.26.1 这张表**不管**什么
+
+**一条判据有义务先说清自己名字之外的边界**（出处：`docs/audits/2026-08-26-CP9-P1-retrospective.md:95`
+逐字「核了门禁绿不绿，没核绿的门禁在测什么」）。本表**只管「谁复跑得到哪个目录」这一件事**：
+
+- **不管 live 面的三个 job**（`gates-l2` / `gates-l2-live` / `gates-l2-seed`）**各自在测什么** ——
+  上面那三条点名只是为了不让第 2 列被读成「零覆盖」，**不是对那些 job 的判定面登记**。
+- **不管 `tools/gates/check_expected_red.py` 的判定域**（它写死 `tests/gates`，且默认注入 `-m "not live"`）。
+- **不管条数** —— 一个目录里有几条判据、有没有 skip，本表一个字不说。
+- **不管断言质量** —— 「跑得到」不等于「测得住」。`tests/fixtures` 那行的「不跑」是事实，
+  而某个跑得到的目录里全是空断言，本表**照样全绿**。
+
+#### 7.26.2 它是这件事的**单一真相源**；今天仍在别处重复登记同一事实的位置，逐处点名并说明归谁
+
+**同一个事实被登记在五个地方，是本节要消灭的形态本身。** 逐处如下：
+
+| 位置 | 是什么 | 归谁 | 本节的处置 |
+|---|---|---|---|
+| `.github/workflows/gates.yml:631` 的 `COVERED` | **第二份机器可读副本**（第 ⑦ 步的元判据） | **人**（红线 2，loop 只读） | **不改一个字节**；由 `tests/unit/test_ci_coverage_registration.py` 断言 ① **把它与本表、与实扫集合三向咬住** ⇒ 它漂了本条会红 |
+| `docs/architecture/model-management.md` §12.5「判定面缺口」两段 | 散文登记，**`tests/routing` 那一半已过期** | 工作项 3 的落点节 | 删被证伪的从句 + 一句指向本节的指针（本 plan Phase 3），**重述零个事实** |
+| `docs/architecture/module-boundaries.md:4270`（§7.23.1 探针 `H1`） | **带日期的执行期探针快照**，不是断言 | 工作项 11 的落点节 | 按本仓「追加式账本不改写内容」的惯例，**只加一句时点限定**（见该表下方），当期真值以本节为准 |
+| `docs/architecture/module-boundaries.md` §7.23.6 | 散文登记「三处零覆盖」，**五条今天全反** | 工作项 11 的落点节 | 删被证伪的从句 + 指针（本 plan Phase 3） |
+| `docs/context/project-context.md:52` | 入口文件里的 lint 作用域真相源 + ⚠️ 注解，**注解三段已过期** | 不属任何工作项，**不在任何红线 / Protected Areas 内** | 删被证伪的三段 + 指针（本 plan Phase 3）；`ruff` 那条命令本体是 `lint` job 要照抄的真相源，**一个字不动** |
+| `docs/architecture/system-baseline.md` §14.7 `:1016-1017` · §14.10 `:1587-1588` | **按 plan 分节的交付记录**（`## 14.x … 交付`） | 各自交付 plan 的记录 | **不改写记录本身一个字**，各加一句时点限定 + 指向本节的指针（本 plan Phase 3） |
+
+⚠️ **两种口径不许互相套用**：「就地删被证伪的从句」只用于**断言性散文**；
+「只加时点限定、不改写」只用于**带时点的账本 / 交付记录 / 探针快照**。
+判断依据逐字是：**该段是不是一份带日期的记录**。
+
+#### 7.26.3 翻案条件（出现任一条即回来重读本节）
+
+| # | 条件 | 处置 |
+|---|---|---|
+| 1 | 人正当地改了 `gates.yml` 的 job 划分或 `missions/*.json` 的 `commands.test`，本表随之为假 | **判据会当场红并逐字打印该改哪个文件的哪一列** —— 按它说的改表，不是把判据挪走 |
+| 2 | `tests/` 下新增或删除目录 | 表加/删对应行；`COVERED` 归人改（红线 2），两边由断言 ① 咬住 |
+| 3 | 有人为了让本条转绿而放松第 2 列的措辞（例如把「本 job 里不跑」改成「跑」） | 那是把登记表改假 —— 与本节要治的病同形，按 `docs/plans/.../2026-08-26-2213-1-…` 的 N1/N2 变异复跑 |
+| 4 | 本表某行的第 6 列日期很旧、而判定面已变，判据仍全绿 | 已知边界（plan 的 `D3`）：第 6 列只钉「日期可解析 + 证据路径存在」，**钉不住新鲜度**。出现实例即重开该条 |
