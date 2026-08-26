@@ -438,12 +438,30 @@
   · **⑤ 状态词依旧一个都没写**（`P3-8` ③）：`git diff --name-only 182ef2a..HEAD -- docs/masterplan/02-WBS.md docs/backlog/p1-insight-roadmap.md` → **无输出**。
   · **本轮对 `docs/masterplan/**` 的改动只有本行一处追加。**红线自证（`BASE_4 = 3b01c8a`，两步法）：`git diff --name-only $BASE_4..HEAD -- tests/gates/ .github/workflows/` → 无输出（红线 1/2）· `-- docs/masterplan/DECISIONS.md` → 无输出（红线 3）· `git diff $BASE_4..HEAD -- docs/masterplan/STATE.md | grep -c '^-[^-]'` → **`0`**（红线 5）· 证据仓 `XM_PATH` 未写（红线 6）· 未生成 Server Script（红线 7）· 未改项目名/包名/命名空间（红线 4）。
 
+- 2026-08-26T03:39Z · **`P1.8a-fix`（`02-WBS.md:88` / roadmap `10b`）** · `python3 tools/gates/check_expected_red.py` → **exit 0**（`门禁 28 项：预期红 0，绿 28，跳过 0`）· `python3 -m pytest tests/unit -q` → **exit 0**（`807 passed, 6 skipped`；`--collect-only` → `813`，开工基线 `807` 未被改动，只增不减）· `python3 -m pytest tests/contracts tests/tools tests/routing tests/context -q` → **exit 0**（`456 passed, 13 skipped`）· `ruff check agenerp tests/unit tests/contracts tests/tools tests/routing tests/context tests/experiments` → **exit 0**（`All checks passed!`）· `bash tools/check-masterplan-links.sh` → **exit 0**（`断链 0 条`）· sha `f3ff580`（收口起草基线；本行随收口提交入库）· **下一项：`P1.8b` Desk 侧边栏（工作项 11）**
+  · **`P1.8a-fix` 收口。**plan `2026-08-25-1118-1-gates-l2-live-intermittent-red.md` → `completed`（三个 Phase 全 `completed`，21 个执行项 + 16 条 `Exit Criteria` + 11 条 `Closure Gates` 全 `[x]`）。
+  · **修复 commit `182ef2a`**（**人落的**，`D-26`「`TIMEOUT` 拆成 `CHEAP_TIMEOUT = 30` / `EXPLAIN_TIMEOUT = 180`」，带 `Gates-Change-Approved-By: lize`）—— 它落在 `tests/unit/test_explain_service_body.py`，**那是门禁判据正文，红线 1，loop 全程未写它一个字节**。
+  · **三次 `push` run 全绿零跳过（验收）**：`32924757237`（`182ef2a`，修复提交本身）· `32924918686`（`cb3ad79`）· `32925450458`（`aae1843`），三次判定步原文均为 `门禁 54 项：红 0，绿 54，跳过 0`；`git merge-base --is-ancestor 182ef2a <sha>` 三个**全退 0**。⚠️ **修复之后的连绿此刻实测已达 5 次**（另有 `3b01c8a` / run `32926094349`、`f3ff580` / run `32926478334`），**验收仍只认上面那三次**，多的两次进 plan `§8` 顺带列 —— **「越多越好」不是这条验收的口径。**
+  · **守卫（loop 交付）**：`tests/unit/test_explain_service_timeout_budgets.py` **6 条**（含 3 条行为判据：用记录型假 `HTTPConnection` 把每一发请求实际拿到的预算录下来，再真驱动断言体跑一遍 —— **不是「两边读同一个常量再比」**），**7 个变异 7/7 打红**（M1 合并回单个 `TIMEOUT` · M2 空壳形参 · M3 真解释改回短预算 · M4 便宜请求放宽到 180 · M5 长预算只从 30 挪到 31 · M6 `echoes` 循环整体放宽 · M7 形参整个删掉）。变异施加在仓外副本上，**仓内断言体一次未被写过**。
+  · **`P3-6` 绑定 2 是人裁的，不是 loop 自批的**（本节 03:26Z `[resolved]`）：人答「是」并**把判据换严** —— 「含非文档代码改动 **且** 被一道经变异验证的判据钉住」。loop 上一轮逐字停在这里交人（`3b01c8a`），本轮只是照新判据复跑了一遍。
+  · **⚠️ `02-WBS.md:88` 的状态词本轮仍然没写**，两条独立理由：① **红线 5 优先**（`AGENTS.md:4` 逐字「红线 > `docs/masterplan/` 的执行协议」，红线 5 逐字「不得改动 `docs/masterplan/` 下的其余文件」）；② **那一格不存在** —— `02-WBS.md:76` 的 P1 表头实读是 `| ID | 工作项 | 前置 | 验收 | 状态源 |`，**5 列，没有「状态」列**（有「状态」列的只有 `:19` 与 `:35` 两张表）⇒ plan `P3-8` ① 那句「仅改状态一格 1 增 1 删」在这张表上不可执行。**状态词写在 `docs/backlog/p1-insight-roadmap.md` 的 `10b` 行**（`todo` → `done`，同行列出 sha 与三个 run id）。**这一格已交人**，见 §3 同日 `[open]`。
+  · **⚠️ verification scope limited** —— 整仓 `python3 -m pytest tests -q -m "not live"` 跑了，**不是绿的**：`1301 passed, 33 deselected, 12 errors`。逐条缩小后触发条件锁定在「`tests/gates` 与 `tests/tools` 同进程」（单跑该文件 → `12 skipped`；`tests/contracts tests/tools` → `232 passed, 12 skipped`；`tests/gates tests/tools` → `12 errors`）。**CI 不触发它**（`gates.yml:570-584` 逐目录分开跑）。**哪个 fixture 泄漏的环境本轮没查 —— 不猜根因。**已登记 `docs/backlog/gates-and-tools-leak-env-across-directories.md` + plan `Deferred But Adjudicated`。
+  · **红线自证（`BASE = baaebc8`，两步法）**：`git diff --name-only $BASE..HEAD -- tests/gates/ .github/workflows/` → **无输出**（红线 1/2）· `-- docs/masterplan/DECISIONS.md` → **非空** ⇒ 进第②步归属：`git log $BASE..HEAD --format='%h %an <%ae>' -- docs/masterplan/DECISIONS.md` → **`182ef2a lize <lize-agent-engineering@users.noreply.github.com>`，唯一一条，author 是人** ⇒ 红线 3 清白 · `git diff $BASE..HEAD -- docs/masterplan/STATE.md | grep -c '^-[^-]'` → **`0`**（红线 5 只追加）· `git diff --name-only $BASE..HEAD -- docs/masterplan/02-WBS.md` → **无输出** · 证据仓 `XM_PATH` 未写（红线 6）· 未生成 Server Script（红线 7）· 未改项目名/包名/命名空间（红线 4）。
+  · **⚠️ 第 2 轮独立收口审计尚未做** —— plan 逐字「执行者自己复跑不算」，由本任务的收口审计步执行。**执行者不代跑、不代批、不预填它的结论**；已在 plan 的 `Closure Audit Evidence` 里主动点名两处要它独立判的地方（`P3-8` ① 的替代落点是否算满足 · 整仓 12 error 归 out-of-scope 是否成立）。
+
 ## §3 needs-human 队列
 
 > 📦 已处置（`resolved`）的 9 条已整段归档到 [archive/STATE-2026-08-22.md](./archive/STATE-2026-08-22.md)。**`open` 的一条没动** —— 待办必须留在眼前。
 
 > 格式：`[状态] 日期 · 触发条件 · WBS行ID · 最后一条失败命令原文 + 退出码 · sha · 处置`
 > 状态只有 `open` / `resolved`。**resolved 的行保留不删。**
+
+- [open] 2026-08-26T03:39Z · **`02-WBS.md` 的 P1 表没有「状态」列，`P1.8a-fix` 那一行的状态词无处可写 —— 交人** · `P1.8a-fix`（`02-WBS.md:88`） · `git diff --name-only baaebc8..HEAD -- docs/masterplan/02-WBS.md` → **无输出**（本轮零改动，非失败命令；本条是**结构问题**不是命令失败） · sha `f3ff580` · **处置：等人**
+  · **事实（实读，不是推断）**：`02-WBS.md:76` 的 P1 表头逐字是 `| ID | 工作项 | 前置 | 验收 | 状态源 |` —— **5 列**。全文只有 `:19`（Day -1）与 `:35`（Day 0）两张表有第 6 列。⇒ P0–P5 六张表**都没有「状态」列**，`P1.8a-fix` 那一行也没有。
+  · **为什么这构成一个待人处置的问题**：plan `2026-08-25-1118-1` 的 `P3-8` 硬约束 ① 逐字要求「`02-WBS.md:88` 仅『状态』一格 1 增 1 删」，**这条在这张表上不可执行**；而 `02-WBS.md` 表规 4 又逐字写「状态只有四种 `todo` / `doing` / `done` / `blocked`」，说明表规**预期**有这一格。**两处对不上。**
+  · **loop 为什么不自己补这一列**：`docs/masterplan/` 在**红线 5** 内（`AGENTS.md` 逐字「loop 侧只读」），且 `AGENTS.md:4` 写死「**红线 > `docs/masterplan/` 的执行协议**」⇒ plan 里那条「状态源是 `MD:` 所以归 loop 写」的推论**压不过红线**。加一列比改一格更重，更不能自作主张。
+  · **本轮的替代落点（已做，不是等在这里）**：`P1.8a-fix` 的状态词写进了 `docs/backlog/p1-insight-roadmap.md` 的 `10b` 行（`todo` → `done`，同行列出修复 sha `182ef2a` 与三个 run id `32924757237` / `32924918686` / `32925450458`），满足 `02-WBS.md:88` 判据里「收口时必须点名 sha 与 3 个 run id」那句。**`docs/backlog/` 不在红线内。**
+  · **要人做的只有一件（二选一，都不是 loop 能选的）**：① 给 P0–P5 六张表补「状态」列并回填，此后 loop 按状态源维护自己那几行；**或** ② 明确「`02-WBS.md` 的状态一律不落表，以 roadmap 为准」，并把 plan 模板里 `P3-8` ① 那条硬约束改掉，免得后续每个 plan 都在这里卡一次。
 
 - [resolved] 2026-08-26T03:26Z · **答 `P1.8a-fix` plan 的 `P3-6` 绑定 2 —— 答「是」，且把判据换成一条更硬的**
   · **loop 问的那一句**：「绑定 2 的路径清单是不是应当读作『修复提交不得是纯文档提交』？」它自己的分析逐字是「**立意满足，字面不满足**」—— **这个分析是对的**。
