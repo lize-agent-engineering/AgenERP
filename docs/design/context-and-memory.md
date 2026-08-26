@@ -50,6 +50,38 @@ DocType 上重复出现，字段级 embedding 天然分不开「哪一张单」�
 `Sales Order` / `Production Plan Sales Order` / `Sample Order` / `Blanket Order`
 这些名字本身就高度混淆。
 
+#### 🔴 2026-08-26 · P2.0R 在**本仓、本站点**复测，把瓶颈钉在了「选单据」这一层
+
+Spike 07 是在 XM 证据仓里做的。按 D-16，那个 75% 不能当本仓基线。本仓自己的数
+（站点 `frontend`，465 个业务 DocType / 6,350 字段，**同一个 `qwen3-embedding:0.6b`**）：
+
+| 索引范围 | 索引文本 | Top-1 | **Top-5** | Top-10 |
+|---|---|---|---|---|
+| 现役 `schema_search`（DocType 名+模块名子串匹配） | — | **0%** | **0%** | **0%** |
+| business 6,350 字段 | 人话描述 | 30.0% | **65.0%** | 70.0% |
+| live 2,042 字段 | 人话描述 | 40.0% | **62.5%** | 70.0% |
+| 🔴 **oracle：把 ground-truth DocType 直接给定** | 人话描述 | **70.0%** | **97.5%** | **100%** |
+
+**把 DocType 固定住，Top-5 从 62.5% 跳到 97.5%，Top-10 = 100%。40 条只错 1 条，
+而那一条错在同一张单据内部**（`Delivery Note Item.qty` 被 `actual_qty` / `packed_qty` 压住）。
+
+⇒ **瓶颈在「选哪一张单」，不在「选哪个字段」。**
+⇒ **换更大的嵌入模型不是解法** —— 与 D-22.4 同源：问题不是语义表示不够好，
+是系统不知道用户说的是哪一张单。主攻方向定为 **DocType 消歧（结构化召回）**。
+
+⚠️ **97.5% 是 oracle 上界，不是可交付的检索器**，不得据此宣称 P2.0R 已达标。
+
+⚠️ **`live`（只索引有数据的 DocType）过滤器在本站点是净亏的**（65.0% → 62.5%），
+与 Spike 07 上的 +15 点相反。逐题拆开机制干净：**新中 4 条、丢掉 5 条**，
+而丢掉的 5 条**恰好是答案 DocType 行数为 0 的那 5 条**。
+⇒ 该过滤器的净收益 = 干扰项减少的增益 − 正确答案被误杀的损失，
+**由站点数据宽度决定，不能无条件启用**。
+
+证据与原样复跑：[`tools/experiments/p2_schema_retrieval/`](../../tools/experiments/p2_schema_retrieval/README.md) ·
+plan [`2026-08-26-P2.0R-…`](../plans/p2-views/2026-08-26-P2.0R-schema-retrieval-bottleneck-localization.md)（预测 `e82f73d` 早于结果，git 时间戳可查）。
+
+---
+
 **而 Spike 02 的受约束 Agent 四道探针全部通过，全程没有用到任何向量检索。**
 它用的是 `system.overview` → `meta.fields` → `doc.links`。**结构化导航打赢了语义检索**——
 ERP 的 schema 是强结构的，把它压平成向量再用相似度找回来是自找的信息损失。
