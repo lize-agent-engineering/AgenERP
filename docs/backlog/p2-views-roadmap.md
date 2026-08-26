@@ -57,7 +57,12 @@ Link 字段收敛）· 术语层反向索引（P2.7 的产物）· 行业包约�
 
 > 编号与 `02-WBS.md` §5 一一对应。**判据以 WBS 为准，本文不重定。**
 
-- 1. **入口关口实验：Spike 11 · Workspace 升级覆盖**（P2.0 🚪）: `todo` —— 前置 P1.9（已完成）
+- 1. **入口关口实验：Spike 11 · Workspace 升级覆盖**（P2.0 🚪）: **`done`** —— **人 2026-08-26 裁定「以 Arm B 判过」**。
+  假设**成立**：改标准 `Workspace` 会被升级静默覆盖（Arm B 实测：`icon` 被 JSON 覆盖、shortcuts 7→6、
+  canary 子表**物理删行**，只有 `is_hidden` 幸存；且该次 migrate 的输出与「什么都没发生」那次**逐字节相同**）。
+  ⇒ 🔴 **载体结论：视图产物落 AgenERP 自有表，不落标准 `Workspace`。**
+  证据：[`docs/plans/p2-views/2026-08-26-P2.0-…-workspace-upgrade-overwrite.md`](../plans/p2-views/2026-08-26-P2.0-entry-gate-spike11-workspace-upgrade-overwrite.md)（`f7cc4bd` 预测 → `7ca312a` 结果）·
+  [`module-boundaries.md` §11.4](../architecture/module-boundaries.md)（机制陈述已按实测订正）
 - 2. **schema 检索可用性**（P2.0R 🔴，头号风险）: `todo` —— 验收：真实 DocType 上自然语言问句 → 目标字段 **Top-5 命中率 ≥ 90%**（今日基线 75%）
 - 3. **视图 DSL v0**（P2.1，五种块）: `todo` —— 前置 P2.0
 - 4. **渲染器（frappe-ui）：未支持的一律落回 Desk**（P2.2）: `todo` —— 前置 P2.1
@@ -67,6 +72,17 @@ Link 字段收敛）· 术语层反向索引（P2.7 的产物）· 行业包约�
 - 8. **角色首页**（P2.6）: `todo` —— 前置 P2.2
 - 9. **术语层**（P2.7）: `todo` —— 前置 P2.2
 - 10. **CP9 · P2 阶段复盘**（P2.8）: `todo` —— **状态源 `人`**，loop 不动它
+
+### 🔴 P2.8 复盘的既定入账项（人 2026-08-26 裁定时指定，不许丢）
+
+**`REF:ROADMAP-SPIKE1112` 的证伪判据名不副实。** 它写的是「手改 app 内该 JSON **使 md5 变化**
+→ 改动仍在即证伪」，但 `import_file.py` 的 md5 比较**只对 `DocType` 生效**（`migration_hash`
+是 DocType 的字段，`Workspace` 没有，实测 `has_column` → `False`）。**照字面跑得到「证伪」，
+而实测事实是「成立」—— 判据与它要测的事方向相反。**
+
+⇒ 按 `04-RUNBOOK.md` §7.2.1，这是**「它测的不是它名字说的那件事」的一个实例**，
+P2.8 必须把它记进抽查制那一节。**人已裁定判据原样保留、不改**（判据是裁判）。
+⚠️ 区别于 P1 那次：**这次是在跑之前发现的**，没有变成误放行。
 
 ---
 
