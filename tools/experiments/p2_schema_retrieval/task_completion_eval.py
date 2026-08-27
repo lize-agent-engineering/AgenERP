@@ -114,6 +114,34 @@ def judge(prompt: str, model: str, base: str, key: str, usage: dict) -> dict:
     return json.loads(m.group())
 
 
+def _dump(obj, _depth: int = 0):
+    """把轨迹整份摊成 JSON 可写的结构。**宁可多存，不许挑。**
+
+    不用 `dataclasses.asdict`：`ExplainTrace` 里挂着 `CallLedger` 这类带方法的对象，
+    深层还可能出现不可序列化的东西。这里逐层降级 —— 存不下的落成 `repr`，
+    **也不许悄悄丢掉整个字段**。
+    """
+    import dataclasses
+
+    if _depth > 12:
+        return repr(obj)[:400]
+    if obj is None or isinstance(obj, (bool, int, float, str)):
+        return obj
+    if isinstance(obj, dict):
+        return {str(k): _dump(v, _depth + 1) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple, set)):
+        return [_dump(v, _depth + 1) for v in obj]
+    if dataclasses.is_dataclass(obj) and not isinstance(obj, type):
+        return {f.name: _dump(getattr(obj, f.name, None), _depth + 1)
+                for f in dataclasses.fields(obj)}
+    if hasattr(obj, "as_dict"):
+        try:
+            return _dump(obj.as_dict(), _depth + 1)
+        except Exception:  # noqa: BLE001 —— 存不下就落 repr，不许把字段丢掉
+            pass
+    return repr(obj)[:400]
+
+
 def committed_field(answer: str) -> tuple[str | None, str]:
     """从答案里取**最后一行**上的那一个字段 —— agent 必须承诺。
 
@@ -207,6 +235,13 @@ def main() -> None:
         # 于是「它到底答没答过」在结果里看不出来。而 `forced_continues` 能分辨两种因：
         #   有 → agent 答了、**被答案门禁一次次拒回**（harness / 门禁假拒）
         #   无 → agent 真的在工具间打转，一次都没成形（capability）
+        # 🔴 **不再挑字段存 —— 整份轨迹原样落盘。**
+        # 这一场调试卡住的每一样（stopped / forced_continues / gate_checks / 工具参数 /
+        # 逐次用量）**本来就都在 `ExplainTrace` 里**，是我在提取时扔掉的，而且**挑错了两次**：
+        # 第一次只存工具名，第二次补了三个字段仍没存参数 —— 于是「那 12 次 schema.search
+        # 是不是搜的同一个东西」到现在还证明不了，每补一次都要重跑一遍（≈80k token）。
+        # ⇒ **事先猜该存哪个字段，本身就是错的做法。** 存全量，代价只有磁盘。
+        rec["trace"] = _dump(result.trace)
         tr = result.trace
         rec["stopped"] = getattr(tr, "stopped", None)
         rec["forced_continues"] = list(getattr(tr, "forced_continues", None) or [])
