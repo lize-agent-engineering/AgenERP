@@ -25,12 +25,22 @@ class SchemaView:
     **不由一个空 `SchemaView` 表达。**
     """
 
-    __slots__ = ("_by_doctype",)
+    __slots__ = ("_by_doctype", "_child_tables")
 
-    def __init__(self, by_doctype: Mapping[str, Mapping[str, str]]) -> None:
+    def __init__(
+        self,
+        by_doctype: Mapping[str, Mapping[str, str]],
+        child_tables: Mapping[tuple[str, str], str] | None = None,
+    ) -> None:
         self._by_doctype = {
             doctype: dict(fields) for doctype, fields in by_doctype.items()
         }
+        # `(父 DocType, Table 字段名) → 子表 DocType`。校验器用它抓
+        # 「声明的子表与该 Table 字段实际指向的不是同一张」。
+        # ⚠️ **空映射不等于「别查了」** —— 与本类 docstring 里那条同源：
+        # 查不到时 `child_doctype()` 回 `None`，由校验器判为「验不了 ⇒ 拒」，
+        # 不是「查不到就放行」。
+        self._child_tables = dict(child_tables or {})
 
     def has_doctype(self, doctype: str) -> bool:
         return doctype in self._by_doctype
@@ -40,6 +50,14 @@ class SchemaView:
 
     def fieldtype(self, doctype: str, fieldname: str) -> str | None:
         return self._by_doctype.get(doctype, {}).get(fieldname)
+
+    def fields_of(self, doctype: str) -> tuple[tuple[str, str], ...]:
+        """一张表的 `(字段名, 类型)`，按字段名排序。查不到就回空 —— 不猜。"""
+        return tuple(sorted(self._by_doctype.get(doctype, {}).items()))
+
+    def child_doctype(self, doctype: str, fieldname: str) -> str | None:
+        """`Table` 字段指向哪张子表。映射里没有就回 `None` —— 不猜。"""
+        return self._child_tables.get((doctype, fieldname))
 
     def doctypes(self) -> tuple[str, ...]:
         return tuple(sorted(self._by_doctype))
@@ -54,10 +72,16 @@ class SchemaView:
         `dump_schema.py` 的输出与 `meta.fields` 工具的返回都是这个形状。
         """
         by_doctype: dict[str, dict[str, str]] = {}
+        child_tables: dict[tuple[str, str], str] = {}
         for row in rows:
             doctype = str(row.get("doctype") or "")
             fieldname = str(row.get("fieldname") or "")
             if not doctype or not fieldname:
                 continue
-            by_doctype.setdefault(doctype, {})[fieldname] = str(row.get("fieldtype") or "")
-        return cls(by_doctype)
+            fieldtype = str(row.get("fieldtype") or "")
+            by_doctype.setdefault(doctype, {})[fieldname] = fieldtype
+            if fieldtype == "Table":
+                options = str(row.get("options") or "")
+                if options:
+                    child_tables[(doctype, fieldname)] = options
+        return cls(by_doctype, child_tables)

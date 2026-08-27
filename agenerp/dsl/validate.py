@@ -134,6 +134,30 @@ def _check_structure(block: Block, where: str) -> list[str]:
     if block.limit is not None and block.limit <= 0:
         errors.append(f"{where}.limit 要是正整数，收到 {block.limit!r}")
 
+    if block.child_fields and block.type != "detail":
+        errors.append(f"{where}：只有 detail 块能展开子表，{block.type} 块不许带 child_fields")
+
+    seen_tables: set[str] = set()
+    for n, entry in enumerate(block.child_fields):
+        if len(entry) != 3:
+            errors.append(f"{where}.child_fields[{n}] 要形如 (Table 字段, 子表 DocType, (字段…))")
+            continue
+        table_field, child_doctype, child_fieldnames = entry
+        if table_field not in block.fields:
+            # 展开一个本块没有投影的子表，等于视图里凭空多出一段内容。
+            errors.append(
+                f"{where}.child_fields[{n}]：{table_field!r} 不在本块的 fields 里"
+            )
+        if not child_doctype:
+            errors.append(f"{where}.child_fields[{n}] 的子表 DocType 不能为空")
+        if not child_fieldnames:
+            errors.append(
+                f"{where}.child_fields[{n}]：展开 {table_field!r} 却没说要展示哪些字段"
+            )
+        if table_field in seen_tables:
+            errors.append(f"{where}.child_fields 里 {table_field!r} 声明了不止一次")
+        seen_tables.add(table_field)
+
     return errors
 
 
@@ -158,6 +182,28 @@ def _check_fields_exist(view: View, schema: SchemaView) -> list[str]:
             errors.append(f"字段不存在：{doctype}.{fieldname}")
 
     for index, block in enumerate(view.blocks):
+        for n, (table_field, child_doctype, _names) in enumerate(block.child_fields):
+            where = f"blocks[{index}].child_fields[{n}]"
+            if not block.doctype:
+                continue
+            if schema.fieldtype(block.doctype, table_field) != "Table":
+                errors.append(
+                    f"{where}：{block.doctype}.{table_field} 不是 Table 字段，展不开"
+                )
+                continue
+            actual = schema.child_doctype(block.doctype, table_field)
+            if actual is None:
+                # 🔴 查不到 ≠ 放行。与 `SchemaUnavailable` 同源：验不了的东西不许算过。
+                errors.append(
+                    f"{where}：schema 里没有 {block.doctype}.{table_field} 指向哪张子表，"
+                    "无法核对声明的子表对不对 —— 验不了的不算过"
+                )
+            elif actual != child_doctype:
+                errors.append(
+                    f"{where}：声明的子表是 {child_doctype!r}，"
+                    f"但 {block.doctype}.{table_field} 实际指向 {actual!r}"
+                )
+
         if block.type == "explain" and block.subject:
             subject = block.subject.split(".", 1)[0]
             if not schema.has_doctype(subject):

@@ -46,6 +46,14 @@ class Block:
     filters: tuple[tuple[str, str, object], ...] = ()
     sort: tuple[str, str] | None = None
     limit: int | None = None
+    # `detail` 专用 —— 子表展开。
+    # 形状是 `(Table 字段名, 子表 DocType, (要展示的子表字段…))`，**三段都显式写出来**：
+    #   · 显式写子表 DocType ⇒ 校验器能抓到「声明的子表与该 Table 字段实际指向的不是同一张」
+    #   · 显式列字段 ⇒ 「这个视图用到了哪些字段」仍有唯一答案（`View.field_refs()`），
+    #     P2.5 的 `schema.drift` 巡检要靠它
+    # ⚠️ **刻意不做「默认展示全部子表字段」** —— 那会让渲染器在遇到画不了的子表字段时
+    # 只有两个坏选择：悄悄删掉那一列（画出来了但画的不是用户要的），或整块落回。
+    child_fields: tuple[tuple[str, str, tuple[str, ...]], ...] = ()
     # `metric` 专用
     agg: str | None = None
     # `metric` 的基准与对比（§10.2「必须支持基准与对比」）。
@@ -86,4 +94,7 @@ class View:
                     refs.add((block.doctype, entry[0]))
             if block.sort and isinstance(block.sort[0], str):
                 refs.add((block.doctype, block.sort[0]))
+            for _table_field, child_doctype, child_fieldnames in block.child_fields:
+                for fieldname in child_fieldnames:
+                    refs.add((child_doctype, fieldname))
         return tuple(sorted(refs))

@@ -58,6 +58,14 @@ WORKER_WORK_ORDERS = View(
             fields=("production_item", "qty", "produced_qty", "status",
                     "source_warehouse", "fg_warehouse",
                     "image", "required_items", "operations"),
+            child_fields=(
+                ("required_items", "Work Order Item",
+                 ("item_code", "item_name", "required_qty", "transferred_qty",
+                  "consumed_qty", "source_warehouse")),
+                ("operations", "Work Order Operation",
+                 ("operation", "workstation", "status", "completed_qty",
+                  "actual_operation_time")),
+            ),
         ),
     ),
 )
@@ -84,6 +92,12 @@ WORKER_STOCK_ENTRIES = View(
             # `items` 是 Table，展开后其行上的 `image` 是 Attach。
             fields=("stock_entry_type", "posting_date", "work_order",
                     "from_warehouse", "to_warehouse", "fg_completed_qty", "items"),
+            child_fields=(
+                # `image` 是 `Attach` —— 工人扫码领料时看的就是这张图。
+                ("items", "Stock Entry Detail",
+                 ("item_code", "item_name", "qty", "uom",
+                  "s_warehouse", "t_warehouse", "image")),
+            ),
         ),
     ),
 )
@@ -109,6 +123,10 @@ WORKER_ITEMS = View(
             # `image` Attach Image · `description` Text Editor · `uoms` / `barcodes` Table
             fields=("item_code", "item_name", "item_group", "stock_uom",
                     "image", "description", "uoms", "barcodes"),
+            child_fields=(
+                ("uoms", "UOM Conversion Detail", ("uom", "conversion_factor")),
+                ("barcodes", "Item Barcode", ("barcode", "barcode_type")),
+            ),
         ),
     ),
 )

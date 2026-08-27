@@ -59,7 +59,29 @@ RENDERABLE_FIELDTYPES = (
     "Small Text",
     "Text",
     "Read Only",
+    # ↓ P2.2 补的四种。前三种带代价，逐条写在下面的常量与 `_why_it_cannot_be_drawn` 里。
+    "Table",
+    "Text Editor",
+    "Attach",
+    "Attach Image",
 )
+
+# **画得了，但画不全**。这一族不是「画得了」也不是「落回」，是第三种状态：
+# 渲染出来，同时明说少了什么、并给一个去 Desk 看全的入口。
+#
+# `Text Editor` 的值是 HTML。`module-boundaries.md` §7.23 给 `desk.js` 写死的第一条
+# 硬约束逐字是「**建 DOM 只走 textContent / createTextNode —— HTML 注入那一族 sink
+# 在判据里是零命中**」。⇒ 富文本**剥标签只显纯文本**。
+#
+# ⚠️ **代价照实记**：用户在新前端看不到富文本的格式。换来的是不引入一个注入面。
+# 这是 P2.2 plan §2.2 里记明「由我判断、供人推翻」的那个取舍。
+DEGRADED_FIELDTYPES = ("Text Editor",)
+
+# `Attach` / `Attach Image` 的值是一个**用户可写字段**里的 URL。当 `src` / `href` 用
+# 就是 `javascript:` 那一族的入口。⇒ 只放行站内相对路径与 https。
+# ⚠️ 这条在**运行期**由渲染器强制（值是数据，不在 schema 里）；本模块只负责
+# 「这个字段类型画得了」这一半。判据在 `tests/render/`（真浏览器喂载荷）。
+ALLOWED_ATTACHMENT_SCHEMES = ("/", "https:")
 
 
 @dataclass(frozen=True)
@@ -72,24 +94,65 @@ class Fallback:
 
 
 @dataclass(frozen=True)
+class Degraded:
+    """画出来了，但画不全。`index` 是它在 `view.blocks` 里的下标。"""
+
+    index: int
+    fieldname: str
+    fieldtype: str
+    reason: str
+
+
+@dataclass(frozen=True)
 class RenderPlan:
     rendered: tuple[Block, ...]
     fallbacks: tuple[Fallback, ...]
+    degraded: tuple[Degraded, ...] = ()
 
 
 def plan_render(view: View, schema: SchemaView) -> RenderPlan:
     """给定一个视图，判断哪些块这一版画得了、哪些落回 Desk。"""
     rendered: list[Block] = []
     fallbacks: list[Fallback] = []
+    degraded: list[Degraded] = []
 
     for index, block in enumerate(view.blocks):
         reason = _why_it_cannot_be_drawn(block, schema)
         if reason:
             fallbacks.append(Fallback(index=index, block_type=block.type, reason=reason))
-        else:
-            rendered.append(block)
+            continue
+        rendered.append(block)
+        degraded.extend(_what_is_degraded(index, block, schema))
 
-    return RenderPlan(rendered=tuple(rendered), fallbacks=tuple(fallbacks))
+    return RenderPlan(
+        rendered=tuple(rendered), fallbacks=tuple(fallbacks), degraded=tuple(degraded)
+    )
+
+
+def _what_is_degraded(index: int, block: Block, schema: SchemaView) -> list[Degraded]:
+    """这一块画得了，但哪些字段画不全。**每一条都要能说出少了什么。**"""
+    out: list[Degraded] = []
+    if not block.doctype:
+        return out
+    pairs = [(block.doctype, fn) for fn in block.fields]
+    for _table_field, child_doctype, child_fieldnames in block.child_fields:
+        pairs.extend((child_doctype, fn) for fn in child_fieldnames)
+    for doctype, fieldname in pairs:
+        fieldtype = schema.fieldtype(doctype, fieldname)
+        if fieldtype in DEGRADED_FIELDTYPES:
+            out.append(
+                Degraded(
+                    index=index,
+                    fieldname=f"{doctype}.{fieldname}",
+                    fieldtype=fieldtype,
+                    reason=(
+                        f"{doctype}.{fieldname} 是富文本（{fieldtype}），"
+                        "这里只显示纯文本 —— 渲染 HTML 会开一个注入面。"
+                        "要看格式请在 Desk 中打开。"
+                    ),
+                )
+            )
+    return out
 
 
 def _why_it_cannot_be_drawn(block: Block, schema: SchemaView) -> str:
@@ -106,6 +169,8 @@ def _why_it_cannot_be_drawn(block: Block, schema: SchemaView) -> str:
     if not block.doctype or not schema.has_doctype(block.doctype):
         return f"DocType {block.doctype!r} 在当前 schema 里不存在，整块落回 Desk"
 
+    declared_children = {table_field for table_field, _dt, _fns in block.child_fields}
+
     for fieldname in block.fields:
         if not schema.has_field(block.doctype, fieldname):
             return (
@@ -118,5 +183,30 @@ def _why_it_cannot_be_drawn(block: Block, schema: SchemaView) -> str:
                 f"字段 {block.doctype}.{fieldname} 的类型 {fieldtype!r} "
                 f"不在这一版渲染器画得了的类型表里，整块落回 Desk"
             )
+        if fieldtype == "Table" and fieldname not in declared_children:
+            # 一张没说要展示哪几列的子表画不出来。**这不是缺陷，是刻意的**：
+            # 见 `Block.child_fields` 的注释——「默认展示全部」只有两个坏选择。
+            return (
+                f"子表 {block.doctype}.{fieldname} 没有在 child_fields 里声明要展示哪些列，"
+                "整块落回 Desk"
+            )
+
+    for table_field, child_doctype, child_fieldnames in block.child_fields:
+        for fieldname in child_fieldnames:
+            if not schema.has_field(child_doctype, fieldname):
+                return (
+                    f"子表字段 {child_doctype}.{fieldname} 在当前 schema 里不存在，整块落回 Desk"
+                )
+            fieldtype = schema.fieldtype(child_doctype, fieldname)
+            if fieldtype not in RENDERABLE_FIELDTYPES:
+                return (
+                    f"子表 {block.doctype}.{table_field} 的字段 {child_doctype}.{fieldname} "
+                    f"类型是 {fieldtype!r}，不在这一版渲染器画得了的类型表里，整块落回 Desk"
+                )
+            if fieldtype == "Table":
+                # 子表里再套子表：v0 不展开，**明说，不静默**。
+                return (
+                    f"子表 {child_doctype}.{fieldname} 里还嵌着子表，v0 不展开，整块落回 Desk"
+                )
 
     return ""

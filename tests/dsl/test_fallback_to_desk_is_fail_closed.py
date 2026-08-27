@@ -54,14 +54,36 @@ def test_a_block_type_from_the_future_falls_back_instead_of_raising(schema):
 
 
 def test_a_field_whose_type_this_renderer_cannot_draw_makes_its_block_fall_back(schema):
-    # `terms` 是 `Text Editor`（富文本）。渲染器画不了就整块落回，
-    # **不许悄悄把这一列删掉再画** —— 那是「画出来了但画的不是用户要的东西」。
-    assert "Text Editor" not in RENDERABLE_FIELDTYPES
-    plan = plan_render(_view(Block(type="list", doctype="Sales Order",
-                                   fields=("customer", "terms"))), schema)
+    """渲染器画不了就整块落回，**不许悄悄把这一列删掉再画**。
+
+    ⚠️ **本条 2026-08-27 换过例子，照实记**：原来用的是 `Sales Order.terms`
+    （`Text Editor`）。P2.2 把富文本改成了**降级渲染**（剥标签只显纯文本），
+    于是它不再落回 —— **那一刻这条判据变成了恒真的空壳**。
+    换成 `Sales Order Item.item_tax_rate`（`Code`），它今天仍在
+    `RENDERABLE_FIELDTYPES` 之外。`test_..._is_actually_unrenderable` 钉住这个前提。
+    """
+    assert "Code" not in RENDERABLE_FIELDTYPES
+    plan = plan_render(_view(Block(type="list", doctype="Sales Order Item",
+                                   fields=("item_code", "item_tax_rate"))), schema)
     assert plan.rendered == ()
     assert len(plan.fallbacks) == 1
-    assert "terms" in plan.fallbacks[0].reason
+    assert "item_tax_rate" in plan.fallbacks[0].reason
+
+
+def test_rich_text_is_degraded_not_dropped_and_not_silently_rendered(schema):
+    """富文本：画出来，但明说少了什么。**第三种状态，不是「画得了」也不是「落回」。**
+
+    `module-boundaries.md` §7.23 第 1 条硬约束逐字：建 DOM 只走 `textContent`。
+    ⇒ 富文本剥标签只显纯文本。**代价是用户看不到格式** —— 这件事必须出现在
+    `degraded` 里并说清原因，否则用户看到的是一段莫名其妙变了样的文字。
+    """
+    plan = plan_render(_view(Block(type="list", doctype="Sales Order",
+                                   fields=("customer", "terms"))), schema)
+    assert len(plan.rendered) == 1          # 画得了
+    assert plan.fallbacks == ()             # 没落回
+    assert len(plan.degraded) == 1          # 但画不全，且说了
+    assert "Sales Order.terms" == plan.degraded[0].fieldname
+    assert "Desk" in plan.degraded[0].reason
 
 
 def test_a_supported_block_still_renders_when_a_sibling_block_falls_back(schema):

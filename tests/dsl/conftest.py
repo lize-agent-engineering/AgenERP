@@ -28,12 +28,19 @@ import pytest
 from agenerp.dsl.schema import SchemaView
 
 FIXTURE = pathlib.Path(__file__).parent / "fixtures" / "site-schema-subset.json"
+CHILD_TABLES_FIXTURE = pathlib.Path(__file__).parent / "fixtures" / "child-tables.json"
 
 _RAW = json.loads(FIXTURE.read_text(encoding="utf-8"))
 SALES_FIELDS: dict[str, dict[str, str]] = _RAW["fields"]
 PROVENANCE: dict[str, str] = _RAW["provenance"]
 
+# `"父.字段" -> 子表 DocType`，同样由 `dump_schema.py` 从活站点导出，**不手写**。
+_CHILD_RAW: dict[str, str] = json.loads(CHILD_TABLES_FIXTURE.read_text(encoding="utf-8"))
+CHILD_TABLES: dict[tuple[str, str], str] = {
+    (key.split(".", 1)[0], key.split(".", 1)[1]): child for key, child in _CHILD_RAW.items()
+}
+
 
 @pytest.fixture
 def schema() -> SchemaView:
-    return SchemaView(SALES_FIELDS)
+    return SchemaView(SALES_FIELDS, CHILD_TABLES)
