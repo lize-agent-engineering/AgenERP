@@ -105,7 +105,19 @@ def _repo_root() -> pathlib.Path:
 
 REPO_ROOT = _repo_root()
 EXPERIMENT_DIR = REPO_ROOT / "tools/experiments/p2_schema_retrieval"
-EVAL_SET = EXPERIMENT_DIR / "eval-set.json"
+# 🔴 **指向独立评测集，不指向 loop 自己出的那份。**
+# `eval-set.json`（40 条）是 loop 出的题，且它看过每一轮的 miss ——
+# 拿它当裁判量的是「他挑的题他会不会」。人 2026-08-27 给了这一份 60 条。
+EVAL_SET = EXPERIMENT_DIR / "eval-set-independent.jsonl"
+LOOP_AUTHORED_SET = EXPERIMENT_DIR / "eval-set.json"
+
+
+def _items(path: pathlib.Path) -> list[dict]:
+    """读评测集。`.jsonl` 逐行、`.json` 读 `{"items": [...]}`。"""
+    text = path.read_text(encoding="utf-8")
+    if path.suffix == ".jsonl":
+        return [json.loads(line) for line in text.splitlines() if line.strip()]
+    return json.loads(text)["items"]
 
 # ── 裁判的两个数：出处写死在这里 ──────────────────────────────────────────
 #
@@ -157,7 +169,7 @@ def test_the_sample_is_big_enough_for_the_bar_it_claims_to_check():
     assert REQUIRED_COMPLETION_RATE is not None, "门槛没填 —— 见上方出处段"
     assert REQUIRED_SAMPLE_SIZE is not None, "样本量没填 —— 见上方出处段"
 
-    items = json.loads(EVAL_SET.read_text(encoding="utf-8"))["items"]
+    items = _items(EVAL_SET)
     assert len(items) >= REQUIRED_SAMPLE_SIZE, (
         f"评测集只有 {len(items)} 条，撑不起 {REQUIRED_COMPLETION_RATE}% 这条线"
         f"（需 {REQUIRED_SAMPLE_SIZE} 条零失败，下界才压得过）。"
@@ -201,7 +213,7 @@ def test_the_agent_commits_and_gets_the_field_right(live_site):
     # 而跑出来的数还因为重复而没有意义。
     # ⚠️ 这一条是安全闸，不是判据 —— 判据是上面那条 `test_the_sample_is_big_enough`，
     #    它会红并说清「先补题，别改线」。这里只负责**别让它先把钱烧了**。
-    items = json.loads(EVAL_SET.read_text(encoding="utf-8"))["items"]
+    items = _items(EVAL_SET)
     if len(items) < REQUIRED_SAMPLE_SIZE:
         pytest.fail(
             f"评测集只有 {len(items)} 条 < {REQUIRED_SAMPLE_SIZE} —— **不跑**。"
@@ -210,11 +222,15 @@ def test_the_agent_commits_and_gets_the_field_right(live_site):
         )
 
     tce = _verifier()
+    # ⚠️ **预算闸必须传**（D-17：先算账）。60 条按 glm-5.2 实测分层推 ~1.37M，
+    # 而免费额度 1M ⇒ 大概率跑不完。闸触发时结果里会如实标到第几条停的，
+    # **未跑的既不算通过也不算失败** —— 那时本判据红在「没跑完」，不是红在 agent 身上。
     result = tce.run_eval(
         eval_path=EVAL_SET,
         sample=REQUIRED_SAMPLE_SIZE,
         max_turns=20,
         judge_model=os.environ.get("AGENERP_JUDGE_MODEL", "glm-5.2"),
+        budget=int(os.environ.get("AGENERP_EVAL_BUDGET", "950000")),
     )
 
     # ⚠️ **只有 `infrastructure` 不计分**（构建/凭据/判官这类真的坏了）。
@@ -249,28 +265,90 @@ def test_the_agent_commits_and_gets_the_field_right(live_site):
 
 
 def test_every_ground_truth_field_really_exists_on_the_site(live_site):
-    """硬约束 ④ 用在**评测集自己**身上：ground truth 必须指回真实存在的字段。
+    """硬约束 ④ 用在**评测集自己**身上：ground truth 必须指回**活站点上**真实存在的字段。
 
-    一份指不回真实字段的评测集，量出来的数没有意义 —— 那是在判「我猜得准不准」。
+    🔴 **为什么这条必须在跑之前**：`expected` 若指向一个站点上不存在的字段，
+    验证器第 1 层会把**任何**回答判错 —— 那是一条注定的假拒，
+    而且它会**伪装成「agent 能力不足」**。这种错一旦混进分子分母，整轮数就废了。
+
+    ⚠️ **问活站点，不读快照。** 原先这里调 `tce.field_exists()`，
+    而那个函数读的是 `/tmp/schema.json` —— 一个**临时文件**。
+    门禁依赖 `/tmp` 下的东西，等于依赖「上一次谁跑过什么」。
+    出题方也说他们对着自己的快照核过；快照是他们的，**本条独立对活站点再验一遍**。
+    做法与 `verify_eval_set.py` 同源（那份是同一件事的命令行形态）。
     """
-    tce = _verifier()
-    items = json.loads(EVAL_SET.read_text(encoding="utf-8"))["items"]
-    missing = []
-    for item in items:
-        for ref in item["expected"]:
+    from agenerp.site import SiteClient, SiteError
+
+    client = SiteClient(
+        os.environ["AGENERP_SITE"], admin_password=os.environ["AGENERP_ADMIN_PASSWORD"]
+    )
+    cache: dict[str, dict] = {}
+
+    def fields_of(doctype: str) -> dict:
+        """DocType 的字段表；DocType 本身不存在时回空 —— 与「字段不存在」区分开报。"""
+        if doctype not in cache:
+            try:
+                meta = client.get(f"/api/resource/DocType/{doctype}").get("data", {})
+            except SiteError:
+                cache[doctype] = {}
+            else:
+                cache[doctype] = {
+                    f["fieldname"]: f for f in meta.get("fields", []) if f.get("fieldname")
+                }
+        return cache[doctype]
+
+    missing_doctype, missing_field = [], []
+    for item in _items(EVAL_SET):
+        # `acceptable` 也要验 —— 它同样会被第 2 层当成「过」的依据，
+        # 一个指不回真实字段的可接受答案是一条**误放行**，比假拒更坏。
+        for ref in [*item["expected"], *item.get("acceptable", [])]:
             doctype, _, fieldname = ref.partition(".")
-            if not tce.field_exists(doctype, fieldname):
-                missing.append(ref)
-    assert not missing, f"评测集里这些 ground truth 在站点上不存在：{sorted(set(missing))}"
+            table = fields_of(doctype)
+            if not table:
+                missing_doctype.append(ref)
+            elif fieldname not in table:
+                missing_field.append(ref)
+
+    assert not missing_doctype and not missing_field, (
+        f"评测集的 ground truth 在活站点上对不上：\n"
+        f"  DocType 不存在：{sorted(set(missing_doctype))}\n"
+        f"  字段不存在　　：{sorted(set(missing_field))}\n"
+        "⇒ **先修题，别跑**：这些条目会变成注定的假拒，并伪装成 agent 能力不足。"
+    )
 
 
-def test_the_eval_set_is_not_authored_by_whoever_is_being_judged():
-    """🔴 见文件头 ③ —— **这一条我给不出实现，因为第二份评测集还不存在。**
+def test_the_eval_set_is_not_recycled_from_the_one_the_judged_wrote():
+    """🔴 独立性 —— **能机械判的那一半**。
 
-    评测集若长期只有一份、且出自被判者之手，这条门禁量的是「他挑的题他会不会」。
-    建议的形态：每条带 `author`，且断言**至少有一份不是 loop 出的**并被计入。
-    形态与出处由人定。
+    ⚠️ 先说清它**判不到**什么：「题不是被判者出的」终究是一条**过程事实**，
+    数据面看不出来。本条只抓那个**最会发生的失败形态**：
+    换个说法把 loop 自己那 40 条回收一遍，然后声称「独立」。
 
-    ⚠️ **fail 不是 skip。** 这条红着是对的 —— 它红的是一件真的没做的事。
+    过程那一半的出处（**不在断言里，在这儿写着供人复核**）：
+    `eval-set-independent.jsonl` 由人 2026-08-27 提供，loop 未参与出题；
+    入场核对见 `verify_eval_set.py`（零 token、不调模型，69 个字段引用全部存在）。
+
+    2026-08-27 实测的对照数，写在这儿当基线：
+      问句完全相同 **0** 条 · 目标字段重合 **5/60**（55 个是 loop 那份没有的）
+      覆盖了 loop 那份完全没碰的域：`hr` / `Employee.*` / `Bank Account` /
+      `Batch` / `Customer Credit Limit`
     """
-    pytest.fail("待人定义：第二份评测集的形态与出处，见文件头 ③")
+    assert EVAL_SET.name != LOOP_AUTHORED_SET.name, (
+        "门禁读的还是 loop 自己出的那份题 —— 那量的是「他挑的题他会不会」"
+    )
+
+    theirs = _items(EVAL_SET)
+    mine = _items(LOOP_AUTHORED_SET) if LOOP_AUTHORED_SET.exists() else []
+
+    same_q = {i["q"] for i in theirs} & {i["q"] for i in mine}
+    assert not same_q, f"独立集里有 {len(same_q)} 条问句与 loop 自己那份逐字相同：{sorted(same_q)[:5]}"
+
+    their_fields = {e for i in theirs for e in i["expected"]}
+    my_fields = {e for i in mine for e in i["expected"]}
+    fresh = their_fields - my_fields
+    # 阈值取一半：**回收一份旧题最省事的做法就是换问法、留答案**，
+    # 目标字段几乎全重合正是那个形态。2026-08-27 实测是 55/60，离这条线很远。
+    assert len(fresh) >= len(their_fields) / 2, (
+        f"独立集的目标字段只有 {len(fresh)}/{len(their_fields)} 是新的 —— "
+        "换了问法、留着 loop 那份的答案，那不算独立"
+    )
