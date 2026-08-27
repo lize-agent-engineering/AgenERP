@@ -42,6 +42,7 @@ from agenerp.explain.loop import (
     STOP_MAX_TURNS,
     STOP_MODEL_ERROR,
     STOP_RUNAWAY,
+    RESULT_CHARS,
     STOP_TOKEN_BUDGET,
     ExplainLoop,
 )
@@ -335,3 +336,31 @@ def test_no_token_budget_means_the_third_gate_does_not_exist():
 
     assert result.trace.stopped != STOP_TOKEN_BUDGET
     assert result.trace.stopped == STOP_MAX_TURNS
+
+
+# ── 工具结果的字符上限：**答对的前提是看得见**（2026-08-27 实测）──────────────
+
+
+def test_the_tool_result_cap_is_big_enough_that_the_answer_is_visible():
+    """🔴 **这个数不是随便定的：它决定 agent 能不能在字段表里看见正解。**
+
+    人 2026-08-27 指出：「如果上下文给的正确的话，我给的那些模型都能够给出正确的
+    回答，否则就是 harness 没有做到位。」——**查下去人是对的。**
+
+    独立评测集 60 条逐条核（零 token，走真工具层 + `_clip`）：
+    `RESULT_CHARS = 6000` 时，**7 条题的正解字段 agent 根本看不见**，其中 **5 条是 hard 档**
+    —— 这直接解释了 hard 档为什么只有 73.3%。
+    例：`Payment Entry` 字段表 **18,416 字符 / 98 字段**，切到 6000 只剩三成。
+
+    ⚠️ 此前我把其中三条判成「真能力失败」，**判错了**，其中包括
+    `Sales Order Item.prevdoc_docname` —— 我拿「两个模型都编出同一个不存在的
+    `Sales Order Item.quotation`、跨模型复现」当过硬证据。
+    **那不是能力弱，是两个模型收到的是同一份被切残的字段表，只能猜。**
+
+    20000 是量出来的：那 7 条所在的 DocType **全部 ≤ 18,416 字符**。
+    ⚠️ **本条只钉下界**（够不够看得见），不钉上界 —— 往上调不算破坏这条判据。
+    """
+    assert RESULT_CHARS >= 18_416, (
+        f"工具结果上限降到了 {RESULT_CHARS} —— 独立评测集里最大的字段表是 18,416 字符，"
+        "低于它就会把正解切掉，而失败会**伪装成 agent 能力不足**"
+    )
