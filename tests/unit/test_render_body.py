@@ -386,13 +386,38 @@ def test_rich_text_is_never_parsed_as_html(worker):
         tab.close()
 
 
-def test_the_user_is_told_the_rich_text_lost_its_formatting(worker):
-    """降级要**说出来**。一段莫名其妙变了样的文字比一句「这里只显示纯文本」难受得多。"""
+def test_the_user_is_told_which_field_lost_its_formatting(worker):
+    """降级要**说出是哪个字段**。一段莫名其妙变了样的文字比一句提示难受得多。
+
+    🔴 **本条 2026-08-27 被 §7.2.1 抽查判为名不副实，重写。取证过程记在这里，不掩饰：**
+
+    原名 `test_the_user_is_told_the_rich_text_lost_its_formatting`，原实现是
+    对**整个 `#agenerp-view-root` 的文本**断言「出现『富文本』和『Desk』两个词」。
+
+    取证变异：把 `renderDegradedNote` 的正文换成一句**与具体字段无关的死文案**
+    （「本页可能含富文本，去 Desk 看格式」）⇒ **18 条活体判据全绿，一条没红。**
+    ⇒ 它验的是「页面上有这两个词」，**不是**它名字说的「告诉用户**这个字段**丢了格式」。
+
+    按 §7.2.1：**抽到一条名不副实的，即为一次误放行。** 已按原规则记入 P2.8 复盘。
+    ⚠️ 根因在**执行产物**（我写的这条判据），不在引擎 —— 与 P1 那次同形。
+
+    重写后验三件事，缺一不可：
+    ① 降级提示是**绑在具体字段上的**（`data-agenerp-degraded-field`）
+    ② 它指名的就是那个真的富文本字段
+    ③ 提示正文里出现那个字段名，且给了去 Desk 的出路
+    """
     tab = _render(worker, "worker-items")
     try:
-        notes = tab.inner_text("#agenerp-view-root")
-        assert "富文本" in notes
-        assert "Desk" in notes, "降级提示里没给「去 Desk 看格式」的出路"
+        note = tab.wait_for_selector(
+            "#agenerp-view-root [data-agenerp-degraded-field]", timeout=20_000
+        )
+        field = note.get_attribute("data-agenerp-degraded-field")
+        assert field == "Item.description", (
+            f"降级提示没绑在那个真的富文本字段上，绑的是 {field!r}"
+        )
+        text = note.inner_text()
+        assert "Item.description" in text, f"提示正文没指名是哪个字段：{text!r}"
+        assert "Desk" in text, f"提示里没给「去 Desk 看格式」的出路：{text!r}"
     finally:
         tab.close()
 
