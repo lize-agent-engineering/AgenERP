@@ -137,3 +137,39 @@ WORKER_DAILY_VIEWS: tuple[View, ...] = (
     WORKER_STOCK_ENTRIES,
     WORKER_ITEMS,
 )
+
+
+# ── 角色 → 首页（P2.6）─────────────────────────────────────────────────────
+
+# **封闭映射**，规则面（硬约束 ③ / D-15）：这个人该看哪一页，不问模型。
+# `system-baseline.md` §4 逐字：「②③ 共用一套前端，差别在渲染哪套视图 DSL、
+# **默认落在哪个首页**」。
+ROLE_HOMES: tuple[tuple[str, str], ...] = (
+    (WORKER_ROLE, WORKER_WORK_ORDERS.name),
+)
+
+
+def home_for_roles(
+    roles: "tuple[str, ...] | list[str]",
+    table: "tuple[tuple[str, str], ...] | None" = None,
+) -> tuple[str, str] | None:
+    """这个人的首页视图。**认不出就回 `None`，不给一个默认页。**
+
+    ⚠️ **为什么不兜底到某一页**：给一个不属于他的首页，用户会看到一片
+    「你看不到这个」——那比落回 Desk 糟得多，后者他至少还能干活。
+    fail-closed 的方向在这里是「**不给**」，不是「随便给一个」。
+
+    ⚠️ 顺序是 `ROLE_HOMES` 里的顺序，不是传入 `roles` 的顺序 ——
+    一个人有多个角色时，**首页由本表的优先级决定**，而不是由站点返回顺序决定
+    （后者是不稳定的，会让同一个人今天落这页、明天落那页）。
+
+    ⚠️ `table` 可注入，**只为判据**：`ROLE_HOMES` 今天只有一条，
+    而「按表的优先级挑」这件事**在只有一条时是恒真的** —— 判据会变成空壳。
+    P2.6 的变异 M3（把挑法改成按站点返回顺序）第一轮**没见血**，就是被这个放过去的。
+    产品路径一律走默认值。
+    """
+    owned = set(roles or ())
+    for role, view_name in (table if table is not None else ROLE_HOMES):
+        if role in owned:
+            return role, view_name
+    return None

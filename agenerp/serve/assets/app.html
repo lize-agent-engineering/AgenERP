@@ -52,8 +52,29 @@
   "use strict";
   // 视图名从 query 读，**在浏览器里读**，不经服务端。
   var params = new URLSearchParams(window.location.search);
-  var name = params.get("view") || "worker-work-orders";
-  window.agenerpRenderView(name);
+  var explicit = params.get("view");
+  if (explicit) { window.agenerpRenderView(explicit); return; }
+
+  // 没点名视图时，问服务端「我该落在哪一页」（P2.6 角色首页）。
+  // ⚠️ **这里刻意没有写死的默认视图名。** 一个写死的兜底会在这条路挂掉时
+  // **静默**接管，把所有人送到同一页 —— 而那一页多半不属于他们。
+  // fail-closed 的方向是「说清楚 + 给去 Desk 的出路」，不是「随便给一个」。
+  fetch("/agenerp/home", { credentials: "same-origin", headers: { Accept: "application/json" } })
+    .then(function (res) {
+      return res.json().catch(function () { return {}; }).then(function (body) {
+        if (res.status === 200 && body.view) { return window.agenerpRenderView(body.view); }
+        var host = document.getElementById("agenerp-view-root");
+        var p = document.createElement("p");
+        p.className = "agenerp-denied";
+        p.textContent = (body.error || "认不出你是谁") + "。请到 Desk 继续。";
+        host.appendChild(p);
+        var a = document.createElement("a");
+        a.setAttribute("href", "/app");
+        a.textContent = "打开 Desk";
+        host.appendChild(a);
+        host.setAttribute("data-agenerp-home-fallback", "desk");
+      });
+    });
 })();
 </script>
 </body>

@@ -41,7 +41,7 @@ from agenerp.routing.config import from_env as config_from_env
 from agenerp.routing.errors import RoutingError
 from agenerp.dsl.blocks import Block, View
 from agenerp.dsl.fallback import plan_render
-from agenerp.dsl.roles import WORKER_DAILY_VIEWS
+from agenerp.dsl.roles import WORKER_DAILY_VIEWS, home_for_roles
 from agenerp.dsl.schema import SchemaView
 from agenerp.dsl.validate import validate
 from agenerp.i18n import load_terms
@@ -93,6 +93,13 @@ APP_PAGE_FILENAME = "app.html"
 APP_PAGE_PATH = f"{ROUTE_PREFIX}/app"
 APP_PAGE_CONTENT_TYPE = "text/html; charset=utf-8"
 
+# 角色首页解析（P2.6）。**用调用方自己的 sid 问站点「你是谁、有哪些角色」** ——
+# 前端不判身份（`system-baseline.md` §4：权限由后端强制，前端只做呈现与提示）。
+HOME_PATH = f"{ROUTE_PREFIX}/home"
+
+# 取当前用户角色的白名单方法。与 `LOGGED_USER_METHOD` 同族：只读、只问身份。
+USER_ROLES_METHOD = "frappe.core.doctype.user.user.get_roles"
+
 # 本服务实际服务的路径集合。**404 文案从它算出来，不另写一份字面量** ——
 # 漏改文案就是一条会说谎的错误信息，而说谎的错误信息比没有更贵。
 SERVED_PATHS = (
@@ -102,6 +109,7 @@ SERVED_PATHS = (
     RENDER_ASSET_PATH,
     VIEW_PLAN_PATH,
     APP_PAGE_PATH,
+    HOME_PATH,
 )
 
 # 只读白名单方法：把浏览器带上来的 `sid` 解析成一个人。
@@ -536,6 +544,9 @@ def _make_handler(deps: ServiceDeps) -> type[BaseHTTPRequestHandler]:
             if path == APP_PAGE_PATH:
                 self._respond_app_page()
                 return
+            if path == HOME_PATH:
+                self._respond_home()
+                return
             self._not_found()
 
         def do_POST(self) -> None:  # noqa: N802 - 标准库约定的方法名
@@ -554,6 +565,9 @@ def _make_handler(deps: ServiceDeps) -> type[BaseHTTPRequestHandler]:
                 return
             if path == APP_PAGE_PATH:
                 self._respond(405, {"error": f"{APP_PAGE_PATH} 只接受 GET"})
+                return
+            if path == HOME_PATH:
+                self._respond(405, {"error": f"{HOME_PATH} 只接受 GET"})
                 return
             if path != EXPLAIN_PATH:
                 self._not_found()
@@ -639,6 +653,41 @@ def _make_handler(deps: ServiceDeps) -> type[BaseHTTPRequestHandler]:
             self.send_header("X-Frame-Options", "SAMEORIGIN")
             self.end_headers()
             self.wfile.write(body)
+
+        def _respond_home(self) -> None:
+            """这个人该落在哪一页。
+
+            🔴 **fail-closed 的方向是「不给」，不是「随便给一个」**：
+            认不出人、或角色没有对应首页时，回一个**明确的落回 Desk**，
+            **不回 200 + 一个空视图**。给一个不属于他的首页，用户会看到一片
+            「你看不到这个」—— 那比落回 Desk 糟得多，后者他至少还能干活。
+            """
+            try:
+                sid = _sid_from_cookie(self.headers.get("Cookie"))
+                client = deps.client_factory(
+                    sid=sid, site=deps.site, transport=deps.site_transport
+                )
+                answer = client.call_method(USER_ROLES_METHOD, {})
+            except ServiceError as exc:
+                self._respond(exc.status, {"error": exc.message, "fallback": "desk"})
+                return
+            except Exception:
+                self._respond(401, {"error": UNAUTHENTICATED, "fallback": "desk"})
+                return
+
+            roles = answer if isinstance(answer, list) else (answer or {}).get("message") or []
+            resolved = home_for_roles([str(r) for r in roles])
+            if resolved is None:
+                self._respond(
+                    403,
+                    {
+                        "error": "这个身份还没有配角色首页",
+                        "fallback": "desk",
+                    },
+                )
+                return
+            role, view_name = resolved
+            self._respond(200, {"role": role, "view": view_name})
 
         def _respond_view_plan(self) -> None:
             """回一个视图的渲染计划。**不认人、不取业务数据。**
