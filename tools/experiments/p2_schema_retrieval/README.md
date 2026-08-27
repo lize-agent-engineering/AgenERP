@@ -8,8 +8,14 @@
 ## 结论两句话
 
 1. **第一轮：瓶颈在选单据，不在选字段。** 把 DocType 固定住，Top-5 从 **62.5% → 97.5%**（Top-10 = 100%）。
-2. **⛔ 第二轮：顺着这个方向试的第一个机制（按单据族硬两段式收敛）失败了 —— 60.0%，比基线 65.0% 还低。**
-   按判定表不进实现，且**不许接着挑下一个机制**，须回到判定表重新设计（D-16）。
+2. **⛔ 第二轮：硬两段式收敛失败 —— 60.0%，比基线 65.0% 还低。**
+3. **⛔ 第三轮：分数融合也失败 —— 最好一档 65.0%，与基线一模一样，一分不加。**
+   且 `Top-1` 在整条 α 曲线上恒为 30.0。
+
+🔴 **三轮之后的那句话**：第二、三轮**都是拿同一批 embedding 再算一遍 ——
+从同一口井里再打一次水**。第一轮 oracle 能跳 35 个点，是因为它从外面注入了
+一条这批向量里没有的信息（正确答案在哪张单上）。
+**任何不注入新信息的重排，结构上都够不着那 35 个点。**
 
 ## 文件
 
@@ -21,6 +27,9 @@
 | `results.json` | 第一轮全部结果，含每条问句的 rank 与 Top-5 |
 | `doctype_disambiguation.py` | 第二轮：DocType / 单据族聚合 + 两段式。**自带设施自检**：重算的字段级基线必须与第一轮逐格相等 |
 | `results-round2.json` | 第二轮全部结果 |
+| `score_fusion.py` | 第三轮：分数融合 α 扫描。**向量落盘缓存**（带 `texts_sha` + 模型名校验），后续轮次不必再等 145 秒 |
+| `results-round3.json` | 第三轮全部结果，**含全部 11 档 α 的曲线** |
+| `GATE-DRAFT-test_schema_retrieval_recall.py.txt` | 🔴 **给人的判据草稿**。后缀刻意是 `.txt`、路径刻意不在 `tests/gates/` 下 —— 红线 1。头部有四条落之前必读的实测教训 |
 
 ## 原样复跑
 
@@ -62,3 +71,15 @@ python3 tools/experiments/p2_schema_retrieval/doctype_disambiguation.py \
 
 脚本会先自检：重算的字段级 `business × described` 必须与 `results.json` 逐格相等
 （`selfcheck_matches_previous`）。**不等就别看后面的数。**
+
+## 第三轮复跑
+
+```bash
+python3 tools/experiments/p2_schema_retrieval/score_fusion.py \
+  --schema /tmp/schema.json \
+  --eval   tools/experiments/p2_schema_retrieval/eval-set.json \
+  --out    tools/experiments/p2_schema_retrieval/results-round3.json \
+  --cache  /tmp/p2_vectors.json
+```
+
+设施自检在 `α = 1.0` 那一格：**必须恰好等于第一轮的 65.0%**，不等于就是算错了。

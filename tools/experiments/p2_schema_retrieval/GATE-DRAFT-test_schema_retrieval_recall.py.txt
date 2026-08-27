@@ -1,0 +1,122 @@
+# ⚠️ 这是**草稿，不是判据**。后缀刻意是 `.txt`，路径刻意不在 `tests/gates/` 下。
+#
+# 红线 1：`tests/gates/**` 只能由人改。**我不建它，也不碰那个目录。**
+# 人 2026-08-26 裁定「你来写」⇒ 本文件是交给人的材料，由人看过之后自行落进
+# `tests/gates/test_schema_retrieval_recall.py`（提交带 `Gates-Change-Approved-By:`）。
+#
+# ============================================================================
+# 落之前请先读这四条 —— 它们是我在三轮实测里撞出来的，不是风格建议
+# ============================================================================
+#
+# ① 🔴 **今天的实测值是 65.0%，验收线是 90%。这条判据落下去就是红的。**
+#    这是对的：`tools/gates/expected-red.txt` 存在的意义就是「故意的红」。
+#    但请**同时把它加进那份名单**，否则判定器会判成「真的坏了」。
+#
+# ② 🔴 **别把 oracle 那 97.5% 当成达标。** 它假设「已经知道正确 DocType」，
+#    而那正是待解的部分。判据必须量**端到端**（问句 → 字段），不许给 DocType。
+#
+# ③ 🔴 **`live`（只索引有数据的 DocType）过滤器不能无条件启用。**
+#    本站点上它是净亏的（65.0% → 62.5%）：新中 4 条、丢掉 5 条，
+#    而丢掉的恰好是答案 DocType 行数为 0 的那 5 条。⇒ **判据若用 live 范围，
+#    它的上限就是 87.5% < 90%，永远不可能绿。** 建议用 business 全量范围。
+#
+# ④ 🔴 **评测集不该长期是我出的那 40 条。** 我已经在这同一份上跑了三轮，
+#    还看过它每一轮的 miss。要它当裁判，**至少得有一份不是我出的**。
+#    这条比上面三条都重要。
+#
+# ============================================================================
+
+"""🔴 门禁 · schema 检索：自然语言问句 → 目标字段的 Top-5 命中率
+
+判据来源：WBS `02-WBS.md` §5 P2.0R —— 「在本站点真实 DocType 上，自然语言问句
+→ 目标字段的 **Top-5 命中率 ≥ 90%**」。
+
+## 它防的是什么
+
+P2.3（视图 Agent）与整个 P3（操作 Agent）都建立在 schema 检索之上。
+检索不准，视图会画错字段，写入 Agent 会改错单据 —— **后者是脏账，不是错答案。**
+
+## 它**不**验什么（写清楚，免得有人以为验了）
+
+- **不验 oracle 上界。** 给定 DocType 时 Top-5 = 97.5%，那不是可交付的检索器。
+- **不验 DocType 级召回。** 那是中间量，不是用户拿到的东西。
+"""
+from __future__ import annotations
+
+import json
+import os
+import pathlib
+
+import pytest
+
+REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
+EVAL_SET = REPO_ROOT / "tools/experiments/p2_schema_retrieval/eval-set.json"
+
+# WBS §5 写死的线。**改这个数就是改裁判。**
+REQUIRED_TOP5 = 90.0
+
+# 索引范围：**business 全量**。见文件头 ③——live 范围在本站点上限只有 87.5%。
+SCOPE = "business"
+
+
+@pytest.mark.live
+def test_natural_language_questions_find_the_right_field_in_top_five(live_site):
+    """端到端：问句 → 字段，Top-5 命中率 ≥ 90%。"""
+    retriever = _build_retriever(live_site)          # ← 待实现（今天仓内没有）
+    items = json.loads(EVAL_SET.read_text(encoding="utf-8"))["items"]
+
+    # ⚠️ 评测集自己先得过硬约束 ④：每条 ground truth 必须指回真实存在的字段。
+    # 一份指不回真实字段的评测集，量出来的命中率没有意义。
+    _assert_every_ground_truth_field_exists_on_the_site(live_site, items)
+
+    hits = 0
+    misses = []
+    for item in items:
+        top5 = retriever.top_fields(item["q"], k=5)
+        if set(top5) & set(item["expected"]):
+            hits += 1
+        else:
+            misses.append({"q": item["q"], "expected": item["expected"], "got": top5})
+
+    rate = hits * 100 / len(items)
+    # ⚠️ **不许写成 `assert rate >= REQUIRED_TOP5 or <任何东西>`。**
+    # 一个 `or` 就是 P1 那次误放行的形状。失败时把 miss 全列出来，
+    # 让红的那一次自己说清红在哪 —— 但那是 message，不是逃逸。
+    assert rate >= REQUIRED_TOP5, (
+        f"Top-5 命中率 {rate:.1f}% < {REQUIRED_TOP5}%（{hits}/{len(items)}）。"
+        f"未命中 {len(misses)} 条：\n"
+        + "\n".join(f"  · {m['q']}\n    期望 {m['expected']}\n    拿到 {m['got']}" for m in misses)
+    )
+
+
+@pytest.mark.live
+def test_the_eval_set_is_not_authored_by_whoever_is_being_judged(live_site):
+    """🔴 见文件头 ④。
+
+    评测集若长期只有一份、且出自被判者之手，这条门禁量的是「他挑的题他会不会」。
+    建议的形态：评测集里带 `author` 字段，且**至少有一份不是 loop 出的**；
+    本条断言检查确实存在这样一份并被计入。
+
+    ⚠️ **这条我给不出实现，因为第二份评测集还不存在。** 由人决定形态。
+    """
+    pytest.fail("待人定义：第二份评测集的形态与出处，见文件头 ④")
+
+
+def _build_retriever(live_site):
+    """⚠️ **今天仓内不存在。**
+
+    现役 `agenerp/tools/site_scope.py::schema_search` 只做 DocType 名 + 模块名的
+    子串匹配，**根本不返回字段**（实测对中文问句字段级 Top-5 = 0%）。
+    P2.0R 三轮跑的是 `tools/experiments/p2_schema_retrieval/` 下的实验脚本，
+    那些是实验设施，不是产品代码。
+
+    ⇒ 这条判据落下去之后，**「让它变绿」这件事本身就是 P2.0R 的工作内容。**
+    """
+    raise NotImplementedError("检索器尚未落进 agenerp/，见 P2.0R 三轮 plan")
+
+
+def _assert_every_ground_truth_field_exists_on_the_site(live_site, items):
+    """硬约束 ④ 用在评测集自己身上。实现参考
+    `tools/experiments/p2_schema_retrieval/` 里那段验证（2026-08-26 实测 40/40 通过）。
+    """
+    raise NotImplementedError("由人按站点访问方式实现（meta.fields 或 frappe.get_meta）")
