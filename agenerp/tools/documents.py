@@ -267,24 +267,53 @@ def meta_field_rows(session: Session, doctype: str, level: str) -> tuple[list[di
         fieldtype = field.get("fieldtype")
         if fieldtype in TABLE_FIELDTYPES and field.get("options"):
             children.append(field["options"])
-        if fieldtype in LAYOUT_FIELDTYPES or field.get("hidden"):
+        if fieldtype in LAYOUT_FIELDTYPES:
             continue
-        rows.append(
-            {
-                "fieldname": field.get("fieldname"),
-                "fieldtype": fieldtype,
-                "label": field.get("label"),
-                "options": field.get("options"),
-                "reqd": bool(field.get("reqd")),
-                "level": level,
-                "parent_doctype": doctype,
-            }
-        )
+        # 🔴 2026-08-27：**hidden 字段改成保留 + 标记，不再剔除。**
+        # 原实现逐字 `or field.get("hidden")` —— **无条件剔**，而契约的 trim_rules
+        # 写的是「剔除 hidden **且无数据**的字段」⇒ **实现比契约严**，那是实现的错。
+        # 代价是实测出来的：独立评测集 69 个字段引用里 **2 个是 hidden**
+        # （`Purchase Order Item.supplier_part_no` 标签「Supplier Part Number」·
+        #   `Sales Order Item.transaction_date` 标签「Sales Order Date」）
+        # ⇒ agent **永远看不见它们**，无论工具结果上限调多大，
+        #   而失败会**伪装成「它答不出来」**。
+        # ⚠️ 对「问哪个字段」这类问题，**在界面上不显示 ≠ 不是那个字段**。
+        # 标记而不是剔除：模型仍知道它在 UI 上不露面，但点得出名字。
+        row = {
+            "fieldname": field.get("fieldname"),
+            "fieldtype": fieldtype,
+            "label": field.get("label"),
+            "options": field.get("options"),
+            "reqd": bool(field.get("reqd")),
+            "level": level,
+            "parent_doctype": doctype,
+        }
+        if field.get("hidden"):
+            row["hidden"] = True
+        rows.append(row)
     return rows, children
 
 
+def _matches(row: Mapping[str, Any], words: list[str]) -> bool:
+    """字段名或标签里出现**任何一个**关键词就算命中（大小写不敏感）。
+
+    用「任一命中」而不是「全部命中」：调用方多给一个词不该把结果清空 ——
+    那会让「过滤器写宽了」和「这个 DocType 上没有」长得一模一样。
+    """
+    hay = f"{row.get('fieldname') or ''} {row.get('label') or ''}".lower()
+    return any(w in hay for w in words)
+
+
 def meta_fields(session: Session, params: Mapping[str, Any]) -> Outcome:
-    """一个 DocType 的字段表。**主表字段与子表字段分标**，否则结构化导航会在子表上失明。"""
+    """一个 DocType 的字段表。**主表字段与子表字段分标**，否则结构化导航会在子表上失明。
+
+    🔴 2026-08-27 加可选的 `keywords`，理由是实测：
+    `Sales Order` / `Purchase Order` / `Purchase Invoice` / `Quotation` 四个
+    各约 **38,000 字符**，而且**正好 200 字段** —— 那是契约 `max_rows` 的上限，
+    说明它们**在进上下文之前就已经被截过一次**。对这种体量，
+    「把整张字段表倒给模型」本身就是错的形状。
+    给了 `keywords` 就只回命中的行，**不给则行为与本参数出现之前逐字相同**。
+    """
     doctype = str(params.get("doctype") or "")
     if not doctype:
         raise ToolError("需要 doctype 参数：不猜 DocType，缺参即停")
@@ -292,6 +321,14 @@ def meta_fields(session: Session, params: Mapping[str, Any]) -> Outcome:
     for child in dict.fromkeys(children):
         child_rows, _ = meta_field_rows(session, child, LEVEL_CHILD_TABLE)
         rows.extend(child_rows)
+
+    words = [w for w in str(params.get("keywords") or "").lower().split() if w]
+    if words:
+        hit = [r for r in rows if _matches(r, words)]
+        # ⚠️ **一个都没命中就回全量**，并且不静默 —— 空结果会让
+        # 「关键词写偏了」和「这个 DocType 上真没有」长得一模一样，
+        # 而前者是可恢复的、后者不是。回全量至少让模型自己看得见。
+        rows = hit if hit else rows
     return Outcome(
         data=rows,
         facts={"fields_tagged_by_level": all(

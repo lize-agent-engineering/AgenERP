@@ -149,7 +149,16 @@ TOOL_PARAMS: dict[str, dict] = {
     },
     "meta.fields": {
         "type": "object",
-        "properties": {"doctype": {"type": "string"}},
+        "properties": {
+            "doctype": {"type": "string"},
+            # ⚠️ 可选。大 DocType（实测 `Sales Order` 等四个各约 200 字段 / 38,000 字符）
+            # 整表倒出来会被截断，正解可能就在被切掉的部分里 —— 那时用它缩小范围。
+            "keywords": {
+                "type": "string",
+                "description": "可选：空格分隔的关键词，只回字段名或标签命中的行"
+                               "（字段多的大单据用它，避免结果被截断）",
+            },
+        },
         "required": ["doctype"],
     },
     "doc.get": {
