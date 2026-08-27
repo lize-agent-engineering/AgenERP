@@ -110,6 +110,16 @@ KNOWN_MODEL_PROFILES: Mapping[str, ModelProfile] = {
     # ⚠️ `long_context` / `reasoning` / `multi_hop` **那次探针判不了，因此一律不声明** ——
     # 「未观测的能力不声明」是本模块第一条摆放规矩。这意味着 glm-5.2 今天只够
     # `permission` 与 `explain` 两档；要接 `lineage` / `shape` 得先有两跳题的实测。
+    # 2026-08-27 实测加入（独立评测集 60 条要用，本模型免费额度满格）。
+    # 同样**只声明探到的两项**：探针给了工具定义，它真发起了
+    # `meta_fields({"doctype": "Sales Order"})` ⇒ `tool_calling`；
+    # 回包 `reasoning_tokens = 71` ⇒ 计 reasoning token。
+    # ⚠️ `long_context` / `reasoning` / `multi_hop` 那次探针判不了 ⇒ **不声明**。
+    "kimi-k3": ModelProfile(
+        name="kimi-k3",
+        capabilities=frozenset({"tool_calling"}),
+        is_reasoning_model=True,
+    ),
     "glm-5.2": ModelProfile(
         name="glm-5.2",
         capabilities=frozenset({"tool_calling"}),
