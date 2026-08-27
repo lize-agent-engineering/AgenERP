@@ -13,6 +13,7 @@ from collections.abc import Mapping
 from datetime import UTC, datetime
 from typing import Any
 
+from agenerp.site import SiteError
 from agenerp.snapshot import SITE_SCOPE_DOCTYPES, entries_from_site_rows
 from agenerp.tools.runtime import Outcome, Session, ToolError
 
@@ -63,12 +64,47 @@ def query_read(session: Session, params: Mapping[str, Any]) -> Outcome:
         if requested
         else _list_view_fields(session, doctype)
     )
-    rows = session.list_rows(
-        doctype, _list_params(fields, params.get("filters"), params.get("limit")), detail=ROWS
-    )
+    try:
+        rows = session.list_rows(
+            doctype, _list_params(fields, params.get("filters"), params.get("limit")), detail=ROWS
+        )
+    except SiteError as exc:
+        raise _child_table_error(session, doctype, exc) from exc
     return Outcome(
         data=rows,
         facts={"rows_all_from_requested_doctype": session.row_sources() == (doctype,)},
+    )
+
+
+def _child_table_error(session: Session, doctype: str, exc: SiteError) -> Exception:
+    """站点拒了这次列表读 —— 判一下**是不是因为它压根是张子表**。
+
+    🔴 实测根因（2026-08-27，站点 `frontend`）：`Purchase Order Item` / `Sales Order Item`
+    这类子表 `GET /api/resource/<子表>` **恒回 HTTP 403 PermissionError**，
+    连 Administrator 也一样 —— 那是 Frappe 的结构约束，不是权限配错。
+    而同一行数据从父单据读得到：`Purchase Order/PUR-ORD-2026-00001` → `items[0].received_qty`。
+
+    ⚠️ **代价是实测过的**：解释循环里模型已经找对了 `Purchase Order Item.received_qty`，
+    想验证一下，被这个 403 顶回来，于是以为**单据选错了**，退回去重搜 —— 再验、再 403，
+    **八轮烧光、返回空答案**。回给它的原文是一坨 Python traceback，
+    里面没有任何一句说得清「子表要从父单据读」。评测集 40 条里有 8 条踩这条路。
+
+    ⚠️ **只在站点已经拒了之后才判**，成功路径一个额外请求都不发 ——
+    `Session` 的注释写死了「这次执行发了几个请求」是判据，不许平白变胖。
+
+    判不出来就**原样抛回去**：把「真的没权限」改写成「这是子表」会是更坏的错误。
+    """
+    try:
+        meta = session.get_doc("DocType", doctype)
+    except SiteError:
+        return exc  # 连 meta 都读不到 —— 说不出更多，别编
+    if not meta.get("istable"):
+        return exc
+    return ToolError(
+        f"{doctype} 是子表（istable=1）—— Frappe **不允许**直接列读子 DocType，"
+        f"这不是权限没配好，换个身份也一样。子表的行随父单据一起返回："
+        f"改用 `doc.get` 读**父单据**，要的字段就在父单据的子表里。"
+        f"（站点原文：{str(exc).splitlines()[0][:120]}）"
     )
 
 

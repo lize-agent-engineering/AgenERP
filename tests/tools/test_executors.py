@@ -300,3 +300,45 @@ def test_registry_covers_every_contract():
     """注册表少一边就是一个静默缺口——完整的双向判据在 `test_registry_pairing.py`。"""
     assert set(EXECUTORS) == {contract.tool for contract in READONLY_CONTRACTS}
     assert contract_of("doc.get").returns.user_writable_free_text is True
+
+
+# ── `query.read` 打到子表上：把结构约束说清楚，别把 traceback 扔回去 ──────────
+#
+# 🔴 实测根因（2026-08-27，站点 `frontend`）：`GET /api/resource/<子表>` 恒回
+# HTTP 403 PermissionError，Administrator 也一样 —— Frappe 的结构约束，不是权限配错。
+# 代价也是实测的：解释循环里模型**已经找对了** `Purchase Order Item.received_qty`，
+# 想验证一下被 403 顶回来，于是以为单据选错了、退回去重搜，**八轮烧光返回空答案**。
+# 评测集 40 条里 8 条踩这条路。
+
+
+def test_query_read_on_child_table_explains_the_structural_rule(fake_site, fake_client):
+    """子表被拒时，回的话里必须**能让调用方知道下一步该怎么走**。"""
+    fake_site.forbidden.add("Sales Order Item")
+
+    result = _run(
+        "query.read", {"doctype": "Sales Order Item", "fields": ["item_code"]}, fake_client
+    )
+
+    assert not result.ok
+    reason = " ".join(result.reasons)
+    assert "子表" in reason, f"没说清它是子表：{reason}"
+    assert "doc.get" in reason, f"没告诉它改用什么：{reason}"
+    assert "父单据" in reason, f"没告诉它去哪读：{reason}"
+    # **不是「权限没配好」** —— 换个身份重试一万次也一样，这句必须堵死那条错路
+    assert "不是权限" in reason, f"会被读成权限问题：{reason}"
+
+
+def test_query_read_keeps_a_real_permission_denial_intact(fake_site, fake_client):
+    """反过来那一侧：**非子表**被拒，就是被拒，不许改写成「这是子表」。
+
+    这一条是防误判的。把真的权限问题说成结构约束，比原样抛回去更坏 ——
+    调用方会去改一个根本没错的地方。
+    """
+    fake_site.forbidden.add("Sales Order")  # is_submittable=1，**不是** istable
+
+    result = _run("query.read", {"doctype": "Sales Order", "fields": ["customer"]}, fake_client)
+
+    assert not result.ok
+    reason = " ".join(result.reasons)
+    assert "子表" not in reason, f"把权限问题误判成子表了：{reason}"
+    assert "PermissionError" in reason, f"站点原文被吞了：{reason}"
