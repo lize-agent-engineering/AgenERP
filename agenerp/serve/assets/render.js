@@ -112,10 +112,13 @@
 	}
 
 	function resourceUrl(block) {
-		var fields = block.fields || [];
+		// `name` 一律带上：detail 块靠它去取单据详情（子表只在详情里）。
+		var fields = (block.fields || []).slice();
+		if (fields.indexOf("name") === -1) { fields.push("name"); }
 		var q = RESOURCE_PATH + "/" + encodeURIComponent(block.doctype)
 			+ "?fields=" + encodeURIComponent(JSON.stringify(fields))
-			+ "&limit_page_length=" + encodeURIComponent(String(block.limit || 20));
+			+ "&limit_page_length="
+			+ encodeURIComponent(String(block.type === "detail" ? 1 : (block.limit || 20)));
 		if (block.filters && block.filters.length) {
 			q += "&filters=" + encodeURIComponent(JSON.stringify(block.filters));
 		}
@@ -238,13 +241,34 @@
 					block.agg === "count" ? String(rows.length) : String(total)));
 				return section;
 			}
-			renderTable(section, block.doctype, block.fields, rows, fieldtypes);
+			if (block.type !== "detail" || !(block.childFields || []).length) {
+				renderTable(section, block.doctype, block.fields, rows, fieldtypes);
+				return section;
+			}
+			// ⚠️ **detail 块必须走单据详情接口，不能用列表响应。**
+			// Frappe 的列表接口（/api/resource/<DocType>?fields=…）**从不返回子表** ——
+			// 拿列表行去展开子表，画出来的永远是「没有数据」。
+			// 这不是推断：P2.2 的活体判据实测撞出来的（工人读得到 Item，表却是空的）。
+			return renderDetail(section, block, rows, fieldtypes);
+		});
+	}
+
+	function renderDetail(section, block, rows, fieldtypes) {
+		var first = rows[0];
+		if (!first || !first.name) {
+			renderTable(section, block.doctype, block.fields, [], fieldtypes);
+			return Promise.resolve(section);
+		}
+		var url = RESOURCE_PATH + "/" + encodeURIComponent(block.doctype)
+			+ "/" + encodeURIComponent(first.name);
+		return getJSON(url).then(function (res) {
+			if (res.status !== 200) { renderDenied(section, res.status); return section; }
+			var doc = (res.body && res.body.data) || {};
+			renderTable(section, block.doctype, block.fields, [doc], fieldtypes);
 			(block.childFields || []).forEach(function (child) {
 				put(section, el("h3", null, child.tableField));
-				// 子表随父单据一起取；v0 用列表的第一行做演示宿主。
-				var first = rows[0] || {};
-				var childRows = first[child.tableField] || [];
-				renderTable(section, child.doctype, child.fields, childRows, fieldtypes);
+				renderTable(section, child.doctype, child.fields,
+					doc[child.tableField] || [], fieldtypes);
 			});
 			return section;
 		});

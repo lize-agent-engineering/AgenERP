@@ -1,0 +1,60 @@
+<!doctype html>
+<!--
+  AgenERP Web · ②③端的壳（P2.2 · plan 2026-08-27-P2.2 · 路线 C）
+
+  由 agenerp/serve/app.py 的 APP_PAGE_PATH 发出。**服务端一个字都不往这份 HTML 里拼** ——
+  要渲染哪个视图由页面自己从 location.search 读，服务端只是把这个静态文件原样吐出来。
+  这不是洁癖：只要服务端开始把请求里的值拼进 HTML，就出现了一条反射型注入面，
+  而它恰好绕过 render.js 那条「建 DOM 只走 textContent」的约束。
+
+  为什么它坐在 /agenerp/ 下而不是往 Desk 里注入：
+  路线 C 要的是一个**独立前端**（system-baseline.md §3.1 的「AgenERP Web」），
+  不是让 Desk 变个样。而 /agenerp/ 那条 nginx 同源代理已经在了 ——
+  这个页面于是与 Frappe **同源**，浏览器的 sid 会自动带到 /api/resource，
+  **权限由后端强制**，前端一条数据都放行不了。⇒ 不用动 nginx。
+-->
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AgenERP</title>
+<style>
+  :root { color-scheme: light dark; --line: #d7dbe0; --muted: #6b7280; --warn: #b45309; }
+  body { margin: 0; padding: 24px; font: 14px/1.6 -apple-system, "Segoe UI", "PingFang SC", sans-serif; }
+  h1 { font-size: 20px; margin: 0 0 16px; }
+  h2 { font-size: 16px; margin: 24px 0 8px; }
+  h3 { font-size: 14px; margin: 16px 0 6px; color: var(--muted); }
+  table.agenerp-table { border-collapse: collapse; width: 100%; margin: 8px 0 16px; }
+  .agenerp-table th, .agenerp-table td { border: 1px solid var(--line); padding: 6px 8px; text-align: left; vertical-align: top; }
+  .agenerp-table th { font-weight: 600; background: rgba(127,127,127,.08); }
+  .agenerp-empty { color: var(--muted); }
+  .agenerp-metric-value { font-size: 28px; font-weight: 600; margin: 4px 0; }
+  .agenerp-fallback { border: 1px dashed var(--warn); border-radius: 6px; padding: 12px 14px; margin: 12px 0; }
+  .agenerp-fallback h3 { color: var(--warn); margin-top: 0; }
+  .agenerp-degraded { color: var(--warn); margin: 4px 0; }
+  .agenerp-note { color: var(--muted); }
+  .agenerp-denied { color: var(--warn); }
+  .agenerp-attach-image { max-height: 48px; max-width: 96px; }
+  nav a { margin-right: 12px; }
+</style>
+</head>
+<body>
+<nav>
+  <a href="?view=worker-work-orders">我的工单</a>
+  <a href="?view=worker-stock-entries">物料调拨</a>
+  <a href="?view=worker-items">物料</a>
+  <a href="/app">Desk</a>
+</nav>
+<div id="agenerp-view-root"></div>
+<script src="/agenerp/render.js"></script>
+<script>
+(function () {
+  "use strict";
+  // 视图名从 query 读，**在浏览器里读**，不经服务端。
+  var params = new URLSearchParams(window.location.search);
+  var name = params.get("view") || "worker-work-orders";
+  window.agenerpRenderView(name);
+})();
+</script>
+</body>
+</html>
