@@ -1,0 +1,492 @@
+{
+  "metric": "task_completion_rate",
+  "n_scored": 18,
+  "n_infrastructure": 2,
+  "task_completion_pct": 100.0,
+  "judge_model": "qwen3.6-plus",
+  "max_turns": 8,
+  "usage": {
+    "judge_calls": 1,
+    "judge_in": 201,
+    "judge_out": 26
+  },
+  "causes": [
+    "capability",
+    "missing_info",
+    "harness",
+    "environment",
+    "false_rejection",
+    "false_acceptance",
+    "leakage",
+    "infrastructure"
+  ],
+  "detail": [
+    {
+      "q": "这张销售订单是什么时候下的？",
+      "acceptable": [
+        "Sales Order.transaction_date"
+      ],
+      "tokens": {
+        "in": 6496,
+        "out": 447,
+        "reasoning": 374,
+        "model_calls": 3
+      },
+      "trajectory": [
+        "schema.search",
+        "meta.fields"
+      ],
+      "raw_answer": "Sales Order.transaction_date",
+      "committed": "Sales Order.transaction_date",
+      "commit_note": "最后一行承诺",
+      "passed": true,
+      "cause": null,
+      "why": "命中可接受集合"
+    },
+    {
+      "q": "销售订单承诺的交货日期在哪个字段？",
+      "acceptable": [
+        "Sales Order.delivery_date",
+        "Sales Order Item.delivery_date"
+      ],
+      "tokens": {
+        "in": 6508,
+        "out": 673,
+        "reasoning": 600,
+        "model_calls": 3
+      },
+      "trajectory": [
+        "schema.search",
+        "meta.fields"
+      ],
+      "raw_answer": "Sales Order.delivery_date",
+      "committed": "Sales Order.delivery_date",
+      "commit_note": "最后一行承诺",
+      "passed": true,
+      "cause": null,
+      "why": "命中可接受集合"
+    },
+    {
+      "q": "销售订单里这一行已经发了多少了？",
+      "acceptable": [
+        "Sales Order Item.delivered_qty"
+      ],
+      "tokens": {
+        "in": 40606,
+        "out": 1147,
+        "reasoning": 846,
+        "model_calls": 8
+      },
+      "trajectory": [
+        "schema.search",
+        "meta.fields",
+        "meta.fields",
+        "meta.fields",
+        "schema.search",
+        "schema.search",
+        "query.read",
+        "doc.get"
+      ],
+      "raw_answer": "",
+      "committed": null,
+      "commit_note": "空答案",
+      "passed": false,
+      "cause": "infrastructure",
+      "why": "空答案"
+    },
+    {
+      "q": "客户的默认结算货币是什么？",
+      "acceptable": [
+        "Customer.default_currency"
+      ],
+      "tokens": {
+        "in": 4648,
+        "out": 266,
+        "reasoning": 188,
+        "model_calls": 2
+      },
+      "trajectory": [
+        "meta.fields"
+      ],
+      "raw_answer": "查证了 `Customer` 的字段表，其中 `default_currency` 字段的标签为 \"Billing Currency\"，选项为 `Currency`，用于存储客户的默认结算货币。\n\nCustomer.default_currency",
+      "committed": "Customer.default_currency",
+      "commit_note": "最后一行承诺",
+      "passed": true,
+      "cause": null,
+      "why": "命中可接受集合"
+    },
+    {
+      "q": "采购订单是向哪个供应商下的？",
+      "acceptable": [
+        "Purchase Order.supplier",
+        "Purchase Order.supplier_name"
+      ],
+      "tokens": {
+        "in": 4630,
+        "out": 521,
+        "reasoning": 427,
+        "model_calls": 2
+      },
+      "trajectory": [
+        "meta.fields"
+      ],
+      "raw_answer": "在采购订单（Purchase Order）中，记录订单指向的供应商的标准关联字段是 `supplier`。该字段类型为 Link，关联至 `Supplier` 主数据，且为必填项（reqd: true），用于精确标识供应商身份。\n\nPurchase Order.supplier",
+      "committed": "Purchase Order.supplier",
+      "commit_note": "最后一行承诺",
+      "passed": true,
+      "cause": null,
+      "why": "命中可接受集合"
+    },
+    {
+      "q": "采购订单这一行已经收了多少货？",
+      "acceptable": [
+        "Purchase Order Item.received_qty"
+      ],
+      "tokens": {
+        "in": 40209,
+        "out": 1418,
+        "reasoning": 1150,
+        "model_calls": 8
+      },
+      "trajectory": [
+        "schema.search",
+        "meta.fields",
+        "meta.fields",
+        "meta.fields",
+        "schema.search",
+        "schema.search",
+        "schema.search",
+        "meta.fields"
+      ],
+      "raw_answer": "",
+      "committed": null,
+      "commit_note": "空答案",
+      "passed": false,
+      "cause": "infrastructure",
+      "why": "空答案"
+    },
+    {
+      "q": "供应商的付款条件模板记在哪个字段？",
+      "acceptable": [
+        "Supplier.payment_terms"
+      ],
+      "tokens": {
+        "in": 4631,
+        "out": 744,
+        "reasoning": 620,
+        "model_calls": 2
+      },
+      "trajectory": [
+        "meta.fields"
+      ],
+      "raw_answer": "通过查询 `Supplier` 的字段元数据，可以看到有一个字段专门用于记录默认的付款条件模板。\n\n查证结果如下：\n- `fieldname`: `payment_terms`\n- `label`: `Default Payment Terms Template`\n- `fieldtype`: `Link`\n- `options`: `Payment Terms Template`\n\n因此，供应商的付款条件模板记在 `Supplier.payment_terms` 字段。\n\nSupplier.payment_terms",
+      "committed": "Supplier.payment_terms",
+      "commit_note": "最后一行承诺",
+      "passed": true,
+      "cause": null,
+      "why": "命中可接受集合"
+    },
+    {
+      "q": "某个仓库里这个物料的库存价值是多少？",
+      "acceptable": [
+        "Bin.stock_value"
+      ],
+      "tokens": {
+        "in": 5599,
+        "out": 522,
+        "reasoning": 410,
+        "model_calls": 3
+      },
+      "trajectory": [
+        "schema.search",
+        "meta.fields"
+      ],
+      "raw_answer": "Bin 是 ERP 中按仓库记录物料库存数量与价值的核心 DocType。其中 `stock_value` 字段专门用于记录某个物料在特定仓库中的库存总价值。\n\nBin.stock_value",
+      "committed": "Bin.stock_value",
+      "commit_note": "最后一行承诺",
+      "passed": true,
+      "cause": null,
+      "why": "命中可接受集合"
+    },
+    {
+      "q": "物料的估价方法是先进先出还是移动加权？",
+      "acceptable": [
+        "Item.valuation_method"
+      ],
+      "tokens": {
+        "in": 6411,
+        "out": 477,
+        "reasoning": 360,
+        "model_calls": 3
+      },
+      "trajectory": [
+        "schema.search",
+        "meta.fields"
+      ],
+      "raw_answer": "在 `Item` DocType 中，存在字段 `valuation_method`，其选项明确包含 `FIFO`（先进先出）和 `Moving Average`（移动加权），用于控制物料的估价方法。\n\nItem.valuation_method",
+      "committed": "Item.valuation_method",
+      "commit_note": "最后一行承诺",
+      "passed": true,
+      "cause": null,
+      "why": "命中可接受集合"
+    },
+    {
+      "q": "库存流水里这一笔的单位成本是多少？",
+      "acceptable": [
+        "Stock Ledger Entry.valuation_rate"
+      ],
+      "tokens": {
+        "in": 6467,
+        "out": 289,
+        "reasoning": 211,
+        "model_calls": 3
+      },
+      "trajectory": [
+        "schema.search",
+        "meta.fields"
+      ],
+      "raw_answer": "Stock Ledger Entry.valuation_rate",
+      "committed": "Stock Ledger Entry.valuation_rate",
+      "commit_note": "最后一行承诺",
+      "passed": true,
+      "cause": null,
+      "why": "命中可接受集合"
+    },
+    {
+      "q": "库存调拨单这一行入到哪个仓库？",
+      "acceptable": [
+        "Stock Entry Detail.t_warehouse"
+      ],
+      "tokens": {
+        "in": 6626,
+        "out": 1338,
+        "reasoning": 1190,
+        "model_calls": 3
+      },
+      "trajectory": [
+        "schema.search",
+        "meta.fields"
+      ],
+      "raw_answer": "库存调拨在 Frappe/ERPNext 中通过 `Stock Entry`（类型为 Material Transfer）实现，其子表为 `Stock Entry Detail`。每一行记录都有源仓库（`s_warehouse`）和目标仓库（`t_warehouse`）。问题问的是\"入到哪个仓库\"，即目标仓库字段。\n\nStock Entry Detail.t_warehouse",
+      "committed": "Stock Entry Detail.t_warehouse",
+      "commit_note": "最后一行承诺",
+      "passed": true,
+      "cause": null,
+      "why": "命中可接受集合"
+    },
+    {
+      "q": "这个仓库属于哪家公司？",
+      "acceptable": [
+        "Warehouse.company"
+      ],
+      "tokens": {
+        "in": 3663,
+        "out": 300,
+        "reasoning": 206,
+        "model_calls": 2
+      },
+      "trajectory": [
+        "meta.fields"
+      ],
+      "raw_answer": "在 Warehouse DocType 的字段元数据中，存在一个名为 `company` 的 Link 类型字段，其标签为 \"Company\"，选项指向 Company DocType，且为必填字段（reqd: true），专门用于记录该仓库所属的公司。\n\nWarehouse.company",
+      "committed": "Warehouse.company",
+      "commit_note": "最后一行承诺",
+      "passed": true,
+      "cause": null,
+      "why": "命中可接受集合"
+    },
+    {
+      "q": "这张 BOM 的原材料成本合计是多少？",
+      "acceptable": [
+        "BOM.raw_material_cost",
+        "BOM.base_raw_material_cost"
+      ],
+      "tokens": {
+        "in": 4738,
+        "out": 268,
+        "reasoning": 226,
+        "model_calls": 2
+      },
+      "trajectory": [
+        "meta.fields"
+      ],
+      "raw_answer": "BOM.raw_material_cost",
+      "committed": "BOM.raw_material_cost",
+      "commit_note": "最后一行承诺",
+      "passed": true,
+      "cause": null,
+      "why": "命中可接受集合"
+    },
+    {
+      "q": "工单计划要生产多少件？",
+      "acceptable": [
+        "Work Order.qty"
+      ],
+      "tokens": {
+        "in": 6461,
+        "out": 406,
+        "reasoning": 297,
+        "model_calls": 3
+      },
+      "trajectory": [
+        "schema.search",
+        "meta.fields"
+      ],
+      "raw_answer": "查证了 `Work Order` 的字段元数据，其中 `qty` 字段的 label 为 **\"Qty To Manufacture\"**，即工单计划生产的数量。\n\nWork Order.qty",
+      "committed": "Work Order.qty",
+      "commit_note": "最后一行承诺",
+      "passed": true,
+      "cause": null,
+      "why": "命中可接受集合"
+    },
+    {
+      "q": "工人报工完成了多少数量？",
+      "acceptable": [
+        "Job Card.total_completed_qty"
+      ],
+      "tokens": {
+        "in": 17793,
+        "out": 3192,
+        "reasoning": 2937,
+        "model_calls": 6
+      },
+      "trajectory": [
+        "schema.search",
+        "schema.search",
+        "meta.fields",
+        "meta.fields",
+        "meta.fields"
+      ],
+      "raw_answer": "在 ERP 制造模块中，“工人报工”通常指在工序作业单（Job Card）中记录工人的实际工时与产出数量。该信息记录在 `Job Card` 的子表 **Job Card Time Log** 中，其中专门用于记录工人本次报工所完成数量的字段为 `completed_qty`（标签为 Completed Qty）。\n\nJob Card Time Log.completed_qty",
+      "committed": "Job Card Time Log.completed_qty",
+      "commit_note": "最后一行承诺",
+      "judge": {
+        "answers": true,
+        "why": "字段名与标签均明确指向完工数量，语义完全匹配业务问题。"
+      },
+      "passed": true,
+      "cause": null,
+      "why": "判官认可等价：字段名与标签均明确指向完工数量，语义完全匹配业务问题。"
+    },
+    {
+      "q": "这张销售发票还有多少钱没收回来？",
+      "acceptable": [
+        "Sales Invoice.outstanding_amount"
+      ],
+      "tokens": {
+        "in": 22215,
+        "out": 630,
+        "reasoning": 367,
+        "model_calls": 6
+      },
+      "trajectory": [
+        "meta.fields",
+        "schema.search",
+        "schema.search",
+        "meta.fields",
+        "query.read"
+      ],
+      "raw_answer": "通过 `meta.fields` 查询 Sales Invoice 字段列表，并通过 `query_read` 实际读取验证，Sales Invoice 上存在 `outstanding_amount` 字段，该字段记录的是发票已开具但尚未收回的金额（即未结清/未收款金额）。\n\nSales Invoice.outstanding_amount",
+      "committed": "Sales Invoice.outstanding_amount",
+      "commit_note": "最后一行承诺",
+      "passed": true,
+      "cause": null,
+      "why": "命中可接受集合"
+    },
+    {
+      "q": "总账分录记在哪个科目上？",
+      "acceptable": [
+        "GL Entry.account"
+      ],
+      "tokens": {
+        "in": 4499,
+        "out": 484,
+        "reasoning": 427,
+        "model_calls": 2
+      },
+      "trajectory": [
+        "meta.fields"
+      ],
+      "raw_answer": "总账分录对应的科目信息存储在 GL Entry 的 account 字段中。\n\nGL Entry.account",
+      "committed": "GL Entry.account",
+      "commit_note": "最后一行承诺",
+      "passed": true,
+      "cause": null,
+      "why": "命中可接受集合"
+    },
+    {
+      "q": "付款单实际付了多少钱？",
+      "acceptable": [
+        "Payment Entry.paid_amount",
+        "Payment Entry.base_paid_amount"
+      ],
+      "tokens": {
+        "in": 6377,
+        "out": 1497,
+        "reasoning": 1380,
+        "model_calls": 3
+      },
+      "trajectory": [
+        "schema.search",
+        "meta.fields"
+      ],
+      "raw_answer": "通过 `meta.fields` 查证了 `Payment Entry` 的字段，其中 `paid_amount` 字段的 label 为 \"Paid Amount\"，表示付款单实际支付的金额。\n\nPayment Entry.paid_amount",
+      "committed": "Payment Entry.paid_amount",
+      "commit_note": "最后一行承诺",
+      "passed": true,
+      "cause": null,
+      "why": "命中可接受集合"
+    },
+    {
+      "q": "分期付款计划里每一期的到期日是哪个字段？",
+      "acceptable": [
+        "Payment Schedule.due_date"
+      ],
+      "tokens": {
+        "in": 19566,
+        "out": 1142,
+        "reasoning": 969,
+        "model_calls": 6
+      },
+      "trajectory": [
+        "meta.fields",
+        "schema.search",
+        "schema.search",
+        "schema.search",
+        "meta.fields"
+      ],
+      "raw_answer": "Payment Schedule.due_date",
+      "committed": "Payment Schedule.due_date",
+      "commit_note": "最后一行承诺",
+      "passed": true,
+      "cause": null,
+      "why": "命中可接受集合"
+    },
+    {
+      "q": "质检单的检验结论是合格还是不合格？",
+      "acceptable": [
+        "Quality Inspection.status"
+      ],
+      "tokens": {
+        "in": 13087,
+        "out": 808,
+        "reasoning": 519,
+        "model_calls": 7
+      },
+      "trajectory": [
+        "schema.search",
+        "schema.search",
+        "schema.search",
+        "schema.search",
+        "schema.search",
+        "meta.fields"
+      ],
+      "raw_answer": "查证过程：\n1. 搜索关键词“质检单”、“Quality Inspection”等，定位到 `Quality Inspection` 这个 DocType。\n2. 调用 `meta.fields` 查看 `Quality Inspection` 的字段表。\n3. 发现字段 `status`，类型为 Select，选项为 `Accepted` / `Rejected`，即“合格/不合格”，正是检验结论字段。\n\nQuality Inspection.status",
+      "committed": "Quality Inspection.status",
+      "commit_note": "最后一行承诺",
+      "passed": true,
+      "cause": null,
+      "why": "命中可接受集合"
+    }
+  ]
+}
