@@ -26,7 +26,9 @@ import sys
 import time
 import urllib.request
 
-OLLAMA = "http://127.0.0.1:11434"
+# ⚠️ **代码里不写死任何一家端点。** 本地与托管都说 OpenAI 兼容协议，
+# 差别只是 `--base-url` / `--model` / 有没有 key（见 `chat()`）。
+DEFAULT_BASE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1"
 BATCH = 20
 CJK = re.compile(r"[一-鿿]")
 
@@ -63,30 +65,8 @@ PROMPT = """你是 ERP 系统的中文术语专家。下面每一行是一个 ER
 USAGE = {"calls": 0, "in": 0, "out": 0, "reasoning": 0}
 
 
-def ollama_chat(model: str, prompt: str) -> str:
-    req = urllib.request.Request(
-        f"{OLLAMA}/api/chat",
-        data=json.dumps(
-            {
-                "model": model,
-                "messages": [{"role": "user", "content": prompt}],
-                "stream": False,
-                "think": False,
-                "options": {"temperature": 0.1},
-            }
-        ).encode(),
-        headers={"Content-Type": "application/json"},
-    )
-    with urllib.request.urlopen(req, timeout=600) as res:
-        body = json.loads(res.read())
-    USAGE["calls"] += 1
-    USAGE["in"] += body.get("prompt_eval_count") or 0
-    USAGE["out"] += body.get("eval_count") or 0
-    return body["message"]["content"]
-
-
 def _ssl_context():
-    """macOS 上 Python 的 `ssl` 不走系统钥匙串，直连百炼会
+    """macOS 上 Python 的 `ssl` 不走系统钥匙串，直连托管端点会
     `CERTIFICATE_VERIFY_FAILED`（`curl` 却是通的，所以很容易误判成「网络问题」）。
 
     ⚠️ **`import certifi` 刻意写在函数体内**，与 `agenerp/routing/adapter.py:103` 同一条纪律：
@@ -99,8 +79,17 @@ def _ssl_context():
     return ssl.create_default_context(cafile=certifi.where())
 
 
-def dashscope_chat(model: str, prompt: str) -> str:
-    """百炼（OpenAI 兼容口）。
+def chat(prompt: str, *, model: str, base_url: str, api_key: str | None) -> str:
+    """**一个协议，两份配置。**
+
+    本地与托管**不是代码里的两条分支** —— 两边都说 OpenAI 兼容协议
+    （Ollama 在 `http://127.0.0.1:11434/v1`，百炼在
+    `https://dashscope.aliyuncs.com/compatible-mode/v1`），
+    差别只在 `--base-url` / `--model` / 有没有 key。
+    人 2026-08-27 逐字：「**不是不支持本地模型，而是要根据相关的协议可以灵活的配置**」。
+
+    ⇒ 换端点不用改代码。**按 provider 名字分流那种写法（`if model.startswith("dashscope:")`）
+    是错的形状，已删。**
 
     🔴 **`enable_thinking: false` 不是可选项，是预算的前提。**
     2026-08-27 实测同一个问句：
@@ -109,31 +98,28 @@ def dashscope_chat(model: str, prompt: str) -> str:
     **差 450 倍，而关掉之后答案反而更准**（`是否启用批次管理` vs `批次管理`）。
     默认开着思考时，整站 6,350 个字段的账会从 273k 变成 1–2M ——
     那是 P1 那次 runaway（13.6 万）的十倍量级。
+    ⚠️ 不认识这个字段的端点会忽略它，**不会报错** —— 所以用量要按 API 回的数核，
+    不能靠「我传了所以它生效了」。`USAGE["reasoning"]` 就是核这一格的。
     """
-    import os
-
-    key = os.environ.get("AGENERP_LLM_API_KEY") or os.environ.get("DASHSCOPE_API_KEY")
-    if not key:
-        raise RuntimeError("没有 AGENERP_LLM_API_KEY / DASHSCOPE_API_KEY —— 不猜凭据")
-    base = os.environ.get(
-        "AGENERP_LLM_BASE_URL", "https://dashscope.aliyuncs.com/compatible-mode/v1"
-    )
+    payload = {
+        "model": model,
+        "enable_thinking": False,
+        "temperature": 0.1,
+        "messages": [{"role": "user", "content": prompt}],
+    }
+    headers = {"Content-Type": "application/json"}
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
     req = urllib.request.Request(
-        f"{base}/chat/completions",
-        data=json.dumps(
-            {
-                "model": model,
-                "enable_thinking": False,
-                "temperature": 0.1,
-                "messages": [{"role": "user", "content": prompt}],
-            }
-        ).encode(),
-        headers={"Content-Type": "application/json", "Authorization": f"Bearer {key}"},
+        f"{base_url.rstrip('/')}/chat/completions",
+        data=json.dumps(payload).encode(),
+        headers=headers,
     )
-    with urllib.request.urlopen(req, timeout=600, context=_ssl_context()) as res:
+    ctx = _ssl_context() if base_url.startswith("https:") else None
+    with urllib.request.urlopen(req, timeout=600, context=ctx) as res:
         body = json.loads(res.read())
     if body.get("error"):
-        raise RuntimeError(f"百炼回错：{body['error']}")
+        raise RuntimeError(f"端点回错：{body['error']}")
     usage = body.get("usage") or {}
     USAGE["calls"] += 1
     USAGE["in"] += usage.get("prompt_tokens") or 0
@@ -142,13 +128,6 @@ def dashscope_chat(model: str, prompt: str) -> str:
         "reasoning_tokens"
     ) or 0
     return body["choices"][0]["message"]["content"]
-
-
-def chat(model: str, prompt: str) -> str:
-    """按模型名分流。`dashscope:` 前缀走百炼，其余走本地 Ollama。"""
-    if model.startswith("dashscope:"):
-        return dashscope_chat(model.split(":", 1)[1], prompt)
-    return ollama_chat(model, prompt)
 
 
 def in_scope(schema_rows):
@@ -229,9 +208,8 @@ def why_rejected(key: str, value: str, english: dict, fieldname: dict) -> str:
     return ""
 
 
-def retry_one(model: str, field: dict) -> str:
+def retry_one(endpoint: dict, field: dict) -> str:
     reply = chat(
-        model,
         RETRY_PROMPT.format(
             doctype=field["doctype"],
             fieldname=field["fieldname"],
@@ -239,6 +217,7 @@ def retry_one(model: str, field: dict) -> str:
             fieldtype=field["fieldtype"],
             options=field["options"] or "(无)",
         ),
+        **endpoint,
     )
     return clean(reply.strip().splitlines()[0] if reply.strip() else "")
 
@@ -248,22 +227,32 @@ def main() -> None:
     ap.add_argument("--schema", required=True)
     ap.add_argument("--out", required=True)
     ap.add_argument("--labels", required=True)
-    ap.add_argument("--model", default="qwen3.5:0.8b")
+    ap.add_argument("--model", default="qwen3.6-plus")
+    ap.add_argument("--base-url", default=None, help="OpenAI 兼容端点；默认读 AGENERP_LLM_BASE_URL")
     ap.add_argument("--probe", type=int, default=0)
     args = ap.parse_args()
+
+    import os
+
+    endpoint = {
+        "model": args.model,
+        "base_url": args.base_url or os.environ.get("AGENERP_LLM_BASE_URL") or DEFAULT_BASE_URL,
+        "api_key": os.environ.get("AGENERP_LLM_API_KEY") or os.environ.get("DASHSCOPE_API_KEY"),
+    }
 
     site = json.load(open(args.schema))
     fields = in_scope(site["fields"])
     if args.probe:
         fields = fields[: args.probe]
-    print(f"范围：{len({f['doctype'] for f in fields})} 张表 / {len(fields)} 个字段 · 模型 {args.model}")
+    print(f"范围：{len({f['doctype'] for f in fields})} 张表 / {len(fields)} 个字段"
+          f" · 模型 {endpoint['model']} @ {endpoint['base_url']}")
 
     terms: dict[str, str] = {}
     t0 = time.time()
     for start in range(0, len(fields), BATCH):
         batch = fields[start : start + BATCH]
         rows = "\n".join(describe(i + 1, f) for i, f in enumerate(batch))
-        reply = chat(args.model, PROMPT.format(rows=rows))
+        reply = chat(PROMPT.format(rows=rows), **endpoint)
         got = parse(reply, batch)
         terms.update(got)
         print(f"  {start + len(batch)}/{len(fields)}  本批回填 {len(got)}/{len(batch)}"
@@ -292,7 +281,7 @@ def main() -> None:
         print(f"  重试第 {attempt} 轮：{len(todo)} 条", flush=True)
         still = []
         for key in todo:
-            value = retry_one(args.model, by_key[key])
+            value = retry_one(endpoint, by_key[key])
             if why_rejected(key, value, english, fieldname):
                 still.append(key)
             else:
@@ -317,7 +306,8 @@ def main() -> None:
                 "site": site.get("site", "frontend"),
                 "generated_by": "tools/experiments/p2_terminology/generate_terms.py",
                 "generated_on": "2026-08-27",
-                "model": args.model if ":" in args.model else f"ollama:{args.model}",
+                "model": args.model,
+                "base_url": endpoint["base_url"],
                 "scope": "车间工人可读的三张表及其子表（路线 C）",
                 "note": "不合格的一律不入库，不是先留着再说。",
                 # 🔴 **用量按 API 回的数记，不是我算的**。自报的账不是账。

@@ -281,3 +281,48 @@ def test_no_term_carries_a_doctype_prefix(terms):
         f"{len(bad)} 条列名里带了单据名前缀（或句号）：\n"
         + "\n".join(f"  · {k} → 「{v}」" for k, v in list(bad.items())[:10])
     )
+
+
+# ── 一个协议，两份配置 ───────────────────────────────────────────────────────
+
+
+def test_the_generator_never_branches_on_provider_name():
+    """🔴 人 2026-08-27 逐字：「**不是不支持本地模型，而是要根据相关的协议可以灵活的配置**」。
+
+    ⇒ 本地与托管**不该是代码里的两条分支**。两边都说 OpenAI 兼容协议
+    （Ollama 在 `/v1`，百炼在 `/compatible-mode/v1`），差别只在
+    `--base-url` / `--model` / 有没有 key。
+
+    ⚠️ 这条判据是**补的**，起因照实记：我第一版写成了
+    `if model.startswith("dashscope:"): ...` —— 那是按 provider 名字分流，
+    换端点就要改代码，正是这条指示要消除的形状。
+
+    判法：读生成器源码，**不许出现按 provider 名字分流的写法**，
+    也不许把任何一家的地址写死在代码里（默认值除外，且默认值只有一个常量）。
+    读的是纸面上的字，比「我保证做到了」硬。
+    """
+    import pathlib
+
+    src = pathlib.Path(
+        "tools/experiments/p2_terminology/generate_terms.py"
+    ).read_text(encoding="utf-8")
+
+    # 去掉注释与 docstring 再看 —— 注释里点名这些形状是应该的（教训就写在那儿）。
+    import ast
+
+    tree = ast.parse(src)
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Constant) and isinstance(node.value, str):
+            node.value = ""
+    code = ast.unparse(tree)
+
+    for shape in ("ollama_chat", "dashscope_chat", "startswith('dashscope"):
+        assert shape not in code, f"生成器里还留着按 provider 分流的写法：{shape}"
+
+    # 端点常量只允许有一个默认值，且必须能被命令行 / 环境覆盖。
+    # ⚠️ **这三条查的是 `src` 不是 `code`** —— 上面那步把字符串常量全清空了，
+    # 而 `"--base-url"` / `"AGENERP_LLM_BASE_URL"` 本身就是字符串常量。
+    # 第一版写成查 `code`，判据自己红了一次，红在我身上不在代码上。照实记。
+    assert "DEFAULT_BASE_URL" in code, "端点默认值不是一个具名常量"
+    assert "--base-url" in src, "端点不可由命令行覆盖 —— 那就不叫灵活配置"
+    assert "AGENERP_LLM_BASE_URL" in src, "端点不可由环境变量覆盖"
