@@ -76,6 +76,8 @@ EXCLUDED_TOOLS = ("permission.scope",)
 STOP_ANSWERED = "answered"
 STOP_BREAKER = "permission-breaker"
 STOP_MAX_TURNS = "max-turns"
+# **专属停止原因，不复用 `STOP_MAX_TURNS`** —— 三道闸必须能各判各的（D-18）。
+STOP_TOKEN_BUDGET = "token-budget"
 STOP_MODEL_ERROR = "model-error"
 # **失控闸专属**，不复用上面任何一个（D-18 逐字「两者的判据分开写，不许合并」）。
 STOP_RUNAWAY = "tool-call-runaway"
@@ -285,6 +287,7 @@ class ExplainLoop:
         max_turns: int = MAX_TURNS,
         max_tool_calls: int = MAX_TOOL_CALLS,
         per_call_output_tokens: int = PER_CALL_OUTPUT_TOKENS,
+        max_run_tokens: int | None = None,
         executors: Mapping[str, Executor] | None = None,
         doctypes: Sequence[str] | None = None,
         breaker: DenialBreaker | None = None,
@@ -297,6 +300,7 @@ class ExplainLoop:
         self.max_turns = max_turns
         self.max_tool_calls = max_tool_calls
         self.per_call_output_tokens = per_call_output_tokens
+        self.max_run_tokens = max_run_tokens
         self.executors = executors
         self.doctypes = doctypes
         self.breaker = breaker if breaker is not None else DenialBreaker()
@@ -379,6 +383,28 @@ class ExplainLoop:
                 trace.turns.append({"index": index, "kind": "model-error", "detail": str(exc)})
                 return self._result("", False, trace, session, surface, pack)
             trace.cost_ledger.record_reply(index, reply)
+
+            # ⚠️ **单次解释的 token 预算**（2026-08-27 加，默认 `None` = 不设限
+            # ⇒ 产品行为一个字没变）。它与 `MAX_TURNS` / `MAX_TOOL_CALLS`
+            # **各管一维，不许合并**（同 D-18 的道理）：
+            #   · `MAX_TURNS` 数轮数 · `MAX_TOOL_CALLS` 数工具调用数
+            #   · 本闸数**花掉的 token**
+            # 实测撞出来的（`qwen3.8-flash`，独立集第 4 条）：**42 次工具调用**、
+            # 按名字+参数只重复 1 次（是游荡不是死循环），
+            # `MAX_TOOL_CALLS=50` **没触发**（42 < 50），
+            # 最后由 `max_turns=40` 停下 —— 而那时**一条题已经烧掉 445,431 token**，
+            # 把一轮 60 条的预算吃掉一半。⇒ 前两道闸数的都不是钱，**挡不住这个形态**。
+            if self.max_run_tokens is not None:
+                spent = sum(
+                    e.usage.prompt + e.usage.completion for e in trace.cost_ledger.entries
+                )
+                if spent >= self.max_run_tokens:
+                    trace.stopped = STOP_TOKEN_BUDGET
+                    trace.turns.append(
+                        {"index": index, "kind": "token-budget",
+                         "spent": spent, "limit": self.max_run_tokens}
+                    )
+                    return self._result("", False, trace, session, surface, pack)
 
             if reply.tool_calls:
                 session, stopped = self._run_tools(
