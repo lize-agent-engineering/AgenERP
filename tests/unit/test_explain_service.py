@@ -718,7 +718,22 @@ def test_c10_the_service_never_sends_a_non_get_to_the_site_except_reading_who_yo
         if r.method != "GET" and path.startswith("/api/method/")
     }
     assert methods <= READONLY_METHODS, f"服务面调了名单外的方法：{sorted(methods - READONLY_METHODS)}"
-    assert "frappe.auth.get_logged_user" in methods, "认人那一跳没发生 ⇒ 这条判据没判到东西"
+
+    # 🔴 2026-08-27：认人那一跳**从 POST 改成了 GET**，所以 canary 也搬到 GET 这一侧。
+    # 原因是实测出来的：浏览器表单登录（**真人走的路**）建立的会话，Frappe 对它的
+    # POST 要 CSRF token，而服务端只拿得到 `sid` ⇒ 每个真人都被判成「未认到人」；
+    # 脚本 `POST /api/method/login` 建的会话不受影响，所以既有活体门禁一直是绿的。
+    # 见 `SiteClient.read_method` 的实测对照表与 `STATE.md` §3 那条 `[needs-human]`。
+    # ⚠️ **canary 不许删** —— 它防的是「这条判据空转」：非 GET 集合现在天然为空，
+    # 只判 `methods <= READONLY_METHODS` 的话，一次请求都不发也能绿。
+    get_methods = {
+        path[len("/api/method/") :]
+        for r, path in zip(site.requests, site.paths)
+        if r.method == "GET" and path.startswith("/api/method/")
+    }
+    assert "frappe.auth.get_logged_user" in get_methods, (
+        "认人那一跳没发生 ⇒ 这条判据没判到东西"
+    )
 
 
 # ── ⑨ `sid` 不进回包、不进日志 ──────────────────────────────────────────────

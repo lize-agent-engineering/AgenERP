@@ -24,6 +24,7 @@ import pytest
 
 from agenerp.dsl.fallback import ALLOWED_ATTACHMENT_SCHEMES
 from agenerp.dsl.schema import SchemaView
+from agenerp.site import SiteError
 from agenerp.serve.app import (
     HOME_PATH,
     RENDER_ASSET_FILENAME,
@@ -247,6 +248,9 @@ class _Live:
         self.server.server_close()
 
 
+FAKE_USER = "worker@hrd.example.com"
+
+
 def _client_returning(roles):
     """一个只会答「你有哪些角色」的假站点客户端。
 
@@ -255,13 +259,44 @@ def _client_returning(roles):
     """
 
     class _Client:
-        def call_method(self, method, params):  # noqa: ARG002
+        """🔴 **这个假件曾经放走两个真 bug，两条都是「它比真站点宽松」造成的。**
+
+        ① 它不检查参数 ⇒ 产品代码调 `get_roles({})` 缺 `uid`，
+           真站点回 **HTTP 500 `KeyError: 'uid'`**，而这里照样返回角色。
+        ② 它不区分 GET/POST ⇒ 产品代码走 `call_method`（POST），
+           真站点对**浏览器会话**的 POST 要 CSRF token，回 **400 `CSRFTokenError`**。
+
+        两条都被服务面吞成 401「未认到人」，于是 `/agenerp/home` 对**每一个真人**
+        都解析不出角色，而单测全绿。⇒ 假件现在把这两条**都模拟出来**：
+        再有人改回 POST、或漏掉 `uid`，这里当场红。
+        """
+
+        def call_method(self, method, params=None):  # noqa: ARG002
+            raise SiteError(
+                "假站点：浏览器会话的 POST 要 CSRF token（真站点实测回 400 CSRFTokenError）"
+                " —— 只读身份查询请走 read_method（GET）"
+            )
+
+        def read_method(self, method, params=None):
             if isinstance(roles, Exception):
                 raise roles
+            if method.endswith("get_logged_user"):
+                # ⚠️ 必须回**字符串**：`_resolve_identity` 拿它当 `uid` 用，
+                # 回个列表的话身份解析当场判 401，而失败长得像「站点不认这个 sid」。
+                return FAKE_USER
+            if method.endswith("get_roles") and not (params or {}).get("uid"):
+                raise SiteError(
+                    "假站点：get_roles 缺 uid（真站点实测回 HTTP 500 KeyError: 'uid'）"
+                )
             return roles
 
-    def factory(**kwargs):
-        if not kwargs.get("sid"):
+    def factory(*args, **kwargs):
+        # ⚠️ **位置与关键字两种调法都要收得下。**
+        # `client_from_sid(site, sid, *, transport)` 的前两个是位置参数，
+        # 而服务面两处的调法不一致（`_resolve_identity` 用位置、旧 home 用关键字）。
+        # 假件只认关键字的话，改成位置调用就会红在假件上而不是红在实现上。
+        sid = kwargs.get("sid") or (args[1] if len(args) > 1 else "")
+        if not sid:
             raise AssertionError("首页解析没有把 sid 传下去")
         return _Client()
 

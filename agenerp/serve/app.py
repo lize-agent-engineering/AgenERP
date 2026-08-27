@@ -283,7 +283,12 @@ def _resolve_identity(deps: ServiceDeps, sid: str) -> tuple[Any, str]:
     """`sid` → （客户端，人）。**客户端只由注入的工厂造**，本模块不自己拼。"""
     client = deps.client_factory(deps.site, sid, transport=deps.site_transport)
     try:
-        user = client.call_method(LOGGED_USER_METHOD)
+        # 🔴 **必须是 `read_method`（GET），不是 `call_method`（POST）。**
+        # 真人的会话是浏览器表单登录来的，Frappe 对它的 POST 要 CSRF token，
+        # 而服务端只拿得到 `sid`。走 POST 的话**每一个真人都被判成「未认到人」**——
+        # 而脚本登录的会话不受影响，所以既有活体门禁一直是绿的。
+        # 实测对照表见 `SiteClient.read_method` 的注释。
+        user = client.read_method(LOGGED_USER_METHOD)
     except SiteError:
         raise ServiceError(401, UNAUTHENTICATED) from None
     if not isinstance(user, str) or not user.strip():
@@ -664,14 +669,25 @@ def _make_handler(deps: ServiceDeps) -> type[BaseHTTPRequestHandler]:
             """
             try:
                 sid = _sid_from_cookie(self.headers.get("Cookie"))
-                client = deps.client_factory(
-                    sid=sid, site=deps.site, transport=deps.site_transport
-                )
-                answer = client.call_method(USER_ROLES_METHOD, {})
+                # 🔴 **`uid` 必须从 sid 自己的会话推出来，绝不能从请求里读。**
+                # `get_roles` 收 `uid` 参数，谁传谁说了算 —— 让请求带 uid 等于
+                # 「报谁的名字就拿谁的角色」，是冒充身份，不是不方便。
+                # `_resolve_identity` 走的是 `frappe.auth.get_logged_user`，
+                # 它只认 sid，问出来的必是**调用者本人**。
+                client, user = _resolve_identity(deps, sid)
+                answer = client.read_method(USER_ROLES_METHOD, {"uid": user})
             except ServiceError as exc:
                 self._respond(exc.status, {"error": exc.message, "fallback": "desk"})
                 return
-            except Exception:
+            except Exception as exc:  # noqa: BLE001
+                # ⚠️ **回给浏览器的仍是那句固定文案**（不透传站点原文，见上方 §401 注释），
+                # 但**服务端这一侧要看得见真因** —— 这一条是 2026-08-27 用血换的：
+                # 原实现调 `get_roles({})` 缺 `uid`，站点回 HTTP 500 `KeyError: 'uid'`，
+                # 而这个 `except` 把它吞成了 401「未认到人」。
+                # ⇒ 一个**参数错误**被报成**认证失败**，`/agenerp/home` 对谁都解析不出角色，
+                #    而错误文案把人往「是不是没登录」的方向带。单测发现不了：
+                #    它用的假客户端不模拟这个方法的参数要求。
+                self.log_error("%s 失败：%r", HOME_PATH, exc)
                 self._respond(401, {"error": UNAUTHENTICATED, "fallback": "desk"})
                 return
 
