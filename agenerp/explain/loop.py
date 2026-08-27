@@ -643,6 +643,7 @@ def explain(
     session_id: str = "explain",
     user: str = "",
     max_turns: int = MAX_TURNS,
+    per_call_output_tokens: int = PER_CALL_OUTPUT_TOKENS,
     executors: Mapping[str, Executor] | None = None,
     immediate: ImmediateContext | None = None,
 ) -> ExplainResult:
@@ -657,6 +658,16 @@ def explain(
     并不一致，孰为准归人裁定（STATE §3 `[open] 2026-08-24T07:50Z`）。那条 `[open]`
     **不因本模块落地而消失**，本模块也不代人处置它。
 
+    ⚠️ **`per_call_output_tokens` 2026-08-27 才在入口暴露出来** —— `ExplainLoop`
+    一直有这个参数，`explain()` 却没透传，于是产品路径上它**只能是默认的 4096**。
+    暴露它的理由是实测：`glm-5.2`（**思考默认开着**）做难题时把 4096 全烧在 reasoning 上，
+    回包 `finish_reason='length'`、`completion=4097 / reasoning=4096`，**一个字都没吐**。
+    同一批题上 `kimi-k3` 从未触发（45 条零次，单次 reasoning 最大 **765**）
+    ⇒ 这是**模型 × 上限的交互**，不是模型能力差。
+    ⚠️ **默认值本次不动**：把它调大会同时抬高最坏成本，而 `PER_CALL_OUTPUT_TOKENS = 4096`
+    上方那段推导是既有的。**产品默认要不要跟着改，归人裁定** ——
+    今天的实情是：真人拿 `glm-5.2` 问一个难问题，会拿到一片空白。
+
     `immediate` 是 ① 即时上下文（当前单据），给了就渲染成**一条独立的 `system` 消息**
     插在开场可见范围之后、提问之前。⚠️ **① 层不查权限**（`agenerp/context/immediate.py`
     模块头规矩 1）：字段表是不是当前身份有权看的，**由调用方负责** —— 这一层不判、也判不了。
@@ -668,6 +679,7 @@ def explain(
         adapter=adapter,
         client=client,
         max_turns=max_turns,
+        per_call_output_tokens=per_call_output_tokens,
         executors=executors,
         doctypes=doctypes,
         immediate=immediate,
