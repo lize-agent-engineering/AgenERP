@@ -1,0 +1,393 @@
+{
+  "model": "qwen3.6-plus",
+  "embed_model": "text-embedding-v4",
+  "n_candidates": 50,
+  "usage": {
+    "calls": 40,
+    "in": 31642,
+    "out": 45,
+    "reasoning": 0,
+    "embed_tokens": 420
+  },
+  "L1_candidate_contains_truth": "40/40",
+  "L2_doctype_pick_accuracy": 90.0,
+  "L3_composite_field_recall": {
+    "top1": 65.0,
+    "top3": 75.0,
+    "top5": 82.5,
+    "top10": 90.0
+  },
+  "L4_predicted_from_decomposition": 83.2,
+  "L4_gap": 0.8,
+  "ks": [
+    1,
+    3,
+    5,
+    10
+  ],
+  "detail": [
+    {
+      "q": "这张销售订单是什么时候下的？",
+      "expected_doctypes": [
+        "Sales Order"
+      ],
+      "picked": "Sales Order",
+      "correct": true,
+      "raw": "3"
+    },
+    {
+      "q": "这张销售订单的客户是谁？",
+      "expected_doctypes": [
+        "Sales Order"
+      ],
+      "picked": "Sales Order",
+      "correct": true,
+      "raw": "1"
+    },
+    {
+      "q": "销售订单承诺的交货日期在哪个字段？",
+      "expected_doctypes": [
+        "Sales Order",
+        "Sales Order Item"
+      ],
+      "picked": "Sales Order",
+      "correct": true,
+      "raw": "1"
+    },
+    {
+      "q": "销售订单这一行订了多少数量？",
+      "expected_doctypes": [
+        "Sales Order Item"
+      ],
+      "picked": "Sales Order Item",
+      "correct": true,
+      "raw": "1"
+    },
+    {
+      "q": "销售订单里这一行已经发了多少了？",
+      "expected_doctypes": [
+        "Sales Order Item"
+      ],
+      "picked": "Sales Order Item",
+      "correct": true,
+      "raw": "1"
+    },
+    {
+      "q": "销售订单的含税总额是多少？",
+      "expected_doctypes": [
+        "Sales Order"
+      ],
+      "picked": "Sales Order",
+      "correct": true,
+      "raw": "1"
+    },
+    {
+      "q": "客户的默认结算货币是什么？",
+      "expected_doctypes": [
+        "Customer"
+      ],
+      "picked": "Customer",
+      "correct": true,
+      "raw": "1"
+    },
+    {
+      "q": "报价单的有效期到什么时候？",
+      "expected_doctypes": [
+        "Quotation"
+      ],
+      "picked": "Quotation",
+      "correct": true,
+      "raw": "5"
+    },
+    {
+      "q": "采购订单是向哪个供应商下的？",
+      "expected_doctypes": [
+        "Purchase Order"
+      ],
+      "picked": "Purchase Order",
+      "correct": true,
+      "raw": "1"
+    },
+    {
+      "q": "采购订单要求的到货日期在哪？",
+      "expected_doctypes": [
+        "Purchase Order",
+        "Purchase Order Item"
+      ],
+      "picked": "Purchase Order",
+      "correct": true,
+      "raw": "1"
+    },
+    {
+      "q": "采购订单这一行已经收了多少货？",
+      "expected_doctypes": [
+        "Purchase Order Item"
+      ],
+      "picked": "Purchase Order Item",
+      "correct": true,
+      "raw": "1"
+    },
+    {
+      "q": "采购收货单上这一行的验收仓库是哪个？",
+      "expected_doctypes": [
+        "Purchase Receipt Item"
+      ],
+      "picked": "Purchase Receipt Item",
+      "correct": true,
+      "raw": "2"
+    },
+    {
+      "q": "供应商的付款条件模板记在哪个字段？",
+      "expected_doctypes": [
+        "Supplier"
+      ],
+      "picked": "Payment Terms Template",
+      "correct": false,
+      "raw": "7"
+    },
+    {
+      "q": "某个仓库里这个物料的库存数量是多少？",
+      "expected_doctypes": [
+        "Bin"
+      ],
+      "picked": "Bin",
+      "correct": true,
+      "raw": "42"
+    },
+    {
+      "q": "某个仓库里这个物料的库存价值是多少？",
+      "expected_doctypes": [
+        "Bin"
+      ],
+      "picked": "Bin",
+      "correct": true,
+      "raw": "12"
+    },
+    {
+      "q": "这个物料的默认计量单位是什么？",
+      "expected_doctypes": [
+        "Item"
+      ],
+      "picked": "Item",
+      "correct": true,
+      "raw": "1"
+    },
+    {
+      "q": "物料的估价方法是先进先出还是移动加权？",
+      "expected_doctypes": [
+        "Item"
+      ],
+      "picked": "Item",
+      "correct": true,
+      "raw": "1"
+    },
+    {
+      "q": "库存流水这一笔之后的结存数量是多少？",
+      "expected_doctypes": [
+        "Stock Ledger Entry"
+      ],
+      "picked": "Stock Ledger Entry",
+      "correct": true,
+      "raw": "6"
+    },
+    {
+      "q": "库存流水里这一笔的单位成本是多少？",
+      "expected_doctypes": [
+        "Stock Ledger Entry"
+      ],
+      "picked": "Stock Ledger Entry",
+      "correct": true,
+      "raw": "35"
+    },
+    {
+      "q": "库存调拨单这一行是从哪个仓库出的？",
+      "expected_doctypes": [
+        "Stock Entry Detail"
+      ],
+      "picked": "Stock Entry",
+      "correct": false,
+      "raw": "25"
+    },
+    {
+      "q": "库存调拨单这一行入到哪个仓库？",
+      "expected_doctypes": [
+        "Stock Entry Detail"
+      ],
+      "picked": "Stock Entry",
+      "correct": false,
+      "raw": "3"
+    },
+    {
+      "q": "发货单上这一行实际发了多少数量？",
+      "expected_doctypes": [
+        "Delivery Note Item"
+      ],
+      "picked": "Delivery Note Item",
+      "correct": true,
+      "raw": "6"
+    },
+    {
+      "q": "这个仓库属于哪家公司？",
+      "expected_doctypes": [
+        "Warehouse"
+      ],
+      "picked": "Warehouse",
+      "correct": true,
+      "raw": "1"
+    },
+    {
+      "q": "物料是否走批次管理，看哪个字段？",
+      "expected_doctypes": [
+        "Item"
+      ],
+      "picked": "Item",
+      "correct": true,
+      "raw": "1"
+    },
+    {
+      "q": "这张 BOM 的原材料成本合计是多少？",
+      "expected_doctypes": [
+        "BOM"
+      ],
+      "picked": "BOM",
+      "correct": true,
+      "raw": "1"
+    },
+    {
+      "q": "BOM 里这道工序每小时的费率是多少？",
+      "expected_doctypes": [
+        "BOM Operation"
+      ],
+      "picked": "BOM Operation",
+      "correct": true,
+      "raw": "1"
+    },
+    {
+      "q": "工单计划要生产多少件？",
+      "expected_doctypes": [
+        "Work Order"
+      ],
+      "picked": "Work Order",
+      "correct": true,
+      "raw": "1"
+    },
+    {
+      "q": "工单已经完工入库了多少件？",
+      "expected_doctypes": [
+        "Work Order"
+      ],
+      "picked": "Work Order",
+      "correct": true,
+      "raw": "3"
+    },
+    {
+      "q": "工人报工完成了多少数量？",
+      "expected_doctypes": [
+        "Job Card"
+      ],
+      "picked": "Job Card Time Log",
+      "correct": false,
+      "raw": "2"
+    },
+    {
+      "q": "这道工序在哪个工作站上做？",
+      "expected_doctypes": [
+        "BOM Operation",
+        "Work Order Operation"
+      ],
+      "picked": "Work Order Operation",
+      "correct": true,
+      "raw": "1"
+    },
+    {
+      "q": "这张销售发票还有多少钱没收回来？",
+      "expected_doctypes": [
+        "Sales Invoice"
+      ],
+      "picked": "Sales Invoice",
+      "correct": true,
+      "raw": "1"
+    },
+    {
+      "q": "总账分录的借方金额字段叫什么？",
+      "expected_doctypes": [
+        "GL Entry"
+      ],
+      "picked": "GL Entry",
+      "correct": true,
+      "raw": "2"
+    },
+    {
+      "q": "总账分录记在哪个科目上？",
+      "expected_doctypes": [
+        "GL Entry"
+      ],
+      "picked": "GL Entry",
+      "correct": true,
+      "raw": "16"
+    },
+    {
+      "q": "会计科目的类型（资产/负债/收入）在哪个字段？",
+      "expected_doctypes": [
+        "Account"
+      ],
+      "picked": "Account",
+      "correct": true,
+      "raw": "1"
+    },
+    {
+      "q": "付款单实际付了多少钱？",
+      "expected_doctypes": [
+        "Payment Entry"
+      ],
+      "picked": "Payment Entry",
+      "correct": true,
+      "raw": "1"
+    },
+    {
+      "q": "采购发票的应付余额在哪个字段？",
+      "expected_doctypes": [
+        "Purchase Invoice"
+      ],
+      "picked": "Purchase Invoice",
+      "correct": true,
+      "raw": "1"
+    },
+    {
+      "q": "分期付款计划里每一期的到期日是哪个字段？",
+      "expected_doctypes": [
+        "Payment Schedule"
+      ],
+      "picked": "Payment Schedule",
+      "correct": true,
+      "raw": "1"
+    },
+    {
+      "q": "成本中心属于哪家公司？",
+      "expected_doctypes": [
+        "Cost Center"
+      ],
+      "picked": "Cost Center",
+      "correct": true,
+      "raw": "1"
+    },
+    {
+      "q": "质检单的检验结论是合格还是不合格？",
+      "expected_doctypes": [
+        "Quality Inspection"
+      ],
+      "picked": "Quality Inspection",
+      "correct": true,
+      "raw": "1"
+    },
+    {
+      "q": "外协订单这一行的加工费单价是多少？",
+      "expected_doctypes": [
+        "Subcontracting Order Item"
+      ],
+      "picked": "Subcontracting Order Item",
+      "correct": true,
+      "raw": "1"
+    }
+  ]
+}
