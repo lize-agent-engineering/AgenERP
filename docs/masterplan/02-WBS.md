@@ -97,7 +97,7 @@
 | ID | 工作项 | 前置 | 验收 | 状态源 |
 |---|---|---|---|---|
 | **P2.0** 🚪 | **入口关口实验：Spike 11 · Workspace 升级覆盖**（判据见 `REF:ROADMAP-SPIKE1112`） | P1.9 | 在 XM 演示栈上跑完四步，结论决定「视图产物落 Workspace 还是落 AgenERP 自有表」，写进 `docs/architecture/` | 人 |
-| **P2.0R** 🔴 | **schema 检索可用性 —— P2 头号技术风险**（详见本节下方风险块）| — | 🔴 `tests/gates/test_schema_retrieval_recall.py`：在本站点真实 DocType 上，自然语言问句 → 目标字段的 **Top-5 命中率 ≥ 90%**（今日基线 75%，Spike 07）| 人 |
+| **P2.0R** 🔴 | **schema 检索可用性 —— P2 头号技术风险**（详见本节下方风险块）| — | 🔴 **人 2026-08-27 裁定改判据**：`tests/gates/test_schema_field_task_completion.py`：在本站点真实 DocType 上、用**独立出题**的评测集，自然语言问句 → agent **承诺一个字段**的**任务完成率 ≥ 95%**（n≥60 零失败，下界才压得过 95%）。⚠️ 原判据 ~~`test_schema_retrieval_recall.py`：Top-5 命中率 ≥ 90%（基线 75%，Spike 07）~~ **作废**：按 `verifier-design` 的边界 fixture 实测，塞满五个候选（其中一个对）旧口径判 **Pass** ⇒ **Top-5 奖励撒网**，而生产要的是 agent 敢做决定；且那个 90% 在仓里**无推导记录**（Spike 07 原始线是 80%，早已越过）。原表述保留于此，不静默改写| 人 |
 | P2.1 | 视图 DSL v0（`list`/`detail`/`metric`/`chart`/`explain` 五种块） | P2.0 | `pytest tests/dsl -q` 退 0 | `MD:p2-views` |
 | P2.2 | 渲染器（frappe-ui）：**未支持的一律落回 Desk** | P2.1 | `pytest -m live tests/render -q` 退 0 | `MD:p2-views` |
 | P2.3 | 视图 Agent：自然语言 → DSL（含 `dsl.validate`/`dsl.preview`） | P2.2 **+ P2.0R**（人 2026-08-26 接线：视图 Agent 的产出必须指回真实字段，而 schema 检索今日实测 Top-5 = 75% —— **不先解决它，本项是空中楼阁**） | `pytest tests/agents/test_view_agent.py -q` 退 0 | `MD:p2-views` |
@@ -108,6 +108,10 @@
 | P2.8 | CP9 · P2 阶段复盘 | P2.1–P2.7 | 纪要落 `docs/audits/` | 人 |
 
 > ### 🔴 P2 头号技术风险 · schema 检索（人 2026-08-25 立）
+>
+> ⚠️ **本块下文按 Top-5 叙述，那是 2026-08-25 的口径。人 2026-08-27 已改判为
+> 「任务完成率 ≥95%」（`DECISIONS.md` D-28）。下文的历史叙述保留不改，
+> 但**结论以 D-28 与上表验收格为准**。
 >
 > **风险陈述**：`open-questions.md` **U6「schema 向量检索能找对字段」实测结论是「不成立」—— 最好 Top-5 = 75%**（Spike 07）。
 > 本站点有一千多个 DocType、上万个字段；用户说一句自然语言，系统要知道他指的是哪个字段。**今天四分之一找不对。**
