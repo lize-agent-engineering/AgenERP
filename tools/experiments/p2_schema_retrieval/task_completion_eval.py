@@ -249,7 +249,12 @@ def run_eval(
     for n, item in enumerate(items, 1):
         spent = sum(d["tokens"]["in"] + d["tokens"]["out"]
                     for d in detail if "tokens" in d)
-        if budget and spent >= budget:
+        # ⚠️ **闸只在每条之前查，所以必然会超**：实测本轮停在 1,035,470 而上限是
+        # 950,000 —— 超了 9%，因为最后那一条**自己就烧了 230,024**。
+        # ⇒ 留出「一条最贵的题」的余量再判，否则「上限」名不副实。
+        headroom = max((d["tokens"]["in"] + d["tokens"]["out"]
+                        for d in detail if "tokens" in d), default=0)
+        if budget and spent + headroom >= budget:
             halted_at = n
             print(f"\n🔴 **预算闸触发**：已花 {spent:,} ≥ 上限 {budget:,}，"
                   f"停在第 {n} 条（共 {len(items)} 条）。\n"
@@ -334,6 +339,18 @@ def run_eval(
             traj = rec["trajectory"]
             repeats = len(traj) - len(set(traj)) if traj else 0
             looping = bool(traj) and repeats >= len(traj) / 2
+            # 🔴 **模型端点自己报错的，一律 infrastructure，不看轨迹像不像打转。**
+            # 实测（kimi-k3，独立集第 45 条）：`stopped=model-error`，detail 是
+            # 「Free quota exhausted」—— **免费额度跑到一半用光了**。
+            # 归因器当时判成 capability（因为它同时重复调用了 16 次）——**第四次判错**。
+            # ⚠️ 顺序很重要：这一格必须**排在 looping 判定之前**，否则「又打转又撞额度」
+            # 会被算成能力失败。而 calibration 的 infrastructure 是**不计分**的。
+            if rec.get("stopped") == "model-error":
+                rec.update(passed=False, cause="infrastructure",
+                           why=f"{how}；模型端点报错 ⇒ **不计分**")
+                detail.append(rec)
+                print(f"  {n}/{len(items)}  ⚠️ 模型端点报错（infrastructure，不计分）", flush=True)
+                continue
             hit_turn_cap = (rec["tokens"]["model_calls"] >= args.max_turns) and not looping
             rec.update(
                 passed=False,
