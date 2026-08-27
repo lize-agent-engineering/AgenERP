@@ -195,6 +195,20 @@ def test_the_agent_commits_and_gets_the_field_right(live_site):
     if REQUIRED_COMPLETION_RATE is None:
         pytest.fail("门槛没人定 —— 见上一条判据")
 
+    # 🔴 **样本量不够时必须在这里就停，不许往下跑。**
+    # `run_eval(sample=60)` 撞上 40 条的评测集时不会报错 —— 它按 `step=40/60` 取，
+    # 结果是**带重复地跑满 60 条**，实测均价 21k/条 ⇒ **约 1.27M token 白烧**，
+    # 而跑出来的数还因为重复而没有意义。
+    # ⚠️ 这一条是安全闸，不是判据 —— 判据是上面那条 `test_the_sample_is_big_enough`，
+    #    它会红并说清「先补题，别改线」。这里只负责**别让它先把钱烧了**。
+    items = json.loads(EVAL_SET.read_text(encoding="utf-8"))["items"]
+    if len(items) < REQUIRED_SAMPLE_SIZE:
+        pytest.fail(
+            f"评测集只有 {len(items)} 条 < {REQUIRED_SAMPLE_SIZE} —— **不跑**。"
+            f"硬跑会带重复地凑满 {REQUIRED_SAMPLE_SIZE} 条、烧掉约 "
+            f"{REQUIRED_SAMPLE_SIZE * 21:,}k token，而结果没有意义。"
+        )
+
     tce = _verifier()
     result = tce.run_eval(
         eval_path=EVAL_SET,

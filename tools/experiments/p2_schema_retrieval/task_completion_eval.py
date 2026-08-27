@@ -193,6 +193,7 @@ def run_eval(
     max_turns: int = 8,
     schema_path: str = SCHEMA_DEFAULT,
     judge_model: str = "glm-5.2",
+    budget: int = 0,
 ) -> dict:
     """跑一轮评测，**返回结果字典**（给了 `out_path` 才落盘）。
 
@@ -220,7 +221,12 @@ def run_eval(
     if not key:
         raise SystemExit("没有 API key —— 不猜凭据")
 
-    raw = json.load(open(args.eval))
+    # `.jsonl` 逐行读，`.json` 读 `{"items": [...]}` —— 独立评测集用的是前者。
+    if args.eval.endswith(".jsonl"):
+        raw = {"items": [json.loads(ln) for ln in open(args.eval, encoding="utf-8")
+                         if ln.strip()]}
+    else:
+        raw = json.load(open(args.eval))
     items = raw["items"]
     if args.probe:
         items = items[: args.probe]
@@ -239,8 +245,30 @@ def run_eval(
     detail = []
     print(f"问句 {len(items)} 条 · max_turns={args.max_turns} · **任务完成率口径**\n")
 
+    halted_at = 0
     for n, item in enumerate(items, 1):
-        rec: dict = {"q": item["q"], "acceptable": item["expected"]}
+        spent = sum(d["tokens"]["in"] + d["tokens"]["out"]
+                    for d in detail if "tokens" in d)
+        if budget and spent >= budget:
+            halted_at = n
+            print(f"\n🔴 **预算闸触发**：已花 {spent:,} ≥ 上限 {budget:,}，"
+                  f"停在第 {n} 条（共 {len(items)} 条）。\n"
+                  f"   **已跑的照常出账；未跑的既不算通过也不算失败** —— "
+                  f"把没跑的算成任何一边都是在编数。", flush=True)
+            break
+        # 可接受集合 = `expected` ∪ `acceptable`。**出题方给的 `acceptable` 带逐条
+        # `why_acceptable` 理由**，那正是 `verifier-design` 的「Accept all equivalent
+        # valid results」要求的东西 —— 原样带进记录，供人复核，不许我自己再筛一遍。
+        acceptable = list(dict.fromkeys([*item["expected"], *item.get("acceptable", [])]))
+        rec: dict = {
+            "q": item["q"],
+            "acceptable": acceptable,
+            "expected": item["expected"],
+            "why_acceptable": item.get("why_acceptable", ""),
+            "difficulty": item.get("difficulty", ""),
+            "why_hard": item.get("why_hard", ""),
+            "domain": item.get("domain", ""),
+        }
         try:
             result = explain(
                 COMMIT_QUESTION.format(q=item["q"]), task_class="explain",
@@ -319,7 +347,7 @@ def run_eval(
             rec.update(passed=False, cause="capability",
                        why=f"承诺了一个站点上不存在的字段：{field}")
         # ── 第 2 层 · 可接受集合（reference-based）──────────────────────────
-        elif field in set(item["expected"]):
+        elif field in set(acceptable):
             rec.update(passed=True, cause=None, why="命中可接受集合")
         # ── 第 3 层 · 判官（reference-free，只判语义等价）────────────────────
         else:
@@ -336,7 +364,7 @@ def run_eval(
                     question=item["q"], doctype=meta["doctype"], fieldname=meta["fieldname"],
                     label=meta["label"] or "(无)", fieldtype=meta["fieldtype"],
                     options=meta["options"] or "(无)", sample=sample_val,
-                    acceptable=item["expected"]), args.judge_model, base, key, usage)
+                    acceptable=acceptable), args.judge_model, base, key, usage)
             except Exception as exc:  # noqa: BLE001
                 rec.update(passed=False, cause="infrastructure", why=f"判官失败：{exc}")
             else:
@@ -371,6 +399,9 @@ def run_eval(
     from collections import Counter
     print(f"   失败归因：{dict(Counter(d['cause'] for d in scored if not d.get('passed')))}")
     tot = sum(d["tokens"]["in"] + d["tokens"]["out"] for d in detail if "tokens" in d)
+    if halted_at:
+        print(f"   ⚠️ **本轮被预算闸截断**：只跑了 {halted_at - 1}/{len(items)} 条。"
+              f"下面的完成率**只对已跑的这些成立**，不得当成全集的结论。")
     print(f"   用量：{tot:,} token（agent）+ 判官 {usage.get('judge_in', 0)}"
           f"/{usage.get('judge_out', 0)}（{usage.get('judge_calls', 0)} 次）")
 
@@ -396,9 +427,16 @@ def main() -> None:
     ap.add_argument("--max-turns", type=int, default=8)
     ap.add_argument("--schema", default=SCHEMA_DEFAULT)
     ap.add_argument("--judge-model", default="glm-5.2")
+    # 0 = 不设闸。非 0 时**累计 agent token** 超过它就停在那一条。
+    # ⚠️ 独立集 60 条里 34 条主答案在子表（57%），而子表题正是成本长尾所在
+    # （glm-5.2 那轮：子表题 31k / 145k / 34k，非子表中位才 5k）。推 60 条约 1.2–1.4M，
+    # 而免费额度是 1M —— **可能跑不完**。所以超预算就停，而不是一路烧完再说。
+    ap.add_argument("--budget", type=int, default=0,
+                    help="累计 agent token 上限；超了停在那一条，已跑的照常出账")
     a = ap.parse_args()
     run_eval(eval_path=a.eval, out_path=a.out, sample=a.sample, probe=a.probe,
-             max_turns=a.max_turns, schema_path=a.schema, judge_model=a.judge_model)
+             max_turns=a.max_turns, schema_path=a.schema, judge_model=a.judge_model,
+             budget=a.budget)
 
 
 if __name__ == "__main__":
