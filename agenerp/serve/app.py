@@ -32,14 +32,22 @@ from http.cookies import CookieError, SimpleCookie
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
-from urllib.parse import urlsplit
+from urllib.parse import parse_qs, urlsplit
 
 from agenerp.context.immediate import ImmediateContext, assemble
 from agenerp.explain.loop import explain
 from agenerp.routing.capabilities import KNOWN_MODEL_PROFILES, TASK_CLASSES, ModelProfile
 from agenerp.routing.config import from_env as config_from_env
 from agenerp.routing.errors import RoutingError
+from agenerp.dsl.blocks import Block
+from agenerp.dsl.fallback import plan_render
+from agenerp.dsl.roles import WORKER_DAILY_VIEWS
+from agenerp.dsl.schema import SchemaView
+from agenerp.dsl.validate import validate
 from agenerp.site import RESOURCE_PATH, SiteError, client_from_sid
+
+# 可渲染的视图，**按名字查表**。v0 硬编码（P2.4 的 GitOps 会把它换成存储）。
+VIEWS_BY_NAME = {view.name: view for view in WORKER_DAILY_VIEWS}
 
 # 监听面。**地址写死回环**：本期服务不出宿主（§7.20 `D-a-1` 的残余风险那一条）。
 LOOPBACK = "127.0.0.1"
@@ -63,9 +71,22 @@ ASSET_PATH = f"{ROUTE_PREFIX}/{ASSET_FILENAME}"
 ASSET_CONTENT_TYPE = "text/javascript; charset=utf-8"
 ASSET_DIR = Path(__file__).resolve().parent / "assets"
 
+# P2.2 的视图渲染器资产。**同样是模块级常量**，理由与 `ASSET_FILENAME` 一字不差：
+# 调用方一个字都拼不进文件路径（判据 `test_the_asset_file_path_is_never_built_from_request_data`
+# 用 AST 扫全模块守着）。加第二个资产**没有引入按请求名查文件**那条路 ——
+# 两个常量、两次等值比较，没有映射表、没有拼接。
+RENDER_ASSET_FILENAME = "render.js"
+RENDER_ASSET_PATH = f"{ROUTE_PREFIX}/{RENDER_ASSET_FILENAME}"
+
+# 视图渲染计划端点：给一个视图名，回「哪些块画得了、哪些落回、哪些画不全」。
+# **它不取业务数据** —— 数据由浏览器同源直打 Frappe 的 `/api/resource`，
+# 带自己的 sid，**权限由后端强制**（`system-baseline.md` §4：前端只做呈现与提示）。
+# 让本服务代取数据等于给它开一条绕过浏览器身份的路。
+VIEW_PLAN_PATH = f"{ROUTE_PREFIX}/view"
+
 # 本服务实际服务的路径集合。**404 文案从它算出来，不另写一份字面量** ——
 # 漏改文案就是一条会说谎的错误信息，而说谎的错误信息比没有更贵。
-SERVED_PATHS = (HEALTH_PATH, EXPLAIN_PATH, ASSET_PATH)
+SERVED_PATHS = (HEALTH_PATH, EXPLAIN_PATH, ASSET_PATH, RENDER_ASSET_PATH, VIEW_PLAN_PATH)
 
 # 只读白名单方法：把浏览器带上来的 `sid` 解析成一个人。
 LOGGED_USER_METHOD = "frappe.auth.get_logged_user"
@@ -121,6 +142,51 @@ class ServiceDeps:
     llm_transport: Any = None
     explain_fn: Callable[..., Any] = explain
     log_sink: Callable[[str], None] | None = None
+    # P2.2 · 站点 schema 的取法。**默认从活站点取**，判据可以塞一份固定快照进来。
+    # ⚠️ **取不到时回 `None`，不回一个空 `SchemaView`** —— 后者会被
+    # `validate()` 读成「站点什么都没有」从而把每个字段都判成不存在，
+    # 那是一条**看起来在工作、其实在说谎**的路径。回 `None` ⇒ `view_plan` 抛 503。
+    schema_factory: Callable[["ServiceDeps"], "SchemaView | None"] = None  # type: ignore[assignment]
+
+    def schema(self) -> "SchemaView | None":
+        factory = self.schema_factory or _schema_from_site
+        return factory(self)
+
+
+def _schema_from_site(deps: "ServiceDeps") -> "SchemaView | None":
+    """从活站点取 schema。**任何失败都回 `None`，不吞成空 schema。**
+
+    v0 只取本服务真会渲染的那几张表（视图里出现过的 DocType 与它们声明的子表）——
+    整站六千多个字段没必要每次请求都拉一遍，而「只拉用得着的」也让
+    「视图引用了一张没拉的表」这件事**当场变成 `has_doctype` 为假**，
+    而不是悄悄放行。
+    """
+    wanted: set[str] = set()
+    for view in VIEWS_BY_NAME.values():
+        for block in view.blocks:
+            if block.doctype:
+                wanted.add(block.doctype)
+            for _table_field, child_doctype, _names in block.child_fields:
+                wanted.add(child_doctype)
+    try:
+        client = deps.client_factory(site=deps.site, transport=deps.site_transport)
+        rows: list[dict] = []
+        for doctype in sorted(wanted):
+            meta = client.get(f"/api/resource/DocType/{doctype}")
+            for field_row in (meta.get("data") or {}).get("fields") or []:
+                rows.append(
+                    {
+                        "doctype": doctype,
+                        "fieldname": field_row.get("fieldname"),
+                        "fieldtype": field_row.get("fieldtype"),
+                        "options": field_row.get("options"),
+                    }
+                )
+    except Exception:
+        return None
+    if not rows:
+        return None
+    return SchemaView.from_meta_rows(rows)
 
 
 def _sid_from_cookie(header: str | None) -> str:
@@ -303,6 +369,77 @@ def _failure_detail(result) -> dict:
     return {"stopped": stopped, "reason": detail} if detail else {"stopped": stopped}
 
 
+def view_plan(name: str, schema: SchemaView | None) -> dict:
+    """给一个视图名，回它的渲染计划。**不取任何业务数据。**
+
+    ⚠️ `schema` 为 `None` 时**抛**，不回一个「都画得了」的乐观计划 ——
+    与 `agenerp/dsl/validate.py` 同一条：**验不了的东西不许算过。**
+
+    ⚠️ 视图名只做**字典查表**（`VIEWS_BY_NAME`），不参与任何路径拼接、不做前缀匹配。
+    查不到就 404，不回显调用方给的名字（那是一条反射面）。
+    """
+    view = VIEWS_BY_NAME.get(name)
+    if view is None:
+        raise ServiceError(404, "没有这个视图")
+    if schema is None:
+        raise ServiceError(503, "站点 schema 取不到，无法判定字段是否存在 —— 验不了的不算过")
+
+    result = validate(view, schema)
+    if not result.ok:
+        # 校验不过的视图**不许渲染**。它指向了不存在的字段，画出来就是错字段。
+        raise ServiceError(500, "视图定义与站点 schema 对不上")
+
+    plan = plan_render(view, schema)
+    # 渲染器要靠字段类型决定「剥标签」还是「当图片」。**只交这个视图用得着的那些**，
+    # 且**查不到就不放进来** —— 渲染器对缺类型的字段一律按纯文本处理（最保守的一档）。
+    fieldtypes = {}
+    for doctype, fieldname in view.field_refs():
+        kind = schema.fieldtype(doctype, fieldname)
+        if kind:
+            fieldtypes[f"{doctype}.{fieldname}"] = kind
+
+    return {
+        "view": view.name,
+        "title": view.title,
+        "fieldtypes": fieldtypes,
+        "blocks": [_block_payload(b) for b in plan.rendered],
+        "fallbacks": [
+            {
+                "index": f.index,
+                "blockType": f.block_type,
+                "reason": f.reason,
+                # 落回卡片要给一个「在 Desk 中打开」的入口，得知道打开哪张单。
+                "doctype": view.blocks[f.index].doctype or "",
+            }
+            for f in plan.fallbacks
+        ],
+        "degraded": [
+            {"index": d.index, "field": d.fieldname, "fieldtype": d.fieldtype, "reason": d.reason}
+            for d in plan.degraded
+        ],
+    }
+
+
+def _block_payload(block: Block) -> dict:
+    """块的**渲染面**表示。只交渲染器画得着的那几段，不把整个 dataclass 倒出去。"""
+    return {
+        "type": block.type,
+        "title": block.title,
+        "doctype": block.doctype,
+        "fields": list(block.fields),
+        "filters": [list(entry) for entry in block.filters],
+        "sort": list(block.sort) if block.sort else None,
+        "limit": block.limit,
+        "agg": block.agg,
+        "chartKind": block.chart_kind,
+        "question": block.question,
+        "childFields": [
+            {"tableField": t, "doctype": d, "fields": list(fns)}
+            for t, d, fns in block.child_fields
+        ],
+    }
+
+
 def _make_handler(deps: ServiceDeps) -> type[BaseHTTPRequestHandler]:
     def _to_stderr(line: str) -> None:
         print(line, file=sys.stderr)
@@ -337,6 +474,13 @@ def _make_handler(deps: ServiceDeps) -> type[BaseHTTPRequestHandler]:
                 # **不认人**（不读 Cookie）、**不碰 LLM**、**不打站点**（§7.22 `D-c-4` 的端点表第三行）。
                 self._respond_asset()
                 return
+            if path == RENDER_ASSET_PATH:
+                # 同上。**两个资产各走各的等值分支**，不共用一个「按名字找文件」的函数。
+                self._respond_render_asset()
+                return
+            if path == VIEW_PLAN_PATH:
+                self._respond_view_plan()
+                return
             self._not_found()
 
         def do_POST(self) -> None:  # noqa: N802 - 标准库约定的方法名
@@ -346,6 +490,12 @@ def _make_handler(deps: ServiceDeps) -> type[BaseHTTPRequestHandler]:
                 return
             if path == ASSET_PATH:
                 self._respond(405, {"error": f"{ASSET_PATH} 只接受 GET"})
+                return
+            if path == RENDER_ASSET_PATH:
+                self._respond(405, {"error": f"{RENDER_ASSET_PATH} 只接受 GET"})
+                return
+            if path == VIEW_PLAN_PATH:
+                self._respond(405, {"error": f"{VIEW_PLAN_PATH} 只接受 GET"})
                 return
             if path != EXPLAIN_PATH:
                 self._not_found()
@@ -393,6 +543,47 @@ def _make_handler(deps: ServiceDeps) -> type[BaseHTTPRequestHandler]:
             self.send_header("Content-Length", str(len(body)))
             self.end_headers()
             self.wfile.write(body)
+
+        def _respond_render_asset(self) -> None:
+            """把 `assets/render.js` 原样发出去。
+
+            与 `_respond_asset` **刻意重复**，不抽成 `_send(filename)` ——
+            抽出来那一刻就出现了「文件名是个参数」的形状，
+            而判据 `test_the_asset_file_path_is_never_built_from_request_data`
+            守的正是「文件名只能是模块级常量」。**两行重复换一条封死的路径，值。**
+            """
+            try:
+                body = (ASSET_DIR / RENDER_ASSET_FILENAME).read_bytes()
+            except OSError:
+                self._respond(500, {"error": INTERNAL_ERROR})
+                return
+            self.send_response(200)
+            self.send_header("Content-Type", ASSET_CONTENT_TYPE)
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        def _respond_view_plan(self) -> None:
+            """回一个视图的渲染计划。**不认人、不取业务数据。**
+
+            为什么不认人：本端点只回「这个视图长什么样、哪些块画得了」——
+            那是**视图定义**，不是业务数据。业务数据由浏览器同源直打 Frappe，
+            带自己的 sid，权限由后端强制（`system-baseline.md` §4）。
+            让本服务代取数据等于给它开一条绕过浏览器身份的路。
+            """
+            params = parse_qs(urlsplit(self.path).query)
+            names = params.get("name") or []
+            if len(names) != 1:
+                self._respond(400, {"error": "要恰好一个 name 参数"})
+                return
+            try:
+                payload = view_plan(names[0], deps.schema())
+            except ServiceError as exc:
+                self._respond(exc.status, {"error": exc.message})
+            except Exception:
+                self._respond(500, {"error": INTERNAL_ERROR})
+            else:
+                self._respond(200, payload)
 
         def _not_found(self) -> None:
             """**不回显请求路径。** 路径与 query 是调用方能控制的，回显就是一条反射面。
