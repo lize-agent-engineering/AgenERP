@@ -42,6 +42,7 @@ from agenerp.explain.loop import (
     STOP_MAX_TURNS,
     STOP_MODEL_ERROR,
     STOP_RUNAWAY,
+    STOP_TOKEN_BUDGET,
     ExplainLoop,
 )
 from agenerp.routing import route  # noqa: E402
@@ -294,3 +295,43 @@ def test_the_per_call_output_cap_stays_at_the_value_the_no_thinking_decision_ass
     assert DEFAULT_ENABLE_THINKING is False, (
         "思考被打开了，而输出上限还留在 4096 —— **这个组合会让真人拿到一片空白**"
     )
+
+
+# ── 第三道闸：单次解释的 token 预算（2026-08-27 实测撞出来的）────────────────
+
+
+def test_the_token_budget_stops_a_run_that_the_other_two_gates_let_through():
+    """🔴 **前两道闸数的都不是钱，挡不住「烧钱但没超次数」这个形态。**
+
+    实测（`qwen3.8-flash`，独立评测集第 4 条）：
+      · **42 次工具调用** —— 按「工具名 + 参数」只重复 **1** 次 ⇒ 是**游荡不是死循环**
+      · `MAX_TOOL_CALLS = 50` **没触发**（42 < 50）
+      · 最后由 `max_turns=40` 停下 —— 而那时**一条题已经烧掉 445,431 token**，
+        把一轮 60 条的预算吃掉一半，整轮只跑了 4/60 条、作废
+    ⇒ 三道闸**各管一维，不许合并**（同 D-18 的道理）：
+      轮数 · 工具调用数 · **花掉的 token**。
+
+    ⚠️ 默认 `None` = 不设限 ⇒ **产品行为不变**；本条判的是「给了就真的会停」。
+    """
+    model = LoopingModel(calls_per_turn=1)
+    # 两道旧闸都开到不可能触发 ⇒ 停下它的只能是第三道
+    result = loop_for(
+        model, max_turns=10_000, max_tool_calls=10**9, max_run_tokens=1
+    ).run("烧钱但不超次数的那种跑法")
+
+    assert result.trace.stopped == STOP_TOKEN_BUDGET, (
+        f"token 预算没停住它，stopped={result.trace.stopped!r}"
+    )
+    assert STOP_TOKEN_BUDGET not in {STOP_ANSWERED, STOP_MAX_TURNS, STOP_RUNAWAY}, (
+        "三道闸的停止原因必须彼此可分辨 —— 合并了就没法判是哪一道停的"
+    )
+
+
+def test_no_token_budget_means_the_third_gate_does_not_exist():
+    """默认不给 ⇒ **这道闸等于不存在**，产品路径上一个字节都没变。"""
+    model = LoopingModel(calls_per_turn=1)
+
+    result = loop_for(model, max_turns=3).run("默认路径")
+
+    assert result.trace.stopped != STOP_TOKEN_BUDGET
+    assert result.trace.stopped == STOP_MAX_TURNS

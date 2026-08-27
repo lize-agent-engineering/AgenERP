@@ -270,6 +270,7 @@ def run_eval(
     probe: int = 0,
     max_turns: int = 8,
     max_tool_calls: int = 0,
+    per_question_budget: int = 0,
     enable_thinking: bool | None = None,
     output_tokens: int = 4096,
     schema_path: str = SCHEMA_DEFAULT,
@@ -288,6 +289,7 @@ def run_eval(
         probe=probe,
         max_turns=max_turns,
         max_tool_calls=max_tool_calls,
+        per_question_budget=per_question_budget,
         enable_thinking=enable_thinking,
         output_tokens=output_tokens,
         schema=schema_path,
@@ -375,6 +377,7 @@ def run_eval(
                 adapter=adapter, client=client, max_turns=args.max_turns,
                 max_tool_calls=args.max_tool_calls or 10**9,
                 per_call_output_tokens=args.output_tokens,
+                max_run_tokens=args.per_question_budget or None,
             )
             result = loop.run(COMMIT_QUESTION.format(q=item["q"]))
             result.trace.task_class = "explain"
@@ -559,11 +562,16 @@ def main() -> None:
                     help="0=不设限（默认）；给正数则按该值设失控闸")
     ap.add_argument("--output-tokens", type=int, default=4096,
                     help="每次调用允许模型写多少 token（产品默认 4096）")
+    # ⚠️ **单条题的 token 上限**。总预算闸只在每条之间查 —— 实测一条题
+    # 烧掉 445,431 就能把一轮 60 条的预算吃穿（qwen3.8-flash，独立集第 4 条）。
+    ap.add_argument("--per-question-budget", type=int, default=0,
+                    help="0=不设限；给正数则单条题超了就停在那条")
     ap.add_argument("--budget", type=int, default=0,
                     help="累计 agent token 上限；超了停在那一条，已跑的照常出账")
     a = ap.parse_args()
     run_eval(eval_path=a.eval, out_path=a.out, sample=a.sample, probe=a.probe,
              max_turns=a.max_turns, max_tool_calls=a.max_tool_calls,
+             per_question_budget=a.per_question_budget,
              enable_thinking=None if a.thinking is None else (a.thinking == "on"),
              output_tokens=a.output_tokens,
              schema_path=a.schema, judge_model=a.judge_model,
