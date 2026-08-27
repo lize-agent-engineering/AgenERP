@@ -39,7 +39,7 @@ from agenerp.explain.loop import explain
 from agenerp.routing.capabilities import KNOWN_MODEL_PROFILES, TASK_CLASSES, ModelProfile
 from agenerp.routing.config import from_env as config_from_env
 from agenerp.routing.errors import RoutingError
-from agenerp.dsl.blocks import Block
+from agenerp.dsl.blocks import Block, View
 from agenerp.dsl.fallback import plan_render
 from agenerp.dsl.roles import WORKER_DAILY_VIEWS
 from agenerp.dsl.schema import SchemaView
@@ -84,9 +84,24 @@ RENDER_ASSET_PATH = f"{ROUTE_PREFIX}/{RENDER_ASSET_FILENAME}"
 # 让本服务代取数据等于给它开一条绕过浏览器身份的路。
 VIEW_PLAN_PATH = f"{ROUTE_PREFIX}/view"
 
+# ②③端的壳页（`system-baseline.md` §3.1 的「AgenERP Web」）。**同样是模块级常量。**
+# ⚠️ **服务端一个字都不往这份 HTML 里拼** —— 要渲染哪个视图由页面自己从
+# `location.search` 读。一旦服务端开始拼，就出现了一条反射型注入面，
+# 而它恰好绕过 `render.js` 那条「建 DOM 只走 textContent」的约束。
+APP_PAGE_FILENAME = "app.html"
+APP_PAGE_PATH = f"{ROUTE_PREFIX}/app"
+APP_PAGE_CONTENT_TYPE = "text/html; charset=utf-8"
+
 # 本服务实际服务的路径集合。**404 文案从它算出来，不另写一份字面量** ——
 # 漏改文案就是一条会说谎的错误信息，而说谎的错误信息比没有更贵。
-SERVED_PATHS = (HEALTH_PATH, EXPLAIN_PATH, ASSET_PATH, RENDER_ASSET_PATH, VIEW_PLAN_PATH)
+SERVED_PATHS = (
+    HEALTH_PATH,
+    EXPLAIN_PATH,
+    ASSET_PATH,
+    RENDER_ASSET_PATH,
+    VIEW_PLAN_PATH,
+    APP_PAGE_PATH,
+)
 
 # 只读白名单方法：把浏览器带上来的 `sid` 解析成一个人。
 LOGGED_USER_METHOD = "frappe.auth.get_logged_user"
@@ -389,6 +404,17 @@ def view_plan(name: str, schema: SchemaView | None) -> dict:
         # 校验不过的视图**不许渲染**。它指向了不存在的字段，画出来就是错字段。
         raise ServiceError(500, "视图定义与站点 schema 对不上")
 
+    return plan_payload(view, schema)
+
+
+def plan_payload(view: View, schema: SchemaView) -> dict:
+    """把一个视图 + schema 变成渲染面的 JSON。**序列化只有这一处。**
+
+    从 `view_plan` 里分出来是为了让判据能拿**自己构造的视图**走同一段序列化 ——
+    否则「落回卡片」那条路在活体里永远走不到：路线 C 已经把工人视图的落回压到 0，
+    而判据若自己手写一份计划 JSON，验的就是我手写得对不对，不是这段代码。
+    ⚠️ 这个接缝是**判据用的**，产品路径仍然只经 `view_plan()` 进来（要过视图名查表）。
+    """
     plan = plan_render(view, schema)
     # 渲染器要靠字段类型决定「剥标签」还是「当图片」。**只交这个视图用得着的那些**，
     # 且**查不到就不放进来** —— 渲染器对缺类型的字段一律按纯文本处理（最保守的一档）。
@@ -481,6 +507,9 @@ def _make_handler(deps: ServiceDeps) -> type[BaseHTTPRequestHandler]:
             if path == VIEW_PLAN_PATH:
                 self._respond_view_plan()
                 return
+            if path == APP_PAGE_PATH:
+                self._respond_app_page()
+                return
             self._not_found()
 
         def do_POST(self) -> None:  # noqa: N802 - 标准库约定的方法名
@@ -496,6 +525,9 @@ def _make_handler(deps: ServiceDeps) -> type[BaseHTTPRequestHandler]:
                 return
             if path == VIEW_PLAN_PATH:
                 self._respond(405, {"error": f"{VIEW_PLAN_PATH} 只接受 GET"})
+                return
+            if path == APP_PAGE_PATH:
+                self._respond(405, {"error": f"{APP_PAGE_PATH} 只接受 GET"})
                 return
             if path != EXPLAIN_PATH:
                 self._not_found()
@@ -560,6 +592,25 @@ def _make_handler(deps: ServiceDeps) -> type[BaseHTTPRequestHandler]:
             self.send_response(200)
             self.send_header("Content-Type", ASSET_CONTENT_TYPE)
             self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        def _respond_app_page(self) -> None:
+            """把 `assets/app.html` **原样**发出去。
+
+            与另外两个资产分支一样是等值比较 + 模块级常量，且**不做任何模板替换** ——
+            页面里没有一个字来自请求。
+            """
+            try:
+                body = (ASSET_DIR / APP_PAGE_FILENAME).read_bytes()
+            except OSError:
+                self._respond(500, {"error": INTERNAL_ERROR})
+                return
+            self.send_response(200)
+            self.send_header("Content-Type", APP_PAGE_CONTENT_TYPE)
+            self.send_header("Content-Length", str(len(body)))
+            # 壳页不该被别人嵌进 iframe 里当皮 —— 它带着用户的会话。
+            self.send_header("X-Frame-Options", "SAMEORIGIN")
             self.end_headers()
             self.wfile.write(body)
 
