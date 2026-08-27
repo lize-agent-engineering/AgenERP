@@ -82,7 +82,15 @@ Link 字段收敛）· 术语层反向索引（P2.7 的产物）· 行业包约�
 - 5. **视图 Agent：自然语言 → DSL**（P2.3）: `todo` —— 前置 P2.2 **且 P2.0R**
 - 6. **定制包 GitOps v0**（P2.4）: `todo` —— 前置 P2.3
 - 7. **`schema.drift` 巡检**（P2.5）: `todo` —— 前置 P2.4
-- 8. **角色首页**（P2.6）: `todo` —— 前置 P2.2
+- 8. **角色首页**（P2.6）: **功能面完成，`todo`（判据未落地）** —— 前置 P2.2（已过）。
+  `/agenerp/home` 用**浏览器自己的 sid** 问站点角色 → 封闭表映射到首页视图。
+  `pytest -m live tests/render -q` → **退 0，18 passed**；端点判据用
+  `build_server(port=0)` 本地起真服务发真 HTTP（22 passed）。
+  🔴 「不空」按**内容**判，不是按 DOM：≥1 个块 · **≥1 行真数据** · 无落回卡片。
+  fail-closed：认不出人 → 401、角色没配页 → 403，**都带 `fallback: desk`，都不给别人的首页**。
+  🚫 **WBS 的验收判据 `tests/gates/test_no_empty_workspace.py` 仍不存在**（红线 1 我不能建），
+  草稿在 `tools/experiments/p2_role_home/` ⇒ **本项不由 loop 判过，状态留 `todo`**。
+  证据：[plan](../plans/p2-views/2026-08-27-P2.6-role-home.md)
 - 9. **术语层**（P2.7）: **`done`** —— 前置 P2.2（已过）。
   `pytest tests/i18n -q` → **退出码 0，12 passed**。基线是**零**：整站 6,350 个业务字段
   label 含中文的 = 0。现在车间工人覆盖面 **317/317 = 100%** 有中文名，且渲染器表头已是中文

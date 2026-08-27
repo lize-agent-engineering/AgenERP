@@ -1,0 +1,107 @@
+# ⚠️ 这是**草稿，不是判据**。后缀刻意是 `.txt`，路径刻意不在 `tests/gates/` 下。
+#
+# 红线 1：`tests/gates/**` 只能由人改。**我不建它，也不碰那个目录。**
+# 本文件是交给人的材料，由人看过之后自行落进 `tests/gates/test_no_empty_workspace.py`
+# （提交带 `Gates-Change-Approved-By:`）。形态同 P2.0R 那份草稿。
+#
+# ============================================================================
+# 落之前请先读这四条 —— 都是 P2.6 执行期实测撞出来的，不是风格建议
+# ============================================================================
+#
+# ① 🔴 **「不空」必须是内容意义上的，不是 DOM 意义上的。**
+#    一个画出了表头、下面一行数据都没有的首页，DOM 上「不空」，用户眼里是空的。
+#    ⇒ 判据必须要求**至少一行来自真站点的数据**。这是硬约束 ① 在本项上的形态。
+#
+# ② 🔴 **必须用受限身份跑，不能用 Administrator。**
+#    管理员什么都读得到 ⇒ 「首页有数据」那一格会永远绿着而什么都没验。
+#    本仓已有的受限身份：`worker@hrd.example.com`（`agenerp/seedusers.py`），
+#    口令从 `AGENERP_WORKER_PASSWORD` 读，**不进代码不进仓库**。
+#
+# ③ 🔴 **「认不出角色」与「角色没配首页」是两件事，要分开验。**
+#    前者是「不知道你是谁」，后者是「知道你是谁但没给你配页」。
+#    两种都**不许兜底到别人的首页** —— 给一个不属于他的首页，
+#    用户看到的是一片「你看不到这个」，那比落回 Desk 糟得多。
+#
+# ④ ⚠️ **`/agenerp/home` 这条路在活栈上跑不通，除非活栈吃到这个分支的代码。**
+#    `docker inspect agenerp-agenerp-serve-1` 实读：它挂载的是
+#    `/Users/lize/Claude/Projects/AgenERP/agenerp`（主工作树）。
+#    ⇒ 本轮的端点判据用 `build_server(port=0)` **在本地起真服务、发真 HTTP**
+#    （`tests/unit/test_render_static_and_plan.py`），那比打那个容器**更严格**。
+#    这条门禁若要打活栈，得先让活栈吃到代码。
+#
+# ============================================================================
+
+"""🔴 门禁 · 角色首页不能是一个空工作台
+
+判据来源：WBS `02-WBS.md` §5 P2.6。
+
+## 它防的是什么
+
+ERPNext 最经典的那个抱怨：装完之后打开是一片空白，用户不知道该点哪。
+AgenERP 的 ②③ 端若重复这一点，路线 C 那套「按角色做到 100%」就白做了 ——
+覆盖率再高，用户第一眼看到的还是空的。
+
+## 它**不**验什么（写清楚，免得有人以为验了）
+
+- **不验首页选得对不对**（那个人是不是该看这一页）—— 那是 `home_for_roles` 的映射表，
+  由 `tests/unit/test_render_static_and_plan.py` 判。
+- **不验数据本身对不对** —— 它只验「有」，不验「对」。
+"""
+from __future__ import annotations
+
+import os
+
+import pytest
+
+pytestmark = pytest.mark.live
+
+WORKER_USER = "worker@hrd.example.com"
+WORKER_PASSWORD_ENV = "AGENERP_WORKER_PASSWORD"
+
+
+@pytest.mark.live
+def test_the_role_home_is_not_an_empty_workspace(live_site, browser):
+    """三条缺一不可（见文件头 ①）：≥1 个块 · **≥1 行真数据** · 无落回卡片。"""
+    password = (os.environ.get(WORKER_PASSWORD_ENV) or "").strip()
+    if not password:
+        # ⚠️ **fail 不是 skip** —— 本仓规矩 1：一条会 skip 的门禁等于一条不存在的门禁。
+        pytest.fail(f"{WORKER_PASSWORD_ENV} 未设置 —— 换不到受限身份的真会话")
+
+    page = _open_home_as(browser, live_site, WORKER_USER, password)  # ← 待实现
+
+    blocks = page.query_selector_all("#agenerp-view-root [data-agenerp-block-type]")
+    assert blocks, "首页一个块都没渲染出来"
+
+    rows = page.query_selector_all("#agenerp-view-root table.agenerp-table tbody tr")
+    real_rows = [r for r in rows if not r.query_selector("td.agenerp-empty")]
+    assert real_rows, (
+        "首页画出了表头，但**一行真数据都没有** —— DOM 上不空，用户眼里是空的。"
+        "（硬约束 ①：渲染出来 ≠ 渲染对了）"
+    )
+
+    assert not page.query_selector("#agenerp-view-root [data-agenerp-fallback]"), (
+        "目标角色的首页上出现了落回卡片 —— 路线 C 的承诺是这个角色日常路径上落回 = 0"
+    )
+
+
+@pytest.mark.live
+def test_an_unresolvable_identity_gets_desk_not_an_empty_home(live_site):
+    """见文件头 ③ 的前一半：**不知道你是谁** ⇒ 落回 Desk。"""
+    raise NotImplementedError("由人按活栈的访问方式实现；参考 tests/unit/test_render_static_and_plan.py")
+
+
+@pytest.mark.live
+def test_a_role_without_a_configured_home_gets_desk_not_someone_elses_home(live_site):
+    """见文件头 ③ 的后一半：**知道你是谁但没配页** ⇒ 同样落回 Desk，不给别人的首页。"""
+    raise NotImplementedError("同上")
+
+
+def _open_home_as(browser, live_site, user: str, password: str):
+    """登录 → 打开 `/agenerp/app`（不带 `?view=`）→ 等首页渲染完。
+
+    ⚠️ **不带 `?view=`** 是关键：带了就变成「点名一个视图」，
+    绕过了「这个人该落在哪一页」那一跳 —— 而那正是本门禁要验的。
+
+    实现参考 `tests/unit/test_render_body.py` 的 `worker` / `_render`。
+    """
+    raise NotImplementedError("由人实现（本仓已有 playwright 的登录与渲染 helper 可抄）")

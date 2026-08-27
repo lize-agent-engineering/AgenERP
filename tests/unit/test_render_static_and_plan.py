@@ -25,11 +25,13 @@ import pytest
 from agenerp.dsl.fallback import ALLOWED_ATTACHMENT_SCHEMES
 from agenerp.dsl.schema import SchemaView
 from agenerp.serve.app import (
+    HOME_PATH,
     RENDER_ASSET_FILENAME,
     RENDER_ASSET_PATH,
     SERVED_PATHS,
     VIEW_PLAN_PATH,
     ServiceError,
+    build_server,
     view_plan,
 )
 
@@ -195,3 +197,173 @@ def test_the_view_name_only_ever_hits_a_dict_lookup():
         f"view_plan 里 name 在查表之外被读了 {len(stray)} 次 —— "
         "第一次出现在第 " + str(stray[0].lineno) + " 行"
     )
+
+
+# ---------------------------------------------------------------- `/agenerp/home`
+#
+# ⚠️ **为什么这一层在本地起真服务，而不是打活栈**：
+# 活栈的 `agenerp-serve` 容器挂载的是**主工作树**的 `agenerp/`（`docker inspect` 实读），
+# 吃不到本分支的代码。往主工作树写会污染那儿正在跑的循环 ⇒ 不写。
+# ⇒ 用 `build_server(port=0)` 在本地起一个**真服务**、发**真 HTTP** ——
+# 这比打那个容器**更严格**，因为它跑的确实是本分支的代码。
+
+
+class _Live:
+    """在 `127.0.0.1:0` 上真起一个服务（端口由内核分配，不猜数）。形态同 `test_desk_asset_route.py`。"""
+
+    def __init__(self, server) -> None:
+        import threading
+
+        self.server = server
+        self.host, self.port = server.server_address[:2]
+        self.thread = threading.Thread(target=server.serve_forever, daemon=True)
+        self.thread.start()
+
+    def get(self, path: str, *, cookie: str | None = None):
+        import http.client
+
+        conn = http.client.HTTPConnection(self.host, self.port, timeout=5)
+        try:
+            conn.request("GET", path, headers={"Cookie": cookie} if cookie else {})
+            res = conn.getresponse()
+            return res.status, json.loads(res.read() or b"{}")
+        finally:
+            conn.close()
+
+    def request(self, method: str, path: str):
+        import http.client
+
+        conn = http.client.HTTPConnection(self.host, self.port, timeout=5)
+        try:
+            conn.request(method, path)
+            res = conn.getresponse()
+            return res.status, json.loads(res.read() or b"{}")
+        finally:
+            conn.close()
+
+    def close(self) -> None:
+        self.server.shutdown()
+        self.thread.join(timeout=5)
+        self.server.server_close()
+
+
+def _client_returning(roles):
+    """一个只会答「你有哪些角色」的假站点客户端。
+
+    ⚠️ 它**必须收得下 `sid`** —— 服务端拿不到 sid 时根本走不到这里，
+    而那正是 `test_..._unauthenticated_...` 那一格要验的。
+    """
+
+    class _Client:
+        def call_method(self, method, params):  # noqa: ARG002
+            if isinstance(roles, Exception):
+                raise roles
+            return roles
+
+    def factory(**kwargs):
+        if not kwargs.get("sid"):
+            raise AssertionError("首页解析没有把 sid 传下去")
+        return _Client()
+
+    return factory
+
+
+@pytest.fixture
+def serve():
+    started: list[_Live] = []
+
+    def start(roles):
+        server = build_server(site="unit-test-site", port=0, client_factory=_client_returning(roles))
+        live = _Live(server)
+        started.append(live)
+        return live
+
+    yield start
+    for live in started:
+        live.close()
+
+
+def test_home_resolves_the_worker_role_to_their_own_view(serve):
+    """H1 · 「这个人 → 哪一页」，且身份是**问站点**问出来的，不是前端说的。"""
+    live = serve(["车间工人", "All"])
+    status, body = live.get(HOME_PATH, cookie="sid=whatever")
+    assert status == 200, body
+    assert body["view"] == "worker-work-orders"
+    assert body["role"] == "车间工人"
+
+
+def test_home_refuses_instead_of_giving_an_empty_page_when_nobody_is_authenticated(serve):
+    """🔴 H2 · 认不出人 ⇒ **落回 Desk，不回 200 + 空视图**。
+
+    给一个不属于他的首页，用户看到的是一片「你看不到这个」——
+    那比落回 Desk 糟得多，后者他至少还能干活。
+    """
+    live = serve(["车间工人"])
+    status, body = live.get(HOME_PATH)  # 不带 Cookie
+    assert status in (401, 403), body
+    assert body.get("fallback") == "desk"
+    assert not body.get("view"), f"未认到人却给了一个视图：{body}"
+
+
+def test_a_role_with_no_home_falls_back_to_desk_rather_than_a_default_page(serve):
+    """认得出人、但这个角色没配首页 ⇒ 同样落回 Desk。
+
+    ⚠️ 这一格与上一格**不是同一件事**：上一格是「不知道你是谁」，
+    这一格是「知道你是谁，但没给你配页」。两种都不许兜底到别人的首页。
+    """
+    live = serve(["Accounts Manager", "All"])
+    status, body = live.get(HOME_PATH, cookie="sid=whatever")
+    assert status == 403, body
+    assert body.get("fallback") == "desk"
+    assert not body.get("view")
+
+
+def test_home_falls_back_to_desk_when_the_site_blows_up(serve):
+    """站点那一跳炸了也要落回 Desk，**不许 500 一片白**。"""
+    live = serve(RuntimeError("站点挂了"))
+    status, body = live.get(HOME_PATH, cookie="sid=whatever")
+    assert status in (401, 403), body
+    assert body.get("fallback") == "desk"
+
+
+def test_home_only_accepts_get(serve):
+    live = serve(["车间工人"])
+    status, _ = live.request("POST", HOME_PATH)
+    assert status == 405
+
+
+def test_the_role_to_home_mapping_is_a_closed_table_with_no_model_call():
+    """硬约束 ③ / D-15：「这个人该看哪一页」是规则面。
+
+    判法与 `fallback.py` 那条同族：**读源码**，比一句「我保证没调」硬。
+    """
+    import agenerp.dsl.roles as mod
+
+    src = pathlib.Path(mod.__file__).read_text(encoding="utf-8")
+    for forbidden in ("route(", "llm", "LLM", "complete(", "chat(", "openai", "dashscope"):
+        assert forbidden not in src, f"角色→首页的映射里出现了模型入口：{forbidden}"
+    assert isinstance(mod.ROLE_HOMES, tuple)
+
+
+def test_home_picks_by_the_tables_priority_not_by_what_the_site_happened_to_return_first():
+    """一个人有多个角色时，首页由**本表的优先级**决定。
+
+    按站点返回顺序决定会让同一个人今天落这页、明天落那页 ——
+    而站点的返回顺序是不保证稳定的。
+
+    ⚠️ **这条判据 2026-08-27 改过，起因照实记**：原来它拿 `ROLE_HOMES` 自己去测，
+    而那张表**今天只有一条** —— 把一元列表反转是空操作 ⇒ **判据恒真**。
+    变异 M3（把挑法改成按站点返回顺序）**第一轮没见血**，就是被这个放过去的。
+    现在用一张**两条的合成表**，`home_for_roles` 为此开了一个只给判据用的注入位。
+    """
+    from agenerp.dsl.roles import ROLE_HOMES, home_for_roles
+
+    two = (("角色甲", "view-a"), ("角色乙", "view-b"))
+    # 两种传入顺序都必须挑到表里靠前的那一个。
+    assert home_for_roles(["角色乙", "角色甲"], two) == ("角色甲", "view-a")
+    assert home_for_roles(["角色甲", "角色乙"], two) == ("角色甲", "view-a")
+    # 只有其中一个角色时，挑那一个。
+    assert home_for_roles(["角色乙"], two) == ("角色乙", "view-b")
+    assert home_for_roles([], two) is None
+    # 产品路径仍走默认表。
+    assert home_for_roles([name for name, _v in ROLE_HOMES]) == ROLE_HOMES[0]
