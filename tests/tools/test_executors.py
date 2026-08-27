@@ -342,3 +342,62 @@ def test_query_read_keeps_a_real_permission_denial_intact(fake_site, fake_client
     reason = " ".join(result.reasons)
     assert "子表" not in reason, f"把权限问题误判成子表了：{reason}"
     assert "PermissionError" in reason, f"站点原文被吞了：{reason}"
+
+
+# ── `meta.fields`：**答对的前提是看得见**（2026-08-27 实测撞出来的两条）────────
+
+
+def test_a_hidden_field_is_kept_and_tagged_not_dropped(fake_site, fake_client):
+    """🔴 **hidden 字段必须回，并标记 —— 不许剔。**
+
+    原实现逐字 `or field.get("hidden")` ⇒ **无条件剔**，
+    而契约的 trim_rules 写的是「剔除 hidden **且无数据**的字段」——**实现比契约严**。
+    代价是实测出来的：独立评测集 69 个字段引用里 **2 个是 hidden**
+    （`Purchase Order Item.supplier_part_no` · `Sales Order Item.transaction_date`）
+    ⇒ agent **永远看不见它们**，无论工具结果上限调多大，
+    而失败会**伪装成「它答不出来」**。
+
+    ⚠️ 对「问哪个字段」这类问题，**在界面上不显示 ≠ 不是那个字段**。
+    """
+    fake_site.doctypes["Sales Order"]["fields"].append(
+        {"fieldname": "secret_ref", "fieldtype": "Data", "label": "内部单号", "hidden": 1}
+    )
+
+    result = _run("meta.fields", {"doctype": "Sales Order"}, fake_client)
+
+    assert result.ok, result.reasons
+    row = next((r for r in result.data if r.get("fieldname") == "secret_ref"), None)
+    assert row is not None, "hidden 字段被剔掉了 —— agent 就永远点不出这个字段名"
+    assert row.get("hidden") is True, "回了但没标记 —— 模型分不出它在界面上不露面"
+
+
+def test_keywords_narrows_a_big_doctype_instead_of_dumping_the_whole_table(
+    fake_site, fake_client
+):
+    """🔴 大 DocType 整表倒出来会被截断，正解可能就在被切掉的部分里。
+
+    实测：`Sales Order` / `Purchase Order` / `Purchase Invoice` / `Quotation`
+    各约 **38,000 字符**，而且**正好 200 字段** = 契约 `max_rows` 上限
+    ⇒ 它们**在进上下文之前就已经被截过一次**。
+    """
+    result = _run("meta.fields", {"doctype": "Sales Order", "keywords": "客户"}, fake_client)
+
+    assert result.ok, result.reasons
+    names = {r.get("fieldname") for r in result.data}
+    assert "customer" in names, f"关键词把正解也滤掉了：{sorted(names)}"
+    assert "notes" not in names, f"过滤没生效，无关字段还在：{sorted(names)}"
+
+
+def test_keywords_that_match_nothing_fall_back_to_the_whole_table(fake_site, fake_client):
+    """⚠️ **一个都没命中就回全量**，不回空。
+
+    回空会让「关键词写偏了」和「这个 DocType 上真没有」长得一模一样，
+    而前者是可恢复的、后者不是 —— 让调用方自己看得见，比替它判要好。
+    """
+    narrowed = _run(
+        "meta.fields", {"doctype": "Sales Order", "keywords": "zzz不可能命中"}, fake_client
+    )
+    full = _run("meta.fields", {"doctype": "Sales Order"}, fake_client)
+
+    assert narrowed.ok, narrowed.reasons
+    assert len(narrowed.data) == len(full.data), "没命中时应回全量，不许回空"

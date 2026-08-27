@@ -388,7 +388,13 @@ META_FIELDS = ToolContract(
     returns=Returns(
         trim_rules=(
             "剔除 Section Break / Column Break / HTML 一类纯排版 fieldtype",
-            "剔除 hidden 且无数据的字段",
+            # 🔴 2026-08-27 改：原文是「剔除 hidden 且无数据的字段」，而实现逐字
+            # `or field.get("hidden")` —— **无条件剔**，实现比契约严。
+            # 实测代价：独立评测集里 2 个正解字段是 hidden ⇒ agent 永远看不见，
+            # 而失败会伪装成「它答不出来」。⇒ 改成**保留并标记**，两边对齐。
+            "hidden 字段**保留并标记 `hidden: true`** —— 界面上不显示 ≠ 不是那个字段",
+            "给了 keywords 就只回命中的行；一个都没命中则回全量（空结果会让"
+            "「关键词写偏了」和「真没有」长得一样）",
         ),
         max_rows=200,
         must_keep=("fieldname", "fieldtype", "label"),
