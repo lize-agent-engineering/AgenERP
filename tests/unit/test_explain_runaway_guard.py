@@ -33,7 +33,8 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 import explain_fakes as fakes  # noqa: E402
 
 from agenerp.explain import explain  # noqa: E402
-from agenerp.explain.loop import (  # noqa: E402
+from agenerp.explain.loop import (
+    PER_CALL_OUTPUT_TOKENS,  # noqa: E402
     MAX_TOOL_CALLS,
     MAX_TURNS,
     STOP_ANSWERED,
@@ -265,3 +266,31 @@ def test_the_two_criteria_groups_do_not_import_each_other():
     assert "test_explain_cost_ledger" not in imported_modules(here)
     assert "test_explain_runaway_guard" not in imported_modules(cost)
     assert "explain_fakes" in imported_modules(here) & imported_modules(cost)
+
+
+# ── 「关思考 + 保持 4096」的**后半句**（人 2026-08-27 裁定）───────────────────
+
+
+def test_the_per_call_output_cap_stays_at_the_value_the_no_thinking_decision_assumed():
+    """🔴 **4096 这个数是「关思考」那条裁定的另一半，不是一个孤立的常量。**
+
+    人 2026-08-27 逐字裁定「**关思考 + 保持 4096**」。两半绑在一起：
+      · 关了思考 ⇒ reasoning 实测**每次调用都是 0**，4096 够用；
+      · 不关 ⇒ `glm-5.2` 做难题会把整个输出预算烧光
+        （实测 `completion=16385 / reasoning=16384`，`finish_reason='length'`，
+        **一个字都没吐**）—— 那时 4096 **必须**提高。
+    ⇒ **只改一半就是把决定拆了**：把 4096 调大而思考仍关着，只是白抬最坏成本；
+      把思考打开而 4096 不动，真人会拿到一片空白。
+
+    ⚠️ 这一条是**变异验证逼出来的**：2026-08-27 实测把 4096 改成 16384，
+    全仓 866 个判据**一条都没红** —— 决定的这一半此前**完全没人盯**。
+    """
+    from agenerp.routing.adapter import DEFAULT_ENABLE_THINKING
+
+    assert PER_CALL_OUTPUT_TOKENS == 4096, (
+        f"每次调用的输出上限被改成了 {PER_CALL_OUTPUT_TOKENS} —— "
+        "它是「关思考 + 保持 4096」那条裁定的一半，要改就两半一起改，并记出处"
+    )
+    assert DEFAULT_ENABLE_THINKING is False, (
+        "思考被打开了，而输出上限还留在 4096 —— **这个组合会让真人拿到一片空白**"
+    )

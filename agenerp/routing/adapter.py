@@ -107,6 +107,26 @@ def _ssl_context() -> ssl.SSLContext:
     return ssl.create_default_context(cafile=certifi.where())
 
 
+# 🔴 **产品默认：关掉思考。** 人 2026-08-27 裁定「关思考 + 保持 4096」。
+#
+# 依据是实测，两条缺一不可：
+#   (a) 不关时 `glm-5.2` 做难题会把**整个输出预算**烧在 reasoning 上 ——
+#       实测 `completion=16385 / reasoning=16384`（上限已从 4096 提到 16384），
+#       回包 `finish_reason='length'`、**一个字都没吐**。
+#       把上限调大不解决：它只是想得更多。
+#   (b) 关掉之后同一条题实测 reasoning **每次调用都是 0**，截断消失。
+# ⇒ 「关思考」与「保持 `PER_CALL_OUTPUT_TOKENS = 4096`」是**绑在一起的一个决定**：
+#    关了，4096 够用；不关，4096 必须提高。**只做一半都不行。**
+#
+# ⚠️ **它不在 OpenAI 兼容的四件套里**（`model`/`messages`/`tools`/`max_tokens`），
+#    是百炼一侧的扩展。§12.1 ① 要求「默认不指向任何商业 API」，而本常量确实
+#    把一个厂商扩展写进了默认路径 —— **这是那条要求上的一处让步，照实记。**
+#    逃生口是构造参数：**换到不认这个键的端点时，`ChatAdapter(..., enable_thinking=None)`
+#    就一个字节都不发**，行为回到本常量出现之前。
+#    不加第四个环境变量：`config.py` 的抬头逐字是「三个变量，一个默认值都没有」。
+DEFAULT_ENABLE_THINKING: bool | None = False
+
+
 class ChatAdapter:
     """绑定到一个具体模型的调用面。`route()` 返回的就是它。
 
@@ -114,8 +134,8 @@ class ChatAdapter:
     校验是 `router.route()` 的职责，放两处会出现"一处松一处紧"。
     档案带在身上是为了让调用方（P1.7 的成本面）能读到 `is_reasoning_model`。
 
-    ⚠️ **`enable_thinking` 2026-08-27 加入，默认 `None` = 一个字节都不发**，
-    因此**今天的产品行为一个字没变**。加它的理由是实测：`glm-5.2` 的思考默认开着，
+    ⚠️ **`enable_thinking` 2026-08-27 加入，同日由人裁定默认改成 `False`（关思考）。**
+    这**改变了产品行为**：从「不发送、随模型默认」变成「显式关」。理由是实测：`glm-5.2` 的思考默认开着，
     做难题时会把整个输出预算烧在 reasoning 上 ——
     实测 `completion=16385 / reasoning=16384`（上限已放到 16384），
     回包 `finish_reason='length'`、**一个字都没吐**。把上限从 4096 提到 16384 没解决，
@@ -132,7 +152,7 @@ class ChatAdapter:
         *,
         model: str | None = None,
         profile: ModelProfile | None = None,
-        enable_thinking: bool | None = None,
+        enable_thinking: bool | None = DEFAULT_ENABLE_THINKING,
         transport=None,
         timeout: int = DEFAULT_TIMEOUT,
     ) -> None:
