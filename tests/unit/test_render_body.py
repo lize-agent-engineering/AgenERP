@@ -476,3 +476,91 @@ def test_the_page_says_so_when_the_terminology_layer_is_missing(worker):
         assert "术语层没装上" in text
     finally:
         tab.close()
+
+
+# ── P2.6 · 角色首页：进来就有东西看，且那东西不是空的 ────────────────────────
+
+
+HOME_PATH = "/agenerp/home"
+
+
+def test_the_home_endpoint_resolves_the_worker_to_their_own_home_view(worker):
+    """H1 · 「这个人 → 哪一页」。**用浏览器自己的 sid 问站点**，前端不判身份。"""
+    session, base = worker
+    tab = session.new_page()
+    try:
+        res = tab.request.get(f"{base}{HOME_PATH}")
+        assert res.status == 200, f"首页解析回了 {res.status}"
+        body = res.json()
+        assert body.get("view") == "worker-work-orders", body
+        assert body.get("role") == "车间工人", body
+    finally:
+        tab.close()
+
+
+def test_an_unauthenticated_caller_is_sent_to_desk_not_given_an_empty_home(worker):
+    """🔴 H2 · fail-closed：认不出人就落回 Desk，**不给一个空首页**。
+
+    给空首页比落回 Desk 糟得多 —— 后者用户至少还能干活，
+    而一片空白的首页让人以为系统坏了或者自己没权限。
+    """
+    session, base = worker
+    context = session.browser.new_context()  # 一个**没有登录过**的新上下文
+    tab = context.new_page()
+    try:
+        res = tab.request.get(f"{base}{HOME_PATH}")
+        assert res.status in (401, 403), f"未认到人却回了 {res.status}"
+        body = res.json()
+        assert body.get("fallback") == "desk", body
+        assert not body.get("view"), f"未认到人却给了一个视图：{body}"
+    finally:
+        tab.close()
+        context.close()
+
+
+def test_the_workers_home_is_not_an_empty_workspace(worker):
+    """🔴 H3 · 判据名字说的那件事：**首页不能是空的工作台**。
+
+    「不空」按 plan §2.1 事先写死的三条判，缺一不可：
+      ① 至少渲染出 1 个块
+      ② 那些块里**至少有 1 行来自真站点的数据**
+      ③ 页面上没有落回卡片
+
+    ⚠️ 第 ② 条是硬约束 ①（**渲染出来 ≠ 渲染对了**）在本项上的形态：
+    一个画出了表头、下面一行数据都没有的首页，DOM 上「不空」，用户眼里是空的。
+    """
+    session, base = worker
+    tab = session.new_page()
+    try:
+        res = tab.request.get(f"{base}{HOME_PATH}")
+        home_view = res.json()["view"]
+    finally:
+        tab.close()
+
+    page = _render(worker, home_view)
+    try:
+        blocks = page.query_selector_all("#agenerp-view-root [data-agenerp-block-type]")
+        assert blocks, "首页一个块都没渲染出来"
+
+        rows = page.query_selector_all("#agenerp-view-root table.agenerp-table tbody tr")
+        real_rows = [r for r in rows if not r.query_selector("td.agenerp-empty")]
+        assert real_rows, (
+            "首页画出了表头，但**一行真数据都没有** —— DOM 上不空，用户眼里是空的"
+        )
+
+        assert not page.query_selector("#agenerp-view-root [data-agenerp-fallback]"), (
+            "车间工人的首页上出现了落回卡片 —— 路线 C 的承诺是这个角色日常路径上落回 = 0"
+        )
+    finally:
+        page.close()
+
+
+def test_the_shell_no_longer_hardcodes_a_default_view():
+    """H4 · 防我自己：旧的写死默认视图必须**消失**，不是「还在但没走到」。
+
+    没有这一条，H1 可以在旧路径仍然存在的情况下绿 ——
+    而那条路径会在 `/agenerp/home` 挂掉时**静默**接管，把所有人送到工人的首页。
+    """
+    shell = (REPO / "agenerp" / "serve" / "assets" / "app.html").read_text(encoding="utf-8")
+    assert '"worker-work-orders"' not in shell, "app.html 里还写死着一个默认视图名"
+    assert "/agenerp/home" in shell, "app.html 没有去问首页解析端点"
