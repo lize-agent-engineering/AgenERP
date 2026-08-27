@@ -1,0 +1,20 @@
+{
+  "Item.attributes": "Item Variant Attribute",
+  "Item.barcodes": "Item Barcode",
+  "Item.customer_items": "Item Customer Detail",
+  "Item.item_defaults": "Item Default",
+  "Item.reorder_levels": "Item Reorder",
+  "Item.supplier_items": "Item Supplier",
+  "Item.taxes": "Item Tax",
+  "Item.uoms": "UOM Conversion Detail",
+  "Sales Order.items": "Sales Order Item",
+  "Sales Order.packed_items": "Packed Item",
+  "Sales Order.payment_schedule": "Payment Schedule",
+  "Sales Order.pricing_rules": "Pricing Rule Detail",
+  "Sales Order.sales_team": "Sales Team",
+  "Sales Order.taxes": "Sales Taxes and Charges",
+  "Stock Entry.additional_costs": "Landed Cost Taxes and Charges",
+  "Stock Entry.items": "Stock Entry Detail",
+  "Work Order.operations": "Work Order Operation",
+  "Work Order.required_items": "Work Order Item"
+}
