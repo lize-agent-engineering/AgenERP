@@ -1,0 +1,567 @@
+{
+  "probe": 0,
+  "max_turns": 8,
+  "n": 20,
+  "B2_top5_pct": 95.0,
+  "tokens": {
+    "in": 116809,
+    "out": 34590,
+    "per_question": 7570
+  },
+  "tool_calls_total": 36,
+  "detail": [
+    {
+      "q": "这张销售订单是什么时候下的？",
+      "expected": [
+        "Sales Order.transaction_date"
+      ],
+      "answer_fields": [
+        "Sales Order.transaction_date",
+        "Sales Order.po_date",
+        "Sales Order.creation",
+        "Sales Order.posting_date",
+        "Sales Order.delivery_date"
+      ],
+      "grounded_fields": [
+        "Sales Order.transaction_date",
+        "Sales Order.po_date",
+        "Sales Order.delivery_date"
+      ],
+      "rank": 1,
+      "tools_used": [
+        "meta.fields"
+      ],
+      "n_tool_calls": 1,
+      "tokens": {
+        "in": 4590,
+        "out": 1354,
+        "reasoning": 1293,
+        "model_calls": 2
+      },
+      "stop_reason": null
+    },
+    {
+      "q": "销售订单承诺的交货日期在哪个字段？",
+      "expected": [
+        "Sales Order.delivery_date",
+        "Sales Order Item.delivery_date"
+      ],
+      "answer_fields": [
+        "Sales Order.delivery_date",
+        "Sales Order.schedule_date"
+      ],
+      "grounded_fields": [
+        "Sales Order.delivery_date"
+      ],
+      "rank": 1,
+      "tools_used": [],
+      "n_tool_calls": 0,
+      "tokens": {
+        "in": 1410,
+        "out": 158,
+        "reasoning": 144,
+        "model_calls": 1
+      },
+      "stop_reason": null
+    },
+    {
+      "q": "销售订单里这一行已经发了多少了？",
+      "expected": [
+        "Sales Order Item.delivered_qty"
+      ],
+      "answer_fields": [
+        "Sales Order Item.delivered_qty",
+        "Sales Order Item.qty",
+        "Sales Order Item.per_delivered",
+        "Sales Order Item.stock_qty",
+        "Sales Order Item.stock_uom"
+      ],
+      "grounded_fields": [
+        "Sales Order Item.delivered_qty",
+        "Sales Order Item.qty",
+        "Sales Order Item.stock_qty",
+        "Sales Order Item.stock_uom"
+      ],
+      "rank": 1,
+      "tools_used": [
+        "meta.fields"
+      ],
+      "n_tool_calls": 1,
+      "tokens": {
+        "in": 4556,
+        "out": 10326,
+        "reasoning": 10257,
+        "model_calls": 2
+      },
+      "stop_reason": null
+    },
+    {
+      "q": "客户的默认结算货币是什么？",
+      "expected": [
+        "Customer.default_currency"
+      ],
+      "answer_fields": [
+        "Customer.default_currency"
+      ],
+      "grounded_fields": [
+        "Customer.default_currency"
+      ],
+      "rank": 1,
+      "tools_used": [
+        "meta.fields"
+      ],
+      "n_tool_calls": 1,
+      "tokens": {
+        "in": 4556,
+        "out": 456,
+        "reasoning": 417,
+        "model_calls": 2
+      },
+      "stop_reason": null
+    },
+    {
+      "q": "采购订单是向哪个供应商下的？",
+      "expected": [
+        "Purchase Order.supplier",
+        "Purchase Order.supplier_name"
+      ],
+      "answer_fields": [
+        "Purchase Order.supplier",
+        "Purchase Order.supplier_name"
+      ],
+      "grounded_fields": [
+        "Purchase Order.supplier",
+        "Purchase Order.supplier_name"
+      ],
+      "rank": 1,
+      "tools_used": [
+        "meta.fields",
+        "schema.search"
+      ],
+      "n_tool_calls": 2,
+      "tokens": {
+        "in": 6308,
+        "out": 1164,
+        "reasoning": 1085,
+        "model_calls": 3
+      },
+      "stop_reason": null
+    },
+    {
+      "q": "采购订单这一行已经收了多少货？",
+      "expected": [
+        "Purchase Order Item.received_qty"
+      ],
+      "answer_fields": [
+        "Purchase Order Item.received_qty",
+        "Purchase Order.per_received",
+        "Purchase Order Item.qty",
+        "Purchase Order Item.returned_qty",
+        "Purchase Order Item.received_amount"
+      ],
+      "grounded_fields": [
+        "Purchase Order Item.received_qty",
+        "Purchase Order.per_received",
+        "Purchase Order Item.qty",
+        "Purchase Order Item.returned_qty"
+      ],
+      "rank": 1,
+      "tools_used": [],
+      "n_tool_calls": 0,
+      "tokens": {
+        "in": 1409,
+        "out": 547,
+        "reasoning": 512,
+        "model_calls": 1
+      },
+      "stop_reason": null
+    },
+    {
+      "q": "供应商的付款条件模板记在哪个字段？",
+      "expected": [
+        "Supplier.payment_terms"
+      ],
+      "answer_fields": [
+        "Supplier.payment_terms"
+      ],
+      "grounded_fields": [
+        "Supplier.payment_terms"
+      ],
+      "rank": 1,
+      "tools_used": [
+        "meta.fields"
+      ],
+      "n_tool_calls": 1,
+      "tokens": {
+        "in": 4539,
+        "out": 380,
+        "reasoning": 341,
+        "model_calls": 2
+      },
+      "stop_reason": null
+    },
+    {
+      "q": "某个仓库里这个物料的库存价值是多少？",
+      "expected": [
+        "Bin.stock_value"
+      ],
+      "answer_fields": [
+        "Bin.stock_value",
+        "Stock Ledger Entry.stock_value",
+        "Item.valuation_rate",
+        "Bin.valuation_rate",
+        "Stock Ledger Entry.valuation_rate"
+      ],
+      "grounded_fields": [
+        "Bin.stock_value",
+        "Stock Ledger Entry.stock_value",
+        "Item.valuation_rate",
+        "Bin.valuation_rate",
+        "Stock Ledger Entry.valuation_rate"
+      ],
+      "rank": 1,
+      "tools_used": [],
+      "n_tool_calls": 0,
+      "tokens": {
+        "in": 1409,
+        "out": 496,
+        "reasoning": 465,
+        "model_calls": 1
+      },
+      "stop_reason": null
+    },
+    {
+      "q": "物料的估价方法是先进先出还是移动加权？",
+      "expected": [
+        "Item.valuation_method"
+      ],
+      "answer_fields": [
+        "Item.valuation_method"
+      ],
+      "grounded_fields": [
+        "Item.valuation_method"
+      ],
+      "rank": 1,
+      "tools_used": [
+        "meta.fields",
+        "schema.search"
+      ],
+      "n_tool_calls": 2,
+      "tokens": {
+        "in": 6281,
+        "out": 559,
+        "reasoning": 486,
+        "model_calls": 3
+      },
+      "stop_reason": null
+    },
+    {
+      "q": "库存流水里这一笔的单位成本是多少？",
+      "expected": [
+        "Stock Ledger Entry.valuation_rate"
+      ],
+      "answer_fields": [
+        "Stock Ledger Entry.valuation_rate",
+        "Stock Ledger Entry.incoming_rate",
+        "Stock Ledger Entry.outgoing_rate",
+        "Stock Ledger Entry.stock_queue",
+        "Stock Ledger Entry.stock_value"
+      ],
+      "grounded_fields": [
+        "Stock Ledger Entry.valuation_rate",
+        "Stock Ledger Entry.incoming_rate",
+        "Stock Ledger Entry.outgoing_rate",
+        "Stock Ledger Entry.stock_queue",
+        "Stock Ledger Entry.stock_value"
+      ],
+      "rank": 1,
+      "tools_used": [
+        "meta.fields",
+        "schema.search"
+      ],
+      "n_tool_calls": 2,
+      "tokens": {
+        "in": 6343,
+        "out": 1450,
+        "reasoning": 1345,
+        "model_calls": 3
+      },
+      "stop_reason": null
+    },
+    {
+      "q": "库存调拨单这一行入到哪个仓库？",
+      "expected": [
+        "Stock Entry Detail.t_warehouse"
+      ],
+      "answer_fields": [
+        "Stock Entry Detail.t_warehouse",
+        "Stock Entry.to_warehouse",
+        "Stock Ledger Entry.warehouse",
+        "Stock Entry Detail.s_warehouse",
+        "Stock Entry.from_warehouse"
+      ],
+      "grounded_fields": [
+        "Stock Entry Detail.t_warehouse",
+        "Stock Entry.to_warehouse",
+        "Stock Ledger Entry.warehouse",
+        "Stock Entry Detail.s_warehouse",
+        "Stock Entry.from_warehouse"
+      ],
+      "rank": 1,
+      "tools_used": [
+        "meta.fields",
+        "schema.search"
+      ],
+      "n_tool_calls": 3,
+      "tokens": {
+        "in": 11665,
+        "out": 1779,
+        "reasoning": 1646,
+        "model_calls": 4
+      },
+      "stop_reason": null
+    },
+    {
+      "q": "这个仓库属于哪家公司？",
+      "expected": [
+        "Warehouse.company"
+      ],
+      "answer_fields": [
+        "Warehouse.company"
+      ],
+      "grounded_fields": [
+        "Warehouse.company"
+      ],
+      "rank": 1,
+      "tools_used": [
+        "meta.fields"
+      ],
+      "n_tool_calls": 1,
+      "tokens": {
+        "in": 3571,
+        "out": 3878,
+        "reasoning": 3841,
+        "model_calls": 2
+      },
+      "stop_reason": null
+    },
+    {
+      "q": "这张 BOM 的原材料成本合计是多少？",
+      "expected": [
+        "BOM.raw_material_cost",
+        "BOM.base_raw_material_cost"
+      ],
+      "answer_fields": [
+        "BOM.raw_material_cost",
+        "BOM.base_raw_material_cost"
+      ],
+      "grounded_fields": [
+        "BOM.raw_material_cost",
+        "BOM.base_raw_material_cost"
+      ],
+      "rank": 1,
+      "tools_used": [
+        "meta.fields"
+      ],
+      "n_tool_calls": 1,
+      "tokens": {
+        "in": 4646,
+        "out": 309,
+        "reasoning": 260,
+        "model_calls": 2
+      },
+      "stop_reason": null
+    },
+    {
+      "q": "工单计划要生产多少件？",
+      "expected": [
+        "Work Order.qty"
+      ],
+      "answer_fields": [
+        "Work Order.qty",
+        "Work Order.produced_qty",
+        "Work Order.material_transferred_for_manufacturing",
+        "Work Order.batch_size",
+        "Work Order.disassembled_qty"
+      ],
+      "grounded_fields": [
+        "Work Order.qty",
+        "Work Order.produced_qty",
+        "Work Order.material_transferred_for_manufacturing",
+        "Work Order.batch_size",
+        "Work Order.disassembled_qty"
+      ],
+      "rank": 1,
+      "tools_used": [
+        "meta.fields",
+        "schema.search"
+      ],
+      "n_tool_calls": 2,
+      "tokens": {
+        "in": 6323,
+        "out": 5877,
+        "reasoning": 5778,
+        "model_calls": 3
+      },
+      "stop_reason": null
+    },
+    {
+      "q": "工人报工完成了多少数量？",
+      "expected": [
+        "Job Card.total_completed_qty"
+      ],
+      "answer_fields": [],
+      "grounded_fields": [],
+      "rank": null,
+      "tools_used": [
+        "meta.fields",
+        "schema.search"
+      ],
+      "n_tool_calls": 8,
+      "tokens": {
+        "in": 18576,
+        "out": 1941,
+        "reasoning": 1679,
+        "model_calls": 8
+      },
+      "stop_reason": null
+    },
+    {
+      "q": "这张销售发票还有多少钱没收回来？",
+      "expected": [
+        "Sales Invoice.outstanding_amount"
+      ],
+      "answer_fields": [
+        "Sales Invoice.outstanding_amount",
+        "Sales Invoice.base_outstanding_amount",
+        "Sales Invoice.paid_amount",
+        "Sales Invoice.grand_total",
+        "Sales Invoice.total_amount"
+      ],
+      "grounded_fields": [
+        "Sales Invoice.outstanding_amount",
+        "Sales Invoice.paid_amount",
+        "Sales Invoice.grand_total"
+      ],
+      "rank": 1,
+      "tools_used": [],
+      "n_tool_calls": 0,
+      "tokens": {
+        "in": 1408,
+        "out": 950,
+        "reasoning": 916,
+        "model_calls": 1
+      },
+      "stop_reason": null
+    },
+    {
+      "q": "总账分录记在哪个科目上？",
+      "expected": [
+        "GL Entry.account"
+      ],
+      "answer_fields": [
+        "GL Entry.account"
+      ],
+      "grounded_fields": [
+        "GL Entry.account"
+      ],
+      "rank": 1,
+      "tools_used": [
+        "meta.fields",
+        "schema.search"
+      ],
+      "n_tool_calls": 2,
+      "tokens": {
+        "in": 6148,
+        "out": 743,
+        "reasoning": 669,
+        "model_calls": 3
+      },
+      "stop_reason": null
+    },
+    {
+      "q": "付款单实际付了多少钱？",
+      "expected": [
+        "Payment Entry.paid_amount",
+        "Payment Entry.base_paid_amount"
+      ],
+      "answer_fields": [
+        "Payment Entry.paid_amount",
+        "Payment Entry.base_paid_amount",
+        "Payment Entry.paid_from",
+        "Payment Entry.received_amount",
+        "Payment Entry.total_allocated_amount"
+      ],
+      "grounded_fields": [
+        "Payment Entry.paid_amount",
+        "Payment Entry.base_paid_amount",
+        "Payment Entry.paid_from",
+        "Payment Entry.received_amount",
+        "Payment Entry.total_allocated_amount"
+      ],
+      "rank": 1,
+      "tools_used": [
+        "meta.fields",
+        "schema.search"
+      ],
+      "n_tool_calls": 3,
+      "tokens": {
+        "in": 8106,
+        "out": 1080,
+        "reasoning": 950,
+        "model_calls": 4
+      },
+      "stop_reason": null
+    },
+    {
+      "q": "分期付款计划里每一期的到期日是哪个字段？",
+      "expected": [
+        "Payment Schedule.due_date"
+      ],
+      "answer_fields": [
+        "Payment Schedule.due_date"
+      ],
+      "grounded_fields": [
+        "Payment Schedule.due_date"
+      ],
+      "rank": 1,
+      "tools_used": [
+        "meta.fields",
+        "schema.search"
+      ],
+      "n_tool_calls": 4,
+      "tokens": {
+        "in": 8928,
+        "out": 817,
+        "reasoning": 677,
+        "model_calls": 5
+      },
+      "stop_reason": null
+    },
+    {
+      "q": "质检单的检验结论是合格还是不合格？",
+      "expected": [
+        "Quality Inspection.status"
+      ],
+      "answer_fields": [
+        "Quality Inspection.status"
+      ],
+      "grounded_fields": [
+        "Quality Inspection.status"
+      ],
+      "rank": 1,
+      "tools_used": [
+        "meta.fields",
+        "schema.search"
+      ],
+      "n_tool_calls": 2,
+      "tokens": {
+        "in": 6037,
+        "out": 326,
+        "reasoning": 252,
+        "model_calls": 3
+      },
+      "stop_reason": null
+    }
+  ]
+}
