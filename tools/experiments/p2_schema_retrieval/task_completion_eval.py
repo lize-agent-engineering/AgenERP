@@ -162,16 +162,52 @@ def committed_field(answer: str) -> tuple[str | None, str]:
     return hits[0], "最后一行承诺"
 
 
-def main() -> None:
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--eval", required=True)
-    ap.add_argument("--out", required=True)
-    ap.add_argument("--sample", type=int, default=0)
-    ap.add_argument("--probe", type=int, default=0)
-    ap.add_argument("--max-turns", type=int, default=8)
-    ap.add_argument("--schema", default="/tmp/schema.json")
-    ap.add_argument("--judge-model", default="qwen3.6-plus")
-    args = ap.parse_args()
+SCHEMA_DEFAULT = "/tmp/schema.json"
+
+
+class _Args:
+    """`run_eval()` 的参数袋。**存在的理由是「只搬不改」** ——
+    函数体里到处是 `args.xxx`，换成散参数就得逐行改，
+    那会把「搬家」变成「重写」，而重写之后再出问题就分不清是搬坏的还是本来就坏的。
+    """
+
+    def __init__(self, **kw) -> None:
+        self.__dict__.update(kw)
+
+
+def field_exists(doctype: str, fieldname: str, *, schema_path: str = SCHEMA_DEFAULT) -> bool:
+    """这个字段在**站点导出的 schema** 里真的存在吗（硬约束 ④ 的机械判法）。
+
+    读的是 `dump_schema.py` 从活站点导出的那份，不是我脑子里的印象。
+    """
+    rows = json.load(open(schema_path))["fields"]
+    return any(f["doctype"] == doctype and f["fieldname"] == fieldname for f in rows)
+
+
+def run_eval(
+    *,
+    eval_path,
+    out_path=None,
+    sample: int = 0,
+    probe: int = 0,
+    max_turns: int = 8,
+    schema_path: str = SCHEMA_DEFAULT,
+    judge_model: str = "glm-5.2",
+) -> dict:
+    """跑一轮评测，**返回结果字典**（给了 `out_path` 才落盘）。
+
+    `main()` 现在只是它的薄壳 —— 门禁要 import 的是这个函数，
+    而不是 subprocess 调 CLI 再去解析它打印的字。
+    """
+    args = _Args(
+        eval=str(eval_path),
+        out=str(out_path) if out_path else "",
+        sample=sample,
+        probe=probe,
+        max_turns=max_turns,
+        schema=schema_path,
+        judge_model=judge_model,
+    )
 
     from agenerp.explain.loop import explain
     from agenerp.routing.capabilities import KNOWN_MODEL_PROFILES
@@ -338,12 +374,31 @@ def main() -> None:
     print(f"   用量：{tot:,} token（agent）+ 判官 {usage.get('judge_in', 0)}"
           f"/{usage.get('judge_out', 0)}（{usage.get('judge_calls', 0)} 次）")
 
-    json.dump({"metric": "task_completion_rate", "n_scored": len(scored),
+    payload = {"metric": "task_completion_rate", "n_scored": len(scored),
                "n_infrastructure": len(infra), "task_completion_pct": round(rate, 1),
                "judge_model": args.judge_model, "max_turns": args.max_turns,
-               "usage": usage, "causes": list(CAUSES), "detail": detail},
-              open(args.out, "w"), ensure_ascii=False, indent=2)
-    print(f"→ {args.out}")
+               "usage": usage, "causes": list(CAUSES), "detail": detail}
+    if args.out:
+        json.dump(payload, open(args.out, "w"), ensure_ascii=False, indent=2)
+        print(f"→ {args.out}")
+    return payload
+
+
+def main() -> None:
+    """CLI 薄壳。**这里不许有任何判定逻辑** —— 判定全在 `run_eval()` 里，
+    否则「命令行跑」与「门禁 import 跑」会长出两套口径。
+    """
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--eval", required=True)
+    ap.add_argument("--out", required=True)
+    ap.add_argument("--sample", type=int, default=0)
+    ap.add_argument("--probe", type=int, default=0)
+    ap.add_argument("--max-turns", type=int, default=8)
+    ap.add_argument("--schema", default=SCHEMA_DEFAULT)
+    ap.add_argument("--judge-model", default="glm-5.2")
+    a = ap.parse_args()
+    run_eval(eval_path=a.eval, out_path=a.out, sample=a.sample, probe=a.probe,
+             max_turns=a.max_turns, schema_path=a.schema, judge_model=a.judge_model)
 
 
 if __name__ == "__main__":

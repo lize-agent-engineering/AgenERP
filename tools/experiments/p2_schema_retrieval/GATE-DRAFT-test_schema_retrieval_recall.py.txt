@@ -1,122 +1,246 @@
 # ⚠️ 这是**草稿，不是判据**。后缀刻意是 `.txt`，路径刻意不在 `tests/gates/` 下。
 #
 # 红线 1：`tests/gates/**` 只能由人改。**我不建它，也不碰那个目录。**
-# 人 2026-08-26 裁定「你来写」⇒ 本文件是交给人的材料，由人看过之后自行落进
-# `tests/gates/test_schema_retrieval_recall.py`（提交带 `Gates-Change-Approved-By:`）。
+# 由人看过之后自行落进 `tests/gates/test_schema_field_task_completion.py`
+# （提交带 `Gates-Change-Approved-By:`）。
 #
 # ============================================================================
-# 落之前请先读这四条 —— 它们是我在三轮实测里撞出来的，不是风格建议
+# 🔴 2026-08-27 **整份重写**。上一版判的是 Top-5 命中率 ≥90%，那一版**作废**。
 # ============================================================================
 #
-# ① 🔴 **今天的实测值是 65.0%，验收线是 90%。这条判据落下去就是红的。**
-#    这是对的：`tools/gates/expected-red.txt` 存在的意义就是「故意的红」。
-#    但请**同时把它加进那份名单**，否则判定器会判成「真的坏了」。
+# 为什么作废 —— 两条，都是实测出来的，不是口味问题：
 #
-# ② 🔴 **别把 oracle 那 97.5% 当成达标。** 它假设「已经知道正确 DocType」，
-#    而那正是待解的部分。判据必须量**端到端**（问句 → 字段），不许给 DocType。
+# ① **Top-5 奖励撒网。** 按 `verifier-design` 的「Test the decision boundary」造 fixture：
+#      Job Card.a / Job Card.b / Job Card.total_completed_qty / Job Card.c / Job Card.d
+#    旧口径判 **Pass** —— 塞满五个候选就能过。而生产要的是 agent **敢承诺一个答案**。
+#    人给的生产标准逐字是「**任务完成率 ≥95%**」，不是 Top-5。
 #
-# ③ 🔴 **`live`（只索引有数据的 DocType）过滤器不能无条件启用。**
-#    本站点上它是净亏的（65.0% → 62.5%）：新中 4 条、丢掉 5 条，
-#    而丢掉的恰好是答案 DocType 行数为 0 的那 5 条。⇒ **判据若用 live 范围，
-#    它的上限就是 87.5% < 90%，永远不可能绿。** 建议用 business 全量范围。
+# ② **上一版判的东西在仓里不存在。** 它要一个 `_build_retriever()`，
+#    而现役 `schema_search` 只做名字子串匹配、根本不回字段。
+#    改成任务完成率之后，**被判的是 `agenerp/explain/loop.py` + 只读工具面** ——
+#    那是真的产品代码，本来就在仓里。⇒ 这一版不再需要任何「尚不存在的东西」。
 #
-# ④ 🔴 **评测集不该长期是我出的那 40 条。** 我已经在这同一份上跑了三轮，
-#    还看过它每一轮的 miss。要它当裁判，**至少得有一份不是我出的**。
-#    这条比上面三条都重要。
+# ============================================================================
+# 落之前请先读这五条
+# ============================================================================
+#
+# ① 🔴 **门槛几、n 多少，这两个数只能由人定，我不给。**
+#    - WBS 上那个 90% **在仓里找不到任何推导记录**（Spike 07 的原始线是 80%，早已越过）。
+#    - 人口述的生产标准是 **≥95%**。
+#    - 而 **n=20 判不了 95%**：20/20 的 95% 置信下界只有 **86.1%**，
+#      19/20 只有 **78.4%**。要让下界真的压过 95%，需 **n≥60 且零失败**。
+#    - 评测集现在只有 **40 条**。
+#    ⇒ 门槛与样本量是**同一个决定的两半**，分开定必然自相矛盾。
+#
+# ② 🔴 **这条门禁要烧钱，不是普通门禁。**
+#    实测（glm-5.2，n=20，`max_turns=20`）：**308,514 token**，
+#    中位 5,081 / 最大 144,949。n=60 按此均价约 **1.27M**。
+#    ⇒ 它只能是 `-m live` 的按需门禁，**不许进任何自动跑的全量套件**。
+#
+# ③ 🔴 **评测集不该长期是我出的那 40 条。** 我在同一份上跑了六轮，
+#    每一轮的 miss 都看过。**在自己出的题上拿 100%，恰恰是这个数最不可信的时候。**
+#    这条比上面两条都重要，而且**我自己解不了**。
+#
+# ④ ⚠️ **验证器本体今天住在 `tools/experiments/` 下。**
+#    门禁去 import 实验目录是脆的（实验目录本来就该能随便改）。
+#    要长期留着这条门禁，得先把验证器搬进 `agenerp/`（或 `tests/support/`）。
+#    **这一步我没做** —— 搬家会改产品包的边界，该由人定落点。
+#
+# ⑤ ⚠️ **判官与被判是同一个模型族**（都 `glm-5.2`），独立性打折。
+#    上一轮 20 条里判官只出场 1 次（其余在「可接受集合」层就判完了），
+#    影响有限，但**这条限制要一直写在这儿**，不许因为影响小就抹掉。
 #
 # ============================================================================
 
-"""🔴 门禁 · schema 检索：自然语言问句 → 目标字段的 Top-5 命中率
+"""🔴 门禁 · schema 字段问答的**任务完成率**
 
-判据来源：WBS `02-WBS.md` §5 P2.0R —— 「在本站点真实 DocType 上，自然语言问句
-→ 目标字段的 **Top-5 命中率 ≥ 90%**」。
+判据来源：人口述的生产标准「Agent 的任务完成率要达到 95% 以上才能具备生产的标准」。
+⚠️ WBS `02-WBS.md` §5 P2.0R 上写的仍是旧口径（Top-5 ≥90%）——
+**那一条与本文件冲突，由人裁定以哪个为准**，我不替 WBS 改字。
 
-## 它防的是什么
+## 它判什么
 
-P2.3（视图 Agent）与整个 P3（操作 Agent）都建立在 schema 检索之上。
-检索不准，视图会画错字段，写入 Agent 会改错单据 —— **后者是脏账，不是错答案。**
+拿**真实产品路径**（`agenerp/explain/loop.py` + 只读工具面 + 活站点）跑一组中文业务问句，
+每条要求 agent **承诺一个字段**，然后验证那个字段：
 
-## 它**不**验什么（写清楚，免得有人以为验了）
+| 层 | 判什么 | 依据 |
+|---|---|---|
+| 1 规则 | 承诺了吗？字段在站点上**真实存在**吗？ | 硬约束 ④ |
+| 2 可接受集合 | 命中事先列好的等价答案 ⇒ 过，**不惊动判官** | reference-based |
+| 3 判官 | 只判「这个字段是否同样能回答该问题」 | reference-free |
 
-- **不验 oracle 上界。** 给定 DocType 时 Top-5 = 97.5%，那不是可交付的检索器。
-- **不验 DocType 级召回。** 那是中间量，不是用户拿到的东西。
+**最后一行给多个字段 ⇒ 判「未承诺」**，不替它挑 —— 那正是 Top-5 放过的那一格。
+
+## 它**不**判什么
+
+- **不判 Top-5、不判召回率。** 见文件头 ①。
+- **不判 oracle 上界**（给定 DocType 时的命中率）—— 那不是可交付的东西。
+- **不判成本。** 成本是选型偏好，不是判据（同 `capabilities.py` 的摆放规矩）。
+  ⚠️ 但成本要**打印出来**：一条 144,949 token 的通过，是通过，也是警报。
 """
 from __future__ import annotations
 
 import json
 import os
 import pathlib
+import sys
 
 import pytest
 
-REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
-EVAL_SET = REPO_ROOT / "tools/experiments/p2_schema_retrieval/eval-set.json"
+pytestmark = pytest.mark.live
 
-# WBS §5 写死的线。**改这个数就是改裁判。**
-REQUIRED_TOP5 = 90.0
+def _repo_root() -> pathlib.Path:
+    """向上找 `pyproject.toml`，**不数目录层数**。
 
-# 索引范围：**business 全量**。见文件头 ③——live 范围在本站点上限只有 87.5%。
-SCOPE = "business"
+    ⚠️ 数层数（`parents[2]`）只在「文件恰好落在 tests/gates/ 下」时才对。
+    草稿阶段在别处跑一遍就会指到仓外，而失败长得像「验证器坏了」——
+    实测踩过（2026-08-27）。
+    """
+    here = pathlib.Path(__file__).resolve()
+    for parent in here.parents:
+        if (parent / "pyproject.toml").exists():
+            return parent
+    raise RuntimeError(f"从 {here} 向上找不到 pyproject.toml —— 不猜仓根")
 
 
-@pytest.mark.live
-def test_natural_language_questions_find_the_right_field_in_top_five(live_site):
-    """端到端：问句 → 字段，Top-5 命中率 ≥ 90%。"""
-    retriever = _build_retriever(live_site)          # ← 待实现（今天仓内没有）
+REPO_ROOT = _repo_root()
+EXPERIMENT_DIR = REPO_ROOT / "tools/experiments/p2_schema_retrieval"
+EVAL_SET = EXPERIMENT_DIR / "eval-set.json"
+
+# 🔴 **这两个数由人填，我不给。** 见文件头 ①：它们是同一个决定的两半。
+#    参考点（都是实测/算出来的，不是建议值）：
+#      人口述的生产标准 = 95.0
+#      n=60 零失败 → 95% 置信下界 95.1%   ← 刚好压过
+#      n=40 零失败 → 92.8%                ← 压不过，而评测集现在就 40 条
+#      n=20 零失败 → 86.1%
+REQUIRED_COMPLETION_RATE: float | None = None
+REQUIRED_SAMPLE_SIZE: int | None = None
+
+
+def _verifier():
+    """把验证器请进来。**见文件头 ④：它今天住在实验目录，这是临时的。**"""
+    if str(EXPERIMENT_DIR) not in sys.path:
+        sys.path.insert(0, str(EXPERIMENT_DIR))
+    import task_completion_eval as tce  # noqa: PLC0415
+
+    return tce
+
+
+def test_the_thresholds_were_set_by_a_human_not_by_the_thing_being_judged():
+    """🔴 **先判「裁判定了没有」，再判「过没过」。**
+
+    ⚠️ **fail 不是 skip** —— 一条会 skip 的门禁等于一条不存在的门禁。
+    门槛留空时本条红，且红得说得清红在哪：**没人定线**，不是「跑不出来」。
+
+    为什么这一条必须在最前面：WBS 上那个 90% 在仓里**找不到任何推导记录**，
+    而它一度被当成验收线用了六轮。**一个没有出处的数不该继续当裁判。**
+    """
+    assert REQUIRED_COMPLETION_RATE is not None, (
+        "门槛还没人定 —— 见文件头 ①。WBS 上的 90% 无推导记录，"
+        "人口述的生产标准是 95%，而 n=20 的置信下界只有 86.1%。"
+        "门槛与样本量得一起定。"
+    )
+    assert REQUIRED_SAMPLE_SIZE is not None, "样本量还没人定 —— 见文件头 ①"
+
     items = json.loads(EVAL_SET.read_text(encoding="utf-8"))["items"]
-
-    # ⚠️ 评测集自己先得过硬约束 ④：每条 ground truth 必须指回真实存在的字段。
-    # 一份指不回真实字段的评测集，量出来的命中率没有意义。
-    _assert_every_ground_truth_field_exists_on_the_site(live_site, items)
-
-    hits = 0
-    misses = []
-    for item in items:
-        top5 = retriever.top_fields(item["q"], k=5)
-        if set(top5) & set(item["expected"]):
-            hits += 1
-        else:
-            misses.append({"q": item["q"], "expected": item["expected"], "got": top5})
-
-    rate = hits * 100 / len(items)
-    # ⚠️ **不许写成 `assert rate >= REQUIRED_TOP5 or <任何东西>`。**
-    # 一个 `or` 就是 P1 那次误放行的形状。失败时把 miss 全列出来，
-    # 让红的那一次自己说清红在哪 —— 但那是 message，不是逃逸。
-    assert rate >= REQUIRED_TOP5, (
-        f"Top-5 命中率 {rate:.1f}% < {REQUIRED_TOP5}%（{hits}/{len(items)}）。"
-        f"未命中 {len(misses)} 条：\n"
-        + "\n".join(f"  · {m['q']}\n    期望 {m['expected']}\n    拿到 {m['got']}" for m in misses)
+    assert len(items) >= REQUIRED_SAMPLE_SIZE, (
+        f"评测集只有 {len(items)} 条，够不到定下的样本量 {REQUIRED_SAMPLE_SIZE} 条。"
+        "⇒ 先补题，别改线。"
     )
 
 
-@pytest.mark.live
-def test_the_eval_set_is_not_authored_by_whoever_is_being_judged(live_site):
-    """🔴 见文件头 ④。
+def test_the_verifier_holds_its_own_decision_boundary_before_it_judges_anything():
+    """🔴 **验证器自己先过边界测试，再去判别人。**
+
+    两份 fixture 缺一不可，且**必须跑在评测之前**：
+      - `test_verifier_boundary.py`：规则层八格（其中一格专测 reward hack ——
+        旧的 Top-5 评分器在那一格是**放行**的）
+      - `test_judge_boundary.py`：判官层六格，**误放行与假拒两侧都测**
+
+    ⚠️ 这不是走过场：判官层第一次跑，错的那一格是**出题的人**——
+    把 `Job Card.for_quantity`（「Qty To Manufacture」= **计划**数量）
+    标成了可接受，而问句问的是**完成**了多少。判官判对了。
+    """
+    import subprocess  # noqa: PLC0415
+
+    for name in ("test_verifier_boundary.py", "test_judge_boundary.py"):
+        done = subprocess.run(  # noqa: S603
+            [sys.executable, str(EXPERIMENT_DIR / name)],
+            capture_output=True, text=True, timeout=900,
+        )
+        assert done.returncode == 0, (
+            f"{name} 没全过 —— **验证器自己就不可信，别拿它去判 agent**。\n"
+            f"{done.stdout[-2000:]}\n{done.stderr[-1000:]}"
+        )
+
+
+def test_the_agent_commits_and_gets_the_field_right(live_site):
+    """端到端：真产品路径跑评测集，任务完成率 ≥ 人定的那条线。"""
+    if REQUIRED_COMPLETION_RATE is None:
+        pytest.fail("门槛没人定 —— 见上一条判据")
+
+    tce = _verifier()
+    result = tce.run_eval(
+        eval_path=EVAL_SET,
+        sample=REQUIRED_SAMPLE_SIZE,
+        max_turns=20,
+        judge_model=os.environ.get("AGENERP_JUDGE_MODEL", "glm-5.2"),
+    )
+
+    # ⚠️ **只有 `infrastructure` 不计分**（构建/凭据/判官这类真的坏了）。
+    # `harness` 计分 —— 那是我们自己的配置问题，藏起来等于把失败洗掉。
+    # 这一条是用血换的：第一次跑出「18/18 = 100%」，靠的就是把 2 条归成
+    # infrastructure 排除掉；读完整记录才发现它们是**被我设的轮数上限截断的**。
+    scored = [d for d in result["detail"] if d.get("cause") != "infrastructure"]
+    passed = [d for d in scored if d["passed"]]
+    rate = len(passed) * 100 / len(scored) if scored else 0.0
+
+    # 成本照实打印。**它不是判据**（见文档串「不判什么」），但它是警报。
+    tokens = sorted(d["tokens"]["in"] + d["tokens"]["out"] for d in result["detail"])
+    print(  # noqa: T201
+        f"\n任务完成率 {rate:.1f}%（{len(passed)}/{len(scored)}）· "
+        f"token 合计 {sum(tokens):,} · 中位 {tokens[len(tokens) // 2]:,} · 最大 {tokens[-1]:,}"
+    )
+
+    # ⚠️ **不许写成 `assert rate >= 线 or <任何东西>`。**
+    # 一个 `or` 就是 P1 那次误放行的形状。失败时把每一条都列出来 ——
+    # 那是 message，不是逃逸。
+    failures = [d for d in scored if not d["passed"]]
+    assert rate >= REQUIRED_COMPLETION_RATE, (
+        f"任务完成率 {rate:.1f}% < {REQUIRED_COMPLETION_RATE}%"
+        f"（{len(passed)}/{len(scored)}）。未通过 {len(failures)} 条：\n"
+        + "\n".join(
+            f"  · {d['q']}\n    期望 {d['acceptable']}\n"
+            f"    承诺 {d['committed']!r}（{d['commit_note']}）\n"
+            f"    归因 {d.get('cause')} · {d.get('why')}"
+            for d in failures
+        )
+    )
+
+
+def test_every_ground_truth_field_really_exists_on_the_site(live_site):
+    """硬约束 ④ 用在**评测集自己**身上：ground truth 必须指回真实存在的字段。
+
+    一份指不回真实字段的评测集，量出来的数没有意义 —— 那是在判「我猜得准不准」。
+    """
+    tce = _verifier()
+    items = json.loads(EVAL_SET.read_text(encoding="utf-8"))["items"]
+    missing = []
+    for item in items:
+        for ref in item["expected"]:
+            doctype, _, fieldname = ref.partition(".")
+            if not tce.field_exists(doctype, fieldname):
+                missing.append(ref)
+    assert not missing, f"评测集里这些 ground truth 在站点上不存在：{sorted(set(missing))}"
+
+
+def test_the_eval_set_is_not_authored_by_whoever_is_being_judged():
+    """🔴 见文件头 ③ —— **这一条我给不出实现，因为第二份评测集还不存在。**
 
     评测集若长期只有一份、且出自被判者之手，这条门禁量的是「他挑的题他会不会」。
-    建议的形态：评测集里带 `author` 字段，且**至少有一份不是 loop 出的**；
-    本条断言检查确实存在这样一份并被计入。
+    建议的形态：每条带 `author`，且断言**至少有一份不是 loop 出的**并被计入。
+    形态与出处由人定。
 
-    ⚠️ **这条我给不出实现，因为第二份评测集还不存在。** 由人决定形态。
+    ⚠️ **fail 不是 skip。** 这条红着是对的 —— 它红的是一件真的没做的事。
     """
-    pytest.fail("待人定义：第二份评测集的形态与出处，见文件头 ④")
-
-
-def _build_retriever(live_site):
-    """⚠️ **今天仓内不存在。**
-
-    现役 `agenerp/tools/site_scope.py::schema_search` 只做 DocType 名 + 模块名的
-    子串匹配，**根本不返回字段**（实测对中文问句字段级 Top-5 = 0%）。
-    P2.0R 三轮跑的是 `tools/experiments/p2_schema_retrieval/` 下的实验脚本，
-    那些是实验设施，不是产品代码。
-
-    ⇒ 这条判据落下去之后，**「让它变绿」这件事本身就是 P2.0R 的工作内容。**
-    """
-    raise NotImplementedError("检索器尚未落进 agenerp/，见 P2.0R 三轮 plan")
-
-
-def _assert_every_ground_truth_field_exists_on_the_site(live_site, items):
-    """硬约束 ④ 用在评测集自己身上。实现参考
-    `tools/experiments/p2_schema_retrieval/` 里那段验证（2026-08-26 实测 40/40 通过）。
-    """
-    raise NotImplementedError("由人按站点访问方式实现（meta.fields 或 frappe.get_meta）")
+    pytest.fail("待人定义：第二份评测集的形态与出处，见文件头 ③")
