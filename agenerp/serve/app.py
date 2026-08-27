@@ -162,6 +162,7 @@ class ServiceDeps:
         default_factory=lambda: tuple(KNOWN_MODEL_PROFILES.values())
     )
     doctypes: Sequence[str] | None = None
+    schema_path: str | None = None  # 快照路径；None = 用 `schema_snapshot.DEFAULT_PATH`
     config_factory: Callable[[], Any] = config_from_env
     llm_transport: Any = None
     explain_fn: Callable[..., Any] = explain
@@ -173,44 +174,36 @@ class ServiceDeps:
     schema_factory: Callable[["ServiceDeps"], "SchemaView | None"] = None  # type: ignore[assignment]
 
     def schema(self) -> "SchemaView | None":
-        factory = self.schema_factory or _schema_from_site
+        factory = self.schema_factory or _schema_from_snapshot
         return factory(self)
 
 
-def _schema_from_site(deps: "ServiceDeps") -> "SchemaView | None":
-    """从活站点取 schema。**任何失败都回 `None`，不吞成空 schema。**
+def _schema_from_snapshot(deps: "ServiceDeps") -> "SchemaView | None":
+    """读**离线生成的快照**，不打站点。
 
-    v0 只取本服务真会渲染的那几张表（视图里出现过的 DocType 与它们声明的子表）——
-    整站六千多个字段没必要每次请求都拉一遍，而「只拉用得着的」也让
-    「视图引用了一张没拉的表」这件事**当场变成 `has_doctype` 为假**，
-    而不是悄悄放行。
+    🔴 2026-08-27 改。原来这里是 `_schema_from_site()`，它调
+    `deps.client_factory(site=…, transport=…)` —— **不给 `sid`**，
+    而默认工厂 `client_from_sid(site, sid, *, transport)` 的 `sid` 是必填。
+    ⇒ 实测 `TypeError: missing 1 required positional argument: 'sid'`，
+    被下面那个 `except Exception: return None` 吞掉 ⇒ **视图计划端点在生产上恒回 503**。
+    生产入口 `agenerp/serve/__main__.py` 是零 override 的 `build_server(...)`，
+    所以那条路上没有任何东西会把工厂换掉。单测发现不了：它注入了 `schema_factory`。
+
+    **为什么不是「补上 sid」**：人 2026-08-27 裁定「schema 可以全部共享，
+    但操作一定要按调用者的权限来」。schema 既然人人可见，就不必按调用者取，
+    本端点也就不必认人（那正是它 docstring 里那条设计）。
+    而**服务端也不能自己拿凭据去取** —— 判据⑧ 钉死了「零凭据零件」
+    与「不许自己构造 `SiteClient`」，用意是**服务端永远只以调用者的身份对站点说话**。
+
+    ⇒ 取 schema 这件事整个挪到离线：`agenerp/schema_snapshot.py`（**在 serve 之外**）
+    生成一份 JSON，这里只读它。判据⑧ 一条都不用绕，
+    顺带修掉「每个请求都去拉 N 个 DocType meta」这个性能坑。
+
+    ⚠️ 代价照实记：**快照会过期，改了 DocType 要重新生成**（命令见那个模块）。
     """
-    wanted: set[str] = set()
-    for view in VIEWS_BY_NAME.values():
-        for block in view.blocks:
-            if block.doctype:
-                wanted.add(block.doctype)
-            for _table_field, child_doctype, _names in block.child_fields:
-                wanted.add(child_doctype)
-    try:
-        client = deps.client_factory(site=deps.site, transport=deps.site_transport)
-        rows: list[dict] = []
-        for doctype in sorted(wanted):
-            meta = client.get(f"/api/resource/DocType/{doctype}")
-            for field_row in (meta.get("data") or {}).get("fields") or []:
-                rows.append(
-                    {
-                        "doctype": doctype,
-                        "fieldname": field_row.get("fieldname"),
-                        "fieldtype": field_row.get("fieldtype"),
-                        "options": field_row.get("options"),
-                    }
-                )
-    except Exception:
-        return None
-    if not rows:
-        return None
-    return SchemaView.from_meta_rows(rows)
+    from agenerp import schema_snapshot
+
+    return schema_snapshot.load(deps.schema_path)
 
 
 def _sid_from_cookie(header: str | None) -> str:

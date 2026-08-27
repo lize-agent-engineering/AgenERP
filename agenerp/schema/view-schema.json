@@ -1,0 +1,2301 @@
+{
+  "doctypes": [
+    "Item",
+    "Item Barcode",
+    "Stock Entry",
+    "Stock Entry Detail",
+    "UOM Conversion Detail",
+    "Work Order",
+    "Work Order Item",
+    "Work Order Operation"
+  ],
+  "fields": [
+    {
+      "doctype": "Item",
+      "fieldname": "details",
+      "fieldtype": "Tab Break",
+      "options": "fa fa-flag"
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "naming_series",
+      "fieldtype": "Select",
+      "options": "STO-ITEM-.YYYY.-"
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "item_code",
+      "fieldtype": "Data",
+      "options": null
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "item_name",
+      "fieldtype": "Data",
+      "options": null
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "item_group",
+      "fieldtype": "Link",
+      "options": "Item Group"
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "stock_uom",
+      "fieldtype": "Link",
+      "options": "UOM"
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "column_break0",
+      "fieldtype": "Column Break",
+      "options": null
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "disabled",
+      "fieldtype": "Check",
+      "options": null
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "allow_alternative_item",
+      "fieldtype": "Check",
+      "options": null
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "is_stock_item",
+      "fieldtype": "Check",
+      "options": null
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "has_variants",
+      "fieldtype": "Check",
+      "options": null
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "opening_stock",
+      "fieldtype": "Float",
+      "options": null
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "valuation_rate",
+      "fieldtype": "Currency",
+      "options": null
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "standard_rate",
+      "fieldtype": "Currency",
+      "options": null
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "is_fixed_asset",
+      "fieldtype": "Check",
+      "options": null
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "auto_create_assets",
+      "fieldtype": "Check",
+      "options": null
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "is_grouped_asset",
+      "fieldtype": "Check",
+      "options": null
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "asset_category",
+      "fieldtype": "Link",
+      "options": "Asset Category"
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "asset_naming_series",
+      "fieldtype": "Select",
+      "options": null
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "over_delivery_receipt_allowance",
+      "fieldtype": "Float",
+      "options": null
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "over_billing_allowance",
+      "fieldtype": "Float",
+      "options": null
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "image",
+      "fieldtype": "Attach Image",
+      "options": "image"
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "section_break_11",
+      "fieldtype": "Section Break",
+      "options": null
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "description",
+      "fieldtype": "Text Editor",
+      "options": null
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "brand",
+      "fieldtype": "Link",
+      "options": "Brand"
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "unit_of_measure_conversion",
+      "fieldtype": "Section Break",
+      "options": null
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "uoms",
+      "fieldtype": "Table",
+      "options": "UOM Conversion Detail"
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "dashboard_tab",
+      "fieldtype": "Tab Break",
+      "options": null
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "inventory_section",
+      "fieldtype": "Tab Break",
+      "options": "fa fa-truck"
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "inventory_settings_section",
+      "fieldtype": "Section Break",
+      "options": null
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "shelf_life_in_days",
+      "fieldtype": "Int",
+      "options": null
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "end_of_life",
+      "fieldtype": "Date",
+      "options": null
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "default_material_request_type",
+      "fieldtype": "Select",
+      "options": "Purchase\nMaterial Transfer\nMaterial Issue\nManufacture\nCustomer Provided"
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "valuation_method",
+      "fieldtype": "Select",
+      "options": "\nFIFO\nMoving Average\nLIFO"
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "column_break1",
+      "fieldtype": "Column Break",
+      "options": null
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "warranty_period",
+      "fieldtype": "Data",
+      "options": null
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "weight_per_unit",
+      "fieldtype": "Float",
+      "options": null
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "weight_uom",
+      "fieldtype": "Link",
+      "options": "UOM"
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "allow_negative_stock",
+      "fieldtype": "Check",
+      "options": null
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "sb_barcodes",
+      "fieldtype": "Section Break",
+      "options": null
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "barcodes",
+      "fieldtype": "Table",
+      "options": "Item Barcode"
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "reorder_section",
+      "fieldtype": "Section Break",
+      "options": "fa fa-rss"
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "reorder_levels",
+      "fieldtype": "Table",
+      "options": "Item Reorder"
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "serial_nos_and_batches",
+      "fieldtype": "Section Break",
+      "options": null
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "has_batch_no",
+      "fieldtype": "Check",
+      "options": null
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "create_new_batch",
+      "fieldtype": "Check",
+      "options": null
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "batch_number_series",
+      "fieldtype": "Data",
+      "options": null
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "has_expiry_date",
+      "fieldtype": "Check",
+      "options": null
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "retain_sample",
+      "fieldtype": "Check",
+      "options": null
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "sample_quantity",
+      "fieldtype": "Int",
+      "options": null
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "column_break_37",
+      "fieldtype": "Column Break",
+      "options": null
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "has_serial_no",
+      "fieldtype": "Check",
+      "options": null
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "serial_no_series",
+      "fieldtype": "Data",
+      "options": null
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "variants_section",
+      "fieldtype": "Tab Break",
+      "options": null
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "variant_of",
+      "fieldtype": "Link",
+      "options": "Item"
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "variant_based_on",
+      "fieldtype": "Select",
+      "options": "Item Attribute\nManufacturer"
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "attributes",
+      "fieldtype": "Table",
+      "options": "Item Variant Attribute"
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "accounting",
+      "fieldtype": "Tab Break",
+      "options": null
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "deferred_accounting_section",
+      "fieldtype": "Section Break",
+      "options": null
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "enable_deferred_expense",
+      "fieldtype": "Check",
+      "options": null
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "no_of_months_exp",
+      "fieldtype": "Int",
+      "options": null
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "column_break_9s9o",
+      "fieldtype": "Column Break",
+      "options": null
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "enable_deferred_revenue",
+      "fieldtype": "Check",
+      "options": null
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "no_of_months",
+      "fieldtype": "Int",
+      "options": null
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "section_break_avcp",
+      "fieldtype": "Section Break",
+      "options": null
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "item_defaults",
+      "fieldtype": "Table",
+      "options": "Item Default"
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "purchasing_tab",
+      "fieldtype": "Tab Break",
+      "options": null
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "purchase_uom",
+      "fieldtype": "Link",
+      "options": "UOM"
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "min_order_qty",
+      "fieldtype": "Float",
+      "options": null
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "safety_stock",
+      "fieldtype": "Float",
+      "options": null
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "is_purchase_item",
+      "fieldtype": "Check",
+      "options": null
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "purchase_details_cb",
+      "fieldtype": "Column Break",
+      "options": null
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "lead_time_days",
+      "fieldtype": "Int",
+      "options": null
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "last_purchase_rate",
+      "fieldtype": "Float",
+      "options": null
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "is_customer_provided_item",
+      "fieldtype": "Check",
+      "options": null
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "customer",
+      "fieldtype": "Link",
+      "options": "Customer"
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "supplier_details",
+      "fieldtype": "Section Break",
+      "options": null
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "delivered_by_supplier",
+      "fieldtype": "Check",
+      "options": null
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "column_break2",
+      "fieldtype": "Column Break",
+      "options": null
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "supplier_items",
+      "fieldtype": "Table",
+      "options": "Item Supplier"
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "foreign_trade_details",
+      "fieldtype": "Section Break",
+      "options": null
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "country_of_origin",
+      "fieldtype": "Link",
+      "options": "Country"
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "column_break_59",
+      "fieldtype": "Column Break",
+      "options": null
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "customs_tariff_number",
+      "fieldtype": "Link",
+      "options": "Customs Tariff Number"
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "sales_details",
+      "fieldtype": "Tab Break",
+      "options": "fa fa-tag"
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "sales_uom",
+      "fieldtype": "Link",
+      "options": "UOM"
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "grant_commission",
+      "fieldtype": "Check",
+      "options": null
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "is_sales_item",
+      "fieldtype": "Check",
+      "options": null
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "column_break3",
+      "fieldtype": "Column Break",
+      "options": null
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "max_discount",
+      "fieldtype": "Float",
+      "options": null
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "customer_details",
+      "fieldtype": "Section Break",
+      "options": null
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "customer_items",
+      "fieldtype": "Table",
+      "options": "Item Customer Detail"
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "item_tax_section_break",
+      "fieldtype": "Tab Break",
+      "options": "fa fa-money"
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "taxes",
+      "fieldtype": "Table",
+      "options": "Item Tax"
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "quality_tab",
+      "fieldtype": "Tab Break",
+      "options": null
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "inspection_required_before_purchase",
+      "fieldtype": "Check",
+      "options": null
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "quality_inspection_template",
+      "fieldtype": "Link",
+      "options": "Quality Inspection Template"
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "inspection_required_before_delivery",
+      "fieldtype": "Check",
+      "options": null
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "manufacturing",
+      "fieldtype": "Tab Break",
+      "options": "fa fa-cogs"
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "include_item_in_manufacturing",
+      "fieldtype": "Check",
+      "options": null
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "is_sub_contracted_item",
+      "fieldtype": "Check",
+      "options": null
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "default_bom",
+      "fieldtype": "Link",
+      "options": "BOM"
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "column_break_74",
+      "fieldtype": "Column Break",
+      "options": null
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "customer_code",
+      "fieldtype": "Small Text",
+      "options": null
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "default_item_manufacturer",
+      "fieldtype": "Link",
+      "options": "Manufacturer"
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "default_manufacturer_part_no",
+      "fieldtype": "Data",
+      "options": null
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "total_projected_qty",
+      "fieldtype": "Float",
+      "options": null
+    },
+    {
+      "doctype": "Item Barcode",
+      "fieldname": "barcode",
+      "fieldtype": "Data",
+      "options": null
+    },
+    {
+      "doctype": "Item Barcode",
+      "fieldname": "barcode_type",
+      "fieldtype": "Select",
+      "options": "\nEAN\nUPC-A\nCODE-39\nEAN-12\nEAN-8\nGS1\nGTIN\nISBN\nISBN-10\nISBN-13\nISSN\nJAN\nPZN\nUPC"
+    },
+    {
+      "doctype": "Item Barcode",
+      "fieldname": "uom",
+      "fieldtype": "Link",
+      "options": "UOM"
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "stock_entry_details_tab",
+      "fieldtype": "Tab Break",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "naming_series",
+      "fieldtype": "Select",
+      "options": "MAT-STE-.YYYY.-"
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "stock_entry_type",
+      "fieldtype": "Link",
+      "options": "Stock Entry Type"
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "outgoing_stock_entry",
+      "fieldtype": "Link",
+      "options": "Stock Entry"
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "source_stock_entry",
+      "fieldtype": "Link",
+      "options": "Stock Entry"
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "purpose",
+      "fieldtype": "Select",
+      "options": "Material Issue\nMaterial Receipt\nMaterial Transfer\nMaterial Transfer for Manufacture\nMaterial Consumption for Manufacture\nManufacture\nRepack\nSend to Subcontractor\nDisassemble"
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "add_to_transit",
+      "fieldtype": "Check",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "work_order",
+      "fieldtype": "Link",
+      "options": "Work Order"
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "purchase_order",
+      "fieldtype": "Link",
+      "options": "Purchase Order"
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "subcontracting_order",
+      "fieldtype": "Link",
+      "options": "Subcontracting Order"
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "delivery_note_no",
+      "fieldtype": "Link",
+      "options": "Delivery Note"
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "sales_invoice_no",
+      "fieldtype": "Link",
+      "options": "Sales Invoice"
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "pick_list",
+      "fieldtype": "Link",
+      "options": "Pick List"
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "purchase_receipt_no",
+      "fieldtype": "Link",
+      "options": "Purchase Receipt"
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "asset_repair",
+      "fieldtype": "Link",
+      "options": "Asset Repair"
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "col2",
+      "fieldtype": "Column Break",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "company",
+      "fieldtype": "Link",
+      "options": "Company"
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "posting_date",
+      "fieldtype": "Date",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "posting_time",
+      "fieldtype": "Time",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "column_break_eaoa",
+      "fieldtype": "Column Break",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "set_posting_time",
+      "fieldtype": "Check",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "inspection_required",
+      "fieldtype": "Check",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "apply_putaway_rule",
+      "fieldtype": "Check",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "bom_info_section",
+      "fieldtype": "Section Break",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "from_bom",
+      "fieldtype": "Check",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "use_multi_level_bom",
+      "fieldtype": "Check",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "bom_no",
+      "fieldtype": "Link",
+      "options": "BOM"
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "cb1",
+      "fieldtype": "Column Break",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "fg_completed_qty",
+      "fieldtype": "Float",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "get_items",
+      "fieldtype": "Button",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "section_break_7qsm",
+      "fieldtype": "Section Break",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "process_loss_percentage",
+      "fieldtype": "Percent",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "column_break_e92r",
+      "fieldtype": "Column Break",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "process_loss_qty",
+      "fieldtype": "Float",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "section_break_jwgn",
+      "fieldtype": "Section Break",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "from_warehouse",
+      "fieldtype": "Link",
+      "options": "Warehouse"
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "source_warehouse_address",
+      "fieldtype": "Link",
+      "options": "Address"
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "source_address_display",
+      "fieldtype": "Small Text",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "cb0",
+      "fieldtype": "Column Break",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "to_warehouse",
+      "fieldtype": "Link",
+      "options": "Warehouse"
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "target_warehouse_address",
+      "fieldtype": "Link",
+      "options": "Address"
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "target_address_display",
+      "fieldtype": "Small Text",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "sb0",
+      "fieldtype": "Section Break",
+      "options": "Simple"
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "scan_barcode",
+      "fieldtype": "Data",
+      "options": "Barcode"
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "last_scanned_warehouse",
+      "fieldtype": "Data",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "items_section",
+      "fieldtype": "Section Break",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "items",
+      "fieldtype": "Table",
+      "options": "Stock Entry Detail"
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "get_stock_and_rate",
+      "fieldtype": "Button",
+      "options": "get_stock_and_rate"
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "section_break_19",
+      "fieldtype": "Section Break",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "total_outgoing_value",
+      "fieldtype": "Currency",
+      "options": "Company:company:default_currency"
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "column_break_22",
+      "fieldtype": "Column Break",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "total_incoming_value",
+      "fieldtype": "Currency",
+      "options": "Company:company:default_currency"
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "value_difference",
+      "fieldtype": "Currency",
+      "options": "Company:company:default_currency"
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "additional_costs_section",
+      "fieldtype": "Tab Break",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "additional_costs",
+      "fieldtype": "Table",
+      "options": "Landed Cost Taxes and Charges"
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "total_additional_costs",
+      "fieldtype": "Currency",
+      "options": "Company:company:default_currency"
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "supplier_info_tab",
+      "fieldtype": "Tab Break",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "contact_section",
+      "fieldtype": "Section Break",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "supplier",
+      "fieldtype": "Link",
+      "options": "Supplier"
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "supplier_name",
+      "fieldtype": "Data",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "supplier_address",
+      "fieldtype": "Link",
+      "options": "Address"
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "address_display",
+      "fieldtype": "Small Text",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "accounting_dimensions_section",
+      "fieldtype": "Tab Break",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "project",
+      "fieldtype": "Link",
+      "options": "Project"
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "column_break_wgvc",
+      "fieldtype": "Column Break",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "cost_center",
+      "fieldtype": "Link",
+      "options": "Cost Center"
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "other_info_tab",
+      "fieldtype": "Tab Break",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "printing_settings",
+      "fieldtype": "Section Break",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "select_print_heading",
+      "fieldtype": "Link",
+      "options": "Print Heading"
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "print_settings_col_break",
+      "fieldtype": "Column Break",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "letter_head",
+      "fieldtype": "Link",
+      "options": "Letter Head"
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "more_info",
+      "fieldtype": "Section Break",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "is_opening",
+      "fieldtype": "Select",
+      "options": "No\nYes"
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "remarks",
+      "fieldtype": "Text",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "col5",
+      "fieldtype": "Column Break",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "per_transferred",
+      "fieldtype": "Percent",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "total_amount",
+      "fieldtype": "Currency",
+      "options": "Company:company:default_currency"
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "job_card",
+      "fieldtype": "Link",
+      "options": "Job Card"
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "amended_from",
+      "fieldtype": "Link",
+      "options": "Stock Entry"
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "credit_note",
+      "fieldtype": "Link",
+      "options": "Journal Entry"
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "is_return",
+      "fieldtype": "Check",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "tab_connections",
+      "fieldtype": "Tab Break",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry Detail",
+      "fieldname": "barcode",
+      "fieldtype": "Data",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry Detail",
+      "fieldname": "has_item_scanned",
+      "fieldtype": "Check",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry Detail",
+      "fieldname": "section_break_2",
+      "fieldtype": "Section Break",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry Detail",
+      "fieldname": "s_warehouse",
+      "fieldtype": "Link",
+      "options": "Warehouse"
+    },
+    {
+      "doctype": "Stock Entry Detail",
+      "fieldname": "col_break1",
+      "fieldtype": "Column Break",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry Detail",
+      "fieldname": "t_warehouse",
+      "fieldtype": "Link",
+      "options": "Warehouse"
+    },
+    {
+      "doctype": "Stock Entry Detail",
+      "fieldname": "sec_break1",
+      "fieldtype": "Section Break",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry Detail",
+      "fieldname": "item_code",
+      "fieldtype": "Link",
+      "options": "Item"
+    },
+    {
+      "doctype": "Stock Entry Detail",
+      "fieldname": "item_name",
+      "fieldtype": "Data",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry Detail",
+      "fieldname": "col_break2",
+      "fieldtype": "Column Break",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry Detail",
+      "fieldname": "is_finished_item",
+      "fieldtype": "Check",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry Detail",
+      "fieldname": "is_scrap_item",
+      "fieldtype": "Check",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry Detail",
+      "fieldname": "quality_inspection",
+      "fieldtype": "Link",
+      "options": "Quality Inspection"
+    },
+    {
+      "doctype": "Stock Entry Detail",
+      "fieldname": "subcontracted_item",
+      "fieldtype": "Link",
+      "options": "Item"
+    },
+    {
+      "doctype": "Stock Entry Detail",
+      "fieldname": "section_break_8",
+      "fieldtype": "Section Break",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry Detail",
+      "fieldname": "description",
+      "fieldtype": "Text Editor",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry Detail",
+      "fieldname": "column_break_10",
+      "fieldtype": "Column Break",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry Detail",
+      "fieldname": "item_group",
+      "fieldtype": "Data",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry Detail",
+      "fieldname": "image",
+      "fieldtype": "Attach",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry Detail",
+      "fieldname": "image_view",
+      "fieldtype": "Image",
+      "options": "image"
+    },
+    {
+      "doctype": "Stock Entry Detail",
+      "fieldname": "quantity_section",
+      "fieldtype": "Section Break",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry Detail",
+      "fieldname": "qty",
+      "fieldtype": "Float",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry Detail",
+      "fieldname": "transfer_qty",
+      "fieldtype": "Float",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry Detail",
+      "fieldname": "retain_sample",
+      "fieldtype": "Check",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry Detail",
+      "fieldname": "column_break_20",
+      "fieldtype": "Column Break",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry Detail",
+      "fieldname": "uom",
+      "fieldtype": "Link",
+      "options": "UOM"
+    },
+    {
+      "doctype": "Stock Entry Detail",
+      "fieldname": "stock_uom",
+      "fieldtype": "Link",
+      "options": "UOM"
+    },
+    {
+      "doctype": "Stock Entry Detail",
+      "fieldname": "conversion_factor",
+      "fieldtype": "Float",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry Detail",
+      "fieldname": "sample_quantity",
+      "fieldtype": "Int",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry Detail",
+      "fieldname": "rates_section",
+      "fieldtype": "Section Break",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry Detail",
+      "fieldname": "basic_rate",
+      "fieldtype": "Currency",
+      "options": "Company:company:default_currency"
+    },
+    {
+      "doctype": "Stock Entry Detail",
+      "fieldname": "additional_cost",
+      "fieldtype": "Currency",
+      "options": "Company:company:default_currency"
+    },
+    {
+      "doctype": "Stock Entry Detail",
+      "fieldname": "valuation_rate",
+      "fieldtype": "Currency",
+      "options": "Company:company:default_currency"
+    },
+    {
+      "doctype": "Stock Entry Detail",
+      "fieldname": "allow_zero_valuation_rate",
+      "fieldtype": "Check",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry Detail",
+      "fieldname": "col_break3",
+      "fieldtype": "Column Break",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry Detail",
+      "fieldname": "set_basic_rate_manually",
+      "fieldtype": "Check",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry Detail",
+      "fieldname": "basic_amount",
+      "fieldtype": "Currency",
+      "options": "Company:company:default_currency"
+    },
+    {
+      "doctype": "Stock Entry Detail",
+      "fieldname": "amount",
+      "fieldtype": "Currency",
+      "options": "Company:company:default_currency"
+    },
+    {
+      "doctype": "Stock Entry Detail",
+      "fieldname": "serial_no_batch",
+      "fieldtype": "Section Break",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry Detail",
+      "fieldname": "add_serial_batch_bundle",
+      "fieldtype": "Button",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry Detail",
+      "fieldname": "use_serial_batch_fields",
+      "fieldtype": "Check",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry Detail",
+      "fieldname": "col_break4",
+      "fieldtype": "Column Break",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry Detail",
+      "fieldname": "serial_and_batch_bundle",
+      "fieldtype": "Link",
+      "options": "Serial and Batch Bundle"
+    },
+    {
+      "doctype": "Stock Entry Detail",
+      "fieldname": "section_break_rdtg",
+      "fieldtype": "Section Break",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry Detail",
+      "fieldname": "serial_no",
+      "fieldtype": "Text",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry Detail",
+      "fieldname": "column_break_prps",
+      "fieldtype": "Column Break",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry Detail",
+      "fieldname": "batch_no",
+      "fieldtype": "Link",
+      "options": "Batch"
+    },
+    {
+      "doctype": "Stock Entry Detail",
+      "fieldname": "accounting",
+      "fieldtype": "Section Break",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry Detail",
+      "fieldname": "expense_account",
+      "fieldtype": "Link",
+      "options": "Account"
+    },
+    {
+      "doctype": "Stock Entry Detail",
+      "fieldname": "accounting_dimensions_section",
+      "fieldtype": "Section Break",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry Detail",
+      "fieldname": "cost_center",
+      "fieldtype": "Link",
+      "options": "Cost Center"
+    },
+    {
+      "doctype": "Stock Entry Detail",
+      "fieldname": "project",
+      "fieldtype": "Link",
+      "options": "Project"
+    },
+    {
+      "doctype": "Stock Entry Detail",
+      "fieldname": "dimension_col_break",
+      "fieldtype": "Column Break",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry Detail",
+      "fieldname": "more_info",
+      "fieldtype": "Section Break",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry Detail",
+      "fieldname": "actual_qty",
+      "fieldtype": "Float",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry Detail",
+      "fieldname": "transferred_qty",
+      "fieldtype": "Float",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry Detail",
+      "fieldname": "bom_no",
+      "fieldtype": "Link",
+      "options": "BOM"
+    },
+    {
+      "doctype": "Stock Entry Detail",
+      "fieldname": "allow_alternative_item",
+      "fieldtype": "Check",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry Detail",
+      "fieldname": "col_break6",
+      "fieldtype": "Column Break",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry Detail",
+      "fieldname": "material_request",
+      "fieldtype": "Link",
+      "options": "Material Request"
+    },
+    {
+      "doctype": "Stock Entry Detail",
+      "fieldname": "material_request_item",
+      "fieldtype": "Link",
+      "options": "Material Request Item"
+    },
+    {
+      "doctype": "Stock Entry Detail",
+      "fieldname": "pick_list_item",
+      "fieldtype": "Link",
+      "options": "Pick List Item"
+    },
+    {
+      "doctype": "Stock Entry Detail",
+      "fieldname": "original_item",
+      "fieldtype": "Link",
+      "options": "Item"
+    },
+    {
+      "doctype": "Stock Entry Detail",
+      "fieldname": "reference_section",
+      "fieldtype": "Section Break",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry Detail",
+      "fieldname": "against_stock_entry",
+      "fieldtype": "Link",
+      "options": "Stock Entry"
+    },
+    {
+      "doctype": "Stock Entry Detail",
+      "fieldname": "ste_detail",
+      "fieldtype": "Data",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry Detail",
+      "fieldname": "po_detail",
+      "fieldtype": "Data",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry Detail",
+      "fieldname": "sco_rm_detail",
+      "fieldtype": "Data",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry Detail",
+      "fieldname": "putaway_rule",
+      "fieldtype": "Link",
+      "options": "Putaway Rule"
+    },
+    {
+      "doctype": "Stock Entry Detail",
+      "fieldname": "column_break_51",
+      "fieldtype": "Column Break",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry Detail",
+      "fieldname": "reference_purchase_receipt",
+      "fieldtype": "Link",
+      "options": "Purchase Receipt"
+    },
+    {
+      "doctype": "Stock Entry Detail",
+      "fieldname": "job_card_item",
+      "fieldtype": "Data",
+      "options": null
+    },
+    {
+      "doctype": "UOM Conversion Detail",
+      "fieldname": "uom",
+      "fieldtype": "Link",
+      "options": "UOM"
+    },
+    {
+      "doctype": "UOM Conversion Detail",
+      "fieldname": "conversion_factor",
+      "fieldtype": "Float",
+      "options": null
+    },
+    {
+      "doctype": "Work Order",
+      "fieldname": "item",
+      "fieldtype": "Tab Break",
+      "options": "fa fa-gift"
+    },
+    {
+      "doctype": "Work Order",
+      "fieldname": "naming_series",
+      "fieldtype": "Select",
+      "options": "MFG-WO-.YYYY.-"
+    },
+    {
+      "doctype": "Work Order",
+      "fieldname": "status",
+      "fieldtype": "Select",
+      "options": "\nDraft\nSubmitted\nNot Started\nIn Process\nCompleted\nStopped\nClosed\nCancelled"
+    },
+    {
+      "doctype": "Work Order",
+      "fieldname": "production_item",
+      "fieldtype": "Link",
+      "options": "Item"
+    },
+    {
+      "doctype": "Work Order",
+      "fieldname": "item_name",
+      "fieldtype": "Data",
+      "options": null
+    },
+    {
+      "doctype": "Work Order",
+      "fieldname": "image",
+      "fieldtype": "Attach Image",
+      "options": "image"
+    },
+    {
+      "doctype": "Work Order",
+      "fieldname": "bom_no",
+      "fieldtype": "Link",
+      "options": "BOM"
+    },
+    {
+      "doctype": "Work Order",
+      "fieldname": "sales_order",
+      "fieldtype": "Link",
+      "options": "Sales Order"
+    },
+    {
+      "doctype": "Work Order",
+      "fieldname": "column_break1",
+      "fieldtype": "Column Break",
+      "options": null
+    },
+    {
+      "doctype": "Work Order",
+      "fieldname": "company",
+      "fieldtype": "Link",
+      "options": "Company"
+    },
+    {
+      "doctype": "Work Order",
+      "fieldname": "qty",
+      "fieldtype": "Float",
+      "options": null
+    },
+    {
+      "doctype": "Work Order",
+      "fieldname": "material_transferred_for_manufacturing",
+      "fieldtype": "Float",
+      "options": null
+    },
+    {
+      "doctype": "Work Order",
+      "fieldname": "produced_qty",
+      "fieldtype": "Float",
+      "options": null
+    },
+    {
+      "doctype": "Work Order",
+      "fieldname": "disassembled_qty",
+      "fieldtype": "Float",
+      "options": null
+    },
+    {
+      "doctype": "Work Order",
+      "fieldname": "process_loss_qty",
+      "fieldtype": "Float",
+      "options": null
+    },
+    {
+      "doctype": "Work Order",
+      "fieldname": "project",
+      "fieldtype": "Link",
+      "options": "Project"
+    },
+    {
+      "doctype": "Work Order",
+      "fieldname": "section_break_ndpq",
+      "fieldtype": "Section Break",
+      "options": null
+    },
+    {
+      "doctype": "Work Order",
+      "fieldname": "required_items",
+      "fieldtype": "Table",
+      "options": "Work Order Item"
+    },
+    {
+      "doctype": "Work Order",
+      "fieldname": "work_order_configuration",
+      "fieldtype": "Tab Break",
+      "options": null
+    },
+    {
+      "doctype": "Work Order",
+      "fieldname": "settings_section",
+      "fieldtype": "Section Break",
+      "options": null
+    },
+    {
+      "doctype": "Work Order",
+      "fieldname": "allow_alternative_item",
+      "fieldtype": "Check",
+      "options": null
+    },
+    {
+      "doctype": "Work Order",
+      "fieldname": "use_multi_level_bom",
+      "fieldtype": "Check",
+      "options": null
+    },
+    {
+      "doctype": "Work Order",
+      "fieldname": "column_break_17",
+      "fieldtype": "Column Break",
+      "options": null
+    },
+    {
+      "doctype": "Work Order",
+      "fieldname": "skip_transfer",
+      "fieldtype": "Check",
+      "options": null
+    },
+    {
+      "doctype": "Work Order",
+      "fieldname": "from_wip_warehouse",
+      "fieldtype": "Check",
+      "options": null
+    },
+    {
+      "doctype": "Work Order",
+      "fieldname": "update_consumed_material_cost_in_project",
+      "fieldtype": "Check",
+      "options": null
+    },
+    {
+      "doctype": "Work Order",
+      "fieldname": "warehouses",
+      "fieldtype": "Section Break",
+      "options": "fa fa-building"
+    },
+    {
+      "doctype": "Work Order",
+      "fieldname": "source_warehouse",
+      "fieldtype": "Link",
+      "options": "Warehouse"
+    },
+    {
+      "doctype": "Work Order",
+      "fieldname": "wip_warehouse",
+      "fieldtype": "Link",
+      "options": "Warehouse"
+    },
+    {
+      "doctype": "Work Order",
+      "fieldname": "column_break_12",
+      "fieldtype": "Column Break",
+      "options": null
+    },
+    {
+      "doctype": "Work Order",
+      "fieldname": "fg_warehouse",
+      "fieldtype": "Link",
+      "options": "Warehouse"
+    },
+    {
+      "doctype": "Work Order",
+      "fieldname": "scrap_warehouse",
+      "fieldtype": "Link",
+      "options": "Warehouse"
+    },
+    {
+      "doctype": "Work Order",
+      "fieldname": "serial_no_and_batch_for_finished_good_section",
+      "fieldtype": "Section Break",
+      "options": null
+    },
+    {
+      "doctype": "Work Order",
+      "fieldname": "has_serial_no",
+      "fieldtype": "Check",
+      "options": null
+    },
+    {
+      "doctype": "Work Order",
+      "fieldname": "has_batch_no",
+      "fieldtype": "Check",
+      "options": null
+    },
+    {
+      "doctype": "Work Order",
+      "fieldname": "column_break_18",
+      "fieldtype": "Column Break",
+      "options": null
+    },
+    {
+      "doctype": "Work Order",
+      "fieldname": "batch_size",
+      "fieldtype": "Float",
+      "options": null
+    },
+    {
+      "doctype": "Work Order",
+      "fieldname": "required_items_section",
+      "fieldtype": "Section Break",
+      "options": null
+    },
+    {
+      "doctype": "Work Order",
+      "fieldname": "materials_and_operations_tab",
+      "fieldtype": "Tab Break",
+      "options": null
+    },
+    {
+      "doctype": "Work Order",
+      "fieldname": "operations_section",
+      "fieldtype": "Section Break",
+      "options": "fa fa-wrench"
+    },
+    {
+      "doctype": "Work Order",
+      "fieldname": "transfer_material_against",
+      "fieldtype": "Select",
+      "options": "\nWork Order\nJob Card"
+    },
+    {
+      "doctype": "Work Order",
+      "fieldname": "operations",
+      "fieldtype": "Table",
+      "options": "Work Order Operation"
+    },
+    {
+      "doctype": "Work Order",
+      "fieldname": "time",
+      "fieldtype": "Section Break",
+      "options": "fa fa-time"
+    },
+    {
+      "doctype": "Work Order",
+      "fieldname": "planned_start_date",
+      "fieldtype": "Datetime",
+      "options": null
+    },
+    {
+      "doctype": "Work Order",
+      "fieldname": "planned_end_date",
+      "fieldtype": "Datetime",
+      "options": null
+    },
+    {
+      "doctype": "Work Order",
+      "fieldname": "expected_delivery_date",
+      "fieldtype": "Date",
+      "options": null
+    },
+    {
+      "doctype": "Work Order",
+      "fieldname": "column_break_13",
+      "fieldtype": "Column Break",
+      "options": null
+    },
+    {
+      "doctype": "Work Order",
+      "fieldname": "actual_start_date",
+      "fieldtype": "Datetime",
+      "options": null
+    },
+    {
+      "doctype": "Work Order",
+      "fieldname": "actual_end_date",
+      "fieldtype": "Datetime",
+      "options": null
+    },
+    {
+      "doctype": "Work Order",
+      "fieldname": "lead_time",
+      "fieldtype": "Float",
+      "options": null
+    },
+    {
+      "doctype": "Work Order",
+      "fieldname": "section_break_22",
+      "fieldtype": "Section Break",
+      "options": null
+    },
+    {
+      "doctype": "Work Order",
+      "fieldname": "planned_operating_cost",
+      "fieldtype": "Currency",
+      "options": "Company:company:default_currency"
+    },
+    {
+      "doctype": "Work Order",
+      "fieldname": "actual_operating_cost",
+      "fieldtype": "Currency",
+      "options": "Company:company:default_currency"
+    },
+    {
+      "doctype": "Work Order",
+      "fieldname": "additional_operating_cost",
+      "fieldtype": "Currency",
+      "options": "Company:company:default_currency"
+    },
+    {
+      "doctype": "Work Order",
+      "fieldname": "column_break_24",
+      "fieldtype": "Column Break",
+      "options": null
+    },
+    {
+      "doctype": "Work Order",
+      "fieldname": "corrective_operation_cost",
+      "fieldtype": "Currency",
+      "options": null
+    },
+    {
+      "doctype": "Work Order",
+      "fieldname": "total_operating_cost",
+      "fieldtype": "Currency",
+      "options": "Company:company:default_currency"
+    },
+    {
+      "doctype": "Work Order",
+      "fieldname": "more_info",
+      "fieldtype": "Tab Break",
+      "options": "fa fa-file-text"
+    },
+    {
+      "doctype": "Work Order",
+      "fieldname": "description",
+      "fieldtype": "Small Text",
+      "options": null
+    },
+    {
+      "doctype": "Work Order",
+      "fieldname": "stock_uom",
+      "fieldtype": "Link",
+      "options": "UOM"
+    },
+    {
+      "doctype": "Work Order",
+      "fieldname": "column_break2",
+      "fieldtype": "Column Break",
+      "options": null
+    },
+    {
+      "doctype": "Work Order",
+      "fieldname": "material_request",
+      "fieldtype": "Link",
+      "options": "Material Request"
+    },
+    {
+      "doctype": "Work Order",
+      "fieldname": "material_request_item",
+      "fieldtype": "Data",
+      "options": null
+    },
+    {
+      "doctype": "Work Order",
+      "fieldname": "sales_order_item",
+      "fieldtype": "Data",
+      "options": null
+    },
+    {
+      "doctype": "Work Order",
+      "fieldname": "production_plan",
+      "fieldtype": "Link",
+      "options": "Production Plan"
+    },
+    {
+      "doctype": "Work Order",
+      "fieldname": "production_plan_item",
+      "fieldtype": "Data",
+      "options": null
+    },
+    {
+      "doctype": "Work Order",
+      "fieldname": "production_plan_sub_assembly_item",
+      "fieldtype": "Data",
+      "options": null
+    },
+    {
+      "doctype": "Work Order",
+      "fieldname": "product_bundle_item",
+      "fieldtype": "Link",
+      "options": "Item"
+    },
+    {
+      "doctype": "Work Order",
+      "fieldname": "amended_from",
+      "fieldtype": "Link",
+      "options": "Work Order"
+    },
+    {
+      "doctype": "Work Order",
+      "fieldname": "connections_tab",
+      "fieldtype": "Tab Break",
+      "options": null
+    },
+    {
+      "doctype": "Work Order Item",
+      "fieldname": "operation",
+      "fieldtype": "Link",
+      "options": "Operation"
+    },
+    {
+      "doctype": "Work Order Item",
+      "fieldname": "item_code",
+      "fieldtype": "Link",
+      "options": "Item"
+    },
+    {
+      "doctype": "Work Order Item",
+      "fieldname": "source_warehouse",
+      "fieldtype": "Link",
+      "options": "Warehouse"
+    },
+    {
+      "doctype": "Work Order Item",
+      "fieldname": "column_break_3",
+      "fieldtype": "Column Break",
+      "options": null
+    },
+    {
+      "doctype": "Work Order Item",
+      "fieldname": "item_name",
+      "fieldtype": "Data",
+      "options": null
+    },
+    {
+      "doctype": "Work Order Item",
+      "fieldname": "description",
+      "fieldtype": "Text",
+      "options": null
+    },
+    {
+      "doctype": "Work Order Item",
+      "fieldname": "allow_alternative_item",
+      "fieldtype": "Check",
+      "options": null
+    },
+    {
+      "doctype": "Work Order Item",
+      "fieldname": "include_item_in_manufacturing",
+      "fieldtype": "Check",
+      "options": null
+    },
+    {
+      "doctype": "Work Order Item",
+      "fieldname": "qty_section",
+      "fieldtype": "Section Break",
+      "options": null
+    },
+    {
+      "doctype": "Work Order Item",
+      "fieldname": "required_qty",
+      "fieldtype": "Float",
+      "options": null
+    },
+    {
+      "doctype": "Work Order Item",
+      "fieldname": "stock_uom",
+      "fieldtype": "Link",
+      "options": "UOM"
+    },
+    {
+      "doctype": "Work Order Item",
+      "fieldname": "rate",
+      "fieldtype": "Currency",
+      "options": null
+    },
+    {
+      "doctype": "Work Order Item",
+      "fieldname": "amount",
+      "fieldtype": "Currency",
+      "options": null
+    },
+    {
+      "doctype": "Work Order Item",
+      "fieldname": "column_break_11",
+      "fieldtype": "Column Break",
+      "options": null
+    },
+    {
+      "doctype": "Work Order Item",
+      "fieldname": "transferred_qty",
+      "fieldtype": "Float",
+      "options": null
+    },
+    {
+      "doctype": "Work Order Item",
+      "fieldname": "consumed_qty",
+      "fieldtype": "Float",
+      "options": null
+    },
+    {
+      "doctype": "Work Order Item",
+      "fieldname": "returned_qty",
+      "fieldtype": "Float",
+      "options": null
+    },
+    {
+      "doctype": "Work Order Item",
+      "fieldname": "available_qty_at_source_warehouse",
+      "fieldtype": "Float",
+      "options": null
+    },
+    {
+      "doctype": "Work Order Item",
+      "fieldname": "available_qty_at_wip_warehouse",
+      "fieldtype": "Float",
+      "options": null
+    },
+    {
+      "doctype": "Work Order Operation",
+      "fieldname": "details",
+      "fieldtype": "Section Break",
+      "options": null
+    },
+    {
+      "doctype": "Work Order Operation",
+      "fieldname": "operation",
+      "fieldtype": "Link",
+      "options": "Operation"
+    },
+    {
+      "doctype": "Work Order Operation",
+      "fieldname": "status",
+      "fieldtype": "Select",
+      "options": "Pending\nWork in Progress\nCompleted"
+    },
+    {
+      "doctype": "Work Order Operation",
+      "fieldname": "completed_qty",
+      "fieldtype": "Float",
+      "options": null
+    },
+    {
+      "doctype": "Work Order Operation",
+      "fieldname": "process_loss_qty",
+      "fieldtype": "Float",
+      "options": null
+    },
+    {
+      "doctype": "Work Order Operation",
+      "fieldname": "column_break_4",
+      "fieldtype": "Column Break",
+      "options": null
+    },
+    {
+      "doctype": "Work Order Operation",
+      "fieldname": "bom",
+      "fieldtype": "Link",
+      "options": "BOM"
+    },
+    {
+      "doctype": "Work Order Operation",
+      "fieldname": "workstation_type",
+      "fieldtype": "Link",
+      "options": "Workstation Type"
+    },
+    {
+      "doctype": "Work Order Operation",
+      "fieldname": "workstation",
+      "fieldtype": "Link",
+      "options": "Workstation"
+    },
+    {
+      "doctype": "Work Order Operation",
+      "fieldname": "sequence_id",
+      "fieldtype": "Int",
+      "options": null
+    },
+    {
+      "doctype": "Work Order Operation",
+      "fieldname": "section_break_10",
+      "fieldtype": "Section Break",
+      "options": null
+    },
+    {
+      "doctype": "Work Order Operation",
+      "fieldname": "description",
+      "fieldtype": "Text Editor",
+      "options": null
+    },
+    {
+      "doctype": "Work Order Operation",
+      "fieldname": "estimated_time_and_cost",
+      "fieldtype": "Section Break",
+      "options": null
+    },
+    {
+      "doctype": "Work Order Operation",
+      "fieldname": "planned_start_time",
+      "fieldtype": "Datetime",
+      "options": null
+    },
+    {
+      "doctype": "Work Order Operation",
+      "fieldname": "hour_rate",
+      "fieldtype": "Float",
+      "options": null
+    },
+    {
+      "doctype": "Work Order Operation",
+      "fieldname": "time_in_mins",
+      "fieldtype": "Float",
+      "options": null
+    },
+    {
+      "doctype": "Work Order Operation",
+      "fieldname": "column_break_10",
+      "fieldtype": "Column Break",
+      "options": null
+    },
+    {
+      "doctype": "Work Order Operation",
+      "fieldname": "planned_end_time",
+      "fieldtype": "Datetime",
+      "options": null
+    },
+    {
+      "doctype": "Work Order Operation",
+      "fieldname": "batch_size",
+      "fieldtype": "Float",
+      "options": null
+    },
+    {
+      "doctype": "Work Order Operation",
+      "fieldname": "planned_operating_cost",
+      "fieldtype": "Currency",
+      "options": "Company:company:default_currency"
+    },
+    {
+      "doctype": "Work Order Operation",
+      "fieldname": "section_break_9",
+      "fieldtype": "Section Break",
+      "options": null
+    },
+    {
+      "doctype": "Work Order Operation",
+      "fieldname": "actual_start_time",
+      "fieldtype": "Datetime",
+      "options": null
+    },
+    {
+      "doctype": "Work Order Operation",
+      "fieldname": "actual_operation_time",
+      "fieldtype": "Float",
+      "options": null
+    },
+    {
+      "doctype": "Work Order Operation",
+      "fieldname": "column_break_11",
+      "fieldtype": "Column Break",
+      "options": null
+    },
+    {
+      "doctype": "Work Order Operation",
+      "fieldname": "actual_end_time",
+      "fieldtype": "Datetime",
+      "options": null
+    },
+    {
+      "doctype": "Work Order Operation",
+      "fieldname": "actual_operating_cost",
+      "fieldtype": "Currency",
+      "options": "Company:company:default_currency"
+    }
+  ],
+  "site": "frontend"
+}

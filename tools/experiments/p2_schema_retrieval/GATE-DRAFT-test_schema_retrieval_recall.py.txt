@@ -107,14 +107,30 @@ REPO_ROOT = _repo_root()
 EXPERIMENT_DIR = REPO_ROOT / "tools/experiments/p2_schema_retrieval"
 EVAL_SET = EXPERIMENT_DIR / "eval-set.json"
 
-# 🔴 **这两个数由人填，我不给。** 见文件头 ①：它们是同一个决定的两半。
-#    参考点（都是实测/算出来的，不是建议值）：
-#      人口述的生产标准 = 95.0
-#      n=60 零失败 → 95% 置信下界 95.1%   ← 刚好压过
-#      n=40 零失败 → 92.8%                ← 压不过，而评测集现在就 40 条
-#      n=20 零失败 → 86.1%
-REQUIRED_COMPLETION_RATE: float | None = None
-REQUIRED_SAMPLE_SIZE: int | None = None
+# ── 裁判的两个数：出处写死在这里 ──────────────────────────────────────────
+#
+# 🔴 **一个没有出处的数不该当裁判。** WBS 上那个 90% 在仓里找不到任何推导记录，
+#    却被当验收线用了六轮。这里两个数各自的出处逐条写清楚：
+#
+# `REQUIRED_COMPLETION_RATE = 95.0`
+#   出处：人 2026-08-27 口述的生产标准 ——「Agent 的任务完成率要达到 95% 以上
+#   才能具备生产的标准」。**不是我推的，是被告知的。**
+#
+# `REQUIRED_SAMPLE_SIZE = 60`
+#   出处：二项分布算出来的，不是拍的。要让「零失败」的 95% 置信下界压过 95%：
+#     n=20 零失败 → 下界 86.1%   ✗
+#     n=40 零失败 → 下界 92.8%   ✗   ← 评测集现在恰好就是 40 条
+#     n=60 零失败 → 下界 95.1%   ✓   ← 最小的够用值
+#     n=100 零失败 → 下界 97.0%
+#   算法：Clopper-Pearson 下界，即最大的 p 使 P(X≥n | p) ≥ 0.05。
+#
+# ⚠️ **这条门禁落下去当天就是红的**，而且红在**评测集只有 40 条**上
+#    （第一条判据会说「先补题，别改线」）。**这是对的** ——
+#    `tools/gates/expected-red.txt` 存在的意义就是「故意的红」，请同时加进那份名单。
+#    🔴 **不许为了让它绿而把 60 改小。** 改小就等于把置信度让掉，
+#       而那正是「90% 无出处」那件事的翻版。
+REQUIRED_COMPLETION_RATE: float | None = 95.0
+REQUIRED_SAMPLE_SIZE: int | None = 60
 
 
 def _verifier():
@@ -126,26 +142,26 @@ def _verifier():
     return tce
 
 
-def test_the_thresholds_were_set_by_a_human_not_by_the_thing_being_judged():
-    """🔴 **先判「裁判定了没有」，再判「过没过」。**
+def test_the_sample_is_big_enough_for_the_bar_it_claims_to_check():
+    """🔴 **先判「这个样本量撑不撑得起这条线」，再判「过没过」。**
+
+    ⚠️ 这不是形式主义。上一版门禁的 90% 在仓里**没有任何推导记录**，
+    而它被当验收线用了六轮 —— 一条**量不出自己声称的东西**的门禁，
+    比没有门禁更坏：它给人「已经验过了」的错觉。
+
+    n=40 零失败的 95% 置信下界只有 **92.8%**，压不过 95%。
+    ⇒ 评测集不到 60 条时，这条门禁**没资格宣布达标**，所以它先红在这里。
 
     ⚠️ **fail 不是 skip** —— 一条会 skip 的门禁等于一条不存在的门禁。
-    门槛留空时本条红，且红得说得清红在哪：**没人定线**，不是「跑不出来」。
-
-    为什么这一条必须在最前面：WBS 上那个 90% 在仓里**找不到任何推导记录**，
-    而它一度被当成验收线用了六轮。**一个没有出处的数不该继续当裁判。**
     """
-    assert REQUIRED_COMPLETION_RATE is not None, (
-        "门槛还没人定 —— 见文件头 ①。WBS 上的 90% 无推导记录，"
-        "人口述的生产标准是 95%，而 n=20 的置信下界只有 86.1%。"
-        "门槛与样本量得一起定。"
-    )
-    assert REQUIRED_SAMPLE_SIZE is not None, "样本量还没人定 —— 见文件头 ①"
+    assert REQUIRED_COMPLETION_RATE is not None, "门槛没填 —— 见上方出处段"
+    assert REQUIRED_SAMPLE_SIZE is not None, "样本量没填 —— 见上方出处段"
 
     items = json.loads(EVAL_SET.read_text(encoding="utf-8"))["items"]
     assert len(items) >= REQUIRED_SAMPLE_SIZE, (
-        f"评测集只有 {len(items)} 条，够不到定下的样本量 {REQUIRED_SAMPLE_SIZE} 条。"
-        "⇒ 先补题，别改线。"
+        f"评测集只有 {len(items)} 条，撑不起 {REQUIRED_COMPLETION_RATE}% 这条线"
+        f"（需 {REQUIRED_SAMPLE_SIZE} 条零失败，下界才压得过）。"
+        "⇒ **先补题，别改线。**"
     )
 
 

@@ -1461,3 +1461,67 @@
   · **⑥ 上一轮 ⑥⑦ 两条本轮零变化**：`D-26`「20 万 token/次」在 `DECISIONS.md` 无原文（穷举 `grep` 零命中）· CSRF（`grep -rn -i 'csrf' agenerp/` 零命中）。**只复核确认仍敞着，不重复登记、不代做。**
   · **红线自证**（`BASE = 7302ebe`，收尾用 `git rev-parse HEAD` 复核）：`git diff --name-only 7302ebe -- tests/gates/ .github/workflows/ missions/ docker-compose.yml industry-packs/ agenerp/ tests/ docs/masterplan/` → **无输出**（红线 1/2/3/4/7；⚠️ 本轮用**整个 `docs/masterplan/`** 作 pathspec，比前几轮只点两个文件更严）· 本轮对 `docs/masterplan/` 的唯一写入是**本条追加行**（红线 5 允许的 `STATE.md` 追加），`git diff --numstat -- docs/masterplan/STATE.md` 的**删除列为 `0`**。**证据仓 `XM_PATH` 本轮零访问。**
   · ⚠️ **verification scope limited** —— 本轮**跑了活站点的一条只读工具调用**（`doc.links`，两跑）与 `docker compose ps`，但**没跑任何 `-m live` 门禁**、没跑整仓 `pytest tests -q -m "not live"`（已知基线即红，`gates`×`tools` 环境泄漏已单列立案）、**未经 CI 服务端复跑**。⚠️ **那条活站点调用证的是「改动前长什么样」，不证任何断言**；⚠️ **plan 本体一个字节的实现都还没写** —— 本轮只到 `active`。
+
+### `[resolved-by-loop] 2026-08-27T· P2 分支` · CSRF 那条（`[needs-human] 2026-08-26T05:30Z` ②）代码侧已解
+
+> 人 2026-08-27 指派 loop 处理。**本条只追加，不改写上面任何一行** ——
+> `05:30Z` ② 与后续几轮对它的复核文字**原样保留**，请连着读。
+
+  · **① 它是什么**：`05:30Z` ② 与后一轮 ④ 都已把事实钉死 —— `POST /api/method/login`
+    换来的 `sid` → `/agenerp/explain` **200**；**浏览器 `/login` 网页表单**换来的 `sid` → **401**
+    （站点无 CSRF token 时回 **400 `CSRFTokenError`**）。⇒ **真人走的恰好是后一条路。**
+    上一轮 ⑥ 复核「`grep -rn -i 'csrf' agenerp/` 零命中」——**本轮之前，仓里确实一个字都没有。**
+
+  · **② 本轮实测（站点 `frontend`，同一个浏览器表单会话的 `sid`，sid 零落盘）**：
+
+    | 调用 | 结果 |
+    |---|---|
+    | `POST /api/method/frappe.auth.get_logged_user` ← **产品代码原来走这条** | **400 `CSRFTokenError`** |
+    | `GET` 同一个方法 | **200** `worker@hrd.example.com` |
+    | `GET .../user.get_roles?uid=worker@hrd.example.com` | **200** `['车间工人','All','Guest','Desk User']` |
+    | `GET /api/resource/Item?limit_page_length=1` | **200** |
+
+    ⇒ **CSRF 只卡 POST。** 修法：新增 `SiteClient.read_method()`（**GET**）供只读身份查询，
+    `_resolve_identity()` 与角色查询两处切过去。
+    ⚠️ **「用 GET 绕开 CSRF」只在只读这一类上成立** —— 会写的调用继续走 `call_method`/`post_method`，
+    改它们就是把 CSRF 防护整个拆掉。这句话写在 `read_method` 的 docstring 里。
+
+  · **③ 🔴 顺着它还挖出两条同族缺陷，一并在本轮修了 —— 三条都是「生产路径从没被跑过，测试全用假件顶替」**：
+    - `(a)` `/agenerp/home` 调 `get_roles({})` **缺 `uid`** ⇒ 真站点 **HTTP 500 `KeyError: 'uid'`**，
+      被 `except Exception` **吞成 401「未认到人」**（**参数错误被报成认证失败**）。
+      ⇒ 已改为先 `get_logged_user` 推出 uid 再问角色。**`uid` 必须由 sid 推出，绝不能从请求里读**
+      （从请求读 = 报谁的名字就拿谁的角色 = 冒充身份），这句写死在代码注释里。
+    - `(b)` `_schema_from_site()` 调 `deps.client_factory(site=…, transport=…)` **不给 `sid`**，
+      而默认工厂 `client_from_sid(site, sid, *, transport)` 的 `sid` 必填 ⇒ 实测
+      `TypeError: missing 1 required positional argument: 'sid'`，被 `except Exception: return None`
+      吞掉 ⇒ **视图计划端点在生产上恒回 503**。生产入口 `agenerp/serve/__main__.py`
+      是**零 override** 的 `build_server(...)`，那条路上没有任何东西会换掉工厂。
+    - ⚠️ **三条为什么一直没人发现**：单测把 `client_factory` / `schema_factory` 都注入成了假件，
+      而假件**比真站点宽松**（不校验参数、不区分 GET/POST）。**假件现在已改忠实**：
+      `call_method` 直接抛（模拟 CSRF 拒绝）、`get_roles` 缺 `uid` 直接抛、
+      `get_logged_user` 回字符串、工厂位置与关键字两种调法都收。
+
+  · **④ `(b)` 的修法用的是人 2026-08-27 的裁定**：逐字「**schema 可以全部的共享，但是操作，
+    一定是要根据调用者……用户的权限来的**」。⇒ 视图计划端点「不认人」这条设计**保留不动**；
+    schema 改成**离线快照**（新模块 `agenerp/schema_snapshot.py`，**刻意在 `agenerp/serve/**` 之外**，
+    服务端只 `json.load`）。这样判据⑧「零凭据零件」「不许自己构造 `SiteClient`」**一条都不用绕**，
+    也正对应 `context-and-memory.md` §8.2 第 ④ 层「静态/半静态」。
+    ⚠️ **代价照实记：快照会过期。** 站点上**删了**字段而快照还留着 ⇒ 服务端放行渲染、浏览器取不到值。
+    **改了 DocType 就要重跑 `python3 -m agenerp.schema_snapshot`** —— 这是运维步骤，**不是自动的**。
+    顺带修掉一个性能坑：原实现**每个请求**都去拉 N 个 DocType meta。
+
+  · **⑤ 判据与变异验证**：`pytest tests -q`（除 gates/render/ui 三个需活栈的目录）**1413 passed**；
+    D-26 变异三轮 —— `uid` 改回缺参 / 认人改回 POST / `read_method` 改回 POST，
+    **各自咬中该咬的那条**，两文件 `sha256` 原状恢复。
+    P2.6 那份门禁草稿（`tools/experiments/p2_role_home/`）本轮补齐后**真跑通**：
+    **3 passed**（原来 1 红 2 绿），且两个变异（挪走快照 / 从快照里删掉 `Work Order` 字段）
+    **都让它变红**，证明它不是空转。
+
+  · **⑥ 仍然归人的**：`docs/bugs/` 与 `02-WBS.md` 里若有指向本条的抬头文字，
+    **本轮一个字没改**（红线 5）。上一轮 ⑥ 另一半（`D-26`「20 万 token/次」在 `DECISIONS.md` 无原文）
+    **本轮零变化，只复核，不代做**。
+
+  · **红线自证**：本轮对 `docs/masterplan/` 的唯一写入是**本条追加**，
+    `git diff --numstat -- docs/masterplan/STATE.md` 的**删除列为 `0`**（收尾实跑复核）。
+    `tests/gates/**` 与 `.github/workflows/**` **零改动** ——
+    两份门禁仍是 `tools/experiments/**` 下的 `.txt` 草稿，**由人落地**。
