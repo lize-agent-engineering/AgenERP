@@ -104,6 +104,17 @@ KNOWN_MODEL_PROFILES: Mapping[str, ModelProfile] = {
         capabilities=frozenset({"tool_calling", "long_context"}),
         is_reasoning_model=False,
     ),
+    # 2026-08-27 实测加入（P2.0R 评测要用）。**只声明探到的那两项** ——
+    # 探针给了工具定义，它真发起了 `meta_fields({"doctype": "Sales Order"})` ⇒ `tool_calling`；
+    # 回包 `completion_tokens_details.reasoning_tokens = 33` ⇒ 计 reasoning token。
+    # ⚠️ `long_context` / `reasoning` / `multi_hop` **那次探针判不了，因此一律不声明** ——
+    # 「未观测的能力不声明」是本模块第一条摆放规矩。这意味着 glm-5.2 今天只够
+    # `permission` 与 `explain` 两档；要接 `lineage` / `shape` 得先有两跳题的实测。
+    "glm-5.2": ModelProfile(
+        name="glm-5.2",
+        capabilities=frozenset({"tool_calling"}),
+        is_reasoning_model=True,
+    ),
     "qwen3:14b": ModelProfile(
         name="qwen3:14b",
         capabilities=frozenset({"tool_calling"}),
