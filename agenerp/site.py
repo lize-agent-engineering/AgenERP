@@ -338,6 +338,36 @@ class SiteClient:
             )
         return response["message"]
 
+    def read_method(self, method: str, params: dict[str, str] | None = None) -> Any:
+        """调**只读**白名单方法，走 `GET /api/method/<dotted.path>`，返回 `message` 的内容。
+
+        🔴 **它存在的唯一理由是 CSRF，而这条是实测出来的**（2026-08-27，站点 `frontend`）：
+
+        | `sid` 从哪来 | `POST /api/method/frappe.auth.get_logged_user` | `GET` 同一个方法 |
+        |---|---|---|
+        | `POST /api/method/login`（**脚本走的路**） | 200 | 200 |
+        | 浏览器 `/login` 网页表单（**真人走的路**） | **400 `CSRFTokenError`** | **200** |
+
+        ⇒ `call_method` 走 POST，而 Frappe 对**网页会话**的 POST 要 CSRF token。
+        服务端只拿得到 `sid`、拿不到那个 token ⇒ 真人的每一次身份解析都被拦，
+        再被服务面吞成 401「未认到人」。这正是 `STATE.md` §3 那条 `[needs-human]`
+        与 `tests/unit/test_desk_sidebar_body.py::test_the_site_rejects_a_browser_session_sid_without_a_csrf_token`
+        钉住的「头号发现」。
+
+        ⚠️ **「用 GET 绕开 CSRF」只在只读这一类上成立，绝不许推广到任何会写的调用。**
+        CSRF 防的是跨站发起的**改状态**请求；只读身份查询本来就该是 GET。
+        会写的调用继续走 `call_method` / `post_method` —— 那两条**不许**改成 GET，
+        改了就是把 CSRF 防护整个拆掉。判据见 `tests/unit/test_site_client_readonly_method.py`。
+        """
+        self._ensure_authenticated()
+        response = self._request("GET", f"{METHOD_PATH}/{method}", params=params or {})
+        if not isinstance(response, dict) or "message" not in response:
+            raise SiteError(
+                f"只读调用 {method!r} 的响应没有 message 字段（方法名写错会长成这样）："
+                f"{str(response)[:200]}"
+            )
+        return response["message"]
+
     def post_method(self, method: str, params: dict | None = None) -> Any:
         """调服务端白名单方法，**不要求响应里有 `message`**。
 
