@@ -177,10 +177,15 @@
 		return cell;
 	}
 
-	function renderTable(host, doctype, fields, rows, fieldtypes) {
+	function renderTable(host, doctype, fields, rows, fieldtypes, labels) {
 		var table = put(host, el("table", "agenerp-table"));
 		var head = put(put(table, el("thead")), el("tr"));
-		fields.forEach(function (f) { put(head, el("th", null, f)); });
+		fields.forEach(function (f) {
+			// 术语层（P2.7）：有中文名就用中文名，**没有就照实显示 fieldname**。
+			// 不拿 fieldname 冒充「中文名」——那样覆盖率就没法验了。
+			var zh = labels && labels[doctype + "." + f];
+			put(head, el("th", null, zh || f));
+		});
 		var body = put(table, el("tbody"));
 		if (!rows.length) {
 			var empty = put(put(body, el("tr")), el("td", "agenerp-empty", "没有数据"));
@@ -218,7 +223,7 @@
 		return plan.fieldtypes || {};
 	}
 
-	function renderBlock(host, block, fieldtypes) {
+	function renderBlock(host, block, fieldtypes, labels) {
 		var section = put(host, el("section", "agenerp-block"));
 		section.setAttribute("data-agenerp-block-type", block.type);
 		if (block.title) { put(section, el("h2", null, block.title)); }
@@ -242,21 +247,21 @@
 				return section;
 			}
 			if (block.type !== "detail" || !(block.childFields || []).length) {
-				renderTable(section, block.doctype, block.fields, rows, fieldtypes);
+				renderTable(section, block.doctype, block.fields, rows, fieldtypes, labels);
 				return section;
 			}
 			// ⚠️ **detail 块必须走单据详情接口，不能用列表响应。**
 			// Frappe 的列表接口（/api/resource/<DocType>?fields=…）**从不返回子表** ——
 			// 拿列表行去展开子表，画出来的永远是「没有数据」。
 			// 这不是推断：P2.2 的活体判据实测撞出来的（工人读得到 Item，表却是空的）。
-			return renderDetail(section, block, rows, fieldtypes);
+			return renderDetail(section, block, rows, fieldtypes, labels);
 		});
 	}
 
-	function renderDetail(section, block, rows, fieldtypes) {
+	function renderDetail(section, block, rows, fieldtypes, labels) {
 		var first = rows[0];
 		if (!first || !first.name) {
-			renderTable(section, block.doctype, block.fields, [], fieldtypes);
+			renderTable(section, block.doctype, block.fields, [], fieldtypes, labels);
 			return Promise.resolve(section);
 		}
 		var url = RESOURCE_PATH + "/" + encodeURIComponent(block.doctype)
@@ -264,11 +269,11 @@
 		return getJSON(url).then(function (res) {
 			if (res.status !== 200) { renderDenied(section, res.status); return section; }
 			var doc = (res.body && res.body.data) || {};
-			renderTable(section, block.doctype, block.fields, [doc], fieldtypes);
+			renderTable(section, block.doctype, block.fields, [doc], fieldtypes, labels);
 			(block.childFields || []).forEach(function (child) {
 				put(section, el("h3", null, child.tableField));
 				renderTable(section, child.doctype, child.fields,
-					doc[child.tableField] || [], fieldtypes);
+					doc[child.tableField] || [], fieldtypes, labels);
 			});
 			return section;
 		});
@@ -287,10 +292,16 @@
 				var plan = res.body;
 				put(host, el("h1", null, plan.title || plan.view));
 				var fieldtypes = fieldtypeIndex(plan);
+				if (plan.terminology && plan.terminology !== "ok") {
+					put(host, el("p", "agenerp-degraded",
+						"术语层没装上（" + plan.terminology + "），表头暂时显示英文字段名。"));
+				}
 				(plan.degraded || []).forEach(function (n) { renderDegradedNote(host, n); });
 				(plan.fallbacks || []).forEach(function (fb) { renderFallback(host, fb); });
 				return (plan.blocks || []).reduce(function (chain, block) {
-					return chain.then(function () { return renderBlock(host, block, fieldtypes); });
+					return chain.then(function () {
+						return renderBlock(host, block, fieldtypes, plan.labels || {});
+					});
 				}, Promise.resolve()).then(function () {
 					host.setAttribute("data-agenerp-rendered", plan.view);
 					return host;

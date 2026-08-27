@@ -208,3 +208,76 @@ def _english_labels() -> dict[str, str]:
             "生成方式见 tools/experiments/p2_terminology/"
         )
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+# ── 一条**执行期补的**判据：Check 字段不许被起成名词 ─────────────────────────
+
+
+def test_a_checkbox_field_reads_as_a_yes_no_question_not_as_a_noun(terms, scope_fields):
+    """🔴 **这条是跑完之后补的，起因写在这里，不掩饰。**
+
+    第一版生成后 T3 报 **15/15 全中**，而术语层里躺着实打实的错：
+
+        Item.has_batch_no  →  「批次号」   ← 它是**勾选框**，含义是「是否批次管理」
+
+    「批次号」是个**名词**，读者会以为那一列填的是批次编号。
+    而 T3 没抓到它 —— 因为 `has_batch_no` 压根不在那 15 条里。
+    ⇒ **判据绿 ≠ 判据在测它名字说的那件事**，这次发生在我自己刚写的判据上。
+
+    `Check` 是**规则能覆盖**的一类（硬约束 ③）：它的值只有是/否，
+    列名就该读成一个是非问句。**这条判据抓的是一整类，不是一个个例。**
+
+    ⚠️ 它仍然守不住「翻译得好不好」（见本模块 docstring）——
+    `Item.item_code` 被起成「项目代码」（制造业语境该是**物料**）这类误译，
+    规则面抓不到。**上限还是低。**
+    """
+    checks = _check_fields()
+    yes_no = ("是否", "有无", "允许", "启用", "禁用", "已", "需", "可")
+    bad = []
+    for key in checks:
+        value = (terms["terms"].get(key) or "").strip()
+        if value and not any(word in value for word in yes_no):
+            bad.append((key, value))
+    # 阈值：Check 字段里 **≥ 80%** 要读成是非。留 20% 的余量是因为
+    # 有些 Check 的中文习惯说法确实是名词（例如「默认」），硬卡 100% 会变成挑刺。
+    ok = len(checks) - len(bad)
+    ratio = ok * 100 / len(checks) if checks else 100.0
+    assert ratio >= 80.0, (
+        f"{len(checks)} 个 Check 字段里只有 {ok} 个（{ratio:.1f}%）读成了是非问句。"
+        f"\n读成名词的：\n"
+        + "\n".join(f"  · {k} → 「{v}」" for k, v in bad[:12])
+    )
+
+
+def _check_fields() -> list[str]:
+    """`Check` 类型的字段，从活站点导出的 fixture 里拿。"""
+    fields = json.loads(_SCHEMA_FIXTURE.read_text(encoding="utf-8"))["fields"]
+    children_raw = json.loads(_CHILD_FIXTURE.read_text(encoding="utf-8"))
+    scope = set(WORKER_DOCTYPES)
+    for key, child in children_raw.items():
+        if key.split(".", 1)[0] in WORKER_DOCTYPES:
+            scope.add(child)
+    return [
+        f"{doctype}.{fieldname}"
+        for doctype, table in fields.items()
+        if doctype in scope
+        for fieldname, fieldtype in table.items()
+        if fieldtype == "Check"
+    ]
+
+
+def test_no_term_carries_a_doctype_prefix(terms):
+    """**执行期补的第二条**：列名里不许出现单据名前缀。
+
+    起因同样是实测：`Work Order Operation.workstation` 被起成
+    「**工单工序.工作站**」—— 模型把单据名一起写进了列名。
+    20/317 条如此。它不算「错」（意思是对的），但表头里带一个点号前缀，
+    在一张已经写明是哪张单的表格里是纯粹的噪音。
+
+    ⚠️ 这条同样只是**格式**判据。它抓不到译得对不对 —— 见本模块 docstring。
+    """
+    bad = {k: v for k, v in terms["terms"].items() if "." in v or "。" in v}
+    assert not bad, (
+        f"{len(bad)} 条列名里带了单据名前缀（或句号）：\n"
+        + "\n".join(f"  · {k} → 「{v}」" for k, v in list(bad.items())[:10])
+    )

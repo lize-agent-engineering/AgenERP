@@ -84,6 +84,65 @@
       "barcode_type": "Select",
       "uom": "Link"
     },
+    "Item Customer Detail": {
+      "customer_group": "Link",
+      "customer_name": "Link",
+      "ref_code": "Data"
+    },
+    "Item Default": {
+      "buying_cost_center": "Link",
+      "company": "Link",
+      "default_discount_account": "Link",
+      "default_price_list": "Link",
+      "default_provisional_account": "Link",
+      "default_supplier": "Link",
+      "default_warehouse": "Link",
+      "deferred_expense_account": "Link",
+      "deferred_revenue_account": "Link",
+      "expense_account": "Link",
+      "income_account": "Link",
+      "selling_cost_center": "Link"
+    },
+    "Item Reorder": {
+      "material_request_type": "Select",
+      "warehouse": "Link",
+      "warehouse_group": "Link",
+      "warehouse_reorder_level": "Float",
+      "warehouse_reorder_qty": "Float"
+    },
+    "Item Supplier": {
+      "supplier": "Link",
+      "supplier_part_no": "Data"
+    },
+    "Item Tax": {
+      "item_tax_template": "Link",
+      "maximum_net_rate": "Float",
+      "minimum_net_rate": "Float",
+      "tax_category": "Link",
+      "valid_from": "Date"
+    },
+    "Item Variant Attribute": {
+      "attribute": "Link",
+      "attribute_value": "Data",
+      "disabled": "Check",
+      "from_range": "Float",
+      "increment": "Float",
+      "numeric_values": "Check",
+      "to_range": "Float",
+      "variant_of": "Link"
+    },
+    "Landed Cost Taxes and Charges": {
+      "account_currency": "Link",
+      "amount": "Currency",
+      "base_amount": "Currency",
+      "description": "Small Text",
+      "exchange_rate": "Float",
+      "expense_account": "Link",
+      "has_corrective_cost": "Check",
+      "has_operating_cost": "Check",
+      "operation_id": "Data",
+      "qty": "Float"
+    },
     "Sales Order": {
       "additional_discount_percentage": "Float",
       "address_display": "Small Text",
@@ -484,7 +543,7 @@
     "frappe": "15.118.0",
     "generated_by": "tools/experiments/p2_schema_retrieval/dump_schema.py",
     "generated_on": "2026-08-27",
-    "note": "从活站点实读导出后按 DocType 取子集。**不是手写的。**",
+    "note": "从活站点实读导出后按 DocType 取子集。**不是手写的。** 范围 = 车间工人可读的三张表 + 它们挂的全部子表 + Sales Order 对（判据用）。",
     "site": "frontend"
   }
 }
