@@ -658,7 +658,12 @@ def explain(
     并不一致，孰为准归人裁定（STATE §3 `[open] 2026-08-24T07:50Z`）。那条 `[open]`
     **不因本模块落地而消失**，本模块也不代人处置它。
 
-    ⚠️ **`per_call_output_tokens` 2026-08-27 才在入口暴露出来** —— `ExplainLoop`
+    ⚠️ **`max_tool_calls` 刻意不在这里暴露** —— `tests/unit/test_explain_runaway_guard.py`
+    的 H4 ⑤ 逐字断言 `"max_tool_calls" not in explain.__code__.co_varnames`：
+    失控闸**不许从产品入口被调**。2026-08-27 试过加透传，被这条判据当场拦下，**撤回了**。
+    评测那类要拆闸的场合自己构造 `ExplainLoop`，不从产品入口开这个口子。
+
+    ⚠️ **`per_call_output_tokens` 2026-08-27 在入口暴露出来了**，理由是实测的 —— `ExplainLoop`
     一直有这个参数，`explain()` 却没透传，于是产品路径上它**只能是默认的 4096**。
     暴露它的理由是实测：`glm-5.2`（**思考默认开着**）做难题时把 4096 全烧在 reasoning 上，
     回包 `finish_reason='length'`、`completion=4097 / reasoning=4096`，**一个字都没吐**。
