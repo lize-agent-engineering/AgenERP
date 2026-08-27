@@ -125,6 +125,22 @@ KNOWN_MODEL_PROFILES: Mapping[str, ModelProfile] = {
         capabilities=frozenset({"tool_calling"}),
         is_reasoning_model=True,
     ),
+    # 2026-08-27 实测加入（人指定的备选：glm-5.2 额度不够时用）。
+    # **只声明探到的那两项** —— 探针给了工具定义，两个都真发起了
+    # `meta_fields({"doctype": "Sales Order"})`；回包都计 reasoning
+    # （`qwen3.8-flash` 52 · `qwen3.7-flash` 436）。
+    # ⚠️ `long_context` / `reasoning` / `multi_hop` 那次探针**判不了 ⇒ 一律不声明**
+    # ⇒ 两个今天都只够 `permission` / `explain` 两档，接不了 `lineage` / `shape`。
+    "qwen3.8-flash": ModelProfile(
+        name="qwen3.8-flash",
+        capabilities=frozenset({"tool_calling"}),
+        is_reasoning_model=True,
+    ),
+    "qwen3.7-flash": ModelProfile(
+        name="qwen3.7-flash",
+        capabilities=frozenset({"tool_calling"}),
+        is_reasoning_model=True,
+    ),
     "qwen3:14b": ModelProfile(
         name="qwen3:14b",
         capabilities=frozenset({"tool_calling"}),
