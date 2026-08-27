@@ -1,0 +1,4398 @@
+{
+  "metric": "task_completion_rate",
+  "n_scored": 20,
+  "n_infrastructure": 0,
+  "task_completion_pct": 100.0,
+  "judge_model": "glm-5.2",
+  "max_turns": 20,
+  "usage": {
+    "judge_calls": 1,
+    "judge_in": 183,
+    "judge_out": 22
+  },
+  "causes": [
+    "capability",
+    "missing_info",
+    "harness",
+    "environment",
+    "false_rejection",
+    "false_acceptance",
+    "leakage",
+    "infrastructure"
+  ],
+  "detail": [
+    {
+      "q": "这张销售订单是什么时候下的？",
+      "acceptable": [
+        "Sales Order.transaction_date"
+      ],
+      "tokens": {
+        "in": 4427,
+        "out": 654,
+        "reasoning": 463,
+        "model_calls": 2
+      },
+      "trajectory": [
+        "meta.fields"
+      ],
+      "raw_answer": "查证过程：\n\n从 `meta_fields` 对 Sales Order 的返回结果中，我看到了以下与时间相关的字段：\n\n- `transaction_date`：Date 类型，label 为 \"Date\"，必填字段 — 这是销售订单的交易日期，即\"下单日期\"。\n- `delivery_date`：Date 类型，label 为 \"Delivery Date\" — 是交货日期，不是下单日期。\n- `po_date`：Date 类型，label 为 \"Customer's Purchase Order Date\" — 是客户采购订单日期，不是销售订单本身的下单时间。\n\n在 ERPNext 的业务语义中，\"销售订单是什么时候下的\"对应的就是交易日期 `transaction_date`，它是必填字段，代表该订单的业务发生日期。\n\nSales Order.transaction_date",
+      "trace": {
+        "question": "你是 ERP 系统的字段专家。请回答下面这个问题需要用到**哪一个**字段。\n\n问题：这张销售订单是什么时候下的？\n\n要求：\n- **只给一个字段**，格式严格为 `DocType.fieldname`（例如 `Sales Order.customer`）\n- 必须是这个站点上**真实存在**的字段 —— 拿不准就用工具查证\n- 最后一行只输出那个字段本身，前面可以写你的查证过程\n\n⚠️ 这是**要你做决定**，不是要你列候选。给多个字段视同没回答。",
+        "model": "glm-5.2",
+        "task_class": "explain",
+        "turns": [
+          {
+            "index": 1,
+            "kind": "tools",
+            "usage": {
+              "prompt": 1327,
+              "completion": 87,
+              "reasoning": 51,
+              "cached": 0,
+              "total": 1414
+            },
+            "calls": [
+              "meta.fields"
+            ]
+          },
+          {
+            "index": 2,
+            "kind": "answer",
+            "usage": {
+              "prompt": 3100,
+              "completion": 567,
+              "reasoning": 412,
+              "cached": 1280,
+              "total": 3667
+            }
+          }
+        ],
+        "tool_calls": [
+          {
+            "tool": "meta.fields",
+            "params": {
+              "doctype": "Sales Order"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 7,
+            "surface_id": "evidence-surface-1"
+          }
+        ],
+        "gate_checks": [
+          {
+            "turn": 2,
+            "enforced": true,
+            "surface_id": "evidence-surface-1",
+            "facts": {
+              "documents_named_in_question": [],
+              "doc_links_called_for": [],
+              "doc_get_called_for": [],
+              "submitted_downstream_documents": [],
+              "inbound_vouchers_of_quantities_in_answer": []
+            },
+            "failed": []
+          }
+        ],
+        "forced_continues": [],
+        "breaker_events": [],
+        "runaway_events": [],
+        "model_tool_calls": 1,
+        "opening_request_count": 240,
+        "execute_calls": 1,
+        "stopped": "answered",
+        "cost_ledger": {
+          "entries": [
+            {
+              "index": 1,
+              "model": "glm-5.2",
+              "usage": {
+                "prompt": 1327,
+                "completion": 87,
+                "reasoning": 51,
+                "cached": 0
+              },
+              "outcome": "tools",
+              "endpoint_total": 1414,
+              "endpoint_reasoning": 51,
+              "endpoint_cached": 0,
+              "detail": ""
+            },
+            {
+              "index": 2,
+              "model": "glm-5.2",
+              "usage": {
+                "prompt": 3100,
+                "completion": 567,
+                "reasoning": 412,
+                "cached": 1280
+              },
+              "outcome": "answer",
+              "endpoint_total": 3667,
+              "endpoint_reasoning": 412,
+              "endpoint_cached": 1280,
+              "detail": ""
+            }
+          ]
+        }
+      },
+      "stopped": "answered",
+      "forced_continues": [],
+      "gate_checks": [
+        {
+          "turn": 2,
+          "failed": []
+        }
+      ],
+      "committed": "Sales Order.transaction_date",
+      "commit_note": "最后一行承诺",
+      "passed": true,
+      "cause": null,
+      "why": "命中可接受集合"
+    },
+    {
+      "q": "销售订单承诺的交货日期在哪个字段？",
+      "acceptable": [
+        "Sales Order.delivery_date",
+        "Sales Order Item.delivery_date"
+      ],
+      "tokens": {
+        "in": 4430,
+        "out": 145,
+        "reasoning": 71,
+        "model_calls": 2
+      },
+      "trajectory": [
+        "meta.fields"
+      ],
+      "raw_answer": "从 Sales Order 的字段表中可以看到，字段 `delivery_date`，类型为 `Date`，标签为 \"Delivery Date\"——这正是销售订单承诺的交货日期字段。\n\nSales Order.delivery_date",
+      "trace": {
+        "question": "你是 ERP 系统的字段专家。请回答下面这个问题需要用到**哪一个**字段。\n\n问题：销售订单承诺的交货日期在哪个字段？\n\n要求：\n- **只给一个字段**，格式严格为 `DocType.fieldname`（例如 `Sales Order.customer`）\n- 必须是这个站点上**真实存在**的字段 —— 拿不准就用工具查证\n- 最后一行只输出那个字段本身，前面可以写你的查证过程\n\n⚠️ 这是**要你做决定**，不是要你列候选。给多个字段视同没回答。",
+        "model": "glm-5.2",
+        "task_class": "explain",
+        "turns": [
+          {
+            "index": 1,
+            "kind": "tools",
+            "usage": {
+              "prompt": 1331,
+              "completion": 66,
+              "reasoning": 35,
+              "cached": 1152,
+              "total": 1397
+            },
+            "calls": [
+              "meta.fields"
+            ]
+          },
+          {
+            "index": 2,
+            "kind": "answer",
+            "usage": {
+              "prompt": 3099,
+              "completion": 79,
+              "reasoning": 36,
+              "cached": 1280,
+              "total": 3178
+            }
+          }
+        ],
+        "tool_calls": [
+          {
+            "tool": "meta.fields",
+            "params": {
+              "doctype": "Sales Order"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 7,
+            "surface_id": "evidence-surface-2"
+          }
+        ],
+        "gate_checks": [
+          {
+            "turn": 2,
+            "enforced": true,
+            "surface_id": "evidence-surface-2",
+            "facts": {
+              "documents_named_in_question": [],
+              "doc_links_called_for": [],
+              "doc_get_called_for": [],
+              "submitted_downstream_documents": [],
+              "inbound_vouchers_of_quantities_in_answer": []
+            },
+            "failed": []
+          }
+        ],
+        "forced_continues": [],
+        "breaker_events": [],
+        "runaway_events": [],
+        "model_tool_calls": 1,
+        "opening_request_count": 240,
+        "execute_calls": 1,
+        "stopped": "answered",
+        "cost_ledger": {
+          "entries": [
+            {
+              "index": 1,
+              "model": "glm-5.2",
+              "usage": {
+                "prompt": 1331,
+                "completion": 66,
+                "reasoning": 35,
+                "cached": 1152
+              },
+              "outcome": "tools",
+              "endpoint_total": 1397,
+              "endpoint_reasoning": 35,
+              "endpoint_cached": 1152,
+              "detail": ""
+            },
+            {
+              "index": 2,
+              "model": "glm-5.2",
+              "usage": {
+                "prompt": 3099,
+                "completion": 79,
+                "reasoning": 36,
+                "cached": 1280
+              },
+              "outcome": "answer",
+              "endpoint_total": 3178,
+              "endpoint_reasoning": 36,
+              "endpoint_cached": 1280,
+              "detail": ""
+            }
+          ]
+        }
+      },
+      "stopped": "answered",
+      "forced_continues": [],
+      "gate_checks": [
+        {
+          "turn": 2,
+          "failed": []
+        }
+      ],
+      "committed": "Sales Order.delivery_date",
+      "commit_note": "最后一行承诺",
+      "passed": true,
+      "cause": null,
+      "why": "命中可接受集合"
+    },
+    {
+      "q": "销售订单里这一行已经发了多少了？",
+      "acceptable": [
+        "Sales Order Item.delivered_qty"
+      ],
+      "tokens": {
+        "in": 30623,
+        "out": 688,
+        "reasoning": 314,
+        "model_calls": 7
+      },
+      "trajectory": [
+        "meta.fields",
+        "schema.search",
+        "meta.fields",
+        "query.read",
+        "query.read",
+        "doc.get"
+      ],
+      "raw_answer": "从实际单据 `SAL-ORD-2026-00001` 的子表行（`items`）中，我可以看到字段 `delivered_qty`，其值为 `990.0`，表示该行已发货数量。该行的 `qty`（订单数量）为 `1000.0`，而 `delivered_qty` 为 `990.0`，正好对应父单据上 `per_delivered = 99.0`（99%）和 `delivery_status = \"Partly Delivered\"`。\n\nSales Order Item.delivered_qty",
+      "trace": {
+        "question": "你是 ERP 系统的字段专家。请回答下面这个问题需要用到**哪一个**字段。\n\n问题：销售订单里这一行已经发了多少了？\n\n要求：\n- **只给一个字段**，格式严格为 `DocType.fieldname`（例如 `Sales Order.customer`）\n- 必须是这个站点上**真实存在**的字段 —— 拿不准就用工具查证\n- 最后一行只输出那个字段本身，前面可以写你的查证过程\n\n⚠️ 这是**要你做决定**，不是要你列候选。给多个字段视同没回答。",
+        "model": "glm-5.2",
+        "task_class": "explain",
+        "turns": [
+          {
+            "index": 1,
+            "kind": "tools",
+            "usage": {
+              "prompt": 1330,
+              "completion": 153,
+              "reasoning": 105,
+              "cached": 1152,
+              "total": 1483
+            },
+            "calls": [
+              "meta.fields"
+            ]
+          },
+          {
+            "index": 2,
+            "kind": "tools",
+            "usage": {
+              "prompt": 3072,
+              "completion": 84,
+              "reasoning": 43,
+              "cached": 1280,
+              "total": 3156
+            },
+            "calls": [
+              "schema.search"
+            ]
+          },
+          {
+            "index": 3,
+            "kind": "tools",
+            "usage": {
+              "prompt": 3320,
+              "completion": 14,
+              "reasoning": 0,
+              "cached": 3072,
+              "total": 3334
+            },
+            "calls": [
+              "meta.fields"
+            ]
+          },
+          {
+            "index": 4,
+            "kind": "tools",
+            "usage": {
+              "prompt": 5028,
+              "completion": 127,
+              "reasoning": 58,
+              "cached": 3072,
+              "total": 5155
+            },
+            "calls": [
+              "query.read"
+            ]
+          },
+          {
+            "index": 5,
+            "kind": "tools",
+            "usage": {
+              "prompt": 5212,
+              "completion": 76,
+              "reasoning": 24,
+              "cached": 4992,
+              "total": 5288
+            },
+            "calls": [
+              "query.read"
+            ]
+          },
+          {
+            "index": 6,
+            "kind": "tools",
+            "usage": {
+              "prompt": 5291,
+              "completion": 28,
+              "reasoning": 0,
+              "cached": 5120,
+              "total": 5319
+            },
+            "calls": [
+              "doc.get"
+            ]
+          },
+          {
+            "index": 7,
+            "kind": "answer",
+            "usage": {
+              "prompt": 7370,
+              "completion": 206,
+              "reasoning": 84,
+              "cached": 5248,
+              "total": 7576
+            }
+          }
+        ],
+        "tool_calls": [
+          {
+            "tool": "meta.fields",
+            "params": {
+              "doctype": "Sales Order Item"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 1,
+            "surface_id": "evidence-surface-3"
+          },
+          {
+            "tool": "schema.search",
+            "params": {
+              "keywords": "delivered qty Sales Order Item"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 240,
+            "surface_id": "evidence-surface-3"
+          },
+          {
+            "tool": "meta.fields",
+            "params": {
+              "doctype": "Sales Order Item"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 1,
+            "surface_id": "evidence-surface-3"
+          },
+          {
+            "tool": "query.read",
+            "params": {
+              "doctype": "Sales Order Item",
+              "fields": [
+                "delivered_qty",
+                "qty",
+                "name",
+                "parent"
+              ],
+              "limit": 1
+            },
+            "ok": false,
+            "stage": "execute",
+            "reasons": [
+              "调用无法执行：Sales Order Item 是子表（istable=1）—— Frappe **不允许**直接列读子 DocType，这不是权限没配好，换个身份也一样。子表的行随父单据一起返回：改用 `doc.get` 读**父单据**，要的字段就在父单据的子表里。（站点原文：GET /api/resource/Sales Order Item → HTTP 403（站点 frontend）：{\"exception\":\"frappe.exceptions.PermissionError\",\"exc_type\":\"）"
+            ],
+            "request_count": 2,
+            "surface_id": "evidence-surface-3"
+          },
+          {
+            "tool": "query.read",
+            "params": {
+              "doctype": "Sales Order",
+              "fields": [
+                "name"
+              ],
+              "limit": 1
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 1,
+            "surface_id": "evidence-surface-3"
+          },
+          {
+            "tool": "doc.get",
+            "params": {
+              "doctype": "Sales Order",
+              "name": "SAL-ORD-2026-00001"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 2,
+            "surface_id": "evidence-surface-3"
+          }
+        ],
+        "gate_checks": [
+          {
+            "turn": 7,
+            "enforced": true,
+            "surface_id": "evidence-surface-3",
+            "facts": {
+              "documents_named_in_question": [],
+              "doc_links_called_for": [],
+              "doc_get_called_for": [
+                "SAL-ORD-2026-00001"
+              ],
+              "submitted_downstream_documents": [],
+              "inbound_vouchers_of_quantities_in_answer": []
+            },
+            "failed": []
+          }
+        ],
+        "forced_continues": [],
+        "breaker_events": [],
+        "runaway_events": [],
+        "model_tool_calls": 6,
+        "opening_request_count": 240,
+        "execute_calls": 6,
+        "stopped": "answered",
+        "cost_ledger": {
+          "entries": [
+            {
+              "index": 1,
+              "model": "glm-5.2",
+              "usage": {
+                "prompt": 1330,
+                "completion": 153,
+                "reasoning": 105,
+                "cached": 1152
+              },
+              "outcome": "tools",
+              "endpoint_total": 1483,
+              "endpoint_reasoning": 105,
+              "endpoint_cached": 1152,
+              "detail": ""
+            },
+            {
+              "index": 2,
+              "model": "glm-5.2",
+              "usage": {
+                "prompt": 3072,
+                "completion": 84,
+                "reasoning": 43,
+                "cached": 1280
+              },
+              "outcome": "tools",
+              "endpoint_total": 3156,
+              "endpoint_reasoning": 43,
+              "endpoint_cached": 1280,
+              "detail": ""
+            },
+            {
+              "index": 3,
+              "model": "glm-5.2",
+              "usage": {
+                "prompt": 3320,
+                "completion": 14,
+                "reasoning": 0,
+                "cached": 3072
+              },
+              "outcome": "tools",
+              "endpoint_total": 3334,
+              "endpoint_reasoning": 0,
+              "endpoint_cached": 3072,
+              "detail": ""
+            },
+            {
+              "index": 4,
+              "model": "glm-5.2",
+              "usage": {
+                "prompt": 5028,
+                "completion": 127,
+                "reasoning": 58,
+                "cached": 3072
+              },
+              "outcome": "tools",
+              "endpoint_total": 5155,
+              "endpoint_reasoning": 58,
+              "endpoint_cached": 3072,
+              "detail": ""
+            },
+            {
+              "index": 5,
+              "model": "glm-5.2",
+              "usage": {
+                "prompt": 5212,
+                "completion": 76,
+                "reasoning": 24,
+                "cached": 4992
+              },
+              "outcome": "tools",
+              "endpoint_total": 5288,
+              "endpoint_reasoning": 24,
+              "endpoint_cached": 4992,
+              "detail": ""
+            },
+            {
+              "index": 6,
+              "model": "glm-5.2",
+              "usage": {
+                "prompt": 5291,
+                "completion": 28,
+                "reasoning": 0,
+                "cached": 5120
+              },
+              "outcome": "tools",
+              "endpoint_total": 5319,
+              "endpoint_reasoning": 0,
+              "endpoint_cached": 5120,
+              "detail": ""
+            },
+            {
+              "index": 7,
+              "model": "glm-5.2",
+              "usage": {
+                "prompt": 7370,
+                "completion": 206,
+                "reasoning": 84,
+                "cached": 5248
+              },
+              "outcome": "answer",
+              "endpoint_total": 7576,
+              "endpoint_reasoning": 84,
+              "endpoint_cached": 5248,
+              "detail": ""
+            }
+          ]
+        }
+      },
+      "stopped": "answered",
+      "forced_continues": [],
+      "gate_checks": [
+        {
+          "turn": 7,
+          "failed": []
+        }
+      ],
+      "committed": "Sales Order Item.delivered_qty",
+      "commit_note": "最后一行承诺",
+      "passed": true,
+      "cause": null,
+      "why": "命中可接受集合"
+    },
+    {
+      "q": "客户的默认结算货币是什么？",
+      "acceptable": [
+        "Customer.default_currency"
+      ],
+      "tokens": {
+        "in": 4368,
+        "out": 161,
+        "reasoning": 83,
+        "model_calls": 2
+      },
+      "trajectory": [
+        "meta.fields"
+      ],
+      "raw_answer": "查证过程：\n\n通过 `meta.fields` 工具读取了 `Customer` DocType 的字段列表，其中存在字段 `default_currency`，类型为 `Link`，选项指向 `Currency`，标签为 \"Billing Currency\"。这正是客户主数据上记录的默认结算货币字段。\n\nCustomer.default_currency",
+      "trace": {
+        "question": "你是 ERP 系统的字段专家。请回答下面这个问题需要用到**哪一个**字段。\n\n问题：客户的默认结算货币是什么？\n\n要求：\n- **只给一个字段**，格式严格为 `DocType.fieldname`（例如 `Sales Order.customer`）\n- 必须是这个站点上**真实存在**的字段 —— 拿不准就用工具查证\n- 最后一行只输出那个字段本身，前面可以写你的查证过程\n\n⚠️ 这是**要你做决定**，不是要你列候选。给多个字段视同没回答。",
+        "model": "glm-5.2",
+        "task_class": "explain",
+        "turns": [
+          {
+            "index": 1,
+            "kind": "tools",
+            "usage": {
+              "prompt": 1326,
+              "completion": 42,
+              "reasoning": 30,
+              "cached": 1152,
+              "total": 1368
+            },
+            "calls": [
+              "meta.fields"
+            ]
+          },
+          {
+            "index": 2,
+            "kind": "answer",
+            "usage": {
+              "prompt": 3042,
+              "completion": 119,
+              "reasoning": 53,
+              "cached": 1280,
+              "total": 3161
+            }
+          }
+        ],
+        "tool_calls": [
+          {
+            "tool": "meta.fields",
+            "params": {
+              "doctype": "Customer"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 6,
+            "surface_id": "evidence-surface-4"
+          }
+        ],
+        "gate_checks": [
+          {
+            "turn": 2,
+            "enforced": true,
+            "surface_id": "evidence-surface-4",
+            "facts": {
+              "documents_named_in_question": [],
+              "doc_links_called_for": [],
+              "doc_get_called_for": [],
+              "submitted_downstream_documents": [],
+              "inbound_vouchers_of_quantities_in_answer": []
+            },
+            "failed": []
+          }
+        ],
+        "forced_continues": [],
+        "breaker_events": [],
+        "runaway_events": [],
+        "model_tool_calls": 1,
+        "opening_request_count": 240,
+        "execute_calls": 1,
+        "stopped": "answered",
+        "cost_ledger": {
+          "entries": [
+            {
+              "index": 1,
+              "model": "glm-5.2",
+              "usage": {
+                "prompt": 1326,
+                "completion": 42,
+                "reasoning": 30,
+                "cached": 1152
+              },
+              "outcome": "tools",
+              "endpoint_total": 1368,
+              "endpoint_reasoning": 30,
+              "endpoint_cached": 1152,
+              "detail": ""
+            },
+            {
+              "index": 2,
+              "model": "glm-5.2",
+              "usage": {
+                "prompt": 3042,
+                "completion": 119,
+                "reasoning": 53,
+                "cached": 1280
+              },
+              "outcome": "answer",
+              "endpoint_total": 3161,
+              "endpoint_reasoning": 53,
+              "endpoint_cached": 1280,
+              "detail": ""
+            }
+          ]
+        }
+      },
+      "stopped": "answered",
+      "forced_continues": [],
+      "gate_checks": [
+        {
+          "turn": 2,
+          "failed": []
+        }
+      ],
+      "committed": "Customer.default_currency",
+      "commit_note": "最后一行承诺",
+      "passed": true,
+      "cause": null,
+      "why": "命中可接受集合"
+    },
+    {
+      "q": "采购订单是向哪个供应商下的？",
+      "acceptable": [
+        "Purchase Order.supplier",
+        "Purchase Order.supplier_name"
+      ],
+      "tokens": {
+        "in": 4350,
+        "out": 255,
+        "reasoning": 106,
+        "model_calls": 2
+      },
+      "trajectory": [
+        "meta.fields"
+      ],
+      "raw_answer": "查证过程：\n\n通过 `meta.fields` 工具查询了 `Purchase Order` DocType 的字段列表。其中有一个字段：\n\n- **fieldname**: `supplier`\n- **fieldtype**: `Link`\n- **label**: \"Supplier\"\n- **options**: `Supplier`（即指向 Supplier 主数据表）\n- **reqd**: `true`（必填项）\n\n这正是采购订单上用于标识\"向哪个供应商下单\"的核心字段。虽然还有一个 `supplier_name` 字段（Data 类型，存储供应商名称文本），但它只是 `supplier` 的冗余展示值，真正的关联引用字段是 `supplier`。\n\nPurchase Order.supplier",
+      "trace": {
+        "question": "你是 ERP 系统的字段专家。请回答下面这个问题需要用到**哪一个**字段。\n\n问题：采购订单是向哪个供应商下的？\n\n要求：\n- **只给一个字段**，格式严格为 `DocType.fieldname`（例如 `Sales Order.customer`）\n- 必须是这个站点上**真实存在**的字段 —— 拿不准就用工具查证\n- 最后一行只输出那个字段本身，前面可以写你的查证过程\n\n⚠️ 这是**要你做决定**，不是要你列候选。给多个字段视同没回答。",
+        "model": "glm-5.2",
+        "task_class": "explain",
+        "turns": [
+          {
+            "index": 1,
+            "kind": "tools",
+            "usage": {
+              "prompt": 1328,
+              "completion": 44,
+              "reasoning": 31,
+              "cached": 1152,
+              "total": 1372
+            },
+            "calls": [
+              "meta.fields"
+            ]
+          },
+          {
+            "index": 2,
+            "kind": "answer",
+            "usage": {
+              "prompt": 3022,
+              "completion": 211,
+              "reasoning": 75,
+              "cached": 1280,
+              "total": 3233
+            }
+          }
+        ],
+        "tool_calls": [
+          {
+            "tool": "meta.fields",
+            "params": {
+              "doctype": "Purchase Order"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 6,
+            "surface_id": "evidence-surface-5"
+          }
+        ],
+        "gate_checks": [
+          {
+            "turn": 2,
+            "enforced": true,
+            "surface_id": "evidence-surface-5",
+            "facts": {
+              "documents_named_in_question": [],
+              "doc_links_called_for": [],
+              "doc_get_called_for": [],
+              "submitted_downstream_documents": [],
+              "inbound_vouchers_of_quantities_in_answer": []
+            },
+            "failed": []
+          }
+        ],
+        "forced_continues": [],
+        "breaker_events": [],
+        "runaway_events": [],
+        "model_tool_calls": 1,
+        "opening_request_count": 240,
+        "execute_calls": 1,
+        "stopped": "answered",
+        "cost_ledger": {
+          "entries": [
+            {
+              "index": 1,
+              "model": "glm-5.2",
+              "usage": {
+                "prompt": 1328,
+                "completion": 44,
+                "reasoning": 31,
+                "cached": 1152
+              },
+              "outcome": "tools",
+              "endpoint_total": 1372,
+              "endpoint_reasoning": 31,
+              "endpoint_cached": 1152,
+              "detail": ""
+            },
+            {
+              "index": 2,
+              "model": "glm-5.2",
+              "usage": {
+                "prompt": 3022,
+                "completion": 211,
+                "reasoning": 75,
+                "cached": 1280
+              },
+              "outcome": "answer",
+              "endpoint_total": 3233,
+              "endpoint_reasoning": 75,
+              "endpoint_cached": 1280,
+              "detail": ""
+            }
+          ]
+        }
+      },
+      "stopped": "answered",
+      "forced_continues": [],
+      "gate_checks": [
+        {
+          "turn": 2,
+          "failed": []
+        }
+      ],
+      "committed": "Purchase Order.supplier",
+      "commit_note": "最后一行承诺",
+      "passed": true,
+      "cause": null,
+      "why": "命中可接受集合"
+    },
+    {
+      "q": "采购订单这一行已经收了多少货？",
+      "acceptable": [
+        "Purchase Order Item.received_qty"
+      ],
+      "tokens": {
+        "in": 138054,
+        "out": 6895,
+        "reasoning": 5007,
+        "model_calls": 16
+      },
+      "trajectory": [
+        "meta.fields",
+        "meta.fields",
+        "query.read",
+        "doc.get",
+        "query.read",
+        "doc.get",
+        "doc.links",
+        "lineage.trace",
+        "doc.get",
+        "doc.get",
+        "doc.get",
+        "schema.search",
+        "meta.fields",
+        "query.read",
+        "doc.get"
+      ],
+      "raw_answer": "全部证据已补齐。以下是完整的查证链：\n\n### 库存流水（Stock Ledger Entry）—— `成品仓 - HRD` / `HRD-PACK-5K`\n\n| 序号 | 凭证类型 | 凭证号 | actual_qty | 方向 | 是否关联 PO |\n|------|----------|--------|-----------|------|-------------|\n| 1 | Stock Entry (Manufacture) | MAT-STE-2026-00003 | +1000 | 入库 | ❌ 无关联——来自工单 `MFG-WO-2026-00001`，无 `subcontracting_order` / `purchase_order` 字段 |\n| 2 | Subcontracting Receipt | MAT-SCR-2026-00001 | +1000 | 入库 | ✅ `purchase_order = PUR-ORD-2026-00001`，`purchase_order_item = 03hpal5l4e` |\n| 3 | Delivery Note | MAT-DN-2026-00001 | -990 | 出库 | — 出库不涉及 |\n\n### 已逐个 doc.get 的全部入库来源凭证\n\n1. **Stock Entry `MAT-STE-2026-00003`**（刚补取）：类型 `Manufacture`，来自工单 `MFG-WO-2026-00001`，与采购订单无任何关联字段——不属于 PO 的收货来源。\n2. **Subcontracting Receipt `MAT-SCR-2026-00001`**（已取）：唯一将收货数量回写到 PO 行 `03hpal5l4e` 的凭证，其 `received_qty = 1000.0`。\n\n### 结论\n\n库存流水中 `成品仓 - HRD` 的 `HRD-PACK-5K` 共有 2 张入库凭证，均已逐个 doc.get 取证完毕。其中只有 Subcontracting Receipt `MAT-SCR-2026-00001` 与采购订单 `PUR-ORD-2026-00001` 的行 `03hpal5l4e` 关联。采购订单行上专门记录\"已收货数量\"的字段是 `received_qty`。\n\nPurchase Order Item.received_qty",
+      "trace": {
+        "question": "你是 ERP 系统的字段专家。请回答下面这个问题需要用到**哪一个**字段。\n\n问题：采购订单这一行已经收了多少货？\n\n要求：\n- **只给一个字段**，格式严格为 `DocType.fieldname`（例如 `Sales Order.customer`）\n- 必须是这个站点上**真实存在**的字段 —— 拿不准就用工具查证\n- 最后一行只输出那个字段本身，前面可以写你的查证过程\n\n⚠️ 这是**要你做决定**，不是要你列候选。给多个字段视同没回答。",
+        "model": "glm-5.2",
+        "task_class": "explain",
+        "turns": [
+          {
+            "index": 1,
+            "kind": "tools",
+            "usage": {
+              "prompt": 1329,
+              "completion": 53,
+              "reasoning": 40,
+              "cached": 1152,
+              "total": 1382
+            },
+            "calls": [
+              "meta.fields"
+            ]
+          },
+          {
+            "index": 2,
+            "kind": "tools",
+            "usage": {
+              "prompt": 3023,
+              "completion": 104,
+              "reasoning": 90,
+              "cached": 1280,
+              "total": 3127
+            },
+            "calls": [
+              "meta.fields"
+            ]
+          },
+          {
+            "index": 3,
+            "kind": "tools",
+            "usage": {
+              "prompt": 4715,
+              "completion": 80,
+              "reasoning": 35,
+              "cached": 2944,
+              "total": 4795
+            },
+            "calls": [
+              "query.read"
+            ]
+          },
+          {
+            "index": 4,
+            "kind": "tools",
+            "usage": {
+              "prompt": 4874,
+              "completion": 22,
+              "reasoning": 0,
+              "cached": 4608,
+              "total": 4896
+            },
+            "calls": [
+              "doc.get"
+            ]
+          },
+          {
+            "index": 5,
+            "kind": "tools",
+            "usage": {
+              "prompt": 5042,
+              "completion": 27,
+              "reasoning": 0,
+              "cached": 4864,
+              "total": 5069
+            },
+            "calls": [
+              "query.read"
+            ]
+          },
+          {
+            "index": 6,
+            "kind": "tools",
+            "usage": {
+              "prompt": 5095,
+              "completion": 27,
+              "reasoning": 0,
+              "cached": 4992,
+              "total": 5122
+            },
+            "calls": [
+              "doc.get"
+            ]
+          },
+          {
+            "index": 7,
+            "kind": "answer",
+            "usage": {
+              "prompt": 6993,
+              "completion": 250,
+              "reasoning": 121,
+              "cached": 4992,
+              "total": 7243
+            }
+          },
+          {
+            "index": 8,
+            "kind": "tools",
+            "usage": {
+              "prompt": 7211,
+              "completion": 943,
+              "reasoning": 816,
+              "cached": 6912,
+              "total": 8154
+            },
+            "calls": [
+              "doc.links",
+              "lineage.trace"
+            ]
+          },
+          {
+            "index": 9,
+            "kind": "tools",
+            "usage": {
+              "prompt": 7623,
+              "completion": 54,
+              "reasoning": 0,
+              "cached": 7168,
+              "total": 7677
+            },
+            "calls": [
+              "doc.get",
+              "doc.get"
+            ]
+          },
+          {
+            "index": 10,
+            "kind": "tools",
+            "usage": {
+              "prompt": 10210,
+              "completion": 1745,
+              "reasoning": 1685,
+              "cached": 7552,
+              "total": 11955
+            },
+            "calls": [
+              "doc.get"
+            ]
+          },
+          {
+            "index": 11,
+            "kind": "answer",
+            "usage": {
+              "prompt": 11644,
+              "completion": 1650,
+              "reasoning": 1031,
+              "cached": 10112,
+              "total": 13294
+            }
+          },
+          {
+            "index": 12,
+            "kind": "tools",
+            "usage": {
+              "prompt": 12352,
+              "completion": 215,
+              "reasoning": 150,
+              "cached": 11520,
+              "total": 12567
+            },
+            "calls": [
+              "schema.search"
+            ]
+          },
+          {
+            "index": 13,
+            "kind": "tools",
+            "usage": {
+              "prompt": 12627,
+              "completion": 14,
+              "reasoning": 0,
+              "cached": 12288,
+              "total": 12641
+            },
+            "calls": [
+              "meta.fields"
+            ]
+          },
+          {
+            "index": 14,
+            "kind": "tools",
+            "usage": {
+              "prompt": 14191,
+              "completion": 91,
+              "reasoning": 0,
+              "cached": 12544,
+              "total": 14282
+            },
+            "calls": [
+              "query.read"
+            ]
+          },
+          {
+            "index": 15,
+            "kind": "tools",
+            "usage": {
+              "prompt": 14680,
+              "completion": 348,
+              "reasoning": 236,
+              "cached": 14080,
+              "total": 15028
+            },
+            "calls": [
+              "doc.get"
+            ]
+          },
+          {
+            "index": 16,
+            "kind": "answer",
+            "usage": {
+              "prompt": 16445,
+              "completion": 1272,
+              "reasoning": 803,
+              "cached": 14592,
+              "total": 17717
+            }
+          }
+        ],
+        "tool_calls": [
+          {
+            "tool": "meta.fields",
+            "params": {
+              "doctype": "Purchase Order"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 6,
+            "surface_id": "evidence-surface-6"
+          },
+          {
+            "tool": "meta.fields",
+            "params": {
+              "doctype": "Purchase Order Item"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 1,
+            "surface_id": "evidence-surface-6"
+          },
+          {
+            "tool": "query.read",
+            "params": {
+              "doctype": "Purchase Order Item",
+              "fields": [
+                "fieldname",
+                "label",
+                "fieldtype"
+              ],
+              "filters": [
+                [
+                  "fieldname",
+                  "like",
+                  "%received%"
+                ]
+              ]
+            },
+            "ok": false,
+            "stage": "execute",
+            "reasons": [
+              "调用无法执行：Purchase Order Item 是子表（istable=1）—— Frappe **不允许**直接列读子 DocType，这不是权限没配好，换个身份也一样。子表的行随父单据一起返回：改用 `doc.get` 读**父单据**，要的字段就在父单据的子表里。（站点原文：GET /api/resource/Purchase Order Item → HTTP 403（站点 frontend）：{\"exception\":\"frappe.exceptions.PermissionError\",\"exc_type）"
+            ],
+            "request_count": 2,
+            "surface_id": "evidence-surface-6"
+          },
+          {
+            "tool": "doc.get",
+            "params": {
+              "doctype": "Purchase Order",
+              "name": "PO-00001"
+            },
+            "ok": false,
+            "stage": "execute",
+            "reasons": [
+              "站点侧失败：GET /api/resource/Purchase Order/PO-00001 → HTTP 404（站点 frontend）：{\"exc_type\":\"DoesNotExistError\",\"_server_messages\":\"[\\\"{\\\\\\\"message\\\\\\\": \\\\\\\"Purchase Order PO-00001 not found\\\\\\\", \\\\\\\"title\\\\\\\": \\\\\\\"Message\\\\\\\", \\\\\\\"indicator\\\\\\\": \\\\\\\"red\\\\\\\", \\\\\\\"raise_exception\\\\\\\": 1, \\\\\\\"__frappe_exc_id\\\\\\\": \\\\\\\"0c4e3ed6b29f76475d7d160dfcc6cc26c97dc10be5b554d4ff383eeb\\\\\\\"}\\\""
+            ],
+            "request_count": 1,
+            "surface_id": "evidence-surface-6"
+          },
+          {
+            "tool": "query.read",
+            "params": {
+              "doctype": "Purchase Order",
+              "fields": [
+                "name"
+              ],
+              "limit": 1
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 1,
+            "surface_id": "evidence-surface-6"
+          },
+          {
+            "tool": "doc.get",
+            "params": {
+              "doctype": "Purchase Order",
+              "name": "PUR-ORD-2026-00001"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 2,
+            "surface_id": "evidence-surface-6"
+          },
+          {
+            "tool": "doc.links",
+            "params": {
+              "doctype": "Purchase Order",
+              "name": "PUR-ORD-2026-00001"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 16,
+            "surface_id": "evidence-surface-6"
+          },
+          {
+            "tool": "lineage.trace",
+            "params": {
+              "doctype": "Purchase Order",
+              "name": "PUR-ORD-2026-00001",
+              "depth": 2
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 31,
+            "surface_id": "evidence-surface-6"
+          },
+          {
+            "tool": "doc.get",
+            "params": {
+              "doctype": "Subcontracting Receipt",
+              "name": "MAT-SCR-2026-00001"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 2,
+            "surface_id": "evidence-surface-6"
+          },
+          {
+            "tool": "doc.get",
+            "params": {
+              "doctype": "Stock Entry",
+              "name": "MAT-STE-2026-00004"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 2,
+            "surface_id": "evidence-surface-6"
+          },
+          {
+            "tool": "doc.get",
+            "params": {
+              "doctype": "Subcontracting Order",
+              "name": "SC-ORD-2026-00001"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 2,
+            "surface_id": "evidence-surface-6"
+          },
+          {
+            "tool": "schema.search",
+            "params": {
+              "keywords": "Stock Ledger Entry"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 240,
+            "surface_id": "evidence-surface-6"
+          },
+          {
+            "tool": "meta.fields",
+            "params": {
+              "doctype": "Stock Ledger Entry"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 1,
+            "surface_id": "evidence-surface-6"
+          },
+          {
+            "tool": "query.read",
+            "params": {
+              "doctype": "Stock Ledger Entry",
+              "fields": [
+                "name",
+                "item_code",
+                "warehouse",
+                "actual_qty",
+                "qty_after_transaction",
+                "voucher_type",
+                "voucher_no",
+                "voucher_detail_no",
+                "posting_datetime",
+                "is_cancelled"
+              ],
+              "filters": [
+                [
+                  "warehouse",
+                  "=",
+                  "成品仓 - HRD"
+                ],
+                [
+                  "item_code",
+                  "=",
+                  "HRD-PACK-5K"
+                ]
+              ]
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 1,
+            "surface_id": "evidence-surface-6"
+          },
+          {
+            "tool": "doc.get",
+            "params": {
+              "doctype": "Stock Entry",
+              "name": "MAT-STE-2026-00003"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 2,
+            "surface_id": "evidence-surface-6"
+          }
+        ],
+        "gate_checks": [
+          {
+            "turn": 7,
+            "enforced": true,
+            "surface_id": "evidence-surface-6",
+            "facts": {
+              "documents_named_in_question": [],
+              "doc_links_called_for": [],
+              "doc_get_called_for": [
+                "PUR-ORD-2026-00001"
+              ],
+              "submitted_downstream_documents": [],
+              "inbound_vouchers_of_quantities_in_answer": [
+                "MAT-STE-2026-00002",
+                "MAT-STE-2026-00004"
+              ]
+            },
+            "failed": [
+              {
+                "text": "作答涉及某个仓库的库存数量 → 必须已对该库存的全部入库来源逐个 doc.get，且来源集合覆盖库存流水里每一张使数量增加的凭证",
+                "fact": "doc_get_called_for",
+                "reason": "未覆盖 ['MAT-STE-2026-00002', 'MAT-STE-2026-00004']",
+                "missing_count": 2
+              }
+            ]
+          },
+          {
+            "turn": 11,
+            "enforced": true,
+            "surface_id": "evidence-surface-6",
+            "facts": {
+              "documents_named_in_question": [],
+              "doc_links_called_for": [
+                "PUR-ORD-2026-00001"
+              ],
+              "doc_get_called_for": [
+                "PUR-ORD-2026-00001",
+                "MAT-SCR-2026-00001",
+                "MAT-STE-2026-00004",
+                "SC-ORD-2026-00001"
+              ],
+              "submitted_downstream_documents": [
+                "SC-ORD-2026-00001",
+                "MAT-SCR-2026-00001"
+              ],
+              "inbound_vouchers_of_quantities_in_answer": [
+                "MAT-STE-2026-00002",
+                "MAT-STE-2026-00004"
+              ]
+            },
+            "failed": [
+              {
+                "text": "作答涉及某个仓库的库存数量 → 必须已对该库存的全部入库来源逐个 doc.get，且来源集合覆盖库存流水里每一张使数量增加的凭证",
+                "fact": "doc_get_called_for",
+                "reason": "未覆盖 ['MAT-STE-2026-00002']",
+                "missing_count": 1
+              }
+            ]
+          },
+          {
+            "turn": 16,
+            "enforced": true,
+            "surface_id": "evidence-surface-6",
+            "facts": {
+              "documents_named_in_question": [],
+              "doc_links_called_for": [
+                "PUR-ORD-2026-00001"
+              ],
+              "doc_get_called_for": [
+                "PUR-ORD-2026-00001",
+                "MAT-SCR-2026-00001",
+                "MAT-STE-2026-00004",
+                "SC-ORD-2026-00001",
+                "MAT-STE-2026-00003"
+              ],
+              "submitted_downstream_documents": [
+                "SC-ORD-2026-00001",
+                "MAT-SCR-2026-00001"
+              ],
+              "inbound_vouchers_of_quantities_in_answer": []
+            },
+            "failed": []
+          }
+        ],
+        "forced_continues": [
+          "证据不足，还不能作答。以下规则没有满足：\n- 作答涉及某个仓库的库存数量 → 必须已对该库存的全部入库来源逐个 doc.get，且来源集合覆盖库存流水里每一张使数量增加的凭证\n  还有 2 项证据没有取到（用工具把它们查出来，不要猜）。\n请继续调工具补齐证据，补齐之后再给最终回答。",
+          "证据不足，还不能作答。以下规则没有满足：\n- 作答涉及某个仓库的库存数量 → 必须已对该库存的全部入库来源逐个 doc.get，且来源集合覆盖库存流水里每一张使数量增加的凭证\n  还有 1 项证据没有取到（用工具把它们查出来，不要猜）。\n请继续调工具补齐证据，补齐之后再给最终回答。"
+        ],
+        "breaker_events": [],
+        "runaway_events": [],
+        "model_tool_calls": 15,
+        "opening_request_count": 240,
+        "execute_calls": 15,
+        "stopped": "answered",
+        "cost_ledger": {
+          "entries": [
+            {
+              "index": 1,
+              "model": "glm-5.2",
+              "usage": {
+                "prompt": 1329,
+                "completion": 53,
+                "reasoning": 40,
+                "cached": 1152
+              },
+              "outcome": "tools",
+              "endpoint_total": 1382,
+              "endpoint_reasoning": 40,
+              "endpoint_cached": 1152,
+              "detail": ""
+            },
+            {
+              "index": 2,
+              "model": "glm-5.2",
+              "usage": {
+                "prompt": 3023,
+                "completion": 104,
+                "reasoning": 90,
+                "cached": 1280
+              },
+              "outcome": "tools",
+              "endpoint_total": 3127,
+              "endpoint_reasoning": 90,
+              "endpoint_cached": 1280,
+              "detail": ""
+            },
+            {
+              "index": 3,
+              "model": "glm-5.2",
+              "usage": {
+                "prompt": 4715,
+                "completion": 80,
+                "reasoning": 35,
+                "cached": 2944
+              },
+              "outcome": "tools",
+              "endpoint_total": 4795,
+              "endpoint_reasoning": 35,
+              "endpoint_cached": 2944,
+              "detail": ""
+            },
+            {
+              "index": 4,
+              "model": "glm-5.2",
+              "usage": {
+                "prompt": 4874,
+                "completion": 22,
+                "reasoning": 0,
+                "cached": 4608
+              },
+              "outcome": "tools",
+              "endpoint_total": 4896,
+              "endpoint_reasoning": 0,
+              "endpoint_cached": 4608,
+              "detail": ""
+            },
+            {
+              "index": 5,
+              "model": "glm-5.2",
+              "usage": {
+                "prompt": 5042,
+                "completion": 27,
+                "reasoning": 0,
+                "cached": 4864
+              },
+              "outcome": "tools",
+              "endpoint_total": 5069,
+              "endpoint_reasoning": 0,
+              "endpoint_cached": 4864,
+              "detail": ""
+            },
+            {
+              "index": 6,
+              "model": "glm-5.2",
+              "usage": {
+                "prompt": 5095,
+                "completion": 27,
+                "reasoning": 0,
+                "cached": 4992
+              },
+              "outcome": "tools",
+              "endpoint_total": 5122,
+              "endpoint_reasoning": 0,
+              "endpoint_cached": 4992,
+              "detail": ""
+            },
+            {
+              "index": 7,
+              "model": "glm-5.2",
+              "usage": {
+                "prompt": 6993,
+                "completion": 250,
+                "reasoning": 121,
+                "cached": 4992
+              },
+              "outcome": "answer",
+              "endpoint_total": 7243,
+              "endpoint_reasoning": 121,
+              "endpoint_cached": 4992,
+              "detail": ""
+            },
+            {
+              "index": 8,
+              "model": "glm-5.2",
+              "usage": {
+                "prompt": 7211,
+                "completion": 943,
+                "reasoning": 816,
+                "cached": 6912
+              },
+              "outcome": "tools",
+              "endpoint_total": 8154,
+              "endpoint_reasoning": 816,
+              "endpoint_cached": 6912,
+              "detail": ""
+            },
+            {
+              "index": 9,
+              "model": "glm-5.2",
+              "usage": {
+                "prompt": 7623,
+                "completion": 54,
+                "reasoning": 0,
+                "cached": 7168
+              },
+              "outcome": "tools",
+              "endpoint_total": 7677,
+              "endpoint_reasoning": 0,
+              "endpoint_cached": 7168,
+              "detail": ""
+            },
+            {
+              "index": 10,
+              "model": "glm-5.2",
+              "usage": {
+                "prompt": 10210,
+                "completion": 1745,
+                "reasoning": 1685,
+                "cached": 7552
+              },
+              "outcome": "tools",
+              "endpoint_total": 11955,
+              "endpoint_reasoning": 1685,
+              "endpoint_cached": 7552,
+              "detail": ""
+            },
+            {
+              "index": 11,
+              "model": "glm-5.2",
+              "usage": {
+                "prompt": 11644,
+                "completion": 1650,
+                "reasoning": 1031,
+                "cached": 10112
+              },
+              "outcome": "answer",
+              "endpoint_total": 13294,
+              "endpoint_reasoning": 1031,
+              "endpoint_cached": 10112,
+              "detail": ""
+            },
+            {
+              "index": 12,
+              "model": "glm-5.2",
+              "usage": {
+                "prompt": 12352,
+                "completion": 215,
+                "reasoning": 150,
+                "cached": 11520
+              },
+              "outcome": "tools",
+              "endpoint_total": 12567,
+              "endpoint_reasoning": 150,
+              "endpoint_cached": 11520,
+              "detail": ""
+            },
+            {
+              "index": 13,
+              "model": "glm-5.2",
+              "usage": {
+                "prompt": 12627,
+                "completion": 14,
+                "reasoning": 0,
+                "cached": 12288
+              },
+              "outcome": "tools",
+              "endpoint_total": 12641,
+              "endpoint_reasoning": 0,
+              "endpoint_cached": 12288,
+              "detail": ""
+            },
+            {
+              "index": 14,
+              "model": "glm-5.2",
+              "usage": {
+                "prompt": 14191,
+                "completion": 91,
+                "reasoning": 0,
+                "cached": 12544
+              },
+              "outcome": "tools",
+              "endpoint_total": 14282,
+              "endpoint_reasoning": 0,
+              "endpoint_cached": 12544,
+              "detail": ""
+            },
+            {
+              "index": 15,
+              "model": "glm-5.2",
+              "usage": {
+                "prompt": 14680,
+                "completion": 348,
+                "reasoning": 236,
+                "cached": 14080
+              },
+              "outcome": "tools",
+              "endpoint_total": 15028,
+              "endpoint_reasoning": 236,
+              "endpoint_cached": 14080,
+              "detail": ""
+            },
+            {
+              "index": 16,
+              "model": "glm-5.2",
+              "usage": {
+                "prompt": 16445,
+                "completion": 1272,
+                "reasoning": 803,
+                "cached": 14592
+              },
+              "outcome": "answer",
+              "endpoint_total": 17717,
+              "endpoint_reasoning": 803,
+              "endpoint_cached": 14592,
+              "detail": ""
+            }
+          ]
+        }
+      },
+      "stopped": "answered",
+      "forced_continues": [
+        "证据不足，还不能作答。以下规则没有满足：\n- 作答涉及某个仓库的库存数量 → 必须已对该库存的全部入库来源逐个 doc.get，且来源集合覆盖库存流水里每一张使数量增加的凭证\n  还有 2 项证据没有取到（用工具把它们查出来，不要猜）。\n请继续调工具补齐证据，补齐之后再给最终回答。",
+        "证据不足，还不能作答。以下规则没有满足：\n- 作答涉及某个仓库的库存数量 → 必须已对该库存的全部入库来源逐个 doc.get，且来源集合覆盖库存流水里每一张使数量增加的凭证\n  还有 1 项证据没有取到（用工具把它们查出来，不要猜）。\n请继续调工具补齐证据，补齐之后再给最终回答。"
+      ],
+      "gate_checks": [
+        {
+          "turn": 7,
+          "failed": [
+            "作答涉及某个仓库的库存数量 → 必须已对该库存的全部入库来源逐个 doc.get，且来源集合覆盖库存流水里每一张使数量增加的凭证"
+          ]
+        },
+        {
+          "turn": 11,
+          "failed": [
+            "作答涉及某个仓库的库存数量 → 必须已对该库存的全部入库来源逐个 doc.get，且来源集合覆盖库存流水里每一张使数量增加的凭证"
+          ]
+        },
+        {
+          "turn": 16,
+          "failed": []
+        }
+      ],
+      "committed": "Purchase Order Item.received_qty",
+      "commit_note": "最后一行承诺",
+      "passed": true,
+      "cause": null,
+      "why": "命中可接受集合"
+    },
+    {
+      "q": "供应商的付款条件模板记在哪个字段？",
+      "acceptable": [
+        "Supplier.payment_terms"
+      ],
+      "tokens": {
+        "in": 4471,
+        "out": 223,
+        "reasoning": 112,
+        "model_calls": 2
+      },
+      "trajectory": [
+        "meta.fields",
+        "schema.search"
+      ],
+      "raw_answer": "查证过程：我查看了 Supplier DocType 的完整字段表，找到了字段 `payment_terms`，类型为 Link，链接到 \"Payment Terms Template\"，标签为 \"Default Payment Terms Template\"。这正是供应商的付款条件模板字段。\n\nSupplier.payment_terms",
+      "trace": {
+        "question": "你是 ERP 系统的字段专家。请回答下面这个问题需要用到**哪一个**字段。\n\n问题：供应商的付款条件模板记在哪个字段？\n\n要求：\n- **只给一个字段**，格式严格为 `DocType.fieldname`（例如 `Sales Order.customer`）\n- 必须是这个站点上**真实存在**的字段 —— 拿不准就用工具查证\n- 最后一行只输出那个字段本身，前面可以写你的查证过程\n\n⚠️ 这是**要你做决定**，不是要你列候选。给多个字段视同没回答。",
+        "model": "glm-5.2",
+        "task_class": "explain",
+        "turns": [
+          {
+            "index": 1,
+            "kind": "tools",
+            "usage": {
+              "prompt": 1330,
+              "completion": 107,
+              "reasoning": 50,
+              "cached": 1152,
+              "total": 1437
+            },
+            "calls": [
+              "meta.fields",
+              "schema.search"
+            ]
+          },
+          {
+            "index": 2,
+            "kind": "answer",
+            "usage": {
+              "prompt": 3141,
+              "completion": 116,
+              "reasoning": 62,
+              "cached": 1280,
+              "total": 3257
+            }
+          }
+        ],
+        "tool_calls": [
+          {
+            "tool": "meta.fields",
+            "params": {
+              "doctype": "Supplier"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 4,
+            "surface_id": "evidence-surface-7"
+          },
+          {
+            "tool": "schema.search",
+            "params": {
+              "keywords": "payment terms supplier"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 240,
+            "surface_id": "evidence-surface-7"
+          }
+        ],
+        "gate_checks": [
+          {
+            "turn": 2,
+            "enforced": true,
+            "surface_id": "evidence-surface-7",
+            "facts": {
+              "documents_named_in_question": [],
+              "doc_links_called_for": [],
+              "doc_get_called_for": [],
+              "submitted_downstream_documents": [],
+              "inbound_vouchers_of_quantities_in_answer": []
+            },
+            "failed": []
+          }
+        ],
+        "forced_continues": [],
+        "breaker_events": [],
+        "runaway_events": [],
+        "model_tool_calls": 2,
+        "opening_request_count": 240,
+        "execute_calls": 2,
+        "stopped": "answered",
+        "cost_ledger": {
+          "entries": [
+            {
+              "index": 1,
+              "model": "glm-5.2",
+              "usage": {
+                "prompt": 1330,
+                "completion": 107,
+                "reasoning": 50,
+                "cached": 1152
+              },
+              "outcome": "tools",
+              "endpoint_total": 1437,
+              "endpoint_reasoning": 50,
+              "endpoint_cached": 1152,
+              "detail": ""
+            },
+            {
+              "index": 2,
+              "model": "glm-5.2",
+              "usage": {
+                "prompt": 3141,
+                "completion": 116,
+                "reasoning": 62,
+                "cached": 1280
+              },
+              "outcome": "answer",
+              "endpoint_total": 3257,
+              "endpoint_reasoning": 62,
+              "endpoint_cached": 1280,
+              "detail": ""
+            }
+          ]
+        }
+      },
+      "stopped": "answered",
+      "forced_continues": [],
+      "gate_checks": [
+        {
+          "turn": 2,
+          "failed": []
+        }
+      ],
+      "committed": "Supplier.payment_terms",
+      "commit_note": "最后一行承诺",
+      "passed": true,
+      "cause": null,
+      "why": "命中可接受集合"
+    },
+    {
+      "q": "某个仓库里这个物料的库存价值是多少？",
+      "acceptable": [
+        "Bin.stock_value"
+      ],
+      "tokens": {
+        "in": 3434,
+        "out": 377,
+        "reasoning": 173,
+        "model_calls": 2
+      },
+      "trajectory": [
+        "meta.fields"
+      ],
+      "raw_answer": "查证过程：\n\n我检查了 `Bin` DocType 的字段表。`Bin` 是按 **仓库 + 物料** 维度记录库存的表，其中：\n\n- `item_code`：物料（Link → Item）\n- `warehouse`：仓库（Link → Warehouse）\n- `stock_value`：库存价值（Float，label 为 \"Stock Value\"）\n- `valuation_rate`：单位估值单价（Float）\n- `actual_qty`：实际库存数量（Float）\n\n问题问的是\"某个仓库里这个物料的**库存价值**\"，这正是 `Bin.stock_value` 所存储的内容 —— 它表示该物料在该仓库中的总库存价值（数量 × 估值单价）。\n\nBin.stock_value",
+      "trace": {
+        "question": "你是 ERP 系统的字段专家。请回答下面这个问题需要用到**哪一个**字段。\n\n问题：某个仓库里这个物料的库存价值是多少？\n\n要求：\n- **只给一个字段**，格式严格为 `DocType.fieldname`（例如 `Sales Order.customer`）\n- 必须是这个站点上**真实存在**的字段 —— 拿不准就用工具查证\n- 最后一行只输出那个字段本身，前面可以写你的查证过程\n\n⚠️ 这是**要你做决定**，不是要你列候选。给多个字段视同没回答。",
+        "model": "glm-5.2",
+        "task_class": "explain",
+        "turns": [
+          {
+            "index": 1,
+            "kind": "tools",
+            "usage": {
+              "prompt": 1330,
+              "completion": 116,
+              "reasoning": 62,
+              "cached": 1024,
+              "total": 1446
+            },
+            "calls": [
+              "meta.fields"
+            ]
+          },
+          {
+            "index": 2,
+            "kind": "answer",
+            "usage": {
+              "prompt": 2104,
+              "completion": 261,
+              "reasoning": 111,
+              "cached": 1280,
+              "total": 2365
+            }
+          }
+        ],
+        "tool_calls": [
+          {
+            "tool": "meta.fields",
+            "params": {
+              "doctype": "Bin"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 1,
+            "surface_id": "evidence-surface-8"
+          }
+        ],
+        "gate_checks": [
+          {
+            "turn": 2,
+            "enforced": true,
+            "surface_id": "evidence-surface-8",
+            "facts": {
+              "documents_named_in_question": [],
+              "doc_links_called_for": [],
+              "doc_get_called_for": [],
+              "submitted_downstream_documents": [],
+              "inbound_vouchers_of_quantities_in_answer": []
+            },
+            "failed": []
+          }
+        ],
+        "forced_continues": [],
+        "breaker_events": [],
+        "runaway_events": [],
+        "model_tool_calls": 1,
+        "opening_request_count": 240,
+        "execute_calls": 1,
+        "stopped": "answered",
+        "cost_ledger": {
+          "entries": [
+            {
+              "index": 1,
+              "model": "glm-5.2",
+              "usage": {
+                "prompt": 1330,
+                "completion": 116,
+                "reasoning": 62,
+                "cached": 1024
+              },
+              "outcome": "tools",
+              "endpoint_total": 1446,
+              "endpoint_reasoning": 62,
+              "endpoint_cached": 1024,
+              "detail": ""
+            },
+            {
+              "index": 2,
+              "model": "glm-5.2",
+              "usage": {
+                "prompt": 2104,
+                "completion": 261,
+                "reasoning": 111,
+                "cached": 1280
+              },
+              "outcome": "answer",
+              "endpoint_total": 2365,
+              "endpoint_reasoning": 111,
+              "endpoint_cached": 1280,
+              "detail": ""
+            }
+          ]
+        }
+      },
+      "stopped": "answered",
+      "forced_continues": [],
+      "gate_checks": [
+        {
+          "turn": 2,
+          "failed": []
+        }
+      ],
+      "committed": "Bin.stock_value",
+      "commit_note": "最后一行承诺",
+      "passed": true,
+      "cause": null,
+      "why": "命中可接受集合"
+    },
+    {
+      "q": "物料的估价方法是先进先出还是移动加权？",
+      "acceptable": [
+        "Item.valuation_method"
+      ],
+      "tokens": {
+        "in": 5960,
+        "out": 170,
+        "reasoning": 69,
+        "model_calls": 3
+      },
+      "trajectory": [
+        "schema.search",
+        "meta.fields"
+      ],
+      "raw_answer": "查证完成。在 `Item` DocType 的字段表中，找到了 `valuation_method` 字段，类型为 `Select`，可选值为 `FIFO`、`Moving Average`、`LIFO`，标签为 \"Valuation Method\"。这正是用来指定物料估价方法（先进先出还是移动加权）的字段。\n\nItem.valuation_method",
+      "trace": {
+        "question": "你是 ERP 系统的字段专家。请回答下面这个问题需要用到**哪一个**字段。\n\n问题：物料的估价方法是先进先出还是移动加权？\n\n要求：\n- **只给一个字段**，格式严格为 `DocType.fieldname`（例如 `Sales Order.customer`）\n- 必须是这个站点上**真实存在**的字段 —— 拿不准就用工具查证\n- 最后一行只输出那个字段本身，前面可以写你的查证过程\n\n⚠️ 这是**要你做决定**，不是要你列候选。给多个字段视同没回答。",
+        "model": "glm-5.2",
+        "task_class": "explain",
+        "turns": [
+          {
+            "index": 1,
+            "kind": "tools",
+            "usage": {
+              "prompt": 1331,
+              "completion": 53,
+              "reasoning": 39,
+              "cached": 1024,
+              "total": 1384
+            },
+            "calls": [
+              "schema.search"
+            ]
+          },
+          {
+            "index": 2,
+            "kind": "tools",
+            "usage": {
+              "prompt": 1422,
+              "completion": 42,
+              "reasoning": 30,
+              "cached": 1280,
+              "total": 1464
+            },
+            "calls": [
+              "meta.fields"
+            ]
+          },
+          {
+            "index": 3,
+            "kind": "answer",
+            "usage": {
+              "prompt": 3207,
+              "completion": 75,
+              "reasoning": 0,
+              "cached": 1280,
+              "total": 3282
+            }
+          }
+        ],
+        "tool_calls": [
+          {
+            "tool": "schema.search",
+            "params": {
+              "keywords": "Item valuation method"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 240,
+            "surface_id": "evidence-surface-9"
+          },
+          {
+            "tool": "meta.fields",
+            "params": {
+              "doctype": "Item"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 9,
+            "surface_id": "evidence-surface-9"
+          }
+        ],
+        "gate_checks": [
+          {
+            "turn": 3,
+            "enforced": true,
+            "surface_id": "evidence-surface-9",
+            "facts": {
+              "documents_named_in_question": [],
+              "doc_links_called_for": [],
+              "doc_get_called_for": [],
+              "submitted_downstream_documents": [],
+              "inbound_vouchers_of_quantities_in_answer": []
+            },
+            "failed": []
+          }
+        ],
+        "forced_continues": [],
+        "breaker_events": [],
+        "runaway_events": [],
+        "model_tool_calls": 2,
+        "opening_request_count": 240,
+        "execute_calls": 2,
+        "stopped": "answered",
+        "cost_ledger": {
+          "entries": [
+            {
+              "index": 1,
+              "model": "glm-5.2",
+              "usage": {
+                "prompt": 1331,
+                "completion": 53,
+                "reasoning": 39,
+                "cached": 1024
+              },
+              "outcome": "tools",
+              "endpoint_total": 1384,
+              "endpoint_reasoning": 39,
+              "endpoint_cached": 1024,
+              "detail": ""
+            },
+            {
+              "index": 2,
+              "model": "glm-5.2",
+              "usage": {
+                "prompt": 1422,
+                "completion": 42,
+                "reasoning": 30,
+                "cached": 1280
+              },
+              "outcome": "tools",
+              "endpoint_total": 1464,
+              "endpoint_reasoning": 30,
+              "endpoint_cached": 1280,
+              "detail": ""
+            },
+            {
+              "index": 3,
+              "model": "glm-5.2",
+              "usage": {
+                "prompt": 3207,
+                "completion": 75,
+                "reasoning": 0,
+                "cached": 1280
+              },
+              "outcome": "answer",
+              "endpoint_total": 3282,
+              "endpoint_reasoning": 0,
+              "endpoint_cached": 1280,
+              "detail": ""
+            }
+          ]
+        }
+      },
+      "stopped": "answered",
+      "forced_continues": [],
+      "gate_checks": [
+        {
+          "turn": 3,
+          "failed": []
+        }
+      ],
+      "committed": "Item.valuation_method",
+      "commit_note": "最后一行承诺",
+      "passed": true,
+      "cause": null,
+      "why": "命中可接受集合"
+    },
+    {
+      "q": "库存流水里这一笔的单位成本是多少？",
+      "acceptable": [
+        "Stock Ledger Entry.valuation_rate"
+      ],
+      "tokens": {
+        "in": 4250,
+        "out": 878,
+        "reasoning": 678,
+        "model_calls": 2
+      },
+      "trajectory": [
+        "meta.fields"
+      ],
+      "raw_answer": "查证结果如下：\n\nStock Ledger Entry 的字段表中，与\"成本/单价\"相关的字段有三个：\n\n- `incoming_rate`（Incoming Rate）—— 入库时使用的费率，仅对入库方向有意义\n- `outgoing_rate`（Outgoing Rate）—— 出库时使用的费率，仅对出库方向有意义\n- `valuation_rate`（Average Rate，Currency 类型）—— **该笔交易之后的库存单位估值成本**，无论入库还是出库都会记录，是库存流水里最通用的\"单位成本\"字段\n\n`valuation_rate` 是每笔流水完成后该物料的单位成本（加权平均值），即回答\"这一笔的单位成本\"时 ERP 直接记录的那一列。\n\nStock Ledger Entry.valuation_rate",
+      "trace": {
+        "question": "你是 ERP 系统的字段专家。请回答下面这个问题需要用到**哪一个**字段。\n\n问题：库存流水里这一笔的单位成本是多少？\n\n要求：\n- **只给一个字段**，格式严格为 `DocType.fieldname`（例如 `Sales Order.customer`）\n- 必须是这个站点上**真实存在**的字段 —— 拿不准就用工具查证\n- 最后一行只输出那个字段本身，前面可以写你的查证过程\n\n⚠️ 这是**要你做决定**，不是要你列候选。给多个字段视同没回答。",
+        "model": "glm-5.2",
+        "task_class": "explain",
+        "turns": [
+          {
+            "index": 1,
+            "kind": "tools",
+            "usage": {
+              "prompt": 1329,
+              "completion": 85,
+              "reasoning": 43,
+              "cached": 1152,
+              "total": 1414
+            },
+            "calls": [
+              "meta.fields"
+            ]
+          },
+          {
+            "index": 2,
+            "kind": "answer",
+            "usage": {
+              "prompt": 2921,
+              "completion": 793,
+              "reasoning": 635,
+              "cached": 1280,
+              "total": 3714
+            }
+          }
+        ],
+        "tool_calls": [
+          {
+            "tool": "meta.fields",
+            "params": {
+              "doctype": "Stock Ledger Entry"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 1,
+            "surface_id": "evidence-surface-10"
+          }
+        ],
+        "gate_checks": [
+          {
+            "turn": 2,
+            "enforced": true,
+            "surface_id": "evidence-surface-10",
+            "facts": {
+              "documents_named_in_question": [],
+              "doc_links_called_for": [],
+              "doc_get_called_for": [],
+              "submitted_downstream_documents": [],
+              "inbound_vouchers_of_quantities_in_answer": []
+            },
+            "failed": []
+          }
+        ],
+        "forced_continues": [],
+        "breaker_events": [],
+        "runaway_events": [],
+        "model_tool_calls": 1,
+        "opening_request_count": 240,
+        "execute_calls": 1,
+        "stopped": "answered",
+        "cost_ledger": {
+          "entries": [
+            {
+              "index": 1,
+              "model": "glm-5.2",
+              "usage": {
+                "prompt": 1329,
+                "completion": 85,
+                "reasoning": 43,
+                "cached": 1152
+              },
+              "outcome": "tools",
+              "endpoint_total": 1414,
+              "endpoint_reasoning": 43,
+              "endpoint_cached": 1152,
+              "detail": ""
+            },
+            {
+              "index": 2,
+              "model": "glm-5.2",
+              "usage": {
+                "prompt": 2921,
+                "completion": 793,
+                "reasoning": 635,
+                "cached": 1280
+              },
+              "outcome": "answer",
+              "endpoint_total": 3714,
+              "endpoint_reasoning": 635,
+              "endpoint_cached": 1280,
+              "detail": ""
+            }
+          ]
+        }
+      },
+      "stopped": "answered",
+      "forced_continues": [],
+      "gate_checks": [
+        {
+          "turn": 2,
+          "failed": []
+        }
+      ],
+      "committed": "Stock Ledger Entry.valuation_rate",
+      "commit_note": "最后一行承诺",
+      "passed": true,
+      "cause": null,
+      "why": "命中可接受集合"
+    },
+    {
+      "q": "库存调拨单这一行入到哪个仓库？",
+      "acceptable": [
+        "Stock Entry Detail.t_warehouse"
+      ],
+      "tokens": {
+        "in": 4649,
+        "out": 286,
+        "reasoning": 135,
+        "model_calls": 2
+      },
+      "trajectory": [
+        "schema.search",
+        "meta.fields"
+      ],
+      "raw_answer": "查证完成。Stock Entry Detail（库存调拨单子表）上有两个仓库字段：\n\n- `s_warehouse` — Source Warehouse（源仓库，即从哪个仓库出）\n- `t_warehouse` — Target Warehouse（目标仓库，即入到哪个仓库）\n\n问题问的是\"行**入到**哪个仓库\"，对应的就是 Target Warehouse。\n\nStock Entry Detail.t_warehouse",
+      "trace": {
+        "question": "你是 ERP 系统的字段专家。请回答下面这个问题需要用到**哪一个**字段。\n\n问题：库存调拨单这一行入到哪个仓库？\n\n要求：\n- **只给一个字段**，格式严格为 `DocType.fieldname`（例如 `Sales Order.customer`）\n- 必须是这个站点上**真实存在**的字段 —— 拿不准就用工具查证\n- 最后一行只输出那个字段本身，前面可以写你的查证过程\n\n⚠️ 这是**要你做决定**，不是要你列候选。给多个字段视同没回答。",
+        "model": "glm-5.2",
+        "task_class": "explain",
+        "turns": [
+          {
+            "index": 1,
+            "kind": "tools",
+            "usage": {
+              "prompt": 1331,
+              "completion": 134,
+              "reasoning": 66,
+              "cached": 1152,
+              "total": 1465
+            },
+            "calls": [
+              "schema.search",
+              "meta.fields"
+            ]
+          },
+          {
+            "index": 2,
+            "kind": "answer",
+            "usage": {
+              "prompt": 3318,
+              "completion": 152,
+              "reasoning": 69,
+              "cached": 1280,
+              "total": 3470
+            }
+          }
+        ],
+        "tool_calls": [
+          {
+            "tool": "schema.search",
+            "params": {
+              "keywords": "Stock Entry Detail target warehouse"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 240,
+            "surface_id": "evidence-surface-11"
+          },
+          {
+            "tool": "meta.fields",
+            "params": {
+              "doctype": "Stock Entry Detail"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 1,
+            "surface_id": "evidence-surface-11"
+          }
+        ],
+        "gate_checks": [
+          {
+            "turn": 2,
+            "enforced": true,
+            "surface_id": "evidence-surface-11",
+            "facts": {
+              "documents_named_in_question": [],
+              "doc_links_called_for": [],
+              "doc_get_called_for": [],
+              "submitted_downstream_documents": [],
+              "inbound_vouchers_of_quantities_in_answer": []
+            },
+            "failed": []
+          }
+        ],
+        "forced_continues": [],
+        "breaker_events": [],
+        "runaway_events": [],
+        "model_tool_calls": 2,
+        "opening_request_count": 240,
+        "execute_calls": 2,
+        "stopped": "answered",
+        "cost_ledger": {
+          "entries": [
+            {
+              "index": 1,
+              "model": "glm-5.2",
+              "usage": {
+                "prompt": 1331,
+                "completion": 134,
+                "reasoning": 66,
+                "cached": 1152
+              },
+              "outcome": "tools",
+              "endpoint_total": 1465,
+              "endpoint_reasoning": 66,
+              "endpoint_cached": 1152,
+              "detail": ""
+            },
+            {
+              "index": 2,
+              "model": "glm-5.2",
+              "usage": {
+                "prompt": 3318,
+                "completion": 152,
+                "reasoning": 69,
+                "cached": 1280
+              },
+              "outcome": "answer",
+              "endpoint_total": 3470,
+              "endpoint_reasoning": 69,
+              "endpoint_cached": 1280,
+              "detail": ""
+            }
+          ]
+        }
+      },
+      "stopped": "answered",
+      "forced_continues": [],
+      "gate_checks": [
+        {
+          "turn": 2,
+          "failed": []
+        }
+      ],
+      "committed": "Stock Entry Detail.t_warehouse",
+      "commit_note": "最后一行承诺",
+      "passed": true,
+      "cause": null,
+      "why": "命中可接受集合"
+    },
+    {
+      "q": "这个仓库属于哪家公司？",
+      "acceptable": [
+        "Warehouse.company"
+      ],
+      "tokens": {
+        "in": 3398,
+        "out": 176,
+        "reasoning": 93,
+        "model_calls": 2
+      },
+      "trajectory": [
+        "meta.fields"
+      ],
+      "raw_answer": "查证完成。在 Warehouse DocType 的字段列表中，存在字段 `company`，类型为 `Link`，链接到 `Company`，且为必填字段（`reqd: true`）。这正是用来标识仓库所属公司的字段。\n\nWarehouse.company",
+      "trace": {
+        "question": "你是 ERP 系统的字段专家。请回答下面这个问题需要用到**哪一个**字段。\n\n问题：这个仓库属于哪家公司？\n\n要求：\n- **只给一个字段**，格式严格为 `DocType.fieldname`（例如 `Sales Order.customer`）\n- 必须是这个站点上**真实存在**的字段 —— 拿不准就用工具查证\n- 最后一行只输出那个字段本身，前面可以写你的查证过程\n\n⚠️ 这是**要你做决定**，不是要你列候选。给多个字段视同没回答。",
+        "model": "glm-5.2",
+        "task_class": "explain",
+        "turns": [
+          {
+            "index": 1,
+            "kind": "tools",
+            "usage": {
+              "prompt": 1326,
+              "completion": 73,
+              "reasoning": 46,
+              "cached": 1152,
+              "total": 1399
+            },
+            "calls": [
+              "meta.fields"
+            ]
+          },
+          {
+            "index": 2,
+            "kind": "answer",
+            "usage": {
+              "prompt": 2072,
+              "completion": 103,
+              "reasoning": 47,
+              "cached": 1280,
+              "total": 2175
+            }
+          }
+        ],
+        "tool_calls": [
+          {
+            "tool": "meta.fields",
+            "params": {
+              "doctype": "Warehouse"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 1,
+            "surface_id": "evidence-surface-12"
+          }
+        ],
+        "gate_checks": [
+          {
+            "turn": 2,
+            "enforced": true,
+            "surface_id": "evidence-surface-12",
+            "facts": {
+              "documents_named_in_question": [],
+              "doc_links_called_for": [],
+              "doc_get_called_for": [],
+              "submitted_downstream_documents": [],
+              "inbound_vouchers_of_quantities_in_answer": []
+            },
+            "failed": []
+          }
+        ],
+        "forced_continues": [],
+        "breaker_events": [],
+        "runaway_events": [],
+        "model_tool_calls": 1,
+        "opening_request_count": 240,
+        "execute_calls": 1,
+        "stopped": "answered",
+        "cost_ledger": {
+          "entries": [
+            {
+              "index": 1,
+              "model": "glm-5.2",
+              "usage": {
+                "prompt": 1326,
+                "completion": 73,
+                "reasoning": 46,
+                "cached": 1152
+              },
+              "outcome": "tools",
+              "endpoint_total": 1399,
+              "endpoint_reasoning": 46,
+              "endpoint_cached": 1152,
+              "detail": ""
+            },
+            {
+              "index": 2,
+              "model": "glm-5.2",
+              "usage": {
+                "prompt": 2072,
+                "completion": 103,
+                "reasoning": 47,
+                "cached": 1280
+              },
+              "outcome": "answer",
+              "endpoint_total": 2175,
+              "endpoint_reasoning": 47,
+              "endpoint_cached": 1280,
+              "detail": ""
+            }
+          ]
+        }
+      },
+      "stopped": "answered",
+      "forced_continues": [],
+      "gate_checks": [
+        {
+          "turn": 2,
+          "failed": []
+        }
+      ],
+      "committed": "Warehouse.company",
+      "commit_note": "最后一行承诺",
+      "passed": true,
+      "cause": null,
+      "why": "命中可接受集合"
+    },
+    {
+      "q": "这张 BOM 的原材料成本合计是多少？",
+      "acceptable": [
+        "BOM.raw_material_cost",
+        "BOM.base_raw_material_cost"
+      ],
+      "tokens": {
+        "in": 4456,
+        "out": 264,
+        "reasoning": 146,
+        "model_calls": 2
+      },
+      "trajectory": [
+        "meta.fields"
+      ],
+      "raw_answer": "查证过程：\n\n通过 `meta_fields` 工具查询了 BOM DocType 的全部字段。其中存在一个 Currency 类型字段：\n\n- **fieldname**: `raw_material_cost`\n- **label**: \"Raw Material Cost\"\n- **fieldtype**: Currency\n\n这正是 BOM 上记录原材料成本合计的字段。（另有一个 `base_raw_material_cost` 是公司本币版本，但问题问的是\"原材料成本合计\"本身，对应 `raw_material_cost`。）\n\nBOM.raw_material_cost",
+      "trace": {
+        "question": "你是 ERP 系统的字段专家。请回答下面这个问题需要用到**哪一个**字段。\n\n问题：这张 BOM 的原材料成本合计是多少？\n\n要求：\n- **只给一个字段**，格式严格为 `DocType.fieldname`（例如 `Sales Order.customer`）\n- 必须是这个站点上**真实存在**的字段 —— 拿不准就用工具查证\n- 最后一行只输出那个字段本身，前面可以写你的查证过程\n\n⚠️ 这是**要你做决定**，不是要你列候选。给多个字段视同没回答。",
+        "model": "glm-5.2",
+        "task_class": "explain",
+        "turns": [
+          {
+            "index": 1,
+            "kind": "tools",
+            "usage": {
+              "prompt": 1329,
+              "completion": 52,
+              "reasoning": 39,
+              "cached": 1152,
+              "total": 1381
+            },
+            "calls": [
+              "meta.fields"
+            ]
+          },
+          {
+            "index": 2,
+            "kind": "answer",
+            "usage": {
+              "prompt": 3127,
+              "completion": 212,
+              "reasoning": 107,
+              "cached": 1280,
+              "total": 3339
+            }
+          }
+        ],
+        "tool_calls": [
+          {
+            "tool": "meta.fields",
+            "params": {
+              "doctype": "BOM"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 5,
+            "surface_id": "evidence-surface-13"
+          }
+        ],
+        "gate_checks": [
+          {
+            "turn": 2,
+            "enforced": true,
+            "surface_id": "evidence-surface-13",
+            "facts": {
+              "documents_named_in_question": [],
+              "doc_links_called_for": [],
+              "doc_get_called_for": [],
+              "submitted_downstream_documents": [],
+              "inbound_vouchers_of_quantities_in_answer": []
+            },
+            "failed": []
+          }
+        ],
+        "forced_continues": [],
+        "breaker_events": [],
+        "runaway_events": [],
+        "model_tool_calls": 1,
+        "opening_request_count": 240,
+        "execute_calls": 1,
+        "stopped": "answered",
+        "cost_ledger": {
+          "entries": [
+            {
+              "index": 1,
+              "model": "glm-5.2",
+              "usage": {
+                "prompt": 1329,
+                "completion": 52,
+                "reasoning": 39,
+                "cached": 1152
+              },
+              "outcome": "tools",
+              "endpoint_total": 1381,
+              "endpoint_reasoning": 39,
+              "endpoint_cached": 1152,
+              "detail": ""
+            },
+            {
+              "index": 2,
+              "model": "glm-5.2",
+              "usage": {
+                "prompt": 3127,
+                "completion": 212,
+                "reasoning": 107,
+                "cached": 1280
+              },
+              "outcome": "answer",
+              "endpoint_total": 3339,
+              "endpoint_reasoning": 107,
+              "endpoint_cached": 1280,
+              "detail": ""
+            }
+          ]
+        }
+      },
+      "stopped": "answered",
+      "forced_continues": [],
+      "gate_checks": [
+        {
+          "turn": 2,
+          "failed": []
+        }
+      ],
+      "committed": "BOM.raw_material_cost",
+      "commit_note": "最后一行承诺",
+      "passed": true,
+      "cause": null,
+      "why": "命中可接受集合"
+    },
+    {
+      "q": "工单计划要生产多少件？",
+      "acceptable": [
+        "Work Order.qty"
+      ],
+      "tokens": {
+        "in": 6000,
+        "out": 229,
+        "reasoning": 102,
+        "model_calls": 3
+      },
+      "trajectory": [
+        "schema.search",
+        "meta.fields"
+      ],
+      "raw_answer": "查证过程：\n\n在 Work Order（工单）DocType 的字段列表中，字段 `qty` 的标签是 **\"Qty To Manufacture\"**，类型为 Float，且为必填字段。这正好对应\"工单计划要生产多少件\"这一含义。其它数量相关字段如 `produced_qty`（已生产数量）、`material_transferred_for_manufacturing`（已转料数量）都不表示\"计划数量\"。\n\nWork Order.qty",
+      "trace": {
+        "question": "你是 ERP 系统的字段专家。请回答下面这个问题需要用到**哪一个**字段。\n\n问题：工单计划要生产多少件？\n\n要求：\n- **只给一个字段**，格式严格为 `DocType.fieldname`（例如 `Sales Order.customer`）\n- 必须是这个站点上**真实存在**的字段 —— 拿不准就用工具查证\n- 最后一行只输出那个字段本身，前面可以写你的查证过程\n\n⚠️ 这是**要你做决定**，不是要你列候选。给多个字段视同没回答。",
+        "model": "glm-5.2",
+        "task_class": "explain",
+        "turns": [
+          {
+            "index": 1,
+            "kind": "tools",
+            "usage": {
+              "prompt": 1328,
+              "completion": 62,
+              "reasoning": 49,
+              "cached": 1024,
+              "total": 1390
+            },
+            "calls": [
+              "schema.search"
+            ]
+          },
+          {
+            "index": 2,
+            "kind": "tools",
+            "usage": {
+              "prompt": 1460,
+              "completion": 13,
+              "reasoning": 0,
+              "cached": 1280,
+              "total": 1473
+            },
+            "calls": [
+              "meta.fields"
+            ]
+          },
+          {
+            "index": 3,
+            "kind": "answer",
+            "usage": {
+              "prompt": 3212,
+              "completion": 154,
+              "reasoning": 53,
+              "cached": 1280,
+              "total": 3366
+            }
+          }
+        ],
+        "tool_calls": [
+          {
+            "tool": "schema.search",
+            "params": {
+              "keywords": "Work Order"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 240,
+            "surface_id": "evidence-surface-14"
+          },
+          {
+            "tool": "meta.fields",
+            "params": {
+              "doctype": "Work Order"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 3,
+            "surface_id": "evidence-surface-14"
+          }
+        ],
+        "gate_checks": [
+          {
+            "turn": 3,
+            "enforced": true,
+            "surface_id": "evidence-surface-14",
+            "facts": {
+              "documents_named_in_question": [],
+              "doc_links_called_for": [],
+              "doc_get_called_for": [],
+              "submitted_downstream_documents": [],
+              "inbound_vouchers_of_quantities_in_answer": []
+            },
+            "failed": []
+          }
+        ],
+        "forced_continues": [],
+        "breaker_events": [],
+        "runaway_events": [],
+        "model_tool_calls": 2,
+        "opening_request_count": 240,
+        "execute_calls": 2,
+        "stopped": "answered",
+        "cost_ledger": {
+          "entries": [
+            {
+              "index": 1,
+              "model": "glm-5.2",
+              "usage": {
+                "prompt": 1328,
+                "completion": 62,
+                "reasoning": 49,
+                "cached": 1024
+              },
+              "outcome": "tools",
+              "endpoint_total": 1390,
+              "endpoint_reasoning": 49,
+              "endpoint_cached": 1024,
+              "detail": ""
+            },
+            {
+              "index": 2,
+              "model": "glm-5.2",
+              "usage": {
+                "prompt": 1460,
+                "completion": 13,
+                "reasoning": 0,
+                "cached": 1280
+              },
+              "outcome": "tools",
+              "endpoint_total": 1473,
+              "endpoint_reasoning": 0,
+              "endpoint_cached": 1280,
+              "detail": ""
+            },
+            {
+              "index": 3,
+              "model": "glm-5.2",
+              "usage": {
+                "prompt": 3212,
+                "completion": 154,
+                "reasoning": 53,
+                "cached": 1280
+              },
+              "outcome": "answer",
+              "endpoint_total": 3366,
+              "endpoint_reasoning": 53,
+              "endpoint_cached": 1280,
+              "detail": ""
+            }
+          ]
+        }
+      },
+      "stopped": "answered",
+      "forced_continues": [],
+      "gate_checks": [
+        {
+          "turn": 3,
+          "failed": []
+        }
+      ],
+      "committed": "Work Order.qty",
+      "commit_note": "最后一行承诺",
+      "passed": true,
+      "cause": null,
+      "why": "命中可接受集合"
+    },
+    {
+      "q": "工人报工完成了多少数量？",
+      "acceptable": [
+        "Job Card.total_completed_qty"
+      ],
+      "tokens": {
+        "in": 33168,
+        "out": 1227,
+        "reasoning": 861,
+        "model_calls": 9
+      },
+      "trajectory": [
+        "schema.search",
+        "schema.search",
+        "schema.search",
+        "schema.search",
+        "meta.fields",
+        "meta.fields",
+        "schema.search",
+        "meta.fields",
+        "meta.fields",
+        "meta.fields"
+      ],
+      "raw_answer": "查证过程如下：\n\n1. 在制造业模块中，\"工人报工\"对应的是 **Job Card**（作业卡/派工单），工人通过 Job Card 的子表 **Job Card Time Log** 逐条记录自己的报工信息。\n\n2. 查 `Job Card` 的字段，发现有子表 `time_logs`（指向 `Job Card Time Log`），以及表头的汇总字段 `total_completed_qty`。但 `total_completed_qty` 是所有工人的合计数，不是单个工人报工完成的数量。\n\n3. 查 `Job Card Time Log` 的字段，确认其结构为：\n   - `employee`（Link → Employee）—— 哪个工人\n   - `completed_qty`（Float，标签 \"Completed Qty\"）—— 该工人本次报工完成的数量\n   - `from_time` / `to_time` / `time_in_mins` —— 工时信息\n\n4. 因此，\"工人报工完成了多少数量\"最精确对应的是 `Job Card Time Log.completed_qty`。\n\nJob Card Time Log.completed_qty",
+      "trace": {
+        "question": "你是 ERP 系统的字段专家。请回答下面这个问题需要用到**哪一个**字段。\n\n问题：工人报工完成了多少数量？\n\n要求：\n- **只给一个字段**，格式严格为 `DocType.fieldname`（例如 `Sales Order.customer`）\n- 必须是这个站点上**真实存在**的字段 —— 拿不准就用工具查证\n- 最后一行只输出那个字段本身，前面可以写你的查证过程\n\n⚠️ 这是**要你做决定**，不是要你列候选。给多个字段视同没回答。",
+        "model": "glm-5.2",
+        "task_class": "explain",
+        "turns": [
+          {
+            "index": 1,
+            "kind": "tools",
+            "usage": {
+              "prompt": 1327,
+              "completion": 111,
+              "reasoning": 95,
+              "cached": 1152,
+              "total": 1438
+            },
+            "calls": [
+              "schema.search"
+            ]
+          },
+          {
+            "index": 2,
+            "kind": "tools",
+            "usage": {
+              "prompt": 1388,
+              "completion": 50,
+              "reasoning": 20,
+              "cached": 1280,
+              "total": 1438
+            },
+            "calls": [
+              "schema.search",
+              "schema.search"
+            ]
+          },
+          {
+            "index": 3,
+            "kind": "tools",
+            "usage": {
+              "prompt": 1564,
+              "completion": 61,
+              "reasoning": 38,
+              "cached": 1280,
+              "total": 1625
+            },
+            "calls": [
+              "schema.search",
+              "meta.fields"
+            ]
+          },
+          {
+            "index": 4,
+            "kind": "tools",
+            "usage": {
+              "prompt": 2144,
+              "completion": 13,
+              "reasoning": 0,
+              "cached": 1536,
+              "total": 2157
+            },
+            "calls": [
+              "meta.fields"
+            ]
+          },
+          {
+            "index": 5,
+            "kind": "tools",
+            "usage": {
+              "prompt": 3896,
+              "completion": 14,
+              "reasoning": 0,
+              "cached": 2048,
+              "total": 3910
+            },
+            "calls": [
+              "schema.search"
+            ]
+          },
+          {
+            "index": 6,
+            "kind": "tools",
+            "usage": {
+              "prompt": 4010,
+              "completion": 14,
+              "reasoning": 0,
+              "cached": 3840,
+              "total": 4024
+            },
+            "calls": [
+              "meta.fields"
+            ]
+          },
+          {
+            "index": 7,
+            "kind": "tools",
+            "usage": {
+              "prompt": 4992,
+              "completion": 151,
+              "reasoning": 138,
+              "cached": 3968,
+              "total": 5143
+            },
+            "calls": [
+              "meta.fields"
+            ]
+          },
+          {
+            "index": 8,
+            "kind": "tools",
+            "usage": {
+              "prompt": 6765,
+              "completion": 15,
+              "reasoning": 0,
+              "cached": 4864,
+              "total": 6780
+            },
+            "calls": [
+              "meta.fields"
+            ]
+          },
+          {
+            "index": 9,
+            "kind": "answer",
+            "usage": {
+              "prompt": 7082,
+              "completion": 798,
+              "reasoning": 570,
+              "cached": 6656,
+              "total": 7880
+            }
+          }
+        ],
+        "tool_calls": [
+          {
+            "tool": "schema.search",
+            "params": {
+              "keywords": "job card operation worker complete"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 240,
+            "surface_id": "evidence-surface-15"
+          },
+          {
+            "tool": "schema.search",
+            "params": {
+              "keywords": "job card work order"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 240,
+            "surface_id": "evidence-surface-15"
+          },
+          {
+            "tool": "schema.search",
+            "params": {
+              "keywords": "报工 生产 工单"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 240,
+            "surface_id": "evidence-surface-15"
+          },
+          {
+            "tool": "schema.search",
+            "params": {
+              "keywords": "job card"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 240,
+            "surface_id": "evidence-surface-15"
+          },
+          {
+            "tool": "meta.fields",
+            "params": {
+              "doctype": "Operation"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 2,
+            "surface_id": "evidence-surface-15"
+          },
+          {
+            "tool": "meta.fields",
+            "params": {
+              "doctype": "Work Order"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 3,
+            "surface_id": "evidence-surface-15"
+          },
+          {
+            "tool": "schema.search",
+            "params": {
+              "keywords": "job card manufacturing"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 240,
+            "surface_id": "evidence-surface-15"
+          },
+          {
+            "tool": "meta.fields",
+            "params": {
+              "doctype": "Work Order Operation"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 1,
+            "surface_id": "evidence-surface-15"
+          },
+          {
+            "tool": "meta.fields",
+            "params": {
+              "doctype": "Job Card"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 6,
+            "surface_id": "evidence-surface-15"
+          },
+          {
+            "tool": "meta.fields",
+            "params": {
+              "doctype": "Job Card Time Log"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 1,
+            "surface_id": "evidence-surface-15"
+          }
+        ],
+        "gate_checks": [
+          {
+            "turn": 9,
+            "enforced": true,
+            "surface_id": "evidence-surface-15",
+            "facts": {
+              "documents_named_in_question": [],
+              "doc_links_called_for": [],
+              "doc_get_called_for": [],
+              "submitted_downstream_documents": [],
+              "inbound_vouchers_of_quantities_in_answer": []
+            },
+            "failed": []
+          }
+        ],
+        "forced_continues": [],
+        "breaker_events": [],
+        "runaway_events": [],
+        "model_tool_calls": 10,
+        "opening_request_count": 240,
+        "execute_calls": 10,
+        "stopped": "answered",
+        "cost_ledger": {
+          "entries": [
+            {
+              "index": 1,
+              "model": "glm-5.2",
+              "usage": {
+                "prompt": 1327,
+                "completion": 111,
+                "reasoning": 95,
+                "cached": 1152
+              },
+              "outcome": "tools",
+              "endpoint_total": 1438,
+              "endpoint_reasoning": 95,
+              "endpoint_cached": 1152,
+              "detail": ""
+            },
+            {
+              "index": 2,
+              "model": "glm-5.2",
+              "usage": {
+                "prompt": 1388,
+                "completion": 50,
+                "reasoning": 20,
+                "cached": 1280
+              },
+              "outcome": "tools",
+              "endpoint_total": 1438,
+              "endpoint_reasoning": 20,
+              "endpoint_cached": 1280,
+              "detail": ""
+            },
+            {
+              "index": 3,
+              "model": "glm-5.2",
+              "usage": {
+                "prompt": 1564,
+                "completion": 61,
+                "reasoning": 38,
+                "cached": 1280
+              },
+              "outcome": "tools",
+              "endpoint_total": 1625,
+              "endpoint_reasoning": 38,
+              "endpoint_cached": 1280,
+              "detail": ""
+            },
+            {
+              "index": 4,
+              "model": "glm-5.2",
+              "usage": {
+                "prompt": 2144,
+                "completion": 13,
+                "reasoning": 0,
+                "cached": 1536
+              },
+              "outcome": "tools",
+              "endpoint_total": 2157,
+              "endpoint_reasoning": 0,
+              "endpoint_cached": 1536,
+              "detail": ""
+            },
+            {
+              "index": 5,
+              "model": "glm-5.2",
+              "usage": {
+                "prompt": 3896,
+                "completion": 14,
+                "reasoning": 0,
+                "cached": 2048
+              },
+              "outcome": "tools",
+              "endpoint_total": 3910,
+              "endpoint_reasoning": 0,
+              "endpoint_cached": 2048,
+              "detail": ""
+            },
+            {
+              "index": 6,
+              "model": "glm-5.2",
+              "usage": {
+                "prompt": 4010,
+                "completion": 14,
+                "reasoning": 0,
+                "cached": 3840
+              },
+              "outcome": "tools",
+              "endpoint_total": 4024,
+              "endpoint_reasoning": 0,
+              "endpoint_cached": 3840,
+              "detail": ""
+            },
+            {
+              "index": 7,
+              "model": "glm-5.2",
+              "usage": {
+                "prompt": 4992,
+                "completion": 151,
+                "reasoning": 138,
+                "cached": 3968
+              },
+              "outcome": "tools",
+              "endpoint_total": 5143,
+              "endpoint_reasoning": 138,
+              "endpoint_cached": 3968,
+              "detail": ""
+            },
+            {
+              "index": 8,
+              "model": "glm-5.2",
+              "usage": {
+                "prompt": 6765,
+                "completion": 15,
+                "reasoning": 0,
+                "cached": 4864
+              },
+              "outcome": "tools",
+              "endpoint_total": 6780,
+              "endpoint_reasoning": 0,
+              "endpoint_cached": 4864,
+              "detail": ""
+            },
+            {
+              "index": 9,
+              "model": "glm-5.2",
+              "usage": {
+                "prompt": 7082,
+                "completion": 798,
+                "reasoning": 570,
+                "cached": 6656
+              },
+              "outcome": "answer",
+              "endpoint_total": 7880,
+              "endpoint_reasoning": 570,
+              "endpoint_cached": 6656,
+              "detail": ""
+            }
+          ]
+        }
+      },
+      "stopped": "answered",
+      "forced_continues": [],
+      "gate_checks": [
+        {
+          "turn": 9,
+          "failed": []
+        }
+      ],
+      "committed": "Job Card Time Log.completed_qty",
+      "commit_note": "最后一行承诺",
+      "judge": {
+        "answers": true,
+        "why": "报工记录的完成数量即工人报工完成量"
+      },
+      "passed": true,
+      "cause": null,
+      "why": "判官认可等价：报工记录的完成数量即工人报工完成量"
+    },
+    {
+      "q": "这张销售发票还有多少钱没收回来？",
+      "acceptable": [
+        "Sales Invoice.outstanding_amount"
+      ],
+      "tokens": {
+        "in": 10913,
+        "out": 395,
+        "reasoning": 176,
+        "model_calls": 4
+      },
+      "trajectory": [
+        "meta.fields",
+        "schema.search",
+        "query.read"
+      ],
+      "raw_answer": "查证过程：\n\n1. 通过 `meta.fields` 查 Sales Invoice 的字段列表（结果被截断），随后用 `schema.search` 搜索 \"Sales Invoice outstanding\"，确认 Sales Invoice 上存在与 outstanding 相关的字段。\n2. 再用 `query.read` 直接读取 `Sales Invoice.outstanding_amount`，成功返回真实数据（如 `ACC-SINV-2026-00001` 的 `outstanding_amount = 4237200.0`），证明该字段真实存在且正是\"这张发票还有多少钱没收回来\"。\n\nSales Invoice.outstanding_amount",
+      "trace": {
+        "question": "你是 ERP 系统的字段专家。请回答下面这个问题需要用到**哪一个**字段。\n\n问题：这张销售发票还有多少钱没收回来？\n\n要求：\n- **只给一个字段**，格式严格为 `DocType.fieldname`（例如 `Sales Order.customer`）\n- 必须是这个站点上**真实存在**的字段 —— 拿不准就用工具查证\n- 最后一行只输出那个字段本身，前面可以写你的查证过程\n\n⚠️ 这是**要你做决定**，不是要你列候选。给多个字段视同没回答。",
+        "model": "glm-5.2",
+        "task_class": "explain",
+        "turns": [
+          {
+            "index": 1,
+            "kind": "tools",
+            "usage": {
+              "prompt": 1328,
+              "completion": 111,
+              "reasoning": 81,
+              "cached": 1024,
+              "total": 1439
+            },
+            "calls": [
+              "meta.fields"
+            ]
+          },
+          {
+            "index": 2,
+            "kind": "tools",
+            "usage": {
+              "prompt": 3080,
+              "completion": 94,
+              "reasoning": 58,
+              "cached": 1280,
+              "total": 3174
+            },
+            "calls": [
+              "schema.search"
+            ]
+          },
+          {
+            "index": 3,
+            "kind": "tools",
+            "usage": {
+              "prompt": 3217,
+              "completion": 32,
+              "reasoning": 0,
+              "cached": 3072,
+              "total": 3249
+            },
+            "calls": [
+              "query.read"
+            ]
+          },
+          {
+            "index": 4,
+            "kind": "answer",
+            "usage": {
+              "prompt": 3288,
+              "completion": 158,
+              "reasoning": 37,
+              "cached": 3072,
+              "total": 3446
+            }
+          }
+        ],
+        "tool_calls": [
+          {
+            "tool": "meta.fields",
+            "params": {
+              "doctype": "Sales Invoice"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 10,
+            "surface_id": "evidence-surface-16"
+          },
+          {
+            "tool": "schema.search",
+            "params": {
+              "keywords": "Sales Invoice outstanding"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 240,
+            "surface_id": "evidence-surface-16"
+          },
+          {
+            "tool": "query.read",
+            "params": {
+              "doctype": "Sales Invoice",
+              "fields": [
+                "outstanding_amount",
+                "name"
+              ],
+              "limit": 1
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 1,
+            "surface_id": "evidence-surface-16"
+          }
+        ],
+        "gate_checks": [
+          {
+            "turn": 4,
+            "enforced": true,
+            "surface_id": "evidence-surface-16",
+            "facts": {
+              "documents_named_in_question": [],
+              "doc_links_called_for": [],
+              "doc_get_called_for": [],
+              "submitted_downstream_documents": [],
+              "inbound_vouchers_of_quantities_in_answer": []
+            },
+            "failed": []
+          }
+        ],
+        "forced_continues": [],
+        "breaker_events": [],
+        "runaway_events": [],
+        "model_tool_calls": 3,
+        "opening_request_count": 240,
+        "execute_calls": 3,
+        "stopped": "answered",
+        "cost_ledger": {
+          "entries": [
+            {
+              "index": 1,
+              "model": "glm-5.2",
+              "usage": {
+                "prompt": 1328,
+                "completion": 111,
+                "reasoning": 81,
+                "cached": 1024
+              },
+              "outcome": "tools",
+              "endpoint_total": 1439,
+              "endpoint_reasoning": 81,
+              "endpoint_cached": 1024,
+              "detail": ""
+            },
+            {
+              "index": 2,
+              "model": "glm-5.2",
+              "usage": {
+                "prompt": 3080,
+                "completion": 94,
+                "reasoning": 58,
+                "cached": 1280
+              },
+              "outcome": "tools",
+              "endpoint_total": 3174,
+              "endpoint_reasoning": 58,
+              "endpoint_cached": 1280,
+              "detail": ""
+            },
+            {
+              "index": 3,
+              "model": "glm-5.2",
+              "usage": {
+                "prompt": 3217,
+                "completion": 32,
+                "reasoning": 0,
+                "cached": 3072
+              },
+              "outcome": "tools",
+              "endpoint_total": 3249,
+              "endpoint_reasoning": 0,
+              "endpoint_cached": 3072,
+              "detail": ""
+            },
+            {
+              "index": 4,
+              "model": "glm-5.2",
+              "usage": {
+                "prompt": 3288,
+                "completion": 158,
+                "reasoning": 37,
+                "cached": 3072
+              },
+              "outcome": "answer",
+              "endpoint_total": 3446,
+              "endpoint_reasoning": 37,
+              "endpoint_cached": 3072,
+              "detail": ""
+            }
+          ]
+        }
+      },
+      "stopped": "answered",
+      "forced_continues": [],
+      "gate_checks": [
+        {
+          "turn": 4,
+          "failed": []
+        }
+      ],
+      "committed": "Sales Invoice.outstanding_amount",
+      "commit_note": "最后一行承诺",
+      "passed": true,
+      "cause": null,
+      "why": "命中可接受集合"
+    },
+    {
+      "q": "总账分录记在哪个科目上？",
+      "acceptable": [
+        "GL Entry.account"
+      ],
+      "tokens": {
+        "in": 4221,
+        "out": 319,
+        "reasoning": 170,
+        "model_calls": 2
+      },
+      "trajectory": [
+        "meta.fields"
+      ],
+      "raw_answer": "查证过程：\n\nGL Entry（总账分录）是记录总账分录的 DocType。通过 `meta.fields` 查看其字段列表，可以看到一个名为 `account` 的字段，类型为 `Link`，指向 `Account`（科目）DocType，label 为 \"Account\"。这正是\"总账分录记在哪个科目上\"的答案——每一条 GL Entry 行都通过 `account` 字段指定其入账科目。其他字段如 `debit`、`credit` 是金额，`cost_center` 是成本中心，`party` 是往来方，均非\"科目\"。\n\nGL Entry.account",
+      "trace": {
+        "question": "你是 ERP 系统的字段专家。请回答下面这个问题需要用到**哪一个**字段。\n\n问题：总账分录记在哪个科目上？\n\n要求：\n- **只给一个字段**，格式严格为 `DocType.fieldname`（例如 `Sales Order.customer`）\n- 必须是这个站点上**真实存在**的字段 —— 拿不准就用工具查证\n- 最后一行只输出那个字段本身，前面可以写你的查证过程\n\n⚠️ 这是**要你做决定**，不是要你列候选。给多个字段视同没回答。",
+        "model": "glm-5.2",
+        "task_class": "explain",
+        "turns": [
+          {
+            "index": 1,
+            "kind": "tools",
+            "usage": {
+              "prompt": 1330,
+              "completion": 102,
+              "reasoning": 89,
+              "cached": 1024,
+              "total": 1432
+            },
+            "calls": [
+              "meta.fields"
+            ]
+          },
+          {
+            "index": 2,
+            "kind": "answer",
+            "usage": {
+              "prompt": 2891,
+              "completion": 217,
+              "reasoning": 81,
+              "cached": 1280,
+              "total": 3108
+            }
+          }
+        ],
+        "tool_calls": [
+          {
+            "tool": "meta.fields",
+            "params": {
+              "doctype": "GL Entry"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 1,
+            "surface_id": "evidence-surface-17"
+          }
+        ],
+        "gate_checks": [
+          {
+            "turn": 2,
+            "enforced": true,
+            "surface_id": "evidence-surface-17",
+            "facts": {
+              "documents_named_in_question": [],
+              "doc_links_called_for": [],
+              "doc_get_called_for": [],
+              "submitted_downstream_documents": [],
+              "inbound_vouchers_of_quantities_in_answer": []
+            },
+            "failed": []
+          }
+        ],
+        "forced_continues": [],
+        "breaker_events": [],
+        "runaway_events": [],
+        "model_tool_calls": 1,
+        "opening_request_count": 240,
+        "execute_calls": 1,
+        "stopped": "answered",
+        "cost_ledger": {
+          "entries": [
+            {
+              "index": 1,
+              "model": "glm-5.2",
+              "usage": {
+                "prompt": 1330,
+                "completion": 102,
+                "reasoning": 89,
+                "cached": 1024
+              },
+              "outcome": "tools",
+              "endpoint_total": 1432,
+              "endpoint_reasoning": 89,
+              "endpoint_cached": 1024,
+              "detail": ""
+            },
+            {
+              "index": 2,
+              "model": "glm-5.2",
+              "usage": {
+                "prompt": 2891,
+                "completion": 217,
+                "reasoning": 81,
+                "cached": 1280
+              },
+              "outcome": "answer",
+              "endpoint_total": 3108,
+              "endpoint_reasoning": 81,
+              "endpoint_cached": 1280,
+              "detail": ""
+            }
+          ]
+        }
+      },
+      "stopped": "answered",
+      "forced_continues": [],
+      "gate_checks": [
+        {
+          "turn": 2,
+          "failed": []
+        }
+      ],
+      "committed": "GL Entry.account",
+      "commit_note": "最后一行承诺",
+      "passed": true,
+      "cause": null,
+      "why": "命中可接受集合"
+    },
+    {
+      "q": "付款单实际付了多少钱？",
+      "acceptable": [
+        "Payment Entry.paid_amount",
+        "Payment Entry.base_paid_amount"
+      ],
+      "tokens": {
+        "in": 4314,
+        "out": 356,
+        "reasoning": 210,
+        "model_calls": 2
+      },
+      "trajectory": [
+        "meta.fields"
+      ],
+      "raw_answer": "查证过程：\n\n1. 确认\"付款单\"对应的 DocType 是 **Payment Entry**。\n2. 调用 `meta.fields` 获取该 DocType 的全部字段。\n3. 在返回结果中找到字段 `paid_amount`：\n   - **fieldname**: `paid_amount`\n   - **label**: \"Paid Amount\"\n   - **fieldtype**: Currency\n   - **required**: true\n   - 表示付款单实际支付的金额（以付款方账户币种计）。\n\n该字段是必填项，直接记录了付款单实际付出的金额，完全匹配问题。\n\nPayment Entry.paid_amount",
+      "trace": {
+        "question": "你是 ERP 系统的字段专家。请回答下面这个问题需要用到**哪一个**字段。\n\n问题：付款单实际付了多少钱？\n\n要求：\n- **只给一个字段**，格式严格为 `DocType.fieldname`（例如 `Sales Order.customer`）\n- 必须是这个站点上**真实存在**的字段 —— 拿不准就用工具查证\n- 最后一行只输出那个字段本身，前面可以写你的查证过程\n\n⚠️ 这是**要你做决定**，不是要你列候选。给多个字段视同没回答。",
+        "model": "glm-5.2",
+        "task_class": "explain",
+        "turns": [
+          {
+            "index": 1,
+            "kind": "tools",
+            "usage": {
+              "prompt": 1327,
+              "completion": 80,
+              "reasoning": 67,
+              "cached": 1024,
+              "total": 1407
+            },
+            "calls": [
+              "meta.fields"
+            ]
+          },
+          {
+            "index": 2,
+            "kind": "answer",
+            "usage": {
+              "prompt": 2987,
+              "completion": 276,
+              "reasoning": 143,
+              "cached": 1280,
+              "total": 3263
+            }
+          }
+        ],
+        "tool_calls": [
+          {
+            "tool": "meta.fields",
+            "params": {
+              "doctype": "Payment Entry"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 4,
+            "surface_id": "evidence-surface-18"
+          }
+        ],
+        "gate_checks": [
+          {
+            "turn": 2,
+            "enforced": true,
+            "surface_id": "evidence-surface-18",
+            "facts": {
+              "documents_named_in_question": [],
+              "doc_links_called_for": [],
+              "doc_get_called_for": [],
+              "submitted_downstream_documents": [],
+              "inbound_vouchers_of_quantities_in_answer": []
+            },
+            "failed": []
+          }
+        ],
+        "forced_continues": [],
+        "breaker_events": [],
+        "runaway_events": [],
+        "model_tool_calls": 1,
+        "opening_request_count": 240,
+        "execute_calls": 1,
+        "stopped": "answered",
+        "cost_ledger": {
+          "entries": [
+            {
+              "index": 1,
+              "model": "glm-5.2",
+              "usage": {
+                "prompt": 1327,
+                "completion": 80,
+                "reasoning": 67,
+                "cached": 1024
+              },
+              "outcome": "tools",
+              "endpoint_total": 1407,
+              "endpoint_reasoning": 67,
+              "endpoint_cached": 1024,
+              "detail": ""
+            },
+            {
+              "index": 2,
+              "model": "glm-5.2",
+              "usage": {
+                "prompt": 2987,
+                "completion": 276,
+                "reasoning": 143,
+                "cached": 1280
+              },
+              "outcome": "answer",
+              "endpoint_total": 3263,
+              "endpoint_reasoning": 143,
+              "endpoint_cached": 1280,
+              "detail": ""
+            }
+          ]
+        }
+      },
+      "stopped": "answered",
+      "forced_continues": [],
+      "gate_checks": [
+        {
+          "turn": 2,
+          "failed": []
+        }
+      ],
+      "committed": "Payment Entry.paid_amount",
+      "commit_note": "最后一行承诺",
+      "passed": true,
+      "cause": null,
+      "why": "命中可接受集合"
+    },
+    {
+      "q": "分期付款计划里每一期的到期日是哪个字段？",
+      "acceptable": [
+        "Payment Schedule.due_date"
+      ],
+      "tokens": {
+        "in": 8270,
+        "out": 363,
+        "reasoning": 249,
+        "model_calls": 5
+      },
+      "trajectory": [
+        "schema.search",
+        "schema.search",
+        "schema.search",
+        "meta.fields"
+      ],
+      "raw_answer": "通过 `meta.fields` 查询了 `Payment Schedule` DocType 的全部字段，其中有一个类型为 `Date`、标签为 \"Due Date\" 且必填的字段 `due_date`，正是分期付款计划中每一期的到期日。\n\nPayment Schedule.due_date",
+      "trace": {
+        "question": "你是 ERP 系统的字段专家。请回答下面这个问题需要用到**哪一个**字段。\n\n问题：分期付款计划里每一期的到期日是哪个字段？\n\n要求：\n- **只给一个字段**，格式严格为 `DocType.fieldname`（例如 `Sales Order.customer`）\n- 必须是这个站点上**真实存在**的字段 —— 拿不准就用工具查证\n- 最后一行只输出那个字段本身，前面可以写你的查证过程\n\n⚠️ 这是**要你做决定**，不是要你列候选。给多个字段视同没回答。",
+        "model": "glm-5.2",
+        "task_class": "explain",
+        "turns": [
+          {
+            "index": 1,
+            "kind": "tools",
+            "usage": {
+              "prompt": 1332,
+              "completion": 81,
+              "reasoning": 68,
+              "cached": 1152,
+              "total": 1413
+            },
+            "calls": [
+              "schema.search"
+            ]
+          },
+          {
+            "index": 2,
+            "kind": "tools",
+            "usage": {
+              "prompt": 1382,
+              "completion": 58,
+              "reasoning": 43,
+              "cached": 1280,
+              "total": 1440
+            },
+            "calls": [
+              "schema.search"
+            ]
+          },
+          {
+            "index": 3,
+            "kind": "tools",
+            "usage": {
+              "prompt": 1461,
+              "completion": 44,
+              "reasoning": 31,
+              "cached": 1280,
+              "total": 1505
+            },
+            "calls": [
+              "schema.search"
+            ]
+          },
+          {
+            "index": 4,
+            "kind": "tools",
+            "usage": {
+              "prompt": 1511,
+              "completion": 74,
+              "reasoning": 61,
+              "cached": 1280,
+              "total": 1585
+            },
+            "calls": [
+              "meta.fields"
+            ]
+          },
+          {
+            "index": 5,
+            "kind": "answer",
+            "usage": {
+              "prompt": 2584,
+              "completion": 106,
+              "reasoning": 46,
+              "cached": 1280,
+              "total": 2690
+            }
+          }
+        ],
+        "tool_calls": [
+          {
+            "tool": "schema.search",
+            "params": {
+              "keywords": "Payment Schedule"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 240,
+            "surface_id": "evidence-surface-19"
+          },
+          {
+            "tool": "schema.search",
+            "params": {
+              "keywords": "payment term schedule installment"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 240,
+            "surface_id": "evidence-surface-19"
+          },
+          {
+            "tool": "schema.search",
+            "params": {
+              "keywords": "Payment Schedule"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 240,
+            "surface_id": "evidence-surface-19"
+          },
+          {
+            "tool": "meta.fields",
+            "params": {
+              "doctype": "Payment Schedule"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 1,
+            "surface_id": "evidence-surface-19"
+          }
+        ],
+        "gate_checks": [
+          {
+            "turn": 5,
+            "enforced": true,
+            "surface_id": "evidence-surface-19",
+            "facts": {
+              "documents_named_in_question": [],
+              "doc_links_called_for": [],
+              "doc_get_called_for": [],
+              "submitted_downstream_documents": [],
+              "inbound_vouchers_of_quantities_in_answer": []
+            },
+            "failed": []
+          }
+        ],
+        "forced_continues": [],
+        "breaker_events": [],
+        "runaway_events": [],
+        "model_tool_calls": 4,
+        "opening_request_count": 240,
+        "execute_calls": 4,
+        "stopped": "answered",
+        "cost_ledger": {
+          "entries": [
+            {
+              "index": 1,
+              "model": "glm-5.2",
+              "usage": {
+                "prompt": 1332,
+                "completion": 81,
+                "reasoning": 68,
+                "cached": 1152
+              },
+              "outcome": "tools",
+              "endpoint_total": 1413,
+              "endpoint_reasoning": 68,
+              "endpoint_cached": 1152,
+              "detail": ""
+            },
+            {
+              "index": 2,
+              "model": "glm-5.2",
+              "usage": {
+                "prompt": 1382,
+                "completion": 58,
+                "reasoning": 43,
+                "cached": 1280
+              },
+              "outcome": "tools",
+              "endpoint_total": 1440,
+              "endpoint_reasoning": 43,
+              "endpoint_cached": 1280,
+              "detail": ""
+            },
+            {
+              "index": 3,
+              "model": "glm-5.2",
+              "usage": {
+                "prompt": 1461,
+                "completion": 44,
+                "reasoning": 31,
+                "cached": 1280
+              },
+              "outcome": "tools",
+              "endpoint_total": 1505,
+              "endpoint_reasoning": 31,
+              "endpoint_cached": 1280,
+              "detail": ""
+            },
+            {
+              "index": 4,
+              "model": "glm-5.2",
+              "usage": {
+                "prompt": 1511,
+                "completion": 74,
+                "reasoning": 61,
+                "cached": 1280
+              },
+              "outcome": "tools",
+              "endpoint_total": 1585,
+              "endpoint_reasoning": 61,
+              "endpoint_cached": 1280,
+              "detail": ""
+            },
+            {
+              "index": 5,
+              "model": "glm-5.2",
+              "usage": {
+                "prompt": 2584,
+                "completion": 106,
+                "reasoning": 46,
+                "cached": 1280
+              },
+              "outcome": "answer",
+              "endpoint_total": 2690,
+              "endpoint_reasoning": 46,
+              "endpoint_cached": 1280,
+              "detail": ""
+            }
+          ]
+        }
+      },
+      "stopped": "answered",
+      "forced_continues": [],
+      "gate_checks": [
+        {
+          "turn": 5,
+          "failed": []
+        }
+      ],
+      "committed": "Payment Schedule.due_date",
+      "commit_note": "最后一行承诺",
+      "passed": true,
+      "cause": null,
+      "why": "命中可接受集合"
+    },
+    {
+      "q": "质检单的检验结论是合格还是不合格？",
+      "acceptable": [
+        "Quality Inspection.status"
+      ],
+      "tokens": {
+        "in": 10365,
+        "out": 332,
+        "reasoning": 152,
+        "model_calls": 6
+      },
+      "trajectory": [
+        "schema.search",
+        "schema.search",
+        "schema.search",
+        "schema.search",
+        "schema.search",
+        "schema.search",
+        "schema.search",
+        "meta.fields"
+      ],
+      "raw_answer": "查证过程：\n\n通过 `meta.fields` 工具查取了 `Quality Inspection`（质检单）的完整字段表。其中字段 `status` 的类型为 `Select`，可选项为 `Accepted`（合格）和 `Rejected`（不合格），这正是质检单的检验结论字段——它直接回答了\"合格还是不合格\"这个问题。\n\nQuality Inspection.status",
+      "trace": {
+        "question": "你是 ERP 系统的字段专家。请回答下面这个问题需要用到**哪一个**字段。\n\n问题：质检单的检验结论是合格还是不合格？\n\n要求：\n- **只给一个字段**，格式严格为 `DocType.fieldname`（例如 `Sales Order.customer`）\n- 必须是这个站点上**真实存在**的字段 —— 拿不准就用工具查证\n- 最后一行只输出那个字段本身，前面可以写你的查证过程\n\n⚠️ 这是**要你做决定**，不是要你列候选。给多个字段视同没回答。",
+        "model": "glm-5.2",
+        "task_class": "explain",
+        "turns": [
+          {
+            "index": 1,
+            "kind": "tools",
+            "usage": {
+              "prompt": 1330,
+              "completion": 80,
+              "reasoning": 54,
+              "cached": 1152,
+              "total": 1410
+            },
+            "calls": [
+              "schema.search",
+              "schema.search"
+            ]
+          },
+          {
+            "index": 2,
+            "kind": "tools",
+            "usage": {
+              "prompt": 1394,
+              "completion": 38,
+              "reasoning": 15,
+              "cached": 1280,
+              "total": 1432
+            },
+            "calls": [
+              "schema.search",
+              "schema.search"
+            ]
+          },
+          {
+            "index": 3,
+            "kind": "tools",
+            "usage": {
+              "prompt": 1448,
+              "completion": 12,
+              "reasoning": 0,
+              "cached": 1280,
+              "total": 1460
+            },
+            "calls": [
+              "schema.search"
+            ]
+          },
+          {
+            "index": 4,
+            "kind": "tools",
+            "usage": {
+              "prompt": 1475,
+              "completion": 26,
+              "reasoning": 0,
+              "cached": 1280,
+              "total": 1501
+            },
+            "calls": [
+              "schema.search",
+              "schema.search"
+            ]
+          },
+          {
+            "index": 5,
+            "kind": "tools",
+            "usage": {
+              "prompt": 1532,
+              "completion": 41,
+              "reasoning": 28,
+              "cached": 1280,
+              "total": 1573
+            },
+            "calls": [
+              "meta.fields"
+            ]
+          },
+          {
+            "index": 6,
+            "kind": "answer",
+            "usage": {
+              "prompt": 3186,
+              "completion": 135,
+              "reasoning": 55,
+              "cached": 1408,
+              "total": 3321
+            }
+          }
+        ],
+        "tool_calls": [
+          {
+            "tool": "schema.search",
+            "params": {
+              "keywords": "质量检验 Quality Inspection"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 240,
+            "surface_id": "evidence-surface-20"
+          },
+          {
+            "tool": "schema.search",
+            "params": {
+              "keywords": "质检 inspection"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 240,
+            "surface_id": "evidence-surface-20"
+          },
+          {
+            "tool": "schema.search",
+            "params": {
+              "keywords": "Quality Inspection"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 240,
+            "surface_id": "evidence-surface-20"
+          },
+          {
+            "tool": "schema.search",
+            "params": {
+              "keywords": "quality"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 240,
+            "surface_id": "evidence-surface-20"
+          },
+          {
+            "tool": "schema.search",
+            "params": {
+              "keywords": "inspection"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 240,
+            "surface_id": "evidence-surface-20"
+          },
+          {
+            "tool": "schema.search",
+            "params": {
+              "keywords": "质检 检验"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 240,
+            "surface_id": "evidence-surface-20"
+          },
+          {
+            "tool": "schema.search",
+            "params": {
+              "keywords": "Quality"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 240,
+            "surface_id": "evidence-surface-20"
+          },
+          {
+            "tool": "meta.fields",
+            "params": {
+              "doctype": "Quality Inspection"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 2,
+            "surface_id": "evidence-surface-20"
+          }
+        ],
+        "gate_checks": [
+          {
+            "turn": 6,
+            "enforced": true,
+            "surface_id": "evidence-surface-20",
+            "facts": {
+              "documents_named_in_question": [],
+              "doc_links_called_for": [],
+              "doc_get_called_for": [],
+              "submitted_downstream_documents": [],
+              "inbound_vouchers_of_quantities_in_answer": []
+            },
+            "failed": []
+          }
+        ],
+        "forced_continues": [],
+        "breaker_events": [],
+        "runaway_events": [],
+        "model_tool_calls": 8,
+        "opening_request_count": 240,
+        "execute_calls": 8,
+        "stopped": "answered",
+        "cost_ledger": {
+          "entries": [
+            {
+              "index": 1,
+              "model": "glm-5.2",
+              "usage": {
+                "prompt": 1330,
+                "completion": 80,
+                "reasoning": 54,
+                "cached": 1152
+              },
+              "outcome": "tools",
+              "endpoint_total": 1410,
+              "endpoint_reasoning": 54,
+              "endpoint_cached": 1152,
+              "detail": ""
+            },
+            {
+              "index": 2,
+              "model": "glm-5.2",
+              "usage": {
+                "prompt": 1394,
+                "completion": 38,
+                "reasoning": 15,
+                "cached": 1280
+              },
+              "outcome": "tools",
+              "endpoint_total": 1432,
+              "endpoint_reasoning": 15,
+              "endpoint_cached": 1280,
+              "detail": ""
+            },
+            {
+              "index": 3,
+              "model": "glm-5.2",
+              "usage": {
+                "prompt": 1448,
+                "completion": 12,
+                "reasoning": 0,
+                "cached": 1280
+              },
+              "outcome": "tools",
+              "endpoint_total": 1460,
+              "endpoint_reasoning": 0,
+              "endpoint_cached": 1280,
+              "detail": ""
+            },
+            {
+              "index": 4,
+              "model": "glm-5.2",
+              "usage": {
+                "prompt": 1475,
+                "completion": 26,
+                "reasoning": 0,
+                "cached": 1280
+              },
+              "outcome": "tools",
+              "endpoint_total": 1501,
+              "endpoint_reasoning": 0,
+              "endpoint_cached": 1280,
+              "detail": ""
+            },
+            {
+              "index": 5,
+              "model": "glm-5.2",
+              "usage": {
+                "prompt": 1532,
+                "completion": 41,
+                "reasoning": 28,
+                "cached": 1280
+              },
+              "outcome": "tools",
+              "endpoint_total": 1573,
+              "endpoint_reasoning": 28,
+              "endpoint_cached": 1280,
+              "detail": ""
+            },
+            {
+              "index": 6,
+              "model": "glm-5.2",
+              "usage": {
+                "prompt": 3186,
+                "completion": 135,
+                "reasoning": 55,
+                "cached": 1408
+              },
+              "outcome": "answer",
+              "endpoint_total": 3321,
+              "endpoint_reasoning": 55,
+              "endpoint_cached": 1408,
+              "detail": ""
+            }
+          ]
+        }
+      },
+      "stopped": "answered",
+      "forced_continues": [],
+      "gate_checks": [
+        {
+          "turn": 6,
+          "failed": []
+        }
+      ],
+      "committed": "Quality Inspection.status",
+      "commit_note": "最后一行承诺",
+      "passed": true,
+      "cause": null,
+      "why": "命中可接受集合"
+    }
+  ]
+}
