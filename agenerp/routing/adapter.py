@@ -113,6 +113,17 @@ class ChatAdapter:
     `profile` 是这个模型的能力档案。adapter **自己不做能力校验** ——
     校验是 `router.route()` 的职责，放两处会出现"一处松一处紧"。
     档案带在身上是为了让调用方（P1.7 的成本面）能读到 `is_reasoning_model`。
+
+    ⚠️ **`enable_thinking` 2026-08-27 加入，默认 `None` = 一个字节都不发**，
+    因此**今天的产品行为一个字没变**。加它的理由是实测：`glm-5.2` 的思考默认开着，
+    做难题时会把整个输出预算烧在 reasoning 上 ——
+    实测 `completion=16385 / reasoning=16384`（上限已放到 16384），
+    回包 `finish_reason='length'`、**一个字都没吐**。把上限从 4096 提到 16384 没解决，
+    它只是想得更多 ⇒ **要试的是关掉思考，不是继续加预算。**
+
+    ⚠️ 它**不在 OpenAI 兼容的四件套里**（`model`/`messages`/`tools`/`max_tokens`），
+    是百炼一侧的扩展。不是所有端点都认 ⇒ 默认不发，
+    由调用方在**知道自己在跟谁说话**的时候显式给。
     """
 
     def __init__(
@@ -121,12 +132,14 @@ class ChatAdapter:
         *,
         model: str | None = None,
         profile: ModelProfile | None = None,
+        enable_thinking: bool | None = None,
         transport=None,
         timeout: int = DEFAULT_TIMEOUT,
     ) -> None:
         self._config = config
         self.model = model or config.model
         self.profile = profile
+        self._enable_thinking = enable_thinking
         self._transport = transport
         self._timeout = timeout
 
@@ -149,6 +162,11 @@ class ChatAdapter:
         # 行为本仓没有逐一验证过，不发送是那个两边都成立的选择。
         if tools:
             payload["tools"] = list(tools)
+        # `enable_thinking` 同理：**`None` 就一个字节都不发**，行为与本参数出现之前逐字相同。
+        # 它不在 OpenAI 兼容的四件套里，是百炼一侧的扩展 —— 不是所有端点都认，
+        # 所以默认不发，由调用方在**知道自己在跟谁说话**的时候显式给。
+        if self._enable_thinking is not None:
+            payload["enable_thinking"] = self._enable_thinking
 
         body = self._send(payload)
         # **端点已经回包 = token 已经真的花掉**，哪怕这个包不成形。下面三条失败路径

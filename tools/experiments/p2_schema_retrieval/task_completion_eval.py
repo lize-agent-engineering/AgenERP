@@ -144,12 +144,25 @@ def judge(prompt: str, model: str, base: str, key: str, usage: dict) -> dict:
     usage["judge_out"] = usage.get("judge_out", 0) + (u.get("completion_tokens") or 0)
     text = body["choices"][0]["message"]["content"]
     verdict = _parse_verdict(text)
-    if verdict is None:
-        # 判官回了非 JSON ⇒ **基础设施错误，不是 agent 失败**（verifier-design 逐字）。
-        # **原文带进异常**：判官抽风时必须能让人看见它到底说了什么，
-        # 否则这一格会长得像「agent 失败」，而它不是。
-        raise RuntimeError(f"判官没回可解析的 JSON：{text[:200]!r}")
-    return verdict
+    if verdict is not None:
+        return verdict
+
+    # 🔴 严格解析失败 ⇒ **先兜底提取那一位裁决，再决定要不要作废整条记录。**
+    # 实测（2026-08-27，关掉思考之后）判官回过：
+    #   {"answers": true, "字段名quotation_item指向报价单据行，可追溯来源单号"}
+    # —— `why` 的值被写成了一个**没有值的键**，整段非法。
+    # 但**裁决那一位是明确的**，而 `why` 只供人复核、不参与判定。
+    # 因为判官的格式抽风把一条 agent 真答了的记录作废，是把验证器的问题算到被判者头上。
+    # ⚠️ **降级如实标出来**：`why` 里写清是兜底提取的，并把原文原样留着供人复核。
+    salvaged = re.search(r'"answers"\s*:\s*(true|false)', text)
+    if salvaged:
+        usage["judge_salvaged"] = usage.get("judge_salvaged", 0) + 1
+        return {
+            "answers": salvaged.group(1) == "true",
+            "why": f"⚠️ 判官回的 JSON 非法，**只兜底提取了裁决位**。原文：{text[:200]}",
+            "degraded": True,
+        }
+    raise RuntimeError(f"判官没回可解析的 JSON，也提取不出裁决位：{text[:200]!r}")
 
 
 def _parse_verdict(text: str) -> dict | None:
@@ -257,6 +270,7 @@ def run_eval(
     probe: int = 0,
     max_turns: int = 8,
     max_tool_calls: int = 0,
+    enable_thinking: bool | None = None,
     output_tokens: int = 4096,
     schema_path: str = SCHEMA_DEFAULT,
     judge_model: str = "glm-5.2",
@@ -274,6 +288,7 @@ def run_eval(
         probe=probe,
         max_turns=max_turns,
         max_tool_calls=max_tool_calls,
+        enable_thinking=enable_thinking,
         output_tokens=output_tokens,
         schema=schema_path,
         judge_model=judge_model,
@@ -352,6 +367,10 @@ def run_eval(
             # 那道闸不许从产品入口被调。2026-08-27 试过加透传，被判据当场拦下并撤回。
             # 这里复刻的是 `explain()` 那五行（route → 构造 → run），**不改它一个字**。
             adapter = route("explain", models=models, config=config)
+            # ⚠️ 只在**显式给了**的时候才设 —— `None` 时 adapter 一个字节都不发，
+            # 与本参数出现之前逐字相同。它是百炼一侧的扩展，不是所有端点都认。
+            if args.enable_thinking is not None:
+                adapter._enable_thinking = args.enable_thinking  # noqa: SLF001
             loop = ExplainLoop(
                 adapter=adapter, client=client, max_turns=args.max_turns,
                 max_tool_calls=args.max_tool_calls or 10**9,
@@ -532,6 +551,10 @@ def main() -> None:
     # 且必须在结果里注明 —— 它是一个变量，改了就不能跟没改的轮次直接比。
     # ⚠️ 0 = 拆掉这道闸（人 2026-08-27 要求）。**只影响评测这一侧**，
     # 产品默认 MAX_TOOL_CALLS=50 一个字没动 —— 那是 D-18 的失控闸。
+    # 三态：不给=不发（今天的行为）· on=显式开 · off=显式关。
+    # ⚠️ 给了就是**动了一个变量**，结论里必须标出来。
+    ap.add_argument("--thinking", choices=("on", "off"), default=None,
+                    help="不给=不发送该参数（默认）；on/off=显式设置 enable_thinking")
     ap.add_argument("--max-tool-calls", type=int, default=0,
                     help="0=不设限（默认）；给正数则按该值设失控闸")
     ap.add_argument("--output-tokens", type=int, default=4096,
@@ -541,6 +564,7 @@ def main() -> None:
     a = ap.parse_args()
     run_eval(eval_path=a.eval, out_path=a.out, sample=a.sample, probe=a.probe,
              max_turns=a.max_turns, max_tool_calls=a.max_tool_calls,
+             enable_thinking=None if a.thinking is None else (a.thinking == "on"),
              output_tokens=a.output_tokens,
              schema_path=a.schema, judge_model=a.judge_model,
              budget=a.budget)
