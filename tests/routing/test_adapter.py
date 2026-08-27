@@ -34,7 +34,7 @@ from pathlib import Path
 import pytest
 
 from agenerp.routing import adapter as adapter_module
-from agenerp.routing.adapter import DEFAULT_TIMEOUT, ChatAdapter, Reply, Usage, usage_of
+from agenerp.routing.adapter import DEFAULT_ENABLE_THINKING, DEFAULT_TIMEOUT, ChatAdapter, Reply, Usage, usage_of
 from agenerp.routing.config import (
     API_KEY_ENV,
     BASE_URL_ENV,
@@ -533,3 +533,53 @@ def test_the_export_surface_stays_small():
     )
     for internal in ("LlmConfig", "Usage", "usage_of", "validate_declarations", "DeclarationError"):
         assert internal not in routing.__all__
+
+
+# ── 关思考是产品默认（人 2026-08-27 裁定）──────────────────────────────────
+
+
+def _payload_of(**kwargs) -> dict:
+    """跑一次 `chat()`，把**真正发出去的载荷**抓回来。"""
+    seen: dict = {}
+
+    def transport(payload):
+        seen.clear()
+        seen.update(payload)
+        return {"choices": [{"message": {"content": "x"}, "finish_reason": "stop"}], "usage": {}}
+
+    ChatAdapter(
+        LlmConfig("http://endpoint.invalid", "m", "k"), transport=transport, **kwargs
+    ).chat([{"role": "user", "content": "hi"}])
+    return seen
+
+
+def test_thinking_is_off_by_default_and_the_flag_really_goes_out():
+    """🔴 **产品默认必须是「显式关思考」**，而且要真的发出去。
+
+    人 2026-08-27 裁定「关思考 + 保持 4096」。两条是**绑在一起的一个决定**：
+    不关时 `glm-5.2` 做难题会把整个输出预算烧在 reasoning 上
+    （实测 `completion=16385 / reasoning=16384`、`finish_reason='length'`，
+    **一个字都没吐**），把上限调大不解决 —— 它只是想得更多。
+    关掉之后同一条题实测 reasoning **每次调用都是 0**，截断消失。
+
+    ⚠️ 本条判的是**默认值**，不是「能不能设」。默认值被改回去而没人发现，
+    等于那次裁定没有发生 —— 而症状是**真人拿到一片空白**，很难指回这里。
+    """
+    payload = _payload_of()
+
+    assert payload.get("enable_thinking") is False, (
+        f"产品默认没有关思考：载荷里的 enable_thinking = {payload.get('enable_thinking')!r}"
+    )
+    assert DEFAULT_ENABLE_THINKING is False
+
+
+def test_passing_none_sends_nothing_so_a_foreign_endpoint_can_opt_out():
+    """逃生口：`enable_thinking=None` ⇒ **一个字节都不发**。
+
+    这个键不在 OpenAI 兼容四件套里，是百炼一侧的扩展。§12.1 ① 要求
+    「默认不指向任何商业 API」，而默认值确实把一个厂商扩展写进了默认路径
+    —— **那是一处让步**。本条钉住让步的**出口**：
+    换到不认这个键的端点时，传 `None` 就回到「不发送」。
+    """
+    assert "enable_thinking" not in _payload_of(enable_thinking=None)
+    assert _payload_of(enable_thinking=True).get("enable_thinking") is True
