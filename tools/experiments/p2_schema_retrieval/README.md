@@ -83,3 +83,23 @@ python3 tools/experiments/p2_schema_retrieval/score_fusion.py \
 ```
 
 设施自检在 `α = 1.0` 那一格：**必须恰好等于第一轮的 65.0%**，不等于就是算错了。
+
+## 第四轮复跑（托管 embedding）
+
+⚠️⚠️ **向量缓存在 `/tmp/p2_vectors_v4.json`，那是会没的。**
+缓存一旦被清掉，复跑就是**又一个 178k token**。跑之前先确认它还在。
+
+```bash
+set -a; . ~/.config/agenerp/secrets.env; set +a
+export AGENERP_LLM_API_KEY="$DASHSCOPE_API_KEY"
+export AGENERP_LLM_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
+python3 tools/experiments/p2_schema_retrieval/round4_hosted_embedding.py \
+  --schema /tmp/schema.json \
+  --eval   tools/experiments/p2_schema_retrieval/eval-set.json \
+  --out    tools/experiments/p2_schema_retrieval/results-round4.json \
+  --cache  /tmp/p2_vectors_v4.json \
+  --embed-model text-embedding-v4
+```
+
+**实测 178,487 token / 639 次调用 / 453 秒**（估 176k，差 1.4%）。
+设施自检在 `E1`：字段与问句必须同模型同维（都是 1024），不同维后面的数一概不看。
