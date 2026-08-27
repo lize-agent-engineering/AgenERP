@@ -54,14 +54,29 @@ CAUSES = (
     "infrastructure",    # 构建/启动/超时/判官/凭据/清理失败 ⇒ 修好重跑，**不计分**
 )
 
+# 🔴 2026-08-27 改了一句，理由是实测出来的（独立集 kimi-k3 那轮的第 3 条失败）：
+# 问「哪个字段」，而 `rejected_warehouse` 那条**第 2 次调用就已经拿到答案**
+# （`meta.fields{Purchase Receipt Item}` 里就有），然后花了 **22 次**去验证它，
+# 最终烧到 max-turns、**返回空答案**、230,024 token。
+# 逐条排除过：子表守卫触发了 3 次且它照做了（去 doc.get 父单据）；
+# 答案门禁 `forced_continues = 0`，一次都没拒过；按「工具名+参数」重复只有 2 次
+# ⇒ **不是死循环、不是门禁、不是守卫**。
+# 死结是：演示站点上没有一张「有拒收行」的采购收货单，它永远找不到一个有值的
+# `rejected_warehouse` 去佐证 —— 而原提示词那句「拿不准就用工具查证」
+# 被理解成了「必须找到一行有值的数据」。⇒ **harness（提示词）问题，不是能力问题。**
 COMMIT_QUESTION = """你是 ERP 系统的字段专家。请回答下面这个问题需要用到**哪一个**字段。
 
 问题：{q}
 
 要求：
 - **只给一个字段**，格式严格为 `DocType.fieldname`（例如 `Sales Order.customer`）
-- 必须是这个站点上**真实存在**的字段 —— 拿不准就用工具查证
+- 必须是这个站点上**真实存在**的字段 —— 拿不准就用 `meta.fields` 查这个 DocType 的字段表
 - 最后一行只输出那个字段本身，前面可以写你的查证过程
+
+⚠️ **「存在」= 它在这个 DocType 的字段表里，不是「能找到一行填了值的数据」。**
+很多字段在演示站点上没有数据（比如「拒收仓库」要有拒收才会填），
+**找不到有值的行是正常的，不代表字段不对，也不需要继续找。**
+字段表里有它，就够了 —— 别为了佐证一个取值把轮数耗光。
 
 ⚠️ 这是**要你做决定**，不是要你列候选。给多个字段视同没回答。"""
 
@@ -191,6 +206,7 @@ def run_eval(
     sample: int = 0,
     probe: int = 0,
     max_turns: int = 8,
+    output_tokens: int = 4096,
     schema_path: str = SCHEMA_DEFAULT,
     judge_model: str = "glm-5.2",
     budget: int = 0,
@@ -206,6 +222,7 @@ def run_eval(
         sample=sample,
         probe=probe,
         max_turns=max_turns,
+        output_tokens=output_tokens,
         schema=schema_path,
         judge_model=judge_model,
     )
@@ -278,6 +295,7 @@ def run_eval(
             result = explain(
                 COMMIT_QUESTION.format(q=item["q"]), task_class="explain",
                 client=client, models=models, config=config, max_turns=args.max_turns,
+                per_call_output_tokens=args.output_tokens,
             )
         except Exception as exc:  # noqa: BLE001
             rec.update(passed=False, cause="infrastructure", why=f"{type(exc).__name__}: {exc}")
@@ -448,11 +466,16 @@ def main() -> None:
     # ⚠️ 独立集 60 条里 34 条主答案在子表（57%），而子表题正是成本长尾所在
     # （glm-5.2 那轮：子表题 31k / 145k / 34k，非子表中位才 5k）。推 60 条约 1.2–1.4M，
     # 而免费额度是 1M —— **可能跑不完**。所以超预算就停，而不是一路烧完再说。
+    # ⚠️ 默认与产品一致（4096）。调大只在**实测撞了 finish_reason='length'** 时用，
+    # 且必须在结果里注明 —— 它是一个变量，改了就不能跟没改的轮次直接比。
+    ap.add_argument("--output-tokens", type=int, default=4096,
+                    help="每次调用允许模型写多少 token（产品默认 4096）")
     ap.add_argument("--budget", type=int, default=0,
                     help="累计 agent token 上限；超了停在那一条，已跑的照常出账")
     a = ap.parse_args()
     run_eval(eval_path=a.eval, out_path=a.out, sample=a.sample, probe=a.probe,
-             max_turns=a.max_turns, schema_path=a.schema, judge_model=a.judge_model,
+             max_turns=a.max_turns, output_tokens=a.output_tokens,
+             schema_path=a.schema, judge_model=a.judge_model,
              budget=a.budget)
 
 
