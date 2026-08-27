@@ -44,15 +44,23 @@ PROMPT = """你是 ERP 系统的中文术语专家。下面每一行是一个 ER
 
 两条领域事实，照它来：
 
-1. **类型是 Check 的字段是勾选框，值只有是/否** —— 列名要读成一个是非说法
-   （「是否批次管理」「允许负库存」），**不要起成名词**。
-   反例：`has_batch_no` 起成「批次号」是错的 —— 读者会以为那一列填的是编号。
+1. **类型是 Check 的字段是勾选框，值只有是/否。**
+   它的列名**必须**以「是否」「允许」「启用」「已」「需」「可」之一开头，
+   **不许起成名词，也不许起成动作短语**。
+   - `has_batch_no` → **「是否批次管理」**；起成「批次号」或「有批次号」都是错的
+   - `use_multi_level_bom` → **「是否使用多级BOM」**；起成「使用多级BOM」是错的
+   - `skip_transfer` → **「是否跳过调拨」**；起成「跳过调拨至在制仓」是错的
+   - `set_basic_rate_manually` → **「是否手动设定基本价」**
 2. 这是**制造业** ERP。`Item` 指的是**物料**，不是「项目」；
    `Project` 才是项目。`Stock Entry` 是库存调拨单。
 
 字段：
 {rows}
 """
+
+
+# 真实用量的累计器。**不自报，按 API 回的数记。**
+USAGE = {"calls": 0, "in": 0, "out": 0, "reasoning": 0}
 
 
 def ollama_chat(model: str, prompt: str) -> str:
@@ -70,7 +78,77 @@ def ollama_chat(model: str, prompt: str) -> str:
         headers={"Content-Type": "application/json"},
     )
     with urllib.request.urlopen(req, timeout=600) as res:
-        return json.loads(res.read())["message"]["content"]
+        body = json.loads(res.read())
+    USAGE["calls"] += 1
+    USAGE["in"] += body.get("prompt_eval_count") or 0
+    USAGE["out"] += body.get("eval_count") or 0
+    return body["message"]["content"]
+
+
+def _ssl_context():
+    """macOS 上 Python 的 `ssl` 不走系统钥匙串，直连百炼会
+    `CERTIFICATE_VERIFY_FAILED`（`curl` 却是通的，所以很容易误判成「网络问题」）。
+
+    ⚠️ **`import certifi` 刻意写在函数体内**，与 `agenerp/routing/adapter.py:103` 同一条纪律：
+    CI 的 `unit-and-contracts` job 只 `pip install pytest`，模块级 import 会让它当场 ImportError。
+    """
+    import ssl
+
+    import certifi
+
+    return ssl.create_default_context(cafile=certifi.where())
+
+
+def dashscope_chat(model: str, prompt: str) -> str:
+    """百炼（OpenAI 兼容口）。
+
+    🔴 **`enable_thinking: false` 不是可选项，是预算的前提。**
+    2026-08-27 实测同一个问句：
+        开思考 → `completion_tokens` **1808**，其中 `reasoning_tokens` **1800**
+        关思考 → `completion_tokens` **4**
+    **差 450 倍，而关掉之后答案反而更准**（`是否启用批次管理` vs `批次管理`）。
+    默认开着思考时，整站 6,350 个字段的账会从 273k 变成 1–2M ——
+    那是 P1 那次 runaway（13.6 万）的十倍量级。
+    """
+    import os
+
+    key = os.environ.get("AGENERP_LLM_API_KEY") or os.environ.get("DASHSCOPE_API_KEY")
+    if not key:
+        raise RuntimeError("没有 AGENERP_LLM_API_KEY / DASHSCOPE_API_KEY —— 不猜凭据")
+    base = os.environ.get(
+        "AGENERP_LLM_BASE_URL", "https://dashscope.aliyuncs.com/compatible-mode/v1"
+    )
+    req = urllib.request.Request(
+        f"{base}/chat/completions",
+        data=json.dumps(
+            {
+                "model": model,
+                "enable_thinking": False,
+                "temperature": 0.1,
+                "messages": [{"role": "user", "content": prompt}],
+            }
+        ).encode(),
+        headers={"Content-Type": "application/json", "Authorization": f"Bearer {key}"},
+    )
+    with urllib.request.urlopen(req, timeout=600, context=_ssl_context()) as res:
+        body = json.loads(res.read())
+    if body.get("error"):
+        raise RuntimeError(f"百炼回错：{body['error']}")
+    usage = body.get("usage") or {}
+    USAGE["calls"] += 1
+    USAGE["in"] += usage.get("prompt_tokens") or 0
+    USAGE["out"] += usage.get("completion_tokens") or 0
+    USAGE["reasoning"] += (usage.get("completion_tokens_details") or {}).get(
+        "reasoning_tokens"
+    ) or 0
+    return body["choices"][0]["message"]["content"]
+
+
+def chat(model: str, prompt: str) -> str:
+    """按模型名分流。`dashscope:` 前缀走百炼，其余走本地 Ollama。"""
+    if model.startswith("dashscope:"):
+        return dashscope_chat(model.split(":", 1)[1], prompt)
+    return ollama_chat(model, prompt)
 
 
 def in_scope(schema_rows):
@@ -152,7 +230,7 @@ def why_rejected(key: str, value: str, english: dict, fieldname: dict) -> str:
 
 
 def retry_one(model: str, field: dict) -> str:
-    reply = ollama_chat(
+    reply = chat(
         model,
         RETRY_PROMPT.format(
             doctype=field["doctype"],
@@ -185,7 +263,7 @@ def main() -> None:
     for start in range(0, len(fields), BATCH):
         batch = fields[start : start + BATCH]
         rows = "\n".join(describe(i + 1, f) for i, f in enumerate(batch))
-        reply = ollama_chat(args.model, PROMPT.format(rows=rows))
+        reply = chat(args.model, PROMPT.format(rows=rows))
         got = parse(reply, batch)
         terms.update(got)
         print(f"  {start + len(batch)}/{len(fields)}  本批回填 {len(got)}/{len(batch)}"
@@ -239,9 +317,11 @@ def main() -> None:
                 "site": site.get("site", "frontend"),
                 "generated_by": "tools/experiments/p2_terminology/generate_terms.py",
                 "generated_on": "2026-08-27",
-                "model": f"ollama:{args.model}",
+                "model": args.model if ":" in args.model else f"ollama:{args.model}",
                 "scope": "车间工人可读的三张表及其子表（路线 C）",
-                "note": "本地模型生成，API 成本 0。不合格的一律不入库，不是先留着再说。",
+                "note": "不合格的一律不入库，不是先留着再说。",
+                # 🔴 **用量按 API 回的数记，不是我算的**。自报的账不是账。
+                "usage": dict(USAGE),
             },
             "terms": dict(sorted(kept.items())),
         },
