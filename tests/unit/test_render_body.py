@@ -35,6 +35,7 @@ from __future__ import annotations
 import json
 import os
 import pathlib
+import re
 
 import pytest
 
@@ -241,13 +242,17 @@ def test_the_worker_actually_sees_real_rows_from_the_site(worker):
         text = tab.inner_text("#agenerp-view-root")
         assert "物料" in text
         # 表头是 DSL 里声明的字段，画出来的就该是这几列。
-        assert "item_code" in text
+        # ⚠️ **2026-08-27 改过，照实记**：原来断言的是 `item_code`（英文 fieldname）。
+        # P2.7 术语层接进渲染器之后表头变成中文，这条当场红了 ——
+        # **红得正确，那正是术语层起作用的证据**。改成断言中文列名。
+        assert "物料编码" in text
         # 种子数据里恒锐动力有三个物料（REST 实测：HRD-CELL-280 / HRD-PACK-5K /
         # HRD-ASSY-SVC）—— 表里不该是「没有数据」。
         assert "HRD-" in text, "工人读得到 Item，却渲染成了空表"
         # detail 块的子表（uoms / barcodes）**必须走单据详情接口** ——
         # 列表接口从不返回子表。这一格是执行期实测撞出来的缺口，钉在这里。
-        assert "conversion_factor" in text, "子表的列没画出来"
+        # ⚠️ 同上：P2.7 之后子表表头也变成中文，`conversion_factor` → 「换算系数」。
+        assert "换算系数" in text, "子表的列没画出来"
     finally:
         tab.close()
 
@@ -425,5 +430,49 @@ def test_a_fallback_block_never_renders_a_half_drawn_table(worker):
         assert not tab.query_selector("#agenerp-view-root table.agenerp-table"), (
             "落回的块还是画出了一张表"
         )
+    finally:
+        tab.close()
+
+
+# ── P2.7 · 表头是中文 ────────────────────────────────────────────────────────
+
+
+def test_the_worker_sees_chinese_column_headers(worker):
+    """🔴 P2.7 · 术语层接进渲染器之后，表头必须是中文。
+
+    基线是**零**：活站点导出实读，业务 app 全量 6,350 个字段里
+    label 含中文的 = 0。一个中国工人看着 `item_code` / `stock_uom` 这样的表头，
+    既读不懂也猜不出。
+    """
+    tab = _render(worker, "worker-items")
+    try:
+        headers = tab.eval_on_selector_all(
+            "#agenerp-view-root table.agenerp-table th", "els => els.map(e => e.textContent)")
+        assert headers, "一个表头都没有"
+        chinese = [h for h in headers if re.search(r"[\u4e00-\u9fff]", h)]
+        ratio = len(chinese) * 100 / len(headers)
+        assert ratio >= 90.0, (
+            f"{len(headers)} 个表头里只有 {len(chinese)} 个是中文（{ratio:.1f}%）："
+            f"{[h for h in headers if h not in chinese][:8]}"
+        )
+        # 具体钉几个，防止「有中文」被一句无关的中文蒙混过去
+        assert "物料编码" in headers, f"表头里没有「物料编码」：{headers[:10]}"
+    finally:
+        tab.close()
+
+
+def test_the_page_says_so_when_the_terminology_layer_is_missing(worker):
+    """术语层缺失时**说出来**，不静默退回英文。
+
+    「术语层没装上」与「这个字段没有中文名」在界面上长得一模一样 ——
+    前者是部署问题，后者是覆盖率问题。分不开就没人会去修。
+    """
+    plan = json.loads(_plan_json("worker-items"))
+    plan["terminology"] = "术语层读不到：FileNotFoundError"
+    plan["labels"] = {}
+    tab = _render(worker, "worker-items", plan_json=json.dumps(plan, ensure_ascii=False))
+    try:
+        text = tab.inner_text("#agenerp-view-root")
+        assert "术语层没装上" in text
     finally:
         tab.close()

@@ -44,6 +44,7 @@ from agenerp.dsl.fallback import plan_render
 from agenerp.dsl.roles import WORKER_DAILY_VIEWS
 from agenerp.dsl.schema import SchemaView
 from agenerp.dsl.validate import validate
+from agenerp.i18n import load_terms
 from agenerp.site import RESOURCE_PATH, SiteError, client_from_sid
 
 # 可渲染的视图，**按名字查表**。v0 硬编码（P2.4 的 GitOps 会把它换成存储）。
@@ -424,10 +425,17 @@ def plan_payload(view: View, schema: SchemaView) -> dict:
         if kind:
             fieldtypes[f"{doctype}.{fieldname}"] = kind
 
+    labels, terminology = _chinese_labels(view)
+
     return {
         "view": view.name,
         "title": view.title,
         "fieldtypes": fieldtypes,
+        "labels": labels,
+        # ⚠️ 术语层缺失时**说出来**，不静默退回英文 ——
+        # 「术语层没装上」与「这个字段没有中文名」在界面上长得一模一样，
+        # 而前者是部署问题，后者是覆盖率问题。分不开就没人会去修。
+        "terminology": terminology,
         "blocks": [_block_payload(b) for b in plan.rendered],
         "fallbacks": [
             {
@@ -444,6 +452,24 @@ def plan_payload(view: View, schema: SchemaView) -> dict:
             for d in plan.degraded
         ],
     }
+
+
+def _chinese_labels(view: View) -> tuple[dict, str]:
+    """这个视图用到的字段 → 中文名（P2.7 术语层）。
+
+    ⚠️ **没有中文名的字段不放进来**，不拿 fieldname 兜底 ——
+    兜底会让「有中文名」与「没有中文名」在渲染器那里分不出来，覆盖率也就没法验了。
+    """
+    try:
+        table = load_terms()["terms"]
+    except (FileNotFoundError, ValueError) as exc:
+        return {}, f"术语层读不到：{type(exc).__name__}"
+    labels = {}
+    for doctype, fieldname in view.field_refs():
+        name = table.get(f"{doctype}.{fieldname}")
+        if name:
+            labels[f"{doctype}.{fieldname}"] = name
+    return labels, "ok"
 
 
 def _block_payload(block: Block) -> dict:
