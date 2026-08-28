@@ -23,7 +23,7 @@
         {
           "tool": "schema.search",
           "params": {
-            "keywords": "stock transfer"
+            "keywords": "库存 转移"
           },
           "ok": true
         }
@@ -31,6 +31,19 @@
     },
     {
       "index": 3,
+      "kind": "tools",
+      "calls": [
+        {
+          "tool": "schema.search",
+          "params": {
+            "keywords": "stock transfer"
+          },
+          "ok": true
+        }
+      ]
+    },
+    {
+      "index": 4,
       "kind": "tools",
       "calls": [
         {
@@ -43,7 +56,7 @@
       ]
     },
     {
-      "index": 4,
+      "index": 5,
       "kind": "proposed"
     }
   ],
@@ -57,24 +70,31 @@
     },
     {
       "prompt": 1238,
+      "completion": 28,
+      "reasoning": 0,
+      "cached": 0,
+      "total": 1266
+    },
+    {
+      "prompt": 1298,
       "completion": 27,
       "reasoning": 0,
       "cached": 0,
-      "total": 1265
+      "total": 1325
     },
     {
-      "prompt": 1545,
+      "prompt": 1605,
       "completion": 27,
       "reasoning": 0,
       "cached": 0,
-      "total": 1572
+      "total": 1632
     },
     {
-      "prompt": 7141,
-      "completion": 102,
+      "prompt": 7216,
+      "completion": 100,
       "reasoning": 0,
       "cached": 0,
-      "total": 7243
+      "total": 7316
     }
   ],
   "view": {
@@ -82,7 +102,7 @@
     "title": "库存转移笔数",
     "field_refs": [
       "Stock Entry.name",
-      "Stock Entry.stock_entry_type"
+      "Stock Entry.purpose"
     ],
     "blocks": [
       {

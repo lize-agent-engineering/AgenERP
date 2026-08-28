@@ -23,7 +23,7 @@ owner doc 把 `dsl.validate` / `dsl.preview` 列为视图 Agent 的**模型可�
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 
 import json
@@ -157,11 +157,16 @@ def tool_schemas() -> list[dict]:
     ]
 
 
-def _submit_call_id(tool_calls) -> str:
-    for call in tool_calls:
-        if (call.get("function") or {}).get("name") == SUBMIT_TOOL_WIRE:
-            return str(call.get("id") or "")
-    return ""
+def _call_args(call: dict) -> tuple[str, dict]:
+    """一次工具调用的 `(工具名, 参数)`。参数解析不出来就当空参 —— 由契约层去拒。"""
+    function = call.get("function") or {}
+    try:
+        params = json.loads(function.get("arguments") or "{}")
+    except ValueError:
+        params = {}
+    if not isinstance(params, dict):
+        params = {}
+    return _tool_name(str(function.get("name") or "")), params
 
 
 def _submitted_payload(tool_calls) -> str | None:
@@ -232,7 +237,6 @@ class ViewLoop:
         adapter: ChatAdapter,
         client: SiteClient,
         schema: SchemaView | None,
-        doctypes: Sequence[str] | None = None,
         executors: Mapping[str, Executor] | None = None,
         per_call_output_tokens: int = PER_CALL_OUTPUT_TOKENS,
         repair_rounds: int = REPAIR_ROUNDS,
@@ -243,7 +247,6 @@ class ViewLoop:
         self.adapter = adapter
         self.client = client
         self.schema = schema
-        self.doctypes = doctypes
         self.executors = executors
         self.per_call_output_tokens = per_call_output_tokens
         self.repair_rounds = repair_rounds
@@ -251,7 +254,7 @@ class ViewLoop:
         self.tool_turn_nudge = tool_turn_nudge
         self.system_prompt = system_prompt
 
-    def run(self, request: str, *, session_id: str = "view", user: str = "") -> ViewProposal:
+    def run(self, request: str) -> ViewProposal:
         """跑一次视图生成。**任何情况下都返回结果对象** —— 交不出来也要留痕。
 
         唯一的例外是没有 schema：那时**在任何模型调用之前就抛**（见下）。
@@ -308,10 +311,22 @@ class ViewLoop:
                     {"role": "assistant", "content": None,
                      "tool_calls": list(reply.tool_calls)}
                 )
-                messages.append(
-                    {"role": "tool", "tool_call_id": _submit_call_id(reply.tool_calls),
-                     "content": problem}
-                )
+                # 🔴 **每一个 `tool_call.id` 都要有人应答。**
+                # 独立收口审计（2026-08-28）抓到的：模型可以在同一轮里既调
+                # `meta.fields` 又调 `view_submit`，此前只回了 submit 那一条 ⇒
+                # 另一条的 id 无人应答，**下一次请求会被端点 400 拒**，整轮跑飞。
+                # 与 §10 ④ 逐字同族：**由端点来杀，我们什么都留不下。**
+                # 顺手把那些工具**真的执行掉** —— 模型问了就该给它答案，
+                # 塞一句「已忽略」等于让它下一轮再问一遍。
+                for call in reply.tool_calls:
+                    name = str((call.get("function") or {}).get("name") or "")
+                    content = (
+                        problem if name == SUBMIT_TOOL_WIRE
+                        else _clip(self._execute_one(*_call_args(call))["result"])
+                    )
+                    messages.append(
+                        {"role": "tool", "tool_call_id": call.get("id"), "content": content}
+                    )
                 continue
 
             if reply.tool_calls:
@@ -460,9 +475,6 @@ def propose_view(
     requested: str | None = None,
     config=None,
     transport=None,
-    doctypes: Sequence[str] | None = None,
-    session_id: str = "view",
-    user: str = "",
     max_turns: int = MAX_TURNS,
     per_call_output_tokens: int = PER_CALL_OUTPUT_TOKENS,
     executors: Mapping[str, Executor] | None = None,
@@ -489,9 +501,8 @@ def propose_view(
         adapter=adapter,
         client=client,
         schema=schema,
-        doctypes=doctypes,
         executors=executors,
         max_turns=max_turns,
         per_call_output_tokens=per_call_output_tokens,
     )
-    return loop.run(request, session_id=session_id, user=user)
+    return loop.run(request)

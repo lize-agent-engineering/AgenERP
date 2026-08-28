@@ -29,7 +29,8 @@ import pathlib
 
 from agenerp import schema_snapshot
 
-_SNAPSHOT = pathlib.Path("agenerp/schema/view-schema.json")
+# ⚠️ 用绝对路径，不用相对路径：相对路径把判据绑死在 cwd 上，换个目录跑就 FileNotFoundError。
+_SNAPSHOT = pathlib.Path(__file__).resolve().parents[2] / "agenerp" / "schema" / "view-schema.json"
 
 
 def test_the_standard_field_set_is_declared():

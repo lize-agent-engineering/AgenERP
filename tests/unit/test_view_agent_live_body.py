@@ -124,7 +124,6 @@ def _proposal_for(question: str, client, schema):
             client=client,
             schema=schema,
             models=KNOWN_MODEL_PROFILES,
-            doctypes=list(schema.doctypes()),
         )
         _record(question, result)
         _RUNS[question] = result

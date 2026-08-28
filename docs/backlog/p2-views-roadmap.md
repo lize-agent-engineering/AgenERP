@@ -158,7 +158,7 @@ Link 字段收敛）· 术语层反向索引（P2.7 的产物）· 行业包约�
   ⚠️ **只对车间工人这一个角色成立**，推广要另量。
   证据：[plan](../plans/p2-views/2026-08-27-P2.2-renderer-role-complete.md)
 - 5. **视图 Agent：自然语言 → DSL**（P2.3）: **`done`** —— 前置 P2.2 + P2.0R（均已过）。
-  `pytest tests/agents/test_view_agent.py -q` → **退出码 0，27 passed**（WBS §5 第 103 行那条验收）。
+  `pytest tests/agents/test_view_agent.py -q` → **退出码 0，33 passed**（WBS §5 第 103 行那条验收）。
   🔴 **校验绕不过去**：`dsl.validate`/`dsl.preview` **不进模型工具面**（D-15；人 2026-08-28 裁定，
   偏离 owner doc §5.1 字面，已在那里加注解），由循环无条件执行。
   **变异三轮逐条见血**（validate 改恒真 → 6 红 · fail-closed 改成降级交付 → 2 红 ·

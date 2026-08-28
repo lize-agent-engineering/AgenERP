@@ -16,6 +16,7 @@
 
 from __future__ import annotations
 
+import json
 import pathlib
 import sys
 
@@ -73,7 +74,6 @@ def loop_for(transport, *, site=None, **kwargs) -> ViewLoop:
         adapter=fakes.adapter_for(transport),
         client=fakes.client_for(site if site is not None else fakes.site()),
         schema=fakes.schema(),
-        doctypes=list(fakes.SNAPSHOT_DOCTYPES),
         **kwargs,
     )
 
@@ -251,7 +251,6 @@ def test_without_a_schema_nothing_is_proposed_and_no_token_is_spent():
         adapter=fakes.adapter_for(model),
         client=fakes.client_for(fakes.site()),
         schema=None,
-        doctypes=list(fakes.SNAPSHOT_DOCTYPES),
     )
 
     with pytest.raises(SchemaUnavailable):
@@ -339,7 +338,6 @@ def test_the_product_entry_routes_through_the_view_task_class():
         models=fakes.models(),
         config=fakes.config(),
         transport=model,
-        doctypes=list(fakes.SNAPSHOT_DOCTYPES),
     )
 
     assert proposal.stop_reason == STOP_PROPOSED
@@ -513,3 +511,68 @@ def test_after_enough_tool_turns_the_model_is_told_to_deliver():
     loop_for(model, tool_turn_nudge=3).run(REQUEST)
 
     assert "现在就交" in last_messages(model)
+
+
+def test_a_submit_mixed_with_another_tool_call_answers_every_call_id():
+    """🔴 独立收口审计（2026-08-28）抓到的：**混在一轮里的其它工具调用没人应答。**
+
+    OpenAI 兼容端点要求 assistant 消息里**每一个** `tool_call.id` 都有一条对应的
+    `role="tool"` 回复。模型完全可能在同一轮里既调 `meta.fields` 又调 `view_submit`
+    —— 此前只给 submit 那一条回了话，另一条的 id 无人应答 ⇒ **下一次请求会被端点拒**。
+
+    这与 §3④ 同族：**一个本该被干净处理的形状，会变成整轮跑飞。**
+    """
+    mixed = {
+        "choices": [
+            {
+                "message": {
+                    "role": "assistant", "content": None,
+                    "tool_calls": [
+                        {"id": "call-a", "type": "function",
+                         "function": {"name": "meta_fields",
+                                      "arguments": '{"doctype": "Work Order"}'}},
+                        {"id": "call-b", "type": "function",
+                         "function": {"name": "view_submit",
+                                      "arguments": json.dumps(BAD_FIELD_VIEW)}},
+                    ],
+                },
+                "finish_reason": "tool_calls",
+            }
+        ],
+        "usage": fakes.usage(),
+    }
+    model = fakes.ScriptedModel([mixed, fakes.submit_step(WORKER_VIEW)])
+
+    loop_for(model).run(REQUEST)
+
+    sent = model.payloads[-1]["messages"]
+    declared = {
+        call["id"]
+        for m in sent if m.get("role") == "assistant"
+        for call in (m.get("tool_calls") or [])
+    }
+    answered = {m["tool_call_id"] for m in sent if m.get("role") == "tool"}
+    assert declared <= answered, f"这些 tool_call 没人应答：{sorted(declared - answered)}"
+
+
+def test_the_loop_has_no_parameter_it_never_reads():
+    """🔴 独立收口审计（2026-08-28）抓到的：**死参数看起来像做过了。**
+
+    当时 `ViewLoop` 收 `doctypes` / `session_id` / `user` 三个参数，**一个都没被读过**，
+    而 plan §6 的形状图第一行写着「开场注入（可见范围）」—— 读代码的人会以为
+    可见范围被注进去了。判据侧还有三处在往里传，更像真的。
+
+    ⇒ **要么实现它，要么删掉它。** 收口时按 YAGNI 删掉了声明：
+    不在验收数字已经产出之后再改模型可见的行为（那会让那些数字不再描述这份代码）。
+
+    本条守的是「不许再长出一个没人读的参数」，用签名比对，不靠人眼看。
+    """
+    import inspect
+
+    for func in (ViewLoop.__init__, ViewLoop.run, propose_view):
+        source = inspect.getsource(func)
+        names = set(inspect.signature(func).parameters) - {"self", "request"}
+        for name in names:
+            # 参数名在函数体里至少要出现一次「被读」的形态。
+            body = source.split(")", 1)[-1]
+            assert name in body, f"{func.__qualname__} 的参数 {name!r} 从未被读过"

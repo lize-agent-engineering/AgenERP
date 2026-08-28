@@ -24,7 +24,7 @@
           "tool": "meta.fields",
           "params": {
             "doctype": "Work Order",
-            "keywords": "物料 计划数量 状态 日期"
+            "keywords": "物料 计划数量 状态"
           },
           "ok": true
         }
@@ -45,24 +45,23 @@
     },
     {
       "prompt": 1462,
-      "completion": 46,
+      "completion": 44,
       "reasoning": 0,
       "cached": 0,
-      "total": 1508
+      "total": 1506
     },
     {
-      "prompt": 6951,
-      "completion": 128,
+      "prompt": 6949,
+      "completion": 124,
       "reasoning": 0,
       "cached": 0,
-      "total": 7079
+      "total": 7073
     }
   ],
   "view": {
     "name": "todays_work_orders",
-    "title": "今天要做的工单",
+    "title": "今日工单",
     "field_refs": [
-      "Work Order.item_name",
       "Work Order.planned_start_date",
       "Work Order.production_item",
       "Work Order.qty",
@@ -75,7 +74,6 @@
         "doctype": "Work Order",
         "fields": [
           "production_item",
-          "item_name",
           "qty",
           "status"
         ],
