@@ -98,3 +98,43 @@ def test_the_out_of_domain_half_is_really_out_of_domain():
             assert row["expect_doctype"] not in _WORKER_DOCTYPES, (
                 f"{row['id']} 的 {row['expect_doctype']} 其实在主集域里"
             )
+
+
+def test_the_eval_schema_agrees_with_the_product_snapshot_where_they_overlap():
+    """🔴 独立收口审计（2026-08-28）点名的：**这份 schema 的「真」原来只靠自述。**
+
+    `test_the_schema_declares_where_it_came_from` 断言的三个 `provenance` 键
+    全是生成脚本自己写进去的字符串 —— **手改文件照样过**。
+
+    这一条改成交叉核对：评测 schema 与**产品快照**（`agenerp/schema/view-schema.json`，
+    由另一个脚本、另一条路径生成）在**共有的 DocType** 上必须逐字段一致。
+    两份独立产物对得上，才不是「我编的」。
+
+    ⚠️ 守不到的：两份**同时**错（比如站点本身变了而两份都没重生成）。
+    那是 P2.5 `schema.drift` 巡检的活，不是本条的。
+    """
+    from agenerp import schema_snapshot
+
+    product = json.loads(
+        (pathlib.Path(schema_snapshot.DEFAULT_PATH)).read_text(encoding="utf-8")
+    )
+    product_by: dict[str, dict[str, str]] = {}
+    for row in product["fields"]:
+        product_by.setdefault(row["doctype"], {})[row["fieldname"]] = row["fieldtype"]
+
+    eval_by: dict[str, dict[str, str]] = {}
+    for row in _RAW["fields"]:
+        eval_by.setdefault(row["doctype"], {})[row["fieldname"]] = row["fieldtype"]
+
+    shared = set(product_by) & set(eval_by)
+    assert shared, "两份 schema 一个共有 DocType 都没有 —— 交叉核对失去意义"
+
+    for doctype in sorted(shared):
+        missing = set(product_by[doctype]) - set(eval_by[doctype])
+        assert not missing, f"{doctype}：产品快照里有、评测 schema 里没有 {sorted(missing)}"
+        clash = {
+            name: (product_by[doctype][name], eval_by[doctype][name])
+            for name in product_by[doctype]
+            if product_by[doctype][name] != eval_by[doctype][name]
+        }
+        assert not clash, f"{doctype}：两份 schema 的 fieldtype 打架 {clash}"

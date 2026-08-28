@@ -109,7 +109,12 @@ def hard_score(row: dict, proposal) -> dict:
         reasons.append(f"没交出视图（{getattr(proposal, 'stop_reason', 'exception')}）")
         return {"passed": False, "checks": checks, "reasons": reasons}
 
-    checks["validated"] = bool(proposal.validation and proposal.validation.ok)
+    # ⚠️ **刻意不放一条 `validated` 进 checks。**
+    # 循环只在 `validation.ok` 时才返回 `STOP_PROPOSED` ⇒ 走到这里它必然为真。
+    # 那种 check 是**恒真**的：看起来多一层保险，实际一次都不会失败，
+    # 而它验的是循环自己的不变量，不是模型的产出。
+    # 独立收口审计 2026-08-28 点名了它，`tests/experiments/test_view_eval_scorer.py`
+    # 有一条专门扫「从来没失败过的 check」。
     refs = proposal.view.field_refs()
     doctypes = {d for d, _ in refs}
     checks["doctype_hit"] = row["expect_doctype"] in doctypes
@@ -132,11 +137,11 @@ def hard_score(row: dict, proposal) -> dict:
         checks["no_fallback"] = proposal.render_plan.fallbacks == ()
         if not checks["no_fallback"]:
             reasons.append(f"落回了：{[f.reason for f in proposal.render_plan.fallbacks]}")
-    else:
-        # 域外只要求「每一次落回都有理由」—— 有 reason 就算说清了。
-        checks["fallback_explained"] = all(
-            f.reason for f in proposal.render_plan.fallbacks
-        )
+    # ⚠️ 域外**不判落回**，且这里刻意**不放任何 check** ——
+    # 原来那条 `fallback_explained = all(f.reason for …)` 是**恒真**的：
+    # `Fallback.reason` 由 `plan_render()` 构造时就非空，且空集合上 `all([])` 也是真。
+    # 「落回有理由」是 P2.2 那一层的判据，不是这里能判出来的东西。
+    # 落回本身照样留档（结果文件的 `fallbacks` 字段），只是不参与评分。
 
     return {"passed": all(checks.values()), "checks": checks, "reasons": reasons}
 
@@ -236,12 +241,11 @@ def main() -> None:
             adapter=adapter_for(transport, args.model),
             client=client,
             schema=schema,
-            doctypes=list(schema.doctypes()),
         )
         record: dict = {"id": row["id"], "q": row["q"], "domain": row["domain"]}
         proposal = None
         try:
-            proposal = loop.run(row["q"], session_id=f"eval-{row['id']}")
+            proposal = loop.run(row["q"])
             record["stop_reason"] = proposal.stop_reason
             record["trajectory_full"] = [
                 {"tool": c["tool"], "params": c["params"]}
