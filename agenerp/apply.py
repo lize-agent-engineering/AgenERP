@@ -232,23 +232,47 @@ def execute_plan(
     `client` 是可选注入（默认 `None` → `client_from_env(site)`），与 `SiteSnapshotSource.client`
     同一个目的：让单测喂假客户端，不是给产品代码多一条配置路径。
     """
-    if plan.creates or plan.updates:
+    if plan.updates:
+        # `updates` **仍然显式拒绝**（不是遗漏，也不静默跳过）——今天没有调用方。
+        # P0.5 那条 deferred 的另一半，重开条件原样保留：
+        # 「出现需要用包在站点上**改**字段属性的调用方时」。
         raise NotImplementedError(
-            "execute_plan 只实现了删除路径：本次计划里 "
-            f"creates {len(plan.creates)} 条、updates {len(plan.updates)} 条，拒绝执行。"
-            "建/改的执行是显式 deferred（不是遗漏，也不静默跳过）——"
+            "execute_plan 没有实现改（updates）的执行："
+            f"本次计划里 updates {len(plan.updates)} 条，拒绝执行。"
             "裁定见 docs/architecture/module-boundaries.md §11.6 裁定 3，"
             "successor 见 docs/plans/p0-foundation/2026-08-21-1922-3-execute-plan-site-delete.md "
-            "的 ## Deferred But Adjudicated 第一条（重开事件：出现需要用包在站点上建字段的调用方）。"
+            "的 ## Deferred But Adjudicated 第一条。"
             f"（本次计划：{plan.summary()}，目标站点 {site!r}）"
         )
-    if not plan.deletes:
+    if not plan.creates and not plan.deletes:
         return
     resolved = client if client is not None else client_from_env(site)
+
+    # 🔴 **先建后删。** 两者都失败得起，但代价不同：建失败时**什么都还没删**，
+    # 损失最小；先删后建时一旦建失败，字段已经没了。
+    # 破坏性动作放在增量动作之后，是本层在「**没有事务**」这个前提下能做的唯一取舍
+    # （事务/回滚语义划给 P3.1，这一点不假装有）。判据在 `tests/unit/test_apply_execute.py` ⑦ 组。
+    for entry in sorted(plan.creates, key=lambda e: e.key):
+        resolved.create_doc("Custom Field", _custom_field_payload(entry))
+
+    if not plan.deletes:
+        return
     deleted = tuple(sorted(plan.deletes, key=lambda e: e.key))
     for entry in deleted:
         resolved.delete_custom_field(entry.doctype, entry.fieldname)
     drop_orphan_columns(deleted, site, runner=runner)
+
+
+def _custom_field_payload(entry: SnapshotEntry) -> dict:
+    """一条 `creates` → 建 `Custom Field` 的载荷。
+
+    ⚠️ **`dt` 不是 `doctype`。** Frappe 的 `Custom Field` 用 `dt` 指它挂在哪张表上；
+    写成 `doctype` 会被当成一个普通字段静默吞掉，建出来的字段挂在**空**目标上。
+
+    ⚠️ **`name` 不塞。** 站点侧的名字由站点说了算（`agenerp/site.py:254` 的实测语义），
+    显式塞会被静默忽略 —— 而「被静默忽略的载荷」是最难查的一类错。
+    """
+    return {"dt": entry.doctype, "fieldname": entry.fieldname, **entry.attributes}
 
 
 def drop_orphan_columns(

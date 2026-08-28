@@ -18,6 +18,7 @@ from pathlib import Path
 import pytest
 
 from agenerp.apply import PACK_SCOPE, ApplyPlan, execute_plan, plan_apply, read_pack
+from agenerp.snapshot import ChangedEntry
 from agenerp.snapshot import Snapshot, SnapshotEntry, SnapshotScopeMismatch
 
 # §11.1 的实测结论，反 upsert 那条断言失败时逐字打给人看。
@@ -284,10 +285,19 @@ def test_read_pack_and_plan_apply_compose_into_a_delete(tmp_path):
 
 
 def test_execute_plan_is_the_single_landing_spot_for_the_site_half():
-    """建/改仍未实现，且是**显式拒绝**而非静默跳过 —— 消息必须指名 successor。"""
-    plan = plan_apply(desired=_snapshot(BRAND, SHELF), current=_snapshot(BRAND))
+    """**改（updates）** 仍未实现，且是**显式拒绝**而非静默跳过 —— 消息必须指名 successor。
 
-    assert plan.creates and not plan.deletes, "夹具没摆出「只有 creates」的形状"
+    ⚠️ **2026-08-28 由 P2.4 改过一次**：原来这条断言的是「建/改都拒」。
+    `creates` 已经落地 —— P0.5 那条 deferred 写死的重开条件
+    （「出现需要用包在站点上**建**字段的调用方时」）被 P2.4 的第四步「迁站点」触发了。
+    **`updates` 那一半的纪律一个字没松**，本条改为守它。
+    建那一半的判据在 `tests/unit/test_apply_execute.py` ⑦ 组。
+    """
+    plan = ApplyPlan(
+        scope=PACK_SCOPE, creates=(), deletes=(),
+        updates=(ChangedEntry("Item", "tier", before={"a": 1}, after={"a": 2}),),
+    )
+
     with pytest.raises(NotImplementedError) as excinfo:
         execute_plan(plan, site="dev.localhost")
 
