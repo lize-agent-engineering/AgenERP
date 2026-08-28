@@ -13,130 +13,78 @@
 `worker@hrd.example.com`，**仅可读 `Work Order` / `Stock Entry` / `Item`**，
 权限由 `Custom DocPerm` 强制。⚠️ **不得为了让渲染器好做而放宽它。**
 
-## ⚠️ v0 硬编码在代码里，这是暂时的
+## ✅ 定义已经落成 git 文件（P2.4 欠账，2026-08-28 了结）
 
-P2.0 已判**视图产物落 AgenERP 自有表**（Workspace 会被升级整条删了重插）。
-建表与 GitOps 是 **P2.4** 的结果面 —— 那时本模块的这几份定义是它的输入。
-**在那之前硬编码，且这句话写在这里，免得它悄悄变成永久形态。**
+**这几份视图不再硬编码在 Python 里** —— 它们住在 `agenerp/dsl/views/*.json`，
+一个视图一个文件，用**视图 DSL 自己的线格式**（`agenerp/dsl/wire.py`）写成。
+本模块只负责**读**它们。
+
+⇒ 「一句话改老板首页 → `git diff` 看得见 → `git revert` 撤得回」这条链
+（`00-GOALS.md` §2 的 **S3** 前三段）对它们**真的成立**，不再是一句设想。
+
+⚠️ **这一版仍然只覆盖车间工人一个角色**（`ROLE_HOMES` 只有一条）。
+⚠️ **P2.0 判的「产物落 AgenERP 自有表」这一半仍然欠着**：今天定义只在 git 里，
+**没有落进站点的表**。后果是 S3 的第四段「同步到另一站点**生效**」对视图这一层
+**不成立** —— 第二个站点上没有服务进程、也没有那张表。
+照 P1.2 会话 DocType 的既定形态（`module-boundaries.md` §449 的方案 B）：
+**DocType 声明落 git、建表是人的动作**。那一步没做，这句话写在这里，
+免得「视图落库」也悄悄变成「反正 git 里有」。
 """
 
 from __future__ import annotations
 
-from agenerp.dsl.blocks import Block, View
+import json
+import pathlib
+
+from agenerp.dsl.blocks import View
+from agenerp.dsl.wire import WireError, view_from_json
 
 WORKER_ROLE = "车间工人"
 WORKER_DOCTYPES: tuple[str, ...] = ("Work Order", "Stock Entry", "Item")
 
 
-# ① 今天要做哪些工单 —— 工人开工第一眼看的东西
-WORKER_WORK_ORDERS = View(
-    name="worker-work-orders",
-    title="我的工单",
-    blocks=(
-        Block(
-            type="metric",
-            title="计划产量合计",
-            doctype="Work Order",
-            fields=("qty",),
-            agg="sum",
-        ),
-        Block(
-            type="list",
-            title="工单",
-            doctype="Work Order",
-            fields=("production_item", "item_name", "qty", "produced_qty",
-                    "status", "planned_start_date"),
-            sort=("planned_start_date", "asc"),
-            limit=50,
-        ),
-        Block(
-            type="detail",
-            title="工单明细",
-            doctype="Work Order",
-            # `image` 是 Attach Image、`required_items` / `operations` 是 Table
-            # —— 工人确实要看图和用料表，**不是为了凑落回才放进来的**。
-            fields=("production_item", "qty", "produced_qty", "status",
-                    "source_warehouse", "fg_warehouse",
-                    "image", "required_items", "operations"),
-            child_fields=(
-                ("required_items", "Work Order Item",
-                 ("item_code", "item_name", "required_qty", "transferred_qty",
-                  "consumed_qty", "source_warehouse")),
-                ("operations", "Work Order Operation",
-                 ("operation", "workstation", "status", "completed_qty",
-                  "actual_operation_time")),
-            ),
-        ),
-    ),
-)
+VIEW_DIR = pathlib.Path(__file__).resolve().parent / "views"
 
 
-# ② 物料调拨 —— 领料、报工、入库都走这张单
-WORKER_STOCK_ENTRIES = View(
-    name="worker-stock-entries",
-    title="物料调拨",
-    blocks=(
-        Block(
-            type="list",
-            title="调拨单",
-            doctype="Stock Entry",
-            fields=("stock_entry_type", "purpose", "posting_date",
-                    "work_order", "from_warehouse", "to_warehouse"),
-            sort=("posting_date", "desc"),
-            limit=50,
-        ),
-        Block(
-            type="detail",
-            title="调拨明细",
-            doctype="Stock Entry",
-            # `items` 是 Table，展开后其行上的 `image` 是 Attach。
-            fields=("stock_entry_type", "posting_date", "work_order",
-                    "from_warehouse", "to_warehouse", "fg_completed_qty", "items"),
-            child_fields=(
-                # `image` 是 `Attach` —— 工人扫码领料时看的就是这张图。
-                ("items", "Stock Entry Detail",
-                 ("item_code", "item_name", "qty", "uom",
-                  "s_warehouse", "t_warehouse", "image")),
-            ),
-        ),
-    ),
-)
+def load_views(directory: pathlib.Path | None = None) -> tuple[View, ...]:
+    """从 `<directory>/*.json` 读出全部视图，按文件名排序。
+
+    🔴 **坏文件要响，不许跳过。** 一个「读不懂就跳过」的加载器，会让
+    「首页少了一块」长得像「本来就没有这一块」—— 而那正是 P2.6 的
+    `test_no_empty_workspace` 在守的东西的上游。
+
+    🔴 **一个视图都没读到 = 报错，不是「没有视图」。** 目录空了 / 路径给错了
+    与「这个角色确实没有视图」是两件事；合并成后者，首页会变成一片空白而没人报错。
+    与 `agenerp/dsl/schema.py` 那条「空的 `SchemaView` 不是『别查了』」同源。
+    """
+    target = directory if directory is not None else VIEW_DIR
+    files = sorted(target.glob("*.json"))
+    if not files:
+        raise ViewDefinitionError(
+            f"{target} 下一个视图定义都没有 —— 这与「这个角色没有视图」不是一回事，"
+            "多半是目录空了或路径给错了。空首页必须来自一个显式的决定，不能来自一次读空。"
+        )
+    views: list[View] = []
+    for path in files:
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+            views.append(view_from_json(payload))
+        except (OSError, ValueError, WireError) as exc:
+            raise ViewDefinitionError(f"读不了视图定义 {path.name}：{exc}") from exc
+    return tuple(views)
 
 
-# ③ 物料查询 —— 「这个料是什么、用什么单位、条码是多少」
-WORKER_ITEMS = View(
-    name="worker-items",
-    title="物料",
-    blocks=(
-        Block(
-            type="list",
-            title="物料",
-            doctype="Item",
-            fields=("item_code", "item_name", "item_group", "stock_uom", "is_stock_item"),
-            sort=("item_code", "asc"),
-            limit=50,
-        ),
-        Block(
-            type="detail",
-            title="物料明细",
-            doctype="Item",
-            # `image` Attach Image · `description` Text Editor · `uoms` / `barcodes` Table
-            fields=("item_code", "item_name", "item_group", "stock_uom",
-                    "image", "description", "uoms", "barcodes"),
-            child_fields=(
-                ("uoms", "UOM Conversion Detail", ("uom", "conversion_factor")),
-                ("barcodes", "Item Barcode", ("barcode", "barcode_type")),
-            ),
-        ),
-    ),
-)
+class ViewDefinitionError(ValueError):
+    """视图定义文件读不了。**不降级成「少一个视图」** —— 见 `load_views` 的 docstring。"""
 
 
-WORKER_DAILY_VIEWS: tuple[View, ...] = (
-    WORKER_WORK_ORDERS,
-    WORKER_STOCK_ENTRIES,
-    WORKER_ITEMS,
-)
+WORKER_DAILY_VIEWS: tuple[View, ...] = load_views()
+
+#: 名字 → 视图。`ROLE_HOMES` 与 `serve` 都按名字查。
+VIEWS_BY_NAME: dict[str, View] = {view.name: view for view in WORKER_DAILY_VIEWS}
+
+# 车间工人的首页视图名。**写常量不写下标** —— 下标会在文件名排序变化时静默串页。
+WORKER_HOME_VIEW = "worker-work-orders"
 
 
 # ── 角色 → 首页（P2.6）─────────────────────────────────────────────────────
@@ -145,7 +93,7 @@ WORKER_DAILY_VIEWS: tuple[View, ...] = (
 # `system-baseline.md` §4 逐字：「②③ 共用一套前端，差别在渲染哪套视图 DSL、
 # **默认落在哪个首页**」。
 ROLE_HOMES: tuple[tuple[str, str], ...] = (
-    (WORKER_ROLE, WORKER_WORK_ORDERS.name),
+    (WORKER_ROLE, WORKER_HOME_VIEW),
 )
 
 

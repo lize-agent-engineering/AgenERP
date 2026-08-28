@@ -1,0 +1,74 @@
+{
+  "name": "worker-work-orders",
+  "title": "我的工单",
+  "blocks": [
+    {
+      "type": "metric",
+      "title": "计划产量合计",
+      "doctype": "Work Order",
+      "fields": [
+        "qty"
+      ],
+      "agg": "sum"
+    },
+    {
+      "type": "list",
+      "title": "工单",
+      "doctype": "Work Order",
+      "fields": [
+        "production_item",
+        "item_name",
+        "qty",
+        "produced_qty",
+        "status",
+        "planned_start_date"
+      ],
+      "sort": [
+        "planned_start_date",
+        "asc"
+      ],
+      "limit": 50
+    },
+    {
+      "type": "detail",
+      "title": "工单明细",
+      "doctype": "Work Order",
+      "fields": [
+        "production_item",
+        "qty",
+        "produced_qty",
+        "status",
+        "source_warehouse",
+        "fg_warehouse",
+        "image",
+        "required_items",
+        "operations"
+      ],
+      "child_fields": [
+        [
+          "required_items",
+          "Work Order Item",
+          [
+            "item_code",
+            "item_name",
+            "required_qty",
+            "transferred_qty",
+            "consumed_qty",
+            "source_warehouse"
+          ]
+        ],
+        [
+          "operations",
+          "Work Order Operation",
+          [
+            "operation",
+            "workstation",
+            "status",
+            "completed_qty",
+            "actual_operation_time"
+          ]
+        ]
+      ]
+    }
+  ]
+}

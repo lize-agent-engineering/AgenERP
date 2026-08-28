@@ -1,0 +1,56 @@
+{
+  "name": "worker-items",
+  "title": "物料",
+  "blocks": [
+    {
+      "type": "list",
+      "title": "物料",
+      "doctype": "Item",
+      "fields": [
+        "item_code",
+        "item_name",
+        "item_group",
+        "stock_uom",
+        "is_stock_item"
+      ],
+      "sort": [
+        "item_code",
+        "asc"
+      ],
+      "limit": 50
+    },
+    {
+      "type": "detail",
+      "title": "物料明细",
+      "doctype": "Item",
+      "fields": [
+        "item_code",
+        "item_name",
+        "item_group",
+        "stock_uom",
+        "image",
+        "description",
+        "uoms",
+        "barcodes"
+      ],
+      "child_fields": [
+        [
+          "uoms",
+          "UOM Conversion Detail",
+          [
+            "uom",
+            "conversion_factor"
+          ]
+        ],
+        [
+          "barcodes",
+          "Item Barcode",
+          [
+            "barcode",
+            "barcode_type"
+          ]
+        ]
+      ]
+    }
+  ]
+}

@@ -34,7 +34,7 @@ from agenerp.dsl.blocks import (  # noqa: E402
 )
 from agenerp.dsl.validate import SchemaUnavailable  # noqa: E402
 from agenerp.routing import RoutingError  # noqa: E402
-from agenerp.views.wire import view_json_schema  # noqa: E402
+from agenerp.dsl.wire import view_json_schema  # noqa: E402
 from agenerp.views.loop import (  # noqa: E402
     STOP_PROPOSED,
     SYSTEM_PROMPT,

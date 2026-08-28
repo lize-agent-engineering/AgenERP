@@ -37,7 +37,7 @@ from agenerp.routing.adapter import ChatAdapter
 from agenerp.site import SiteClient
 from agenerp.tools.runtime import Executor, execute
 from agenerp.tools_readonly import READONLY_CONTRACTS
-from agenerp.views.wire import WireError, view_from_text, view_json_schema
+from agenerp.dsl.wire import WireError, view_from_text, view_json_schema
 
 # ⚠️ **借用 `explain` 的两份常量，不复制。** 两者都是**实测换来的**：
 #   · `TOOL_PARAMS["meta.fields"]` 的 `keywords` —— 大单据整表 38,000 字符会被截断
