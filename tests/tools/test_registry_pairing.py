@@ -12,22 +12,22 @@ from __future__ import annotations
 import inspect
 
 from agenerp.tools.registry import EXECUTORS
-from agenerp.tools_readonly import READONLY_CONTRACTS, READONLY_TOOL_NAMES
+from agenerp.tools_readonly import ALL_CONTRACTS, ALL_TOOL_NAMES
 
 
 def test_every_contract_has_an_executor():
-    missing = sorted(set(READONLY_TOOL_NAMES) - set(EXECUTORS))
+    missing = sorted(set(ALL_TOOL_NAMES) - set(EXECUTORS))
     assert not missing, f"这些契约没有执行体：{missing}"
 
 
 def test_every_executor_has_a_contract():
-    orphans = sorted(set(EXECUTORS) - set(READONLY_TOOL_NAMES))
+    orphans = sorted(set(EXECUTORS) - set(ALL_TOOL_NAMES))
     assert not orphans, f"这些执行体没有契约（会绕过前置/裁剪/后置整层）：{orphans}"
 
 
 def test_the_two_sides_are_the_same_size():
     """集合相等还不够：契约表里重名会让「按名取契约」静默取错一条。"""
-    assert len(READONLY_CONTRACTS) == len(set(READONLY_TOOL_NAMES)) == len(EXECUTORS)
+    assert len(ALL_CONTRACTS) == len(set(ALL_TOOL_NAMES)) == len(EXECUTORS)
 
 
 def test_every_executor_takes_the_session_seam():

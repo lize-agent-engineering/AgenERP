@@ -1,0 +1,110 @@
+"""`schema.drift` 的执行体 —— 孤儿列巡检的工具面。
+
+**口径不在这里。** 「哪些列算孤儿」由 `agenerp.snapshot.schema_drift()` 答，
+它直接复用 Frappe 自己的 `trim_table(dry_run=True)`（§11.8）。本模块只做三件事：
+**定范围 · 逐表问 · 把答案摆成行**。
+
+自己再算一遍口径会产生**第二套字段口径**，Frappe 一次升级就能让两边错开，
+而错开的表现是「孤儿列漏报」——最难发现的那种假绿（§11.5）。
+
+## 两个入口，二选一
+
+- `doctype=<名>` —— 查一张表
+- `pack=<包路径>` —— 扫这个定制包**管辖**的那一组（`pack_doctypes`）
+
+**都不给或都给一律拒。** 都不给时悄悄退化成「扫全站 1000+ 表」，是既慢又没人负责的口径；
+都给时哪个范围说了算，调用方自己都没想清楚。
+
+⚠️ **巡检只报不删。** 清除面是 `agenerp.apply.drop_orphan_columns`，且它**刻意收窄**到
+「本次 apply 真删掉的 fieldname ∩ Frappe 判定的孤儿列」——历轮残留的**故意不碰**
+（2026-08-21 实测 `Item` 上 6 条孤儿列，5 条不是本次造成的）。报出来与动手是两件事。
+"""
+
+from __future__ import annotations
+
+from collections.abc import Mapping
+from typing import Any
+
+from agenerp.oob import TRIM_TABLE, _resolve_runner
+from agenerp.tools.runtime import Outcome, Session, ToolError
+
+
+def schema_drift_scan(session: Session, params: Mapping[str, Any]) -> Outcome:
+    doctypes = _scope(params)
+    from agenerp.snapshot import schema_drift
+
+    # 站点名从 **session 的客户端**取 —— 那是「这次调用在跟哪个站点说话」的唯一来源。
+    # ⚠️ 不回落到 `AGENERP_SITE`：回落会让「调用方指的站点」与「环境里配的站点」
+    # 在不一致时静默按后者跑，而巡检报的是**哪个站点**的孤儿列。
+    site = getattr(getattr(session, "client", None), "site", None)
+    if not site:
+        raise ToolError(
+            "schema.drift 要知道查哪个站点，而这次调用没有带站点客户端。"
+            "带外命令按站点执行，站点名不许靠环境变量猜。"
+        )
+
+    # 🔴 **后置事实从行为推出来，不是自报。**
+    # 纪律照 `schema_search`（它的 `returns_candidate_list_not_single_pick`
+    # 算的是 `len(candidates) == len(matched)`，不是一个写死的 True）。
+    # 这里把真正发出去的带外命令逐条记下来，两条后置都从这份记录算。
+    sent: list[Any] = []
+
+    # `_resolve_runner(None)` 落到 `agenerp.oob` 自己的默认执行器 —— 口径只有一处。
+    underlying = _resolve_runner(session.runner)
+
+    def _recording_runner(command):
+        sent.append(command)
+        return underlying(command)
+
+    rows: list[dict[str, str]] = []
+    for doctype in doctypes:
+        for column in schema_drift(doctype, site=site, runner=_recording_runner):
+            rows.append({"doctype": doctype, "column": column})
+
+    # 排序确定：同一个站点复跑两次的输出可以逐行比对。
+    rows.sort(key=lambda row: (row["doctype"], row["column"]))
+    return Outcome(
+        # 🔴 `scanned` 不是装饰：**「零行」没有分母就说明不了任何事**。
+        # 一次扫了 0 张表和一次扫了 15 张表都干净，在结果上长得一样。
+        data={"rows": rows, "scanned": list(doctypes)},
+        facts={
+            "orphan_columns_found": len(rows),
+            "doctypes_scanned": len(doctypes),
+            # 发出去的每一条都必须是 `trim_table` 那个白名单调用 —— 口径确实来自 Frappe 自己。
+            "uses_frappe_trim_table_dry_run": bool(sent)
+            and all(TRIM_TABLE in " ".join(c.argv) for c in sent),
+            # 「只报不删」在传输面的可观测形态：**一个 REST 请求都没发**
+            # （删 Custom Field 走 REST，删列走另一条带外命令，两者都会在这里留下痕迹）。
+            "reports_without_dropping": session.request_count == 0
+            and all("drop" not in " ".join(c.argv).lower() for c in sent),
+        },
+        rows_key="rows",
+    )
+
+
+def _scope(params: Mapping[str, Any]) -> tuple[str, ...]:
+    """定范围。**二选一**，且空包按错而不是按干净处理。"""
+    doctype = str(params.get("doctype") or "").strip()
+    pack = str(params.get("pack") or "").strip()
+
+    if bool(doctype) == bool(pack):
+        raise ToolError(
+            "schema.drift 要**二选一**：给 `doctype`（查一张表）或 `pack`（扫这个包管辖的那组）。"
+            f"收到 doctype={doctype!r}、pack={pack!r}。"
+            "都不给时悄悄退化成「扫全站」是既慢又没人负责的口径；都给时哪个范围说了算说不清。"
+        )
+
+    if doctype:
+        return (doctype,)
+
+    from agenerp.apply import pack_doctypes
+
+    covered = tuple(sorted(pack_doctypes(pack)))
+    if not covered:
+        # 🔴 空包扫出零行，与「这个包一张表都不管」**不是一回事**。
+        # 合并成「干净」会让一个打错的路径看起来像体检通过。
+        raise ToolError(
+            f"定制包 {pack!r} **一张表都不管**（`<包>/doctypes/` 下没有文件）——"
+            "这与「扫过了、很干净」不是一回事，多半是路径给错了。"
+        )
+    return covered

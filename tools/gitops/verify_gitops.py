@@ -91,11 +91,25 @@ def add_probe(site: str) -> None:
 
 
 def drop_probe(site: str) -> None:
+    """删探针字段，**并且把它留下的物理列一起清掉**。
+
+    🔴 2026-08-28 由 P2.5 的巡检工具第一次真跑抓到：
+    只删 Custom Field 时 Frappe **不删物理列**（Spike 06 的结论在 v15 上仍成立），
+    于是每跑一轮 `verify-gitops.sh` 就在 `gitops.test` 上多积一条孤儿列 ——
+    `schema.drift` 当场把它报了出来（`ToDo.agenerp_gitops_probe`）。
+    **一个自己制造孤儿列的验收脚本，没有资格验别人干不干净。**
+    """
+    from agenerp.apply import drop_orphan_columns
+    from agenerp.snapshot import SnapshotEntry
+
     try:
         if field_exists(site, PROBE_DOCTYPE, PROBE_FIELD):
             client_from_env(site).delete_custom_field(PROBE_DOCTYPE, PROBE_FIELD)
-    except SiteError as exc:  # 清理失败不改变本轮结论，但必须说出来
-        print(f"  ⚠️ 清理 {site} 上的探针失败：{exc}")
+        # 清除面**自带收窄**：只碰「本次删掉的 fieldname ∩ Frappe 判定的孤儿列」，
+        # 历轮残留的别人家的列一个都不碰（§11.6）。
+        drop_orphan_columns((SnapshotEntry(PROBE_DOCTYPE, PROBE_FIELD),), site)
+    except Exception as exc:  # noqa: BLE001 —— 清理失败不改变本轮结论，但必须说出来
+        print(f"  ⚠️ 清理 {site} 上的探针失败：{type(exc).__name__}: {exc}")
 
 
 def export_from(site: str, pack: pathlib.Path) -> None:

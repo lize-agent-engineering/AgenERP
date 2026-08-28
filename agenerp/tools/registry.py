@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 from agenerp.tools.documents import doc_get, doc_links, lineage_trace, meta_fields
+from agenerp.tools.drift import schema_drift_scan
 from agenerp.tools.queries import query_read, rule_lookup, snapshot_read
 from agenerp.tools.runtime import Executor
 from agenerp.tools.site_scope import permission_scope, schema_search, system_overview
@@ -23,4 +24,7 @@ EXECUTORS: dict[str, Executor] = {
     "doc.get": doc_get,
     "doc.links": doc_links,
     "meta.fields": meta_fields,
+    # 巡检族（P2.5）。**不在模型工具面上** —— `tool_schemas()` 按 `READONLY_CONTRACTS`
+    # 生成，而它的契约在 `INSPECTION_CONTRACTS` 里。见 `tools_readonly.py` 那一段。
+    "schema.drift": schema_drift_scan,
 }

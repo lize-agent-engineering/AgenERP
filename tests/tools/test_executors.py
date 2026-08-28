@@ -324,8 +324,15 @@ def test_rule_lookup_names_what_is_missing(fake_site, fake_client):
 
 
 def test_registry_covers_every_contract():
-    """注册表少一边就是一个静默缺口——完整的双向判据在 `test_registry_pairing.py`。"""
-    assert set(EXECUTORS) == {contract.tool for contract in READONLY_CONTRACTS}
+    """注册表少一边就是一个静默缺口——完整的双向判据在 `test_registry_pairing.py`。
+
+    ⚠️ **2026-08-28 由 `READONLY_CONTRACTS` 改为 `ALL_CONTRACTS`**（P2.5）：
+    巡检族（`schema.drift`）**刻意不在那十个模型面工具里**，但它照样要有执行体 ——
+    配对这条不变量本身一个字没松，松的只是「配对的对象是哪一族」。
+    """
+    from agenerp.tools_readonly import ALL_CONTRACTS
+
+    assert set(EXECUTORS) == {contract.tool for contract in ALL_CONTRACTS}
     assert contract_of("doc.get").returns.user_writable_free_text is True
 
 
