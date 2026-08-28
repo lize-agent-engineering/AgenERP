@@ -121,6 +121,22 @@ Agent 找到了两笔逾期账款（应收 ¥18,612、应付 ¥2,200），**漏�
 | 形态 | `meta.custom_field`、`meta.doctype`、`meta.property_setter`、`meta.permission`、`bundle.write`、`bundle.diff`、`migration.plan` |
 | 编排 | `agent.dispatch`、`task.decompose` |
 
+> ⚠️ **P2.3 落地时对「视图」这一行有一处偏离，人 2026-08-28 当场裁定**（表体不改，注解在此）：
+>
+> **`dsl.validate` / `dsl.preview` 没有做成模型可见的工具**，而是由视图 Agent 的控制循环
+> **无条件执行**（`agenerp/views/loop.py`）。理由是 D-15「规则能覆盖的流程不 Agent 化」——
+> 「这个视图合不合法」「哪一块画不了、为什么」`validate()` 与 `plan_render()`
+> 纯规则零模型就能答；做成工具，模型就有了「不调它就交」这条路。
+> 同形先例：`permission.scope` 也不进模型工具面（由开场注入确定性化）。
+>
+> **能力没有少**：视图交付走一个 `view.submit` 工具，参数是由 DSL 封闭取值生成的 JSON Schema，
+> 交完由循环跑完整两层校验 + 落回判定。判据 `tests/agents/test_view_agent.py`
+> 里有一条专门断言这两个名字**不在**工具面上。
+>
+> `dsl.schema` / `field.catalog` 未做：视图 Agent 用 `schema.search` + `meta.fields`
+> 达成同一件事（P2.0R 实测的主力就是这两个），**没有第三份 schema 入口**。
+> `bundle.write` 属 P2.4。**本注解可逆** —— 要改回字面，加两份契约 + 注册表项即可。
+
 **设计要点**：工具不是裸 CRUD。每个工具是一份**契约**（见 §7），声明前置条件、后置断言、风险等级、所需权限。
 
 **`system.overview` 与 `permission.scope` 由 Spike 01 实测产出**（见 `spike/FINDINGS.md`）：

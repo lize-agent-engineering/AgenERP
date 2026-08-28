@@ -157,7 +157,28 @@ Link 字段收敛）· 术语层反向索引（P2.7 的产物）· 行业包约�
   ⚠️ **与 WBS 字面「frappe-ui」偏离**：用零构建 vanilla JS，理由与可逆性见 plan §3，**供人推翻**。
   ⚠️ **只对车间工人这一个角色成立**，推广要另量。
   证据：[plan](../plans/p2-views/2026-08-27-P2.2-renderer-role-complete.md)
-- 5. **视图 Agent：自然语言 → DSL**（P2.3）: `todo` —— 前置 P2.2 **且 P2.0R**
+- 5. **视图 Agent：自然语言 → DSL**（P2.3）: **`done`** —— 前置 P2.2 + P2.0R（均已过）。
+  `pytest tests/agents/test_view_agent.py -q` → **退出码 0，27 passed**（WBS §5 第 103 行那条验收）。
+  🔴 **校验绕不过去**：`dsl.validate`/`dsl.preview` **不进模型工具面**（D-15；人 2026-08-28 裁定，
+  偏离 owner doc §5.1 字面，已在那里加注解），由循环无条件执行。
+  **变异三轮逐条见血**（validate 改恒真 → 6 红 · fail-closed 改成降级交付 → 2 红 ·
+  去掉 schema fail-fast → 1 红），复原后 `sha256` 逐字节相同。
+  活体端到端 `pytest -m live tests/agents/test_view_agent_live.py -q -rs` → **13 passed 零 skip**
+  （`qwen3.7-flash-2026-07-15`，两道题，落回都是 0）。
+  量化评测（`claude -p --model sonnet`，18 条，双层判分，**两个数分开报**）：
+  **主集 10/12 = 83.3%（判官 11/12）· 域外 6/6 = 100%（判官 6/6）**。
+  ⚠️ **与 P2.0R 那 95.0%（`deepseek-v4-pro-0813`）不可比** —— 不同模型、不同题、不同判法。
+  🔴 **活体判据第一次真跑就抓到六条，五条是我们自己的 harness**：
+  ① `qwen3.8-2.4t-a95b` 拒绝 `enable_thinking:false`（端点侧，换模型）
+  ② `wire` 放行对象数组 ⇒ `validate` 拿 `entry[1]` **KeyError 崩在循环里**
+  ③ 提示词没说块长什么样 ⇒ 连查 8 轮不组装（改成 **JSON Schema 交付**，借 LangChain 的思想不引依赖）
+  ④ 端点 400「同名同参重复」⇒ 自己判自己挡，判重复只看名字+参数
+  ⑤ **Frappe 标准字段一个都不在快照里** ⇒ 模型交 `count(Stock Entry.name)`（正解）被判「字段不存在」，
+     退到 `naming_series`。修完同题：3 次打回 / 42,344 token → **0 次打回 / 21,091 token**
+  ⑥ 回注话术没跟上新交付路径
+  ⚠️ 两条硬判失败**是评测集过严**（`must_fields` 编码的是「我想到的答案」不是「答案集合」），
+  人 2026-08-28 裁定**不改**：「不用改，感觉挺好的，单从数据上看，验收通过。」
+  证据：[plan](../plans/p2-views/2026-08-28-P2.3-view-agent.md)
 - 6. **定制包 GitOps v0**（P2.4）: `todo` —— 前置 P2.3
 - 7. **`schema.drift` 巡检**（P2.5）: `todo` —— 前置 P2.4
 - 8. **角色首页**（P2.6）: **`done`** —— 前置 P2.2（已过）。

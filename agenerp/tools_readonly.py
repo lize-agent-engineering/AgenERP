@@ -8,6 +8,11 @@
 
 **排除项与理由**：`anomaly.scan` / `benchmark.compare` 属洞察 Agent，依赖行业包规则（P1 才有）；
 `dsl.schema` / `field.catalog` / `dsl.validate` / `dsl.preview` 属视图 Agent，依赖视图 DSL（P2 才有）。
+⚠️ **2026-08-28 结账**：P2.3 已落地，但这四个**仍然不在本表里，而且不会进来** ——
+`dsl.validate` / `dsl.preview` 的能力做成了控制循环里**无条件执行**的确定性步骤
+（`agenerp/views/loop.py`，D-15；人 2026-08-28 裁定，owner doc §5.1 已加注解）；
+`dsl.schema` / `field.catalog` 由既有的 `schema.search` + `meta.fields` 达成，不另开入口。
+**这一行从「还没做」改成「做了，但不是工具」**，免得它一直挂着像笔欠账。
 选法是「P0 阶段就有真实约束可写的只读工具」，不是「随手凑十个」。
 
 **实测硬约束写在声明里，不写在注释里**——注释不可测。每条都带 `source` 指回出处，
