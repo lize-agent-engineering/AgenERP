@@ -12,7 +12,12 @@
 import pytest
 
 from agenerp.contracts import APPROVAL_NOT_REQUIRED, check_registry, validate_registry
-from agenerp.tools_readonly import READONLY_CONTRACTS, READONLY_TOOL_NAMES, get
+from agenerp.tools_readonly import (
+    ALL_CONTRACTS,
+    READONLY_CONTRACTS,
+    READONLY_TOOL_NAMES,
+    get,
+)
 
 # 名字逐字取自 owner doc：前七个是 agents-and-roles.md §5.1 解释 Agent 的工具集，
 # 后三个由 §5.0 ① 与 context-and-memory.md 在证据充分性门禁 / 结构化导航里点名。
@@ -54,11 +59,18 @@ def test_out_of_scope_tools_are_not_declared(tool):
 
 
 def test_the_whole_registry_is_structurally_valid():
-    assert validate_registry(READONLY_CONTRACTS) == ()
-    check_registry(READONLY_CONTRACTS)
+    assert validate_registry(ALL_CONTRACTS) == ()
+    check_registry(ALL_CONTRACTS)
 
 
-@pytest.mark.parametrize("contract", READONLY_CONTRACTS, ids=lambda c: c.tool)
+# ⚠️ **2026-08-28 由 `READONLY_CONTRACTS` 改为 `ALL_CONTRACTS`**（独立收口审计 B1）：
+# P2.5 分出巡检族之后，这些**逐契约**的不变量原本只参数化那十个，新族整族逃逸 ——
+# 「只读 L0 / returns 三段齐 / 实测约束带 source / 至少一条后置」这些是**对每一份契约**
+# 的要求，不是对「那十个」的要求。今天 `schema.drift` 逐条都过，
+# 但**下一条巡检契约就没有任何东西拦着它违约**。
+# ⚠️ 「恰好十个」与「十个名字逐字对齐 owner doc」两条**仍按 `READONLY_CONTRACTS`**，
+#    那两条守的就是那十个本身。
+@pytest.mark.parametrize("contract", ALL_CONTRACTS, ids=lambda c: c.tool)
 def test_every_contract_is_read_only_l0_and_needs_no_approval(contract):
     """§5 风险表：L0 = 只读，无副作用，直接放行。"""
     assert contract.read_only
@@ -68,7 +80,7 @@ def test_every_contract_is_read_only_l0_and_needs_no_approval(contract):
     assert contract.on_violation == "abort_and_report"
 
 
-@pytest.mark.parametrize("contract", READONLY_CONTRACTS, ids=lambda c: c.tool)
+@pytest.mark.parametrize("contract", ALL_CONTRACTS, ids=lambda c: c.tool)
 def test_every_contract_declares_the_full_returns_segment(contract):
     """§7.3.1 的三项：裁剪规则 / 上限条数 / 必须保留什么。缺一不可。"""
     returns = contract.returns
@@ -78,13 +90,13 @@ def test_every_contract_declares_the_full_returns_segment(contract):
     assert returns.must_keep
 
 
-@pytest.mark.parametrize("contract", READONLY_CONTRACTS, ids=lambda c: c.tool)
+@pytest.mark.parametrize("contract", ALL_CONTRACTS, ids=lambda c: c.tool)
 def test_every_contract_declares_the_7_5_free_text_bit(contract):
     """§7.5 的声明位必须是显式布尔——「没想过」和「不会返回」不是一回事。"""
     assert isinstance(contract.returns.user_writable_free_text, bool)
 
 
-@pytest.mark.parametrize("contract", READONLY_CONTRACTS, ids=lambda c: c.tool)
+@pytest.mark.parametrize("contract", ALL_CONTRACTS, ids=lambda c: c.tool)
 def test_every_measured_constraint_carries_its_source(contract):
     """约束没有出处就退回成意见。每条条件都得指回 owner doc。"""
     for condition in contract.preconditions + contract.postconditions:
@@ -152,5 +164,5 @@ def test_doc_get_declares_it_returns_user_writable_free_text():
 
 def test_only_doc_get_is_marked_as_returning_free_text_for_now():
     """声明位不是摆设——把它全填 True 等于没声明。v0 只有 doc.get 会倒回自由文本。"""
-    flagged = [c.tool for c in READONLY_CONTRACTS if c.returns.user_writable_free_text]
+    flagged = [c.tool for c in ALL_CONTRACTS if c.returns.user_writable_free_text]
     assert flagged == ["doc.get"]

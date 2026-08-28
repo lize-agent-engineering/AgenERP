@@ -25,7 +25,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from agenerp.oob import TRIM_TABLE, _resolve_runner
+from agenerp.oob import TRIM_TABLE
 from agenerp.tools.runtime import Outcome, Session, ToolError
 
 
@@ -43,22 +43,13 @@ def schema_drift_scan(session: Session, params: Mapping[str, Any]) -> Outcome:
             "带外命令按站点执行，站点名不许靠环境变量猜。"
         )
 
-    # 🔴 **后置事实从行为推出来，不是自报。**
-    # 纪律照 `schema_search`（它的 `returns_candidate_list_not_single_pick`
-    # 算的是 `len(candidates) == len(matched)`，不是一个写死的 True）。
-    # 这里把真正发出去的带外命令逐条记下来，两条后置都从这份记录算。
-    sent: list[Any] = []
-
-    # `_resolve_runner(None)` 落到 `agenerp.oob` 自己的默认执行器 —— 口径只有一处。
-    underlying = _resolve_runner(session.runner)
-
-    def _recording_runner(command):
-        sent.append(command)
-        return underlying(command)
-
+    # 🔴 **后置事实从行为推出来，不是自报**，而记录点在 `Session` 里、不在这里。
+    # 2026-08-28 审计的变异 B：记录点原来是本函数的一个局部包装器 ⇒
+    # 执行体拿没被包装的 runner 去发命令，记录里看不见（实测真发了 DROP COLUMN 还全绿）。
+    # 现在 `session.runner` 本身就是记录器，**这里拿不到未被记录的通道**。
     rows: list[dict[str, str]] = []
     for doctype in doctypes:
-        for column in schema_drift(doctype, site=site, runner=_recording_runner):
+        for column in schema_drift(doctype, site=site, runner=session.runner):
             rows.append({"doctype": doctype, "column": column})
 
     # 排序确定：同一个站点复跑两次的输出可以逐行比对。
@@ -70,7 +61,7 @@ def schema_drift_scan(session: Session, params: Mapping[str, Any]) -> Outcome:
         facts={
             "orphan_columns_found": len(rows),
             "doctypes_scanned": len(doctypes),
-            **derive_facts(sent, session.request_count),
+            **derive_facts(session.oob_calls, session.request_count),
         },
         rows_key="rows",
     )

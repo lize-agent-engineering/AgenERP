@@ -258,3 +258,33 @@ def test_the_facts_the_executor_emits_come_from_that_same_function():
 
     assert outcome.facts["uses_frappe_trim_table_dry_run"] is True
     assert outcome.facts["reports_without_dropping"] is True
+
+
+def test_a_drop_issued_through_the_session_cannot_hide_from_the_facts():
+    """🔴 独立收口审计的**变异 B**：执行体绕过记录器发一条 DROP，事实照报 True。
+
+    当时记录点是 `drift.py` 里的一个局部包装器 —— 执行体只要拿**没被包装的**那个
+    runner 去发命令，记录里就看不见。实测真的发出了 `ALTER TABLE … DROP COLUMN`，
+    而「只报不删」那条后置照报 `True`，14 条判据全绿。
+
+    ⇒ 记录点下沉到 `Session.runner`：**从 session 拿不到未被记录的通道**。
+    这一条守的就是那个下沉：经由 session 发出去的 drop，事实必须翻成 False。
+
+    ⚠️ 边界：执行体若**绕开 session 直接 import `agenerp.oob`**，这里仍看不见。
+    那是另一类问题，本条不假装挡得住 —— 写出来免得它被当成全覆盖。
+    """
+    from agenerp.oob import OobCommand
+    from agenerp.tools.drift import derive_facts
+    from agenerp.tools.runtime import Session
+
+    class _Client:
+        site = "gitops.test"
+
+    session = Session(_Client(), runner=runner_for({"ToDo": ["c"]}))
+    # 经由 session 的通道发一条 drop —— 这正是变异 B 干的事
+    session.runner(OobCommand(service="db", argv=("sh", "-c", "ALTER TABLE x DROP COLUMN y")))
+
+    assert session.oob_calls, "session 没有记下这条命令 —— 记录点又漏了"
+    assert derive_facts(session.oob_calls, session.request_count)[
+        "reports_without_dropping"
+    ] is False, "经由 session 发出去的 drop 没有被事实看见"
