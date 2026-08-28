@@ -61,6 +61,7 @@ JUDGE_PROMPT = """
 计数计在一个大多数行都为空的字段上（那样数出来的不是条数）。
 
 只输出一个 JSON 对象，不要解释：{{"on_topic": true 或 false, "why": "一句话"}}
+⚠️ `why` 里**不许出现双引号**（会让这段 JSON 解析不了），要引用就用「」。
 """.strip()
 
 
@@ -141,19 +142,71 @@ def hard_score(row: dict, proposal) -> dict:
 
 
 def judge(transport, question: str, view: dict) -> dict:
-    """判官。**只看题面与产出，看不到期望集合**（§3④：不许引导证人）。"""
+    """判官。**只看题面与产出，看不到期望集合**（§3④：不许引导证人）。
+
+    🔴 **解析失败要重问一次，不是当成「判不了」。**
+    2026-08-28 首轮实测：18 条里有 **2 条**判官答对了却解析失败 ——
+    `why` 里带了没转义的双引号。那两条被记成 `None`，把域外判官率从
+    6/6 压到 4/6。**那是我的 harness，不是模型的能力**（handoff §3②，已是第六次）。
+
+    ⚠️ 修法是**重问**，不是放宽解析。捞「第一个大括号到最后一个」会把判官的散文
+    当成结论 —— P2.0R 的判官就崩在那上面（§3④）。
+    """
     prompt = JUDGE_PROMPT.format(
         question=question, view=json.dumps(view, ensure_ascii=False, indent=1)
     )
-    raw = transport._run(prompt)
-    text = (raw.get("result") or "").strip()
-    try:
-        # ⚠️ **不贪婪解析**：只接受整段 JSON。捞出来的「第一个大括号到最后一个」
-        # 会把判官的散文当成结论（P2.0R 的判官就崩在这上面）。
-        verdict = json.loads(text)
-        return {"on_topic": bool(verdict.get("on_topic")), "why": verdict.get("why", "")}
-    except ValueError:
-        return {"on_topic": None, "why": f"判官没回 JSON：{text[:150]!r}"}
+    for attempt in (1, 2):
+        raw = transport._run(prompt if attempt == 1 else prompt + _RETRY_NOTE)
+        text = (raw.get("result") or "").strip()
+        try:
+            # ⚠️ **不贪婪解析**：只接受整段 JSON。
+            verdict = json.loads(text)
+        except ValueError:
+            continue
+        return {
+            "on_topic": bool(verdict.get("on_topic")),
+            "why": verdict.get("why", ""),
+            "attempts": attempt,
+        }
+    return {"on_topic": None, "why": f"重问一次仍不是 JSON：{text[:150]!r}", "attempts": 2}
+
+
+_RETRY_NOTE = (
+    "\n\n⚠️ 上一次你回的不是合法 JSON（多半是 `why` 里用了双引号）。"
+    "重答一次，`why` 里只用「」。"
+)
+
+
+def rejudge(path: pathlib.Path, model: str) -> None:
+    """只重跑判官，**不重跑 Agent**。
+
+    产出已经留档，重判不会改变 Agent 交了什么 —— 改变的只是我们读它的那一层。
+    ⚠️ **逐条全重判，不是只重判失败的那几条**：只重判失败项会系统性偏高
+    （handoff §5 记着那个坑：`只重跑失败项系统性偏高`）。
+    """
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    transport = ClaudeCliTransport(model=model)
+    for record in payload["results"]:
+        if not record.get("view"):
+            continue
+        record["judge"] = judge(transport, record["q"], record["view"])
+        print(f"  重判 {record['id']}: {record['judge']['on_topic']}", flush=True)
+    results = payload["results"]
+
+    def rate(domain: str) -> str:
+        subset = [r for r in results if r["domain"] == domain]
+        hit = sum(1 for r in subset if r["judge"]["on_topic"] is True)
+        return f"{hit}/{len(subset)} = {hit / len(subset) * 100:.1f}%"
+
+    payload["summary"]["in_domain_judge"] = rate("in")
+    payload["summary"]["out_domain_judge"] = rate("out")
+    payload["summary"]["judge_rerun"] = "判官解析修复后重判全部 18 条（不是只重判失败项）"
+    payload["summary"]["cost_usd_total"] = round(
+        payload["summary"]["cost_usd_total"]
+        + sum(c["cost_usd"] or 0 for c in transport.calls), 4
+    )
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=1), encoding="utf-8")
+    print(json.dumps(payload["summary"], ensure_ascii=False, indent=1))
 
 
 def main() -> None:
@@ -161,7 +214,12 @@ def main() -> None:
     parser.add_argument("--out", default="results-sonnet.json")
     parser.add_argument("--model", default="sonnet")
     parser.add_argument("--only", default="", help="只跑某几题，逗号分隔的 id")
+    parser.add_argument("--rejudge", default="", help="只重跑判官，值是既有结果文件名")
     args = parser.parse_args()
+
+    if args.rejudge:
+        rejudge(DIR / args.rejudge, args.model)
+        return
 
     schema = load_schema()
     client = client_from_env("frontend")

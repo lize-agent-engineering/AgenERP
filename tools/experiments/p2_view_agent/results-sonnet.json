@@ -1,0 +1,1308 @@
+{
+ "summary": {
+  "model": "sonnet",
+  "gates": {
+   "note": "一道闸都不收紧；与「闸」同族的三个数按实际取值逐条记在这里",
+   "values": {
+    "max_turns": 40,
+    "repair_rounds": 3,
+    "tool_turn_nudge": 4
+   }
+  },
+  "in_domain_hard": "10/12 = 83.3%",
+  "out_domain_hard": "6/6 = 100.0%",
+  "in_domain_judge": "11/12 = 91.7%",
+  "out_domain_judge": "6/6 = 100.0%",
+  "max_repairs_seen": 2,
+  "cost_usd_total": 7.212,
+  "judge_rerun": "判官解析修复后重判全部 18 条（不是只重判失败项）",
+  "cost_usd_note": "⚠️ 7.212 **只含 Agent 侧调用**。判官那一层（首轮 18 次 + 重判 18 次）当时没进总账 —— 记账挂在 ClaudeCliTransport.__call__ 上，而判官走的是 _run。缺口按每次约 $0.07 估算在 $2.5 上下（**是估算不是实测**）。缺陷已修（记账移到 _run，唯一出口），下一轮的数字才是全账。"
+ },
+ "results": [
+  {
+   "id": "in-01",
+   "q": "我想看今天要做的工单，把物料和计划数量列出来",
+   "domain": "in",
+   "stop_reason": "proposed",
+   "trajectory_full": [
+    {
+     "tool": "schema.search",
+     "params": {
+      "keywords": "工单 Work Order"
+     }
+    },
+    {
+     "tool": "meta.fields",
+     "params": {
+      "doctype": "Work Order",
+      "keywords": "status item qty planned date"
+     }
+    }
+   ],
+   "repairs": 1,
+   "rejections": [
+    "这份视图没通过校验，逐条如下：\n- 字段不存在：Work Order.Work Order.item_name\n- 字段不存在：Work Order.Work Order.planned_start_date\n- 字段不存在：Work Order.Work Order.production_item\n- 字段不存在：Work Order.Work Order.qty\n- 字段不存在：Work Order.Work Order.status\n字段必须来自工具查到的真实字段。改正后**再调一次 `view_submit`**。"
+   ],
+   "view": {
+    "name": "todays_work_orders",
+    "title": "今天要做的工单",
+    "blocks": [
+     {
+      "type": "list",
+      "title": "今天要做的工单",
+      "doctype": "Work Order",
+      "fields": [
+       "status",
+       "production_item",
+       "item_name",
+       "qty",
+       "planned_start_date"
+      ],
+      "filters": [
+       [
+        "planned_start_date",
+        ">=",
+        "2026-08-28"
+       ],
+       [
+        "planned_start_date",
+        "<",
+        "2026-08-29"
+       ],
+       [
+        "status",
+        "not in",
+        [
+         "Completed",
+         "Cancelled",
+         "Closed",
+         "Stopped"
+        ]
+       ]
+      ],
+      "sort": [
+       "planned_start_date",
+       "asc"
+      ],
+      "limit": null,
+      "agg": null,
+      "chart_kind": null,
+      "question": ""
+     }
+    ]
+   },
+   "fallbacks": [],
+   "hard": {
+    "passed": true,
+    "checks": {
+     "proposed": true,
+     "validated": true,
+     "doctype_hit": true,
+     "must_fields": true,
+     "block_type": true,
+     "no_fallback": true
+    },
+    "reasons": []
+   },
+   "judge": {
+    "on_topic": true,
+    "why": "视图是「今天要做的工单」列表，过滤了当天计划开始日期并排除已完成/取消等状态，字段含物料(production_item/item_name)与计划数量(qty)，与用户诉求一致",
+    "attempts": 1
+   },
+   "cost_usd": 0.4649628,
+   "calls": 4
+  },
+  {
+   "id": "in-02",
+   "q": "工单一共有多少张？给我一个数",
+   "domain": "in",
+   "stop_reason": "proposed",
+   "trajectory_full": [
+    {
+     "tool": "schema.search",
+     "params": {
+      "keywords": "工单 Work Order"
+     }
+    },
+    {
+     "tool": "meta.fields",
+     "params": {
+      "doctype": "Work Order"
+     }
+    }
+   ],
+   "repairs": 1,
+   "rejections": [
+    "这份视图没通过校验，逐条如下：\n- 字段不存在：Work Order.Work Order.name\n字段必须来自工具查到的真实字段。改正后**再调一次 `view_submit`**。"
+   ],
+   "view": {
+    "name": "work_order_count",
+    "title": "工单总数",
+    "blocks": [
+     {
+      "type": "metric",
+      "title": "工单总数",
+      "doctype": "Work Order",
+      "fields": [
+       "name"
+      ],
+      "filters": [],
+      "sort": null,
+      "limit": null,
+      "agg": "count",
+      "chart_kind": null,
+      "question": ""
+     }
+    ]
+   },
+   "fallbacks": [],
+   "hard": {
+    "passed": true,
+    "checks": {
+     "proposed": true,
+     "validated": true,
+     "doctype_hit": true,
+     "must_fields": true,
+     "block_type": true,
+     "no_fallback": true
+    },
+    "reasons": []
+   },
+   "judge": {
+    "on_topic": true,
+    "why": "问的是工单总数，视图用 metric+count 对 Work Order 计数，字段是 name（每条记录必有值），类型和单据都对得上",
+    "attempts": 1
+   },
+   "cost_usd": 0.4730246,
+   "calls": 4
+  },
+  {
+   "id": "in-03",
+   "q": "哪些工单还没做完？我要能看到状态",
+   "domain": "in",
+   "stop_reason": "proposed",
+   "trajectory_full": [
+    {
+     "tool": "schema.search",
+     "params": {
+      "keywords": "工单 Work Order"
+     }
+    },
+    {
+     "tool": "meta.fields",
+     "params": {
+      "doctype": "Work Order",
+      "keywords": "status"
+     }
+    }
+   ],
+   "repairs": 0,
+   "rejections": [],
+   "view": {
+    "name": "unfinished_work_orders",
+    "title": "未完成工单",
+    "blocks": [
+     {
+      "type": "list",
+      "title": "未完成工单",
+      "doctype": "Work Order",
+      "fields": [
+       "status"
+      ],
+      "filters": [
+       [
+        "status",
+        "not in",
+        [
+         "Completed",
+         "Cancelled",
+         "Closed"
+        ]
+       ]
+      ],
+      "sort": [
+       "status",
+       "asc"
+      ],
+      "limit": null,
+      "agg": null,
+      "chart_kind": null,
+      "question": ""
+     }
+    ]
+   },
+   "fallbacks": [],
+   "hard": {
+    "passed": true,
+    "checks": {
+     "proposed": true,
+     "validated": true,
+     "doctype_hit": true,
+     "must_fields": true,
+     "block_type": true,
+     "no_fallback": true
+    },
+    "reasons": []
+   },
+   "judge": {
+    "on_topic": true,
+    "why": "用户要看未完工的工单及其状态,视图给出了 Work Order 列表,过滤掉已完成/已取消/已关闭,并展示 status 字段,一一对应",
+    "attempts": 1
+   },
+   "cost_usd": 0.3205236,
+   "calls": 3
+  },
+  {
+   "id": "in-04",
+   "q": "每张工单计划做多少、实际做出来多少，我要对着看",
+   "domain": "in",
+   "stop_reason": "proposed",
+   "trajectory_full": [
+    {
+     "tool": "schema.search",
+     "params": {
+      "keywords": "工单 Work Order"
+     }
+    },
+    {
+     "tool": "meta.fields",
+     "params": {
+      "doctype": "Work Order",
+      "keywords": "qty planned produced"
+     }
+    }
+   ],
+   "repairs": 1,
+   "rejections": [
+    "这份视图没通过校验，逐条如下：\n- 字段不存在：Work Order.Work Order.planned_start_date\n- 字段不存在：Work Order.Work Order.produced_qty\n- 字段不存在：Work Order.Work Order.qty\n字段必须来自工具查到的真实字段。改正后**再调一次 `view_submit`**。"
+   ],
+   "view": {
+    "name": "work_order_planned_vs_produced",
+    "title": "工单计划产量 vs 实际产量",
+    "blocks": [
+     {
+      "type": "list",
+      "title": "工单：计划产量 / 实际产量",
+      "doctype": "Work Order",
+      "fields": [
+       "qty",
+       "produced_qty"
+      ],
+      "filters": [],
+      "sort": [
+       "planned_start_date",
+       "desc"
+      ],
+      "limit": null,
+      "agg": null,
+      "chart_kind": null,
+      "question": ""
+     }
+    ]
+   },
+   "fallbacks": [],
+   "hard": {
+    "passed": true,
+    "checks": {
+     "proposed": true,
+     "validated": true,
+     "doctype_hit": true,
+     "must_fields": true,
+     "block_type": true,
+     "no_fallback": true
+    },
+    "reasons": []
+   },
+   "judge": {
+    "on_topic": true,
+    "why": "用户要按工单逐条对比计划与实际产量，视图正是工单列表且并列展示了qty和produced_qty两个字段",
+    "attempts": 1
+   },
+   "cost_usd": 0.4063284,
+   "calls": 4
+  },
+  {
+   "id": "in-05",
+   "q": "工单按计划开工的先后排一下",
+   "domain": "in",
+   "stop_reason": "proposed",
+   "trajectory_full": [
+    {
+     "tool": "schema.search",
+     "params": {
+      "keywords": "工单 Work Order 计划开工"
+     }
+    },
+    {
+     "tool": "meta.fields",
+     "params": {
+      "doctype": "Work Order",
+      "keywords": "planned start status qty item"
+     }
+    }
+   ],
+   "repairs": 1,
+   "rejections": [
+    "这份视图没通过校验，逐条如下：\n- 字段不存在：Work Order.Work Order.item_name\n- 字段不存在：Work Order.Work Order.planned_end_date\n- 字段不存在：Work Order.Work Order.planned_start_date\n- 字段不存在：Work Order.Work Order.production_item\n- 字段不存在：Work Order.Work Order.qty\n- 字段不存在：Work Order.Work Order.status\n字段必须来自工具查到的真实字段。改正后**再调一次 `view_submit`**。"
+   ],
+   "view": {
+    "name": "work_order_by_planned_start",
+    "title": "工单（按计划开工时间排序）",
+    "blocks": [
+     {
+      "type": "list",
+      "title": "工单列表",
+      "doctype": "Work Order",
+      "fields": [
+       "status",
+       "production_item",
+       "item_name",
+       "qty",
+       "planned_start_date",
+       "planned_end_date"
+      ],
+      "filters": [],
+      "sort": [
+       "planned_start_date",
+       "asc"
+      ],
+      "limit": null,
+      "agg": null,
+      "chart_kind": null,
+      "question": ""
+     }
+    ]
+   },
+   "fallbacks": [],
+   "hard": {
+    "passed": true,
+    "checks": {
+     "proposed": true,
+     "validated": true,
+     "doctype_hit": true,
+     "must_fields": true,
+     "block_type": true,
+     "no_fallback": true
+    },
+    "reasons": []
+   },
+   "judge": {
+    "on_topic": true,
+    "why": "用户要求按计划开工时间先后排序，视图对工单列表按planned_start_date升序排列，直接对应",
+    "attempts": 1
+   },
+   "cost_usd": 0.40691920000000004,
+   "calls": 4
+  },
+  {
+   "id": "in-06",
+   "q": "所有工单的计划产量加起来是多少",
+   "domain": "in",
+   "stop_reason": "proposed",
+   "trajectory_full": [
+    {
+     "tool": "schema.search",
+     "params": {
+      "keywords": "Work Order 工单 计划 产量 qty"
+     }
+    },
+    {
+     "tool": "meta.fields",
+     "params": {
+      "doctype": "Work Order",
+      "keywords": "qty planned production"
+     }
+    }
+   ],
+   "repairs": 0,
+   "rejections": [],
+   "view": {
+    "name": "work_order_total_planned_qty",
+    "title": "工单计划产量合计",
+    "blocks": [
+     {
+      "type": "metric",
+      "title": "计划产量合计",
+      "doctype": "Work Order",
+      "fields": [
+       "qty"
+      ],
+      "filters": [],
+      "sort": null,
+      "limit": null,
+      "agg": "sum",
+      "chart_kind": null,
+      "question": ""
+     }
+    ]
+   },
+   "fallbacks": [],
+   "hard": {
+    "passed": true,
+    "checks": {
+     "proposed": true,
+     "validated": true,
+     "doctype_hit": true,
+     "must_fields": true,
+     "block_type": true,
+     "no_fallback": true
+    },
+    "reasons": []
+   },
+   "judge": {
+    "on_topic": true,
+    "why": "视图取的是Work Order的qty字段（计划产量）在无过滤条件下求和，单一数值回答了「所有工单计划产量总和」这个问题，单据和聚合方式都对得上",
+    "attempts": 1
+   },
+   "cost_usd": 0.3227398,
+   "calls": 3
+  },
+  {
+   "id": "in-07",
+   "q": "库存转移都是从哪个仓到哪个仓",
+   "domain": "in",
+   "stop_reason": "proposed",
+   "trajectory_full": [
+    {
+     "tool": "schema.search",
+     "params": {
+      "keywords": "库存转移 仓库 Stock Entry Warehouse"
+     }
+    },
+    {
+     "tool": "meta.fields",
+     "params": {
+      "doctype": "Stock Entry",
+      "keywords": "warehouse"
+     }
+    }
+   ],
+   "repairs": 0,
+   "rejections": [],
+   "view": {
+    "name": "stock_transfer_routes",
+    "title": "库存转移：源仓库 → 目标仓库",
+    "blocks": [
+     {
+      "type": "list",
+      "title": "库存转移明细（源仓→目标仓）",
+      "doctype": "Stock Entry Detail",
+      "fields": [
+       "s_warehouse",
+       "t_warehouse"
+      ],
+      "filters": [
+       [
+        "s_warehouse",
+        "!=",
+        ""
+       ],
+       [
+        "t_warehouse",
+        "!=",
+        ""
+       ]
+      ],
+      "sort": null,
+      "limit": 50,
+      "agg": null,
+      "chart_kind": null,
+      "question": ""
+     }
+    ]
+   },
+   "fallbacks": [],
+   "hard": {
+    "passed": false,
+    "checks": {
+     "proposed": true,
+     "validated": true,
+     "doctype_hit": false,
+     "must_fields": false,
+     "block_type": true,
+     "no_fallback": true
+    },
+    "reasons": [
+     "DocType 没命中：要 Stock Entry，交的是 ['Stock Entry Detail']",
+     "必须字段缺：['from_warehouse', 'to_warehouse']"
+    ]
+   },
+   "judge": {
+    "on_topic": true,
+    "why": "问的是转移路径（源仓到目标仓），视图用 Stock Entry Detail 的 s_warehouse/t_warehouse 两个字段做列表展示，且用非空过滤把纯发出或纯接收的记录排除，直接对应问题",
+    "attempts": 1
+   },
+   "cost_usd": 0.30544459999999996,
+   "calls": 3
+  },
+  {
+   "id": "in-08",
+   "q": "库存转移是哪天过账的",
+   "domain": "in",
+   "stop_reason": "proposed",
+   "trajectory_full": [
+    {
+     "tool": "schema.search",
+     "params": {
+      "keywords": "Stock Entry 库存转移 过账日期"
+     }
+    },
+    {
+     "tool": "meta.fields",
+     "params": {
+      "doctype": "Stock Entry",
+      "keywords": "posting date 过账"
+     }
+    }
+   ],
+   "repairs": 0,
+   "rejections": [],
+   "view": {
+    "name": "stock_entry_posting_date",
+    "title": "库存转移过账日期",
+    "blocks": [
+     {
+      "type": "list",
+      "title": "库存转移过账日期",
+      "doctype": "Stock Entry",
+      "fields": [
+       "posting_date"
+      ],
+      "filters": [],
+      "sort": [
+       "posting_date",
+       "desc"
+      ],
+      "limit": null,
+      "agg": null,
+      "chart_kind": null,
+      "question": ""
+     }
+    ]
+   },
+   "fallbacks": [],
+   "hard": {
+    "passed": true,
+    "checks": {
+     "proposed": true,
+     "validated": true,
+     "doctype_hit": true,
+     "must_fields": true,
+     "block_type": true,
+     "no_fallback": true
+    },
+    "reasons": []
+   },
+   "judge": {
+    "on_topic": false,
+    "why": "用户问的是某一笔库存转移的过账日期，视图却是全部Stock Entry的列表且无筛选无limit，给的是一堆记录而非那一个日期",
+    "attempts": 1
+   },
+   "cost_usd": 0.3265748,
+   "calls": 3
+  },
+  {
+   "id": "in-09",
+   "q": "库存转移一共有多少笔",
+   "domain": "in",
+   "stop_reason": "proposed",
+   "trajectory_full": [
+    {
+     "tool": "schema.search",
+     "params": {
+      "keywords": "库存转移 Stock Entry Material Transfer"
+     }
+    },
+    {
+     "tool": "meta.fields",
+     "params": {
+      "doctype": "Stock Entry",
+      "keywords": "type purpose transfer name docstatus"
+     }
+    }
+   ],
+   "repairs": 0,
+   "rejections": [],
+   "view": {
+    "name": "stock_transfer_count",
+    "title": "库存转移总数",
+    "blocks": [
+     {
+      "type": "metric",
+      "title": "库存转移总数",
+      "doctype": "Stock Entry",
+      "fields": [
+       "stock_entry_type"
+      ],
+      "filters": [
+       [
+        "purpose",
+        "=",
+        "Material Transfer"
+       ]
+      ],
+      "sort": null,
+      "limit": null,
+      "agg": "count",
+      "chart_kind": null,
+      "question": ""
+     }
+    ]
+   },
+   "fallbacks": [],
+   "hard": {
+    "passed": false,
+    "checks": {
+     "proposed": true,
+     "validated": true,
+     "doctype_hit": true,
+     "must_fields": false,
+     "block_type": true,
+     "no_fallback": true
+    },
+    "reasons": [
+     "必须字段缺：['name']"
+    ]
+   },
+   "judge": {
+    "on_topic": true,
+    "why": "问的是库存转移笔数，视图用 Stock Entry 加 purpose=Material Transfer 过滤后做 count，是一个单值指标，问答类型和过滤条件都对得上",
+    "attempts": 1
+   },
+   "cost_usd": 0.3235846,
+   "calls": 3
+  },
+  {
+   "id": "in-10",
+   "q": "这些库存转移分别是什么类型的",
+   "domain": "in",
+   "stop_reason": "proposed",
+   "trajectory_full": [
+    {
+     "tool": "schema.search",
+     "params": {
+      "keywords": "库存转移 Stock Entry"
+     }
+    },
+    {
+     "tool": "meta.fields",
+     "params": {
+      "doctype": "Stock Entry",
+      "keywords": "type purpose"
+     }
+    },
+    {
+     "tool": "meta.fields",
+     "params": {
+      "doctype": "Stock Entry",
+      "keywords": "posting date name"
+     }
+    }
+   ],
+   "repairs": 1,
+   "rejections": [
+    "这份视图没通过校验，逐条如下：\n- 字段不存在：Stock Entry.Stock Entry.name\n- 字段不存在：Stock Entry.Stock Entry.posting_date\n- 字段不存在：Stock Entry.Stock Entry.purpose\n- 字段不存在：Stock Entry.Stock Entry.stock_entry_type\n字段必须来自工具查到的真实字段。改正后**再调一次 `view_submit`**。"
+   ],
+   "view": {
+    "name": "stock_entry_types",
+    "title": "库存转移单据类型一览",
+    "blocks": [
+     {
+      "type": "list",
+      "title": "库存转移单据及其类型",
+      "doctype": "Stock Entry",
+      "fields": [
+       "stock_entry_type",
+       "purpose",
+       "posting_date"
+      ],
+      "filters": [],
+      "sort": [
+       "posting_date",
+       "desc"
+      ],
+      "limit": null,
+      "agg": null,
+      "chart_kind": null,
+      "question": ""
+     }
+    ]
+   },
+   "fallbacks": [],
+   "hard": {
+    "passed": true,
+    "checks": {
+     "proposed": true,
+     "validated": true,
+     "doctype_hit": true,
+     "must_fields": true,
+     "block_type": true,
+     "no_fallback": true
+    },
+    "reasons": []
+   },
+   "judge": {
+    "on_topic": true,
+    "why": "问的是每笔库存转移单（Stock Entry）各自的类型，视图用列表列出 stock_entry_type 等字段，对应单据类型且用列表而非单一数值，切题",
+    "attempts": 1
+   },
+   "cost_usd": 0.611725,
+   "calls": 5
+  },
+  {
+   "id": "in-11",
+   "q": "给我一张物料清单：编码、名称、所属分组",
+   "domain": "in",
+   "stop_reason": "proposed",
+   "trajectory_full": [
+    {
+     "tool": "schema.search",
+     "params": {
+      "keywords": "物料清单 BOM"
+     }
+    },
+    {
+     "tool": "meta.fields",
+     "params": {
+      "doctype": "BOM",
+      "keywords": "item code name group"
+     }
+    },
+    {
+     "tool": "meta.fields",
+     "params": {
+      "doctype": "Item",
+      "keywords": "code name group"
+     }
+    }
+   ],
+   "repairs": 0,
+   "rejections": [],
+   "view": {
+    "name": "item_list_basic",
+    "title": "物料清单",
+    "blocks": [
+     {
+      "type": "list",
+      "title": "物料清单",
+      "doctype": "Item",
+      "fields": [
+       "item_code",
+       "item_name",
+       "item_group"
+      ],
+      "filters": [],
+      "sort": null,
+      "limit": null,
+      "agg": null,
+      "chart_kind": null,
+      "question": ""
+     }
+    ]
+   },
+   "fallbacks": [],
+   "hard": {
+    "passed": true,
+    "checks": {
+     "proposed": true,
+     "validated": true,
+     "doctype_hit": true,
+     "must_fields": true,
+     "block_type": true,
+     "no_fallback": true
+    },
+    "reasons": []
+   },
+   "judge": {
+    "on_topic": true,
+    "why": "用户要一张带编码、名称、所属分组的物料清单，返回的是 Item 列表且字段与要求逐一对应，没有答非所问",
+    "attempts": 1
+   },
+   "cost_usd": 0.462733,
+   "calls": 4
+  },
+  {
+   "id": "in-12",
+   "q": "哪些物料是要管库存的",
+   "domain": "in",
+   "stop_reason": "proposed",
+   "trajectory_full": [
+    {
+     "tool": "schema.search",
+     "params": {
+      "keywords": "物料 Item 库存 stock"
+     }
+    },
+    {
+     "tool": "meta.fields",
+     "params": {
+      "doctype": "Item",
+      "keywords": "stock"
+     }
+    },
+    {
+     "tool": "meta.fields",
+     "params": {
+      "doctype": "Item",
+      "keywords": "code name"
+     }
+    }
+   ],
+   "repairs": 0,
+   "rejections": [],
+   "view": {
+    "name": "stock_managed_items",
+    "title": "需要管理库存的物料",
+    "blocks": [
+     {
+      "type": "list",
+      "title": "管理库存的物料",
+      "doctype": "Item",
+      "fields": [
+       "item_code",
+       "item_name",
+       "stock_uom",
+       "is_stock_item"
+      ],
+      "filters": [
+       [
+        "is_stock_item",
+        "=",
+        1
+       ]
+      ],
+      "sort": null,
+      "limit": null,
+      "agg": null,
+      "chart_kind": null,
+      "question": ""
+     }
+    ]
+   },
+   "fallbacks": [],
+   "hard": {
+    "passed": true,
+    "checks": {
+     "proposed": true,
+     "validated": true,
+     "doctype_hit": true,
+     "must_fields": true,
+     "block_type": true,
+     "no_fallback": true
+    },
+    "reasons": []
+   },
+   "judge": {
+    "on_topic": true,
+    "why": "用户问「哪些物料」是要一批物料清单，视图给的正是按 is_stock_item=1 过滤的 Item 列表，单据和形态都对",
+    "attempts": 1
+   },
+   "cost_usd": 0.42147680000000004,
+   "calls": 4
+  },
+  {
+   "id": "out-01",
+   "q": "销售订单是哪个客户下的，什么时候下的",
+   "domain": "out",
+   "stop_reason": "proposed",
+   "trajectory_full": [
+    {
+     "tool": "schema.search",
+     "params": {
+      "keywords": "销售订单 Sales Order"
+     }
+    },
+    {
+     "tool": "meta.fields",
+     "params": {
+      "doctype": "Sales Order",
+      "keywords": "customer date"
+     }
+    }
+   ],
+   "repairs": 0,
+   "rejections": [],
+   "view": {
+    "name": "sales_order_customer_date",
+    "title": "销售订单：客户与下单日期",
+    "blocks": [
+     {
+      "type": "list",
+      "title": "销售订单列表",
+      "doctype": "Sales Order",
+      "fields": [
+       "customer",
+       "customer_name",
+       "transaction_date"
+      ],
+      "filters": [],
+      "sort": [
+       "transaction_date",
+       "desc"
+      ],
+      "limit": null,
+      "agg": null,
+      "chart_kind": null,
+      "question": ""
+     }
+    ]
+   },
+   "fallbacks": [],
+   "hard": {
+    "passed": true,
+    "checks": {
+     "proposed": true,
+     "validated": true,
+     "doctype_hit": true,
+     "must_fields": true,
+     "block_type": true,
+     "fallback_explained": true
+    },
+    "reasons": []
+   },
+   "judge": {
+    "on_topic": true,
+    "why": "问的是每张销售订单对应的客户与下单日期，视图给出的正是 Sales Order 列表且字段含 customer、customer_name、transaction_date，类型和字段都对题",
+    "attempts": 1
+   },
+   "cost_usd": 0.3346544,
+   "calls": 3
+  },
+  {
+   "id": "out-02",
+   "q": "销售订单一共有多少张",
+   "domain": "out",
+   "stop_reason": "proposed",
+   "trajectory_full": [
+    {
+     "tool": "schema.search",
+     "params": {
+      "keywords": "销售订单 Sales Order"
+     }
+    },
+    {
+     "tool": "meta.fields",
+     "params": {
+      "doctype": "Sales Order"
+     }
+    }
+   ],
+   "repairs": 1,
+   "rejections": [
+    "这份视图没通过校验，逐条如下：\n- 字段不存在：Sales Order.Sales Order.name\n字段必须来自工具查到的真实字段。改正后**再调一次 `view_submit`**。"
+   ],
+   "view": {
+    "name": "sales_order_count",
+    "title": "销售订单总数",
+    "blocks": [
+     {
+      "type": "metric",
+      "title": "销售订单总数",
+      "doctype": "Sales Order",
+      "fields": [
+       "name"
+      ],
+      "filters": [],
+      "sort": null,
+      "limit": null,
+      "agg": "count",
+      "chart_kind": null,
+      "question": ""
+     }
+    ]
+   },
+   "fallbacks": [],
+   "hard": {
+    "passed": true,
+    "checks": {
+     "proposed": true,
+     "validated": true,
+     "doctype_hit": true,
+     "must_fields": true,
+     "block_type": true,
+     "fallback_explained": true
+    },
+    "reasons": []
+   },
+   "judge": {
+    "on_topic": true,
+    "why": "用户要总数，视图是Sales Order上的count指标，且按name（主键）计数不会漏行，切题",
+    "attempts": 1
+   },
+   "cost_usd": 0.48731880000000005,
+   "calls": 4
+  },
+  {
+   "id": "out-03",
+   "q": "客户名单：名字和所属客户组",
+   "domain": "out",
+   "stop_reason": "proposed",
+   "trajectory_full": [
+    {
+     "tool": "schema.search",
+     "params": {
+      "keywords": "客户 Customer 客户组"
+     }
+    },
+    {
+     "tool": "meta.fields",
+     "params": {
+      "doctype": "Customer",
+      "keywords": "name customer group"
+     }
+    }
+   ],
+   "repairs": 0,
+   "rejections": [],
+   "view": {
+    "name": "customer_list",
+    "title": "客户名单",
+    "blocks": [
+     {
+      "type": "list",
+      "title": "客户名单",
+      "doctype": "Customer",
+      "fields": [
+       "customer_name",
+       "customer_group"
+      ],
+      "filters": [],
+      "sort": null,
+      "limit": null,
+      "agg": null,
+      "chart_kind": null,
+      "question": ""
+     }
+    ]
+   },
+   "fallbacks": [],
+   "hard": {
+    "passed": true,
+    "checks": {
+     "proposed": true,
+     "validated": true,
+     "doctype_hit": true,
+     "must_fields": true,
+     "block_type": true,
+     "fallback_explained": true
+    },
+    "reasons": []
+   },
+   "judge": {
+    "on_topic": true,
+    "why": "要的是客户名单带名字和客户组，视图给的正是 Customer 列表且字段就是这两个",
+    "attempts": 1
+   },
+   "cost_usd": 0.3259404,
+   "calls": 3
+  },
+  {
+   "id": "out-04",
+   "q": "采购订单是向哪个供应商下的",
+   "domain": "out",
+   "stop_reason": "proposed",
+   "trajectory_full": [
+    {
+     "tool": "schema.search",
+     "params": {
+      "keywords": "采购订单 供应商 Purchase Order Supplier"
+     }
+    },
+    {
+     "tool": "meta.fields",
+     "params": {
+      "doctype": "Purchase Order",
+      "keywords": "supplier name"
+     }
+    }
+   ],
+   "repairs": 0,
+   "rejections": [],
+   "view": {
+    "name": "purchase_order_supplier",
+    "title": "采购订单对应供应商",
+    "blocks": [
+     {
+      "type": "list",
+      "title": "采购订单及供应商",
+      "doctype": "Purchase Order",
+      "fields": [
+       "name",
+       "supplier",
+       "supplier_name"
+      ],
+      "filters": [],
+      "sort": [
+       "modified",
+       "desc"
+      ],
+      "limit": 20,
+      "agg": null,
+      "chart_kind": null,
+      "question": ""
+     }
+    ]
+   },
+   "fallbacks": [],
+   "hard": {
+    "passed": true,
+    "checks": {
+     "proposed": true,
+     "validated": true,
+     "doctype_hit": true,
+     "must_fields": true,
+     "block_type": true,
+     "fallback_explained": true
+    },
+    "reasons": []
+   },
+   "judge": {
+    "on_topic": true,
+    "why": "查询的是Purchase Order单据本身，列表里带出了supplier和supplier_name字段，直接对应了「哪个供应商」这个问题",
+    "attempts": 1
+   },
+   "cost_usd": 0.3328778,
+   "calls": 3
+  },
+  {
+   "id": "out-05",
+   "q": "发给客户的报价，最晚哪天还按这个价认",
+   "domain": "out",
+   "stop_reason": "proposed",
+   "trajectory_full": [
+    {
+     "tool": "schema.search",
+     "params": {
+      "keywords": "quotation 报价单 valid till"
+     }
+    },
+    {
+     "tool": "meta.fields",
+     "params": {
+      "doctype": "Quotation",
+      "keywords": "valid customer status total date"
+     }
+    }
+   ],
+   "repairs": 0,
+   "rejections": [],
+   "view": {
+    "name": "quotation_valid_till",
+    "title": "报价单 —— 报价有效期",
+    "blocks": [
+     {
+      "type": "list",
+      "title": "客户报价单",
+      "doctype": "Quotation",
+      "fields": [
+       "customer_name",
+       "transaction_date",
+       "valid_till",
+       "grand_total",
+       "status"
+      ],
+      "filters": [],
+      "sort": [
+       "valid_till",
+       "asc"
+      ],
+      "limit": 50,
+      "agg": null,
+      "chart_kind": null,
+      "question": ""
+     }
+    ]
+   },
+   "fallbacks": [],
+   "hard": {
+    "passed": true,
+    "checks": {
+     "proposed": true,
+     "validated": true,
+     "doctype_hit": true,
+     "must_fields": true,
+     "block_type": true,
+     "fallback_explained": true
+    },
+    "reasons": []
+   },
+   "judge": {
+    "on_topic": true,
+    "why": "选对了Quotation单据，且valid_till字段正是「最晚哪天还按这个价认」的直接答案，排序也合理",
+    "attempts": 1
+   },
+   "cost_usd": 0.3643166,
+   "calls": 3
+  },
+  {
+   "id": "out-06",
+   "q": "发货单是哪天过账的",
+   "domain": "out",
+   "stop_reason": "proposed",
+   "trajectory_full": [
+    {
+     "tool": "schema.search",
+     "params": {
+      "keywords": "发货单 交货单 出库单 Delivery Note"
+     }
+    },
+    {
+     "tool": "meta.fields",
+     "params": {
+      "doctype": "Delivery Note",
+      "keywords": "posting date 过账"
+     }
+    }
+   ],
+   "repairs": 2,
+   "rejections": [
+    "这份视图没通过校验，逐条如下：\n- 字段不存在：Delivery Note.Delivery Note.name\n- 字段不存在：Delivery Note.Delivery Note.posting_date\n字段必须来自工具查到的真实字段。改正后**再调一次 `view_submit`**。",
+    "这份视图没通过校验，逐条如下：\n- 字段不存在：Delivery Note.Delivery Note.name\n- 字段不存在：Delivery Note.Delivery Note.posting_date\n字段必须来自工具查到的真实字段。改正后**再调一次 `view_submit`**。"
+   ],
+   "view": {
+    "name": "delivery_note_posting_dates",
+    "title": "发货单过账日期",
+    "blocks": [
+     {
+      "type": "list",
+      "title": "发货单过账日期",
+      "doctype": "Delivery Note",
+      "fields": [
+       "name",
+       "posting_date"
+      ],
+      "filters": [],
+      "sort": [
+       "posting_date",
+       "desc"
+      ],
+      "limit": null,
+      "agg": null,
+      "chart_kind": null,
+      "question": ""
+     }
+    ]
+   },
+   "fallbacks": [],
+   "hard": {
+    "passed": true,
+    "checks": {
+     "proposed": true,
+     "validated": true,
+     "doctype_hit": true,
+     "must_fields": true,
+     "block_type": true,
+     "fallback_explained": true
+    },
+    "reasons": []
+   },
+   "judge": {
+    "on_topic": true,
+    "why": "问的是发货单的过账日期，视图用 Delivery Note 的 name 和 posting_date 列表按日期倒序展示，直接对应这个问题",
+    "attempts": 1
+   },
+   "cost_usd": 0.5208128000000001,
+   "calls": 5
+  }
+ ]
+}
