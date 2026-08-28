@@ -5,11 +5,6 @@
   "turns": [
     {
       "index": 1,
-      "kind": "rejected",
-      "detail": "这份视图没通过校验，逐条如下：\n- DocType 不存在：'Inventory Transfer'\n字段必须来自工具查到的真实字段。改正后**只输出**那个 JSON 对象。"
-    },
-    {
-      "index": 2,
       "kind": "tools",
       "calls": [
         {
@@ -22,13 +17,26 @@
       ]
     },
     {
-      "index": 3,
+      "index": 2,
       "kind": "tools",
       "calls": [
         {
           "tool": "schema.search",
           "params": {
-            "keywords": "transfer stock"
+            "keywords": "stock transfer"
+          },
+          "ok": true
+        }
+      ]
+    },
+    {
+      "index": 3,
+      "kind": "tools",
+      "calls": [
+        {
+          "tool": "meta.fields",
+          "params": {
+            "doctype": "Stock Entry"
           },
           "ok": true
         }
@@ -36,128 +44,53 @@
     },
     {
       "index": 4,
-      "kind": "tools",
-      "calls": [
-        {
-          "tool": "meta.fields",
-          "params": {
-            "doctype": "Stock Entry",
-            "keywords": "transfer"
-          },
-          "ok": true
-        }
-      ]
-    },
-    {
-      "index": 5,
-      "kind": "tools",
-      "calls": [
-        {
-          "tool": "meta.fields",
-          "params": {
-            "doctype": "Stock Entry",
-            "keywords": "purpose"
-          },
-          "ok": true
-        }
-      ]
-    },
-    {
-      "index": 6,
-      "kind": "rejected",
-      "detail": "这份视图没通过校验，逐条如下：\n- 字段不存在：Stock Entry.name\n字段必须来自工具查到的真实字段。改正后**只输出**那个 JSON 对象。"
-    },
-    {
-      "index": 7,
-      "kind": "tools",
-      "calls": [
-        {
-          "tool": "meta.fields",
-          "params": {
-            "doctype": "Stock Entry",
-            "keywords": "name docname"
-          },
-          "ok": true
-        }
-      ]
-    },
-    {
-      "index": 8,
       "kind": "proposed"
     }
   ],
   "usage": [
     {
-      "prompt": 954,
-      "completion": 54,
-      "reasoning": 0,
-      "cached": 0,
-      "total": 1008
-    },
-    {
-      "prompt": 1060,
+      "prompt": 1181,
       "completion": 27,
       "reasoning": 0,
       "cached": 0,
-      "total": 1087
+      "total": 1208
     },
     {
-      "prompt": 1117,
+      "prompt": 1238,
       "completion": 27,
       "reasoning": 0,
       "cached": 0,
-      "total": 1144
+      "total": 1265
     },
     {
-      "prompt": 1424,
-      "completion": 39,
+      "prompt": 1545,
+      "completion": 27,
       "reasoning": 0,
       "cached": 0,
-      "total": 1463
+      "total": 1572
     },
     {
-      "prompt": 1667,
-      "completion": 39,
+      "prompt": 7141,
+      "completion": 102,
       "reasoning": 0,
       "cached": 0,
-      "total": 1706
-    },
-    {
-      "prompt": 1834,
-      "completion": 67,
-      "reasoning": 0,
-      "cached": 0,
-      "total": 1901
-    },
-    {
-      "prompt": 1951,
-      "completion": 41,
-      "reasoning": 0,
-      "cached": 0,
-      "total": 1992
-    },
-    {
-      "prompt": 2155,
-      "completion": 68,
-      "reasoning": 0,
-      "cached": 0,
-      "total": 2223
+      "total": 7243
     }
   ],
   "view": {
     "name": "stock_transfer_count",
     "title": "库存转移笔数",
     "field_refs": [
-      "Stock Entry.purpose",
-      "Stock Entry.supplier_name"
+      "Stock Entry.name",
+      "Stock Entry.stock_entry_type"
     ],
     "blocks": [
       {
         "type": "metric",
-        "title": "库存转移单据总数",
+        "title": "库存转移总笔数",
         "doctype": "Stock Entry",
         "fields": [
-          "supplier_name"
+          "name"
         ],
         "sort": null,
         "limit": null,

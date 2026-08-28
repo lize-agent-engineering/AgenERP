@@ -24,7 +24,7 @@
           "tool": "meta.fields",
           "params": {
             "doctype": "Work Order",
-            "keywords": "物料 计划数量 状态 planned_start_date"
+            "keywords": "物料 计划数量 状态 日期"
           },
           "ok": true
         }
@@ -32,78 +32,37 @@
     },
     {
       "index": 3,
-      "kind": "tools",
-      "calls": [
-        {
-          "tool": "meta.fields",
-          "params": {
-            "doctype": "Work Order",
-            "keywords": "物料 item_code production_item"
-          },
-          "ok": true
-        }
-      ]
-    },
-    {
-      "index": 4,
-      "kind": "tools",
-      "calls": [
-        {
-          "tool": "meta.fields",
-          "params": {
-            "doctype": "Work Order",
-            "keywords": "计划数量 qty planned_qty"
-          },
-          "ok": true
-        }
-      ]
-    },
-    {
-      "index": 5,
       "kind": "proposed"
     }
   ],
   "usage": [
     {
-      "prompt": 960,
+      "prompt": 1187,
       "completion": 29,
       "reasoning": 0,
       "cached": 0,
-      "total": 989
+      "total": 1216
     },
     {
-      "prompt": 1235,
-      "completion": 47,
+      "prompt": 1462,
+      "completion": 46,
       "reasoning": 0,
       "cached": 0,
-      "total": 1282
+      "total": 1508
     },
     {
-      "prompt": 1364,
-      "completion": 43,
+      "prompt": 6951,
+      "completion": 128,
       "reasoning": 0,
       "cached": 0,
-      "total": 1407
-    },
-    {
-      "prompt": 1546,
-      "completion": 43,
-      "reasoning": 0,
-      "cached": 0,
-      "total": 1589
-    },
-    {
-      "prompt": 2380,
-      "completion": 130,
-      "reasoning": 0,
-      "cached": 0,
-      "total": 2510
+      "total": 7079
     }
   ],
   "view": {
-    "name": "today_work_orders",
-    "title": "今日工单视图",
+    "name": "todays_work_orders",
+    "title": "今天要做的工单",
     "field_refs": [
+      "Work Order.item_name",
       "Work Order.planned_start_date",
       "Work Order.production_item",
       "Work Order.qty",
@@ -116,6 +75,7 @@
         "doctype": "Work Order",
         "fields": [
           "production_item",
+          "item_name",
           "qty",
           "status"
         ],
