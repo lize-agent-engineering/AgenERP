@@ -56,11 +56,17 @@ class ClaudeCliTransport:
         )
         raw = self._run(prompt)
         envelope = _parse(raw["result"])
-        usage = raw.get("usage") or {}
-        self.calls.append({"cost_usd": raw.get("total_cost_usd"), "usage": usage})
-        return _openai_body(envelope, usage)
+        return _openai_body(envelope, raw.get("usage") or {})
 
     def _run(self, prompt: str) -> dict:
+        """🔴 **记账在这里，不在 `__call__` 里。**
+
+        2026-08-28 首轮实测之后发现的缺口：判官走的是 `_run`（它不需要信封翻译），
+        而记账当时挂在 `__call__` 上 ⇒ **整轮的判官花费一分钱都没进总账**。
+        账挂在最窄的那个出口上，才不会有第二条绕过它的路 ——
+        与 `agenerp/explain/ledger.py` 把采集面钉在**唯一那个** `adapter.chat` 调用点
+        是同一条纪律（P1.7）。
+        """
         proc = subprocess.run(
             ["claude", "-p", "--model", self.model, "--output-format", "json",
              "--allowed-tools", ""],
@@ -68,7 +74,11 @@ class ClaudeCliTransport:
         )
         if proc.returncode != 0:
             raise RuntimeError(f"claude -p 退 {proc.returncode}：{proc.stderr[:300]}")
-        return json.loads(proc.stdout)
+        raw = json.loads(proc.stdout)
+        self.calls.append(
+            {"cost_usd": raw.get("total_cost_usd"), "usage": raw.get("usage") or {}}
+        )
+        return raw
 
 
 def _render(messages: list[dict]) -> str:
