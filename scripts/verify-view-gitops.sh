@@ -17,6 +17,18 @@ fail() { echo "❌ $*" >&2; exit 1; }
 command -v git >/dev/null || fail "找不到 git"
 cd "$(dirname "$0")/.."
 
-# 不需要活栈、不需要凭据、不需要模型：观察点是 `build_server(port=0)` 起的本地真服务，
-# 读的就是宿主仓库里那份 JSON。**这也是它能进 CI 的原因。**
+# ⚠️ **2026-08-28 起本条需要活栈 + 凭据**（此前不需要）。
+# 原因：服务端不再从 git 文件读视图定义，改成按调用者 sid **从站点表**读 ⇒
+# 「改了 git、首页就变」中间多了一次 publish。**那不是绕路，那就是真实流程。**
+# 代价照实记：它因此**进不了 CI**（与其它活体判据同族）。
+if [ "${AGENERP_SITE_URL:-}" = "http://127.0.0.1:18080" ]; then
+  fail "AGENERP_SITE_URL 指向 nginx（18080），它把所有请求钉在 frontend 上。
+  unset 它，或指向 backend 那一格。"
+fi
+export AGENERP_SITE_URL="${AGENERP_SITE_URL:-http://127.0.0.1:${AGENERP_BACKEND_PORT:-8001}}"
+export AGENERP_SITE="${AGENERP_SITE:-frontend}"
+[ -n "${AGENERP_ADMIN_PASSWORD:-}" ] || [ -n "${AGENERP_API_KEY:-}" ] \
+  || fail "缺站点凭据：设 AGENERP_ADMIN_PASSWORD，或 AGENERP_API_KEY + AGENERP_API_SECRET"
+echo "站点入口：$AGENERP_SITE_URL"
+
 exec python3 tools/gitops/verify_view_gitops.py

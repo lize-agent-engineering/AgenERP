@@ -10,10 +10,9 @@ P2.4 的 `verify-gitops.sh` 跑通了四步，**但用的是一个探针 Custom 
 （`ToDo.agenerp_gitops_probe`），**不是首页视图**。
 ⇒ 那时 S3 的四段「各自有实测，整条链没有」。本文件补上**前三段对真视图**的那一条。
 
-⚠️ **第四段「同步到另一站点生效」本文件不做，也做不了** —— 照实说清楚：
-视图定义今天只在 git 里，**没有落进站点的表**（P2.0 判的「产物落自有表」那一半仍欠着，
-形态照 P1.2 会话 DocType：DocType 声明落 git、**建表是人的动作**）。
-第二个站点上既没有那张表，也没有服务进程。**这句话不许被「反正 git 里有」盖过去。**
+⚠️ **第四段「同步到另一站点」不在本文件** —— 它在 `verify_view_site_sync.py`
+（P2.0 判的「产物落自有表」那一半已于 2026-08-28 落地）。
+分两条脚本是因为它们**要的东西不同**：那一条要两个站点。
 
 ## 观察点
 
@@ -31,14 +30,14 @@ import json
 import pathlib
 import subprocess
 import sys
-import threading
-import urllib.request
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[2]))
 
 REPO = pathlib.Path(__file__).resolve().parents[2]
 VIEW_FILE = REPO / "agenerp" / "dsl" / "views" / "worker-work-orders.json"
 PROBE_COLUMN = "produced_qty"  # 首页那张列表里真实存在的一列，改它最看得出来
+#: 部署中的站点 —— 「改了 git、同步之后首页变了」验的就是它。
+HOME_SITE = "frontend"
 
 
 class StepFailed(RuntimeError):
@@ -53,28 +52,33 @@ def git(*args: str) -> str:
 
 
 def home_columns() -> list[str]:
-    """起一个**真服务**、发**真 HTTP**，把首页那张列表的列取回来。
+    """改完之后**首页真的长什么样**：git → publish → 站点表 → `view_plan`。
 
-    ⚠️ 每次都**重新 import** 视图定义：`roles.py` 在模块级 `load_views()`，
-    不重载的话第二次读到的还是第一次的内存副本 —— 那会让整条判据**恒绿**。
+    🔴 **2026-08-28 起链条里多了「部署」那一步。** 服务端不再从 git 文件读视图定义 ——
+    它按调用者的 sid **从站点表**读（翻掉了「视图计划端点不认人」那条裁定）。
+    ⇒ 「改了 git、首页就变」**不再自动成立**，中间必须有一次 publish。
+    这不是绕路，**这就是真实流程**：改 git → 同步到站点 → 用户看到。
+
+    ⚠️ **代价照实记**：本判据因此**需要活栈 + 凭据**，不再是「纯 git、CI 跑得了」的那条。
+    此前它不需要 —— 那是因为服务端读的是仓里的文件。
+
+    ⚠️ **观察点是 `view_plan()` 而不是 HTTP** ——
+    HTTP 那一层（不带 sid 必须 401、名字要过形状检查）由
+    `tests/unit/test_render_static_and_plan.py` 逐条判。这里要判的是
+    「**改了 git、同步之后首页确实变了**」，多插一层真 HTTP 只会把失败点摊薄。
     """
     for name in [m for m in list(sys.modules) if m.startswith("agenerp.")]:
         del sys.modules[name]
-    from agenerp.serve.app import build_server
+    from agenerp import schema_snapshot
+    from agenerp.dsl.roles import WORKER_DAILY_VIEWS
+    from agenerp.dsl.store import publish_views
+    from agenerp.serve.app import view_plan
+    from agenerp.site import client_from_env
 
-    # `site` 是必填 —— 服务要知道 sid 拿去问谁。视图计划端点**不认人**
-    # （P2.6 裁定：schema 全局共享，回的是视图定义不是业务数据），占位站点名即可。
-    server = build_server(site="s3-chain-local", port=0)
-    thread = threading.Thread(target=server.serve_forever, daemon=True)
-    thread.start()
-    try:
-        url = f"http://127.0.0.1:{server.server_address[1]}/agenerp/view?name=worker-work-orders"
-        with urllib.request.urlopen(url, timeout=10) as response:
-            payload = json.loads(response.read().decode("utf-8"))
-    finally:
-        server.shutdown()
-        server.server_close()
+    client = client_from_env(HOME_SITE)
+    publish_views(client, WORKER_DAILY_VIEWS)  # ← 部署那一步
 
+    payload = view_plan("worker-work-orders", schema_snapshot.load(), client)
     for block in payload.get("blocks", []):
         if block.get("type") == "list":
             return list(block.get("fields") or [])
@@ -193,7 +197,8 @@ def main() -> int:
                     f"   git reset --hard {head_before[:12]}"
                 )
     print("\n✅ S3 前三段全过：改老板首页 → git diff 看得见 → git revert 撤得回。")
-    print("⚠️ 第四段「同步到另一站点生效」**未做**：视图定义只在 git 里，没落进站点的表。")
+    print("   （链条含部署那一步：改 git → publish 到站点表 → 首页读表）")
+    print("→ 第四段「同步到另一站点」跑 scripts/verify-view-site-sync.sh。")
     return 0
 
 
