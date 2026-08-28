@@ -193,7 +193,19 @@ Link 字段收敛）· 术语层反向索引（P2.7 的产物）· 行业包约�
   变异两轮见血：删除路径改成不删 → 第③步红；第④步目标改回 `frontend` → 第④步红。
   ⚠️ 第二站点**不装 erpnext** ⇒ 探针用 `ToDo` 不是 `Item`，与 P0.5 那条门禁**互不替代**。
   证据：[plan](../plans/p2-views/2026-08-28-P2.4-gitops-v0.md)
-- 7. **`schema.drift` 巡检**（P2.5）: `todo` —— 前置 P2.4
+- 7. **`schema.drift` 巡检**（P2.5）: **`done`** —— 前置 P2.4（已过）。
+  `pytest tests/tools/test_schema_drift.py -q` → **退出码 0，13 passed**（WBS §5 第 105 行）。
+  能力早在（`agenerp/snapshot.py:325`，口径直接复用 Frappe 自己的 `trim_table(dry_run=True)`），
+  本项加的是**工具面**：契约 + 执行体 + 注册，走前置/裁剪/后置整层。
+  🔴 **另起 `INSPECTION_CONTRACTS` 而不并进那十个**，两条理由缺一不可：
+  ① 设计 —— `tool_schemas()` 按 `READONLY_CONTRACTS` 生成模型工具面，而人裁定
+  `schema.drift` **不进模型面**（D-15），分族之后这一点**由构造保证**，不靠排除表；
+  ② 红线 —— `tests/tools/test_live_conformance.py` 是门禁断言体，它逐条验的正是「十个」。
+  两个入口：单表 · 按**定制包管辖面**批量（范围由包定，与 P2.4 同一条线）；
+  **都不给或都给一律拒**，空包按「路径给错了」而不是「很干净」。
+  变异两轮见血。⚠️ **第一次真跑就抓到一条真的孤儿列，而且是 P2.4 的验收脚本自己制造的**
+  （清理只删 Custom Field，Frappe 不删物理列）—— 已修，跑完两个站点回到零。
+  证据：[plan](../plans/p2-views/2026-08-28-P2.5-schema-drift.md)
 - 8. **角色首页**（P2.6）: **`done`** —— 前置 P2.2（已过）。
   🔴 **2026-08-27 判据已落地**：人明确指派 loop 落地，`tests/gates/test_no_empty_workspace.py`
   提交带 `Gates-Change-Approved-By:`（`33101cd`）。**live 真跑 3 passed**，

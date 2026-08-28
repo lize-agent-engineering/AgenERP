@@ -1,4 +1,13 @@
-"""非门禁测试 · 钉死孤儿列巡检的行为（`agenerp/oob.py` + `agenerp.snapshot.schema_drift`）。
+"""非门禁测试 · 钉死孤儿列巡检的**口径**（`agenerp/oob.py` + `agenerp.snapshot.schema_drift`）。
+
+⚠️ **2026-08-28 由 `test_schema_drift.py` 改名为 `test_schema_drift_oob.py`。**
+P2.5 的验收路径由 WBS §5 第 105 行**写死**为 `tests/tools/test_schema_drift.py`，
+而 `tests/` 下没有 `__init__.py` ⇒ 同名 basename 会让**整轮** pytest
+`import file mismatch`（这个坑 `tests/render/test_renderer.py` 模块头逐字记着）。
+WBS 那条路径动不了，所以改这一个。**断言一条没动。**
+
+分工：本文件验**口径**（哪些列算孤儿、`dry_run` 钉死、白名单）；
+`tests/tools/test_schema_drift.py` 验**工具面**（契约挂上了、两个入口、不进模型工具面）。
 
 **不连真站点、不起容器**：`tests/unit` 必须零依赖可跑（CI 的 `gates-l1` 只 `pip install pytest`）。
 带外执行器是注入进来的假件，命令对象本身就是可断言的值——与

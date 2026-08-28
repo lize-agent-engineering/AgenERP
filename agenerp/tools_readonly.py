@@ -425,7 +425,66 @@ READONLY_CONTRACTS: tuple[ToolContract, ...] = (
 
 READONLY_TOOL_NAMES: tuple[str, ...] = tuple(c.tool for c in READONLY_CONTRACTS)
 
-_BY_NAME = {c.tool: c for c in READONLY_CONTRACTS}
+
+# ---------------------------------------------------------------------------
+# 巡检族（2026-08-28，P2.5）
+#
+# 🔴 **刻意不并进 `READONLY_CONTRACTS`**，两条理由缺一不可：
+#
+# ① **设计**：那十个是**模型面**的只读工具 —— `agenerp/explain/loop.py:tool_schemas()`
+#    直接按 `READONLY_CONTRACTS` 生成模型可见的工具面。人 2026-08-28 裁定
+#    `schema.drift` **不进模型工具面**（D-15：巡检是规则面，P1.5 的巡检器就是
+#    零 LLM 调用的纯规则引擎）。并进去再靠 `EXCLUDED_TOOLS` 排除，是让机制和意图打架 ——
+#    **排除表漏一行就漏出去了**；分族之后「不在模型面」由**构造**保证。
+# ② **红线**：`tests/tools/test_live_conformance.py` 是门禁断言体
+#    （被 `tests/gates/test_tool_execution_live.py:57` 按路径加载，红线①内只能由人改），
+#    而它逐条验的正是「**十个**工具」。
+#
+# ⚠️ **配对不变量不放松**：`ALL_CONTRACTS` 与 `EXECUTORS` 仍然双向一一对应，
+# 判据在 `tests/tools/test_registry_pairing.py`。
+# ---------------------------------------------------------------------------
+
+SCHEMA_DRIFT = ToolContract(
+    tool="schema.drift",
+    target="物理表上的孤儿列（删了 Custom Field 但列还在）",
+    risk="L0",
+    requires_permission=(),
+    preconditions=(),
+    postconditions=(
+        Condition(
+            text="口径直接复用 Frappe 自己的 trim_table(dry_run=True)，不另算一套字段口径",
+            fact="uses_frappe_trim_table_dry_run",
+            source=f"{BOUNDARIES} §11.8（自己减一遍会产生第二套口径，"
+                   "Frappe 一次升级就能让两边错开，而错开的表现是孤儿列漏报）",
+        ),
+        Condition(
+            text="巡检只报不删：清除面另有其人，且刻意收窄到「本次 apply 造成的那些」",
+            fact="reports_without_dropping",
+            source=f"{BOUNDARIES} §11.6（2026-08-21 实测 Item 上 6 条孤儿列，"
+                   "5 条不是本次 apply 造成的）",
+        ),
+    ),
+    returns=Returns(
+        trim_rules=(
+            "每行只回 (doctype, column)——裸列名在批量模式下说不清是哪张表的",
+            "扫过哪些 DocType 一并回，否则「零行」没有分母",
+        ),
+        max_rows=200,
+        must_keep=("doctype", "column"),
+        user_writable_free_text=False,
+    ),
+    on_violation=ABORT,
+    approval=APPROVAL_NOT_REQUIRED,
+)
+
+INSPECTION_CONTRACTS: tuple[ToolContract, ...] = (SCHEMA_DRIFT,)
+
+#: 契约的**全集**。`get()` / `agenerp.tools.runtime.contract_of` 按它解析，
+#: 因此巡检族照样走前置 / 裁剪 / 后置整层。
+ALL_CONTRACTS: tuple[ToolContract, ...] = READONLY_CONTRACTS + INSPECTION_CONTRACTS
+ALL_TOOL_NAMES: tuple[str, ...] = tuple(c.tool for c in ALL_CONTRACTS)
+
+_BY_NAME = {c.tool: c for c in ALL_CONTRACTS}
 
 
 def get(tool: str) -> ToolContract:

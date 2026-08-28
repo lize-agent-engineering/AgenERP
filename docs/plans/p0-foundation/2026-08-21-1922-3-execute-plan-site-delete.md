@@ -739,6 +739,11 @@ git diff --numstat tools/gates/expected-red.txt → 无输出（名单一行未�
   **本 plan 关闭时它仍红，红因挪到 `schema_drift`——这一点会被逐字记进关闭证据，不含糊过去。**
 - Successor Required: `yes`
 - 重开事件：本 plan 关闭之后立即（它是工作项 6 剩下的最后一条 L2 断言）。
+- ✅ **2026-08-28 已消费**：`schema_drift()` 的口径早已落地（§11.8），
+  P2.5 又给它接上了**工具面**（`schema.drift`，走契约层）——
+  `docs/plans/p2-views/2026-08-28-P2.5-schema-drift.md`。
+  ⚠️ **自动清除仍然 deferred**：巡检只报不删，清除面 `drop_orphan_columns`
+  刻意收窄到「本次 apply 造成的那些」，历轮残留要人看过再决定。
 
 ### 事务与回滚语义（`rollback_and_report` / savepoint）
 

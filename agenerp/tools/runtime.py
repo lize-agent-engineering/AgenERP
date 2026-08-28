@@ -106,9 +106,15 @@ class Session:
     而那条判据正是「前置不满足时一个请求都不发」的唯一验法。
     """
 
-    def __init__(self, client: SiteClient) -> None:
+    def __init__(self, client: SiteClient, runner: Any = None) -> None:
         self._client = client
         self.calls: list[Call] = []
+        # 🔴 **带外通道**（`bench execute`，`agenerp/oob.py` 的白名单调用），2026-08-28 由 P2.5 加。
+        # 只有巡检类执行体用得上：孤儿列是**物理表**的事，REST 面根本看不见它
+        # （§11.8：compose 未对宿主发布 db 端口，这是一条独立的传输决策）。
+        # ⚠️ 默认 `None` ⇒ 落到 `agenerp.oob` 自己的默认执行器；注入是为了让判据喂假件，
+        # **不是给产品代码多一条配置路径**（与 `SiteSnapshotSource.client` 同一个理由）。
+        self.runner = runner
 
     @property
     def client(self) -> SiteClient:
@@ -320,6 +326,7 @@ def execute(
     client: SiteClient,
     context: ReadOnlyContext | None = None,
     executors: Mapping[str, Executor] | None = None,
+    runner: Any = None,
 ) -> ToolResult:
     """按契约执行一个只读工具。四步序见模块头。
 
@@ -333,7 +340,7 @@ def execute(
     contract = contract_of(tool)
     executor = (executors if executors is not None else EXECUTORS)[tool]
     caller_facts = dict(context.facts) if context is not None else {}
-    session = Session(client)
+    session = Session(client, runner=runner)
 
     failed = unsatisfied(check_preconditions(contract, ReadOnlyContext(caller_facts)))
     if failed:
