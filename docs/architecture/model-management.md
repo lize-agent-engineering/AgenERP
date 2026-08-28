@@ -208,6 +208,7 @@ Spike 02 实测（`claude:sonnet`，四道探针的通过态）：
 |---|---|---|
 | `permission` | `tool_calling` | §12.3 结论表第 1 行「权限判断」 |
 | `explain` | `tool_calling` | §12.1 ② 第 2 行「解释、查询、视图生成」+ §12.3 结论表第 1 行「单跳查询、状态解释」 |
+| `view` | `tool_calling` | §12.1 ② 第 2 行「解释、查询、**视图生成**」—— 与 `explain` 同一行、同一档 |
 | `lineage` | `tool_calling` · `reasoning` · `multi_hop` | §12.3 结论表第 2 行「跨单据血缘推理、根因诊断」+ 结论 3 |
 | `shape` | `tool_calling` · `long_context` · `reasoning` · `multi_hop` | §12.1 ② 第 1 行 + §12.3 结论表第 3 行「形态生成、跨职能规划」 |
 

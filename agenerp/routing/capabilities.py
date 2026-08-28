@@ -37,12 +37,19 @@ CAPABILITIES = (
 # 任务类目。**不发明新类目**：四档全部来自 owner doc §12.1 ② 与 §12.3 两张表，
 # 对齐结果逐行写在 §12.5。⚠️ 四档的边界未经真实提问分布验证，P1.4 解释 Agent 落地后
 # 很可能要重划 —— 这一条在 §12.5 里逐字写着，不得读成已定型。
-TASK_CLASSES = ("permission", "explain", "lineage", "shape")
+TASK_CLASSES = ("permission", "explain", "view", "lineage", "shape")
 
 # 任务类目 → 最低能力集。空集不是合法取值：一个"谁都能接"的类目等于没有分档。
 TASK_MINIMUM_CAPABILITIES: Mapping[str, frozenset[str]] = {
     "permission": frozenset({"tool_calling"}),
     "explain": frozenset({"tool_calling"}),
+    # 🔴 P2.3 加。**与 `explain` 同档不是偷懒** —— owner doc §12.1 ② 第 2 行
+    # 逐字把「解释、查询、**视图生成**」写在同一行，本表的 `explain` 行出处引的就是它。
+    # ⚠️ 一度拟成 `{tool_calling, long_context}`，人 2026-08-28 当场改回：
+    # 那条理由（工具结果 20000 字符）**对解释 Agent 一样成立**，而它只要 `tool_calling` ——
+    # 同一份证据两处不同待遇，是提案方的不一致，不是视图任务真的更难。
+    # 将来若实测出短上下文模型做不了视图题，按 D-16 拿数字来改。
+    "view": frozenset({"tool_calling"}),
     "lineage": frozenset({"tool_calling", "reasoning", "multi_hop"}),
     "shape": frozenset({"tool_calling", "long_context", "reasoning", "multi_hop"}),
 }
