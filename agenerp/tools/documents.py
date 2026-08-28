@@ -292,6 +292,18 @@ def meta_field_rows(session: Session, doctype: str, level: str) -> tuple[list[di
             "label": field.get("label"),
             "options": field.get("options"),
             "reqd": bool(field.get("reqd")),
+            # 🔴 2026-08-28 加。人问「有没有可能是没提供字段说明导致模型不知道怎么选」——
+            # 查下去是的，而且**直接命中最后一轮三条失败里的两条**：
+            #   `Employee.company_email`  description = 'Provide Email Address registered in company'
+            #     ← 问句是「**公司给他的那个**邮箱」，这句说明就是分辨点
+            #   `Work Order Operation.actual_operation_time`
+            #     description = "Updated via 'Time Log' (In Minutes)"
+            #     ← 问句是「系统**已经记下的**实际耗时，不是某一次报工」，同样是分辨点
+            # 而 `meta.fields` **一个字都没回**，模型只看得见 fieldname/label/fieldtype。
+            # ⚠️ 只有非空才进，站点上本来就稀疏（Employee 7/108 · Work Order Operation 6/26）
+            # ⇒ 代价很小，而它恰好长在需要分辨的那几个字段上。
+            **({"description": (field.get("description") or "").strip()}
+               if (field.get("description") or "").strip() else {}),
             "level": level,
             "parent_doctype": doctype,
         }
