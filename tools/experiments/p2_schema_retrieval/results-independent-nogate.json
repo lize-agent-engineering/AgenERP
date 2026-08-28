@@ -1,0 +1,1105 @@
+{
+  "metric": "task_completion_rate",
+  "n_scored": 2,
+  "n_infrastructure": 1,
+  "task_completion_pct": 100.0,
+  "judge_model": "qwen3.8-flash",
+  "max_turns": 40,
+  "usage": {},
+  "causes": [
+    "capability",
+    "missing_info",
+    "harness",
+    "environment",
+    "false_rejection",
+    "false_acceptance",
+    "leakage",
+    "infrastructure"
+  ],
+  "detail": [
+    {
+      "q": "发给客户的这份报价，最晚哪天还按这个价认？",
+      "acceptable": [
+        "Quotation.valid_till"
+      ],
+      "expected": [
+        "Quotation.valid_till"
+      ],
+      "why_acceptable": "",
+      "difficulty": "easy",
+      "why_hard": "",
+      "domain": "selling",
+      "tokens": {
+        "in": 4100,
+        "out": 86,
+        "reasoning": 0,
+        "model_calls": 2
+      },
+      "trajectory": [
+        "meta.fields"
+      ],
+      "trajectory_full": [
+        "[\"meta.fields\", {\"doctype\": \"Quotation\", \"keywords\": \"valid expir date\"}]"
+      ],
+      "raw_answer": "报价单（Quotation）上表示报价有效期的字段为 `valid_till`（标签 \"Valid Till\"，Date 类型），即最晚按此价格认可的日期。\n\nQuotation.valid_till",
+      "trace": {
+        "question": "你是 ERP 系统的字段专家。请回答下面这个问题需要用到**哪一个**字段。\n\n问题：发给客户的这份报价，最晚哪天还按这个价认？\n\n要求：\n- **只给一个字段**，形如「单据名.字段名」，例如 `Sales Order.customer`\n  🔴 **「单据名」「字段名」是占位说明，不是答案** —— 要填这个站点上真实的名字。\n     答成 `DocType.fieldname` 或 `Quotation.fieldname` 一律算没回答。\n- 必须是这个站点上**真实存在**的字段 —— 拿不准就用 `meta.fields` 查这个 DocType 的字段表\n- 🔴 **这是一个 schema 问题：只查字段表，不要去读业务数据行。**\n  `meta.fields` 和 `schema.search` 就够了。**不要**用 `doc.links` 追单据血缘、\n  也不要为了看一眼取值去 `query.read` 业务单据 —— 那是回答「这个数是怎么来的」时才要做的事，\n  与「哪个字段」无关，只会把轮数耗光。\n- 最后一行只输出那个字段本身，前面可以写你的查证过程\n\n⚠️ **「存在」= 它在这个 DocType 的字段表里，不是「能找到一行填了值的数据」。**\n很多字段在演示站点上没有数据（比如「拒收仓库」要有拒收才会填），\n**找不到有值的行是正常的，不代表字段不对，也不需要继续找。**\n字段表里有它，就够了 —— 别为了佐证一个取值把轮数耗光。\n\n⚠️ 这是**要你做决定**，不是要你列候选。给多个字段视同没回答。",
+        "model": "qwen3.8-flash",
+        "task_class": "explain",
+        "turns": [
+          {
+            "index": 1,
+            "kind": "tools",
+            "usage": {
+              "prompt": 1750,
+              "completion": 42,
+              "reasoning": 0,
+              "cached": 1024,
+              "total": 1792
+            },
+            "calls": [
+              "meta.fields"
+            ]
+          },
+          {
+            "index": 2,
+            "kind": "answer",
+            "usage": {
+              "prompt": 2350,
+              "completion": 44,
+              "reasoning": 0,
+              "cached": 1024,
+              "total": 2394
+            }
+          }
+        ],
+        "tool_calls": [
+          {
+            "tool": "meta.fields",
+            "params": {
+              "doctype": "Quotation",
+              "keywords": "valid expir date"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 8,
+            "surface_id": "evidence-surface-1"
+          }
+        ],
+        "gate_checks": [
+          {
+            "turn": 2,
+            "enforced": true,
+            "surface_id": "evidence-surface-1",
+            "facts": {
+              "documents_named_in_question": [],
+              "doc_links_called_for": [],
+              "doc_get_called_for": [],
+              "submitted_downstream_documents": [],
+              "inbound_vouchers_of_quantities_in_answer": []
+            },
+            "failed": []
+          }
+        ],
+        "forced_continues": [],
+        "breaker_events": [],
+        "runaway_events": [],
+        "model_tool_calls": 1,
+        "opening_request_count": 240,
+        "execute_calls": 1,
+        "stopped": "answered",
+        "cost_ledger": {
+          "entries": [
+            {
+              "index": 1,
+              "model": "qwen3.8-flash",
+              "usage": {
+                "prompt": 1750,
+                "completion": 42,
+                "reasoning": 0,
+                "cached": 1024
+              },
+              "outcome": "tools",
+              "endpoint_total": 1792,
+              "endpoint_reasoning": 0,
+              "endpoint_cached": 1024,
+              "detail": ""
+            },
+            {
+              "index": 2,
+              "model": "qwen3.8-flash",
+              "usage": {
+                "prompt": 2350,
+                "completion": 44,
+                "reasoning": 0,
+                "cached": 1024
+              },
+              "outcome": "answer",
+              "endpoint_total": 2394,
+              "endpoint_reasoning": 0,
+              "endpoint_cached": 1024,
+              "detail": ""
+            }
+          ]
+        }
+      },
+      "stopped": "answered",
+      "forced_continues": [],
+      "gate_checks": [
+        {
+          "turn": 2,
+          "failed": []
+        }
+      ],
+      "committed": "Quotation.valid_till",
+      "commit_note": "最后一行承诺",
+      "passed": true,
+      "cause": null,
+      "why": "命中可接受集合"
+    },
+    {
+      "q": "客户下单时给了他们自己的单号，咱们这张销售订单上记的是哪个号？",
+      "acceptable": [
+        "Sales Order.po_no"
+      ],
+      "expected": [
+        "Sales Order.po_no"
+      ],
+      "why_acceptable": "",
+      "difficulty": "easy",
+      "why_hard": "",
+      "domain": "selling",
+      "tokens": {
+        "in": 5248,
+        "out": 81,
+        "reasoning": 0,
+        "model_calls": 2
+      },
+      "trajectory": [
+        "meta.fields"
+      ],
+      "trajectory_full": [
+        "[\"meta.fields\", {\"doctype\": \"Sales Order\", \"keywords\": \"customer order ref po\"}]"
+      ],
+      "raw_answer": "客户自己的单号即「客户的采购订单号」，字段表中 `Sales Order.po_no`（标签 \"Customer's Purchase Order\"）正是记录它的位置。\n\nSales Order.po_no",
+      "trace": {
+        "question": "你是 ERP 系统的字段专家。请回答下面这个问题需要用到**哪一个**字段。\n\n问题：客户下单时给了他们自己的单号，咱们这张销售订单上记的是哪个号？\n\n要求：\n- **只给一个字段**，形如「单据名.字段名」，例如 `Sales Order.customer`\n  🔴 **「单据名」「字段名」是占位说明，不是答案** —— 要填这个站点上真实的名字。\n     答成 `DocType.fieldname` 或 `Quotation.fieldname` 一律算没回答。\n- 必须是这个站点上**真实存在**的字段 —— 拿不准就用 `meta.fields` 查这个 DocType 的字段表\n- 🔴 **这是一个 schema 问题：只查字段表，不要去读业务数据行。**\n  `meta.fields` 和 `schema.search` 就够了。**不要**用 `doc.links` 追单据血缘、\n  也不要为了看一眼取值去 `query.read` 业务单据 —— 那是回答「这个数是怎么来的」时才要做的事，\n  与「哪个字段」无关，只会把轮数耗光。\n- 最后一行只输出那个字段本身，前面可以写你的查证过程\n\n⚠️ **「存在」= 它在这个 DocType 的字段表里，不是「能找到一行填了值的数据」。**\n很多字段在演示站点上没有数据（比如「拒收仓库」要有拒收才会填），\n**找不到有值的行是正常的，不代表字段不对，也不需要继续找。**\n字段表里有它，就够了 —— 别为了佐证一个取值把轮数耗光。\n\n⚠️ 这是**要你做决定**，不是要你列候选。给多个字段视同没回答。",
+        "model": "qwen3.8-flash",
+        "task_class": "explain",
+        "turns": [
+          {
+            "index": 1,
+            "kind": "tools",
+            "usage": {
+              "prompt": 1755,
+              "completion": 42,
+              "reasoning": 0,
+              "cached": 1024,
+              "total": 1797
+            },
+            "calls": [
+              "meta.fields"
+            ]
+          },
+          {
+            "index": 2,
+            "kind": "answer",
+            "usage": {
+              "prompt": 3493,
+              "completion": 39,
+              "reasoning": 0,
+              "cached": 1024,
+              "total": 3532
+            }
+          }
+        ],
+        "tool_calls": [
+          {
+            "tool": "meta.fields",
+            "params": {
+              "doctype": "Sales Order",
+              "keywords": "customer order ref po"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 7,
+            "surface_id": "evidence-surface-2"
+          }
+        ],
+        "gate_checks": [
+          {
+            "turn": 2,
+            "enforced": true,
+            "surface_id": "evidence-surface-2",
+            "facts": {
+              "documents_named_in_question": [],
+              "doc_links_called_for": [],
+              "doc_get_called_for": [],
+              "submitted_downstream_documents": [],
+              "inbound_vouchers_of_quantities_in_answer": []
+            },
+            "failed": []
+          }
+        ],
+        "forced_continues": [],
+        "breaker_events": [],
+        "runaway_events": [],
+        "model_tool_calls": 1,
+        "opening_request_count": 240,
+        "execute_calls": 1,
+        "stopped": "answered",
+        "cost_ledger": {
+          "entries": [
+            {
+              "index": 1,
+              "model": "qwen3.8-flash",
+              "usage": {
+                "prompt": 1755,
+                "completion": 42,
+                "reasoning": 0,
+                "cached": 1024
+              },
+              "outcome": "tools",
+              "endpoint_total": 1797,
+              "endpoint_reasoning": 0,
+              "endpoint_cached": 1024,
+              "detail": ""
+            },
+            {
+              "index": 2,
+              "model": "qwen3.8-flash",
+              "usage": {
+                "prompt": 3493,
+                "completion": 39,
+                "reasoning": 0,
+                "cached": 1024
+              },
+              "outcome": "answer",
+              "endpoint_total": 3532,
+              "endpoint_reasoning": 0,
+              "endpoint_cached": 1024,
+              "detail": ""
+            }
+          ]
+        }
+      },
+      "stopped": "answered",
+      "forced_continues": [],
+      "gate_checks": [
+        {
+          "turn": 2,
+          "failed": []
+        }
+      ],
+      "committed": "Sales Order.po_no",
+      "commit_note": "最后一行承诺",
+      "passed": true,
+      "cause": null,
+      "why": "命中可接受集合"
+    },
+    {
+      "q": "客户这张订货单是哪天开的？",
+      "acceptable": [
+        "Sales Order.transaction_date",
+        "Sales Order Item.transaction_date",
+        "Production Plan Sales Order.sales_order_date"
+      ],
+      "expected": [
+        "Sales Order.transaction_date"
+      ],
+      "why_acceptable": "Sales Order Item.transaction_date 的标签为 Sales Order Date，记录同一订单的开单日期；Production Plan Sales Order.sales_order_date 的标签也为 Sales Order Date，在生产计划关联行中记录该订单日期。两者都不是交货或排产日期。",
+      "difficulty": "easy",
+      "why_hard": "",
+      "domain": "selling",
+      "tokens": {
+        "in": 321958,
+        "out": 639,
+        "reasoning": 0,
+        "model_calls": 18
+      },
+      "trajectory": [
+        "schema.search",
+        "meta.fields",
+        "meta.fields",
+        "meta.fields",
+        "meta.fields",
+        "schema.search",
+        "meta.fields",
+        "snapshot.read",
+        "schema.search",
+        "snapshot.read",
+        "meta.fields",
+        "meta.fields",
+        "rule.lookup",
+        "schema.search",
+        "meta.fields",
+        "schema.search",
+        "meta.fields"
+      ],
+      "trajectory_full": [
+        "[\"schema.search\", {\"keywords\": \"sales order 订货单\"}]",
+        "[\"meta.fields\", {\"doctype\": \"Sales Order\", \"keywords\": \"date 日期\"}]",
+        "[\"meta.fields\", {\"doctype\": \"Sales Order\", \"keywords\": \"order_no customer_name\"}]",
+        "[\"meta.fields\", {\"doctype\": \"Sales Order\", \"keywords\": \"order_number 订货单号\"}]",
+        "[\"meta.fields\", {\"doctype\": \"Sales Order\", \"keywords\": \"order_number 单号 订货\"}]",
+        "[\"schema.search\", {\"keywords\": \"订货单 单据编号 order number\"}]",
+        "[\"meta.fields\", {\"doctype\": \"Sales Order\", \"keywords\": \"order_number 订货单号 so_no\"}]",
+        "[\"snapshot.read\", {\"scope\": \"Sales Order\"}]",
+        "[\"schema.search\", {\"keywords\": \"订货单号 order_number 客户订货单号\"}]",
+        "[\"snapshot.read\", {\"scope\": \"doctypes\"}]",
+        "[\"meta.fields\", {\"doctype\": \"Sales Order\", \"keywords\": \"number no 编号\"}]",
+        "[\"meta.fields\", {\"doctype\": \"Sales Order\", \"keywords\": \"订货\"}]",
+        "[\"rule.lookup\", {\"doctype\": \"Sales Order\"}]",
+        "[\"schema.search\", {\"keywords\": \"订货单 客户订单号 销售订单号\"}]",
+        "[\"meta.fields\", {\"doctype\": \"Sales Order\", \"keywords\": \"order_number 订货单号 客户订单编号\"}]",
+        "[\"schema.search\", {\"keywords\": \"Sales Order Number 订单号 order id\"}]",
+        "[\"meta.fields\", {\"doctype\": \"Sales Order\", \"keywords\": \"单号 编号 number code id\"}]"
+      ],
+      "raw_answer": "",
+      "trace": {
+        "question": "你是 ERP 系统的字段专家。请回答下面这个问题需要用到**哪一个**字段。\n\n问题：客户这张订货单是哪天开的？\n\n要求：\n- **只给一个字段**，形如「单据名.字段名」，例如 `Sales Order.customer`\n  🔴 **「单据名」「字段名」是占位说明，不是答案** —— 要填这个站点上真实的名字。\n     答成 `DocType.fieldname` 或 `Quotation.fieldname` 一律算没回答。\n- 必须是这个站点上**真实存在**的字段 —— 拿不准就用 `meta.fields` 查这个 DocType 的字段表\n- 🔴 **这是一个 schema 问题：只查字段表，不要去读业务数据行。**\n  `meta.fields` 和 `schema.search` 就够了。**不要**用 `doc.links` 追单据血缘、\n  也不要为了看一眼取值去 `query.read` 业务单据 —— 那是回答「这个数是怎么来的」时才要做的事，\n  与「哪个字段」无关，只会把轮数耗光。\n- 最后一行只输出那个字段本身，前面可以写你的查证过程\n\n⚠️ **「存在」= 它在这个 DocType 的字段表里，不是「能找到一行填了值的数据」。**\n很多字段在演示站点上没有数据（比如「拒收仓库」要有拒收才会填），\n**找不到有值的行是正常的，不代表字段不对，也不需要继续找。**\n字段表里有它，就够了 —— 别为了佐证一个取值把轮数耗光。\n\n⚠️ 这是**要你做决定**，不是要你列候选。给多个字段视同没回答。",
+        "model": "qwen3.8-flash",
+        "task_class": "explain",
+        "turns": [
+          {
+            "index": 1,
+            "kind": "tools",
+            "usage": {
+              "prompt": 1744,
+              "completion": 30,
+              "reasoning": 0,
+              "cached": 1024,
+              "total": 1774
+            },
+            "calls": [
+              "schema.search"
+            ]
+          },
+          {
+            "index": 2,
+            "kind": "tools",
+            "usage": {
+              "prompt": 2072,
+              "completion": 41,
+              "reasoning": 0,
+              "cached": 1024,
+              "total": 2113
+            },
+            "calls": [
+              "meta.fields"
+            ]
+          },
+          {
+            "index": 3,
+            "kind": "tools",
+            "usage": {
+              "prompt": 2809,
+              "completion": 42,
+              "reasoning": 0,
+              "cached": 2048,
+              "total": 2851
+            },
+            "calls": [
+              "meta.fields"
+            ]
+          },
+          {
+            "index": 4,
+            "kind": "tools",
+            "usage": {
+              "prompt": 2927,
+              "completion": 44,
+              "reasoning": 0,
+              "cached": 2048,
+              "total": 2971
+            },
+            "calls": [
+              "meta.fields"
+            ]
+          },
+          {
+            "index": 5,
+            "kind": "tools",
+            "usage": {
+              "prompt": 8564,
+              "completion": 45,
+              "reasoning": 0,
+              "cached": 2048,
+              "total": 8609
+            },
+            "calls": [
+              "meta.fields"
+            ]
+          },
+          {
+            "index": 6,
+            "kind": "tools",
+            "usage": {
+              "prompt": 14202,
+              "completion": 32,
+              "reasoning": 0,
+              "cached": 8192,
+              "total": 14234
+            },
+            "calls": [
+              "schema.search"
+            ]
+          },
+          {
+            "index": 7,
+            "kind": "tools",
+            "usage": {
+              "prompt": 14459,
+              "completion": 46,
+              "reasoning": 0,
+              "cached": 13312,
+              "total": 14505
+            },
+            "calls": [
+              "meta.fields"
+            ]
+          },
+          {
+            "index": 8,
+            "kind": "tools",
+            "usage": {
+              "prompt": 20098,
+              "completion": 27,
+              "reasoning": 0,
+              "cached": 14336,
+              "total": 20125
+            },
+            "calls": [
+              "snapshot.read"
+            ]
+          },
+          {
+            "index": 9,
+            "kind": "tools",
+            "usage": {
+              "prompt": 20189,
+              "completion": 35,
+              "reasoning": 0,
+              "cached": 19456,
+              "total": 20224
+            },
+            "calls": [
+              "schema.search"
+            ]
+          },
+          {
+            "index": 10,
+            "kind": "tools",
+            "usage": {
+              "prompt": 20265,
+              "completion": 28,
+              "reasoning": 0,
+              "cached": 19968,
+              "total": 20293
+            },
+            "calls": [
+              "snapshot.read"
+            ]
+          },
+          {
+            "index": 11,
+            "kind": "tools",
+            "usage": {
+              "prompt": 24141,
+              "completion": 42,
+              "reasoning": 0,
+              "cached": 19456,
+              "total": 24183
+            },
+            "calls": [
+              "meta.fields"
+            ]
+          },
+          {
+            "index": 12,
+            "kind": "tools",
+            "usage": {
+              "prompt": 25026,
+              "completion": 39,
+              "reasoning": 0,
+              "cached": 23552,
+              "total": 25065
+            },
+            "calls": [
+              "meta.fields"
+            ]
+          },
+          {
+            "index": 13,
+            "kind": "tools",
+            "usage": {
+              "prompt": 30658,
+              "completion": 27,
+              "reasoning": 0,
+              "cached": 24960,
+              "total": 30685
+            },
+            "calls": [
+              "rule.lookup"
+            ]
+          },
+          {
+            "index": 14,
+            "kind": "tools",
+            "usage": {
+              "prompt": 30739,
+              "completion": 35,
+              "reasoning": 0,
+              "cached": 29696,
+              "total": 30774
+            },
+            "calls": [
+              "schema.search"
+            ]
+          },
+          {
+            "index": 15,
+            "kind": "tools",
+            "usage": {
+              "prompt": 30814,
+              "completion": 48,
+              "reasoning": 0,
+              "cached": 30720,
+              "total": 30862
+            },
+            "calls": [
+              "meta.fields"
+            ]
+          },
+          {
+            "index": 16,
+            "kind": "tools",
+            "usage": {
+              "prompt": 36455,
+              "completion": 33,
+              "reasoning": 0,
+              "cached": 30720,
+              "total": 36488
+            },
+            "calls": [
+              "schema.search"
+            ]
+          },
+          {
+            "index": 17,
+            "kind": "tools",
+            "usage": {
+              "prompt": 36796,
+              "completion": 45,
+              "reasoning": 0,
+              "cached": 35840,
+              "total": 36841
+            },
+            "calls": [
+              "meta.fields"
+            ]
+          },
+          {
+            "index": 18,
+            "kind": "model-error",
+            "detail": "模型端点返回 HTTP 403：{\"error\":{\"message\":\"Free quota exhausted. To continue accessing the model on a paid basis, please add funds or disable the \\\"use free tier only\\\" mode in the management console.\",\"type\":\"AllocationQuota.FreeTierOnly\",\"param\":null,\"code\":\"AllocationQuota.FreeTierOnly\"},\"id\":\"chatcmpl-e15fe90f-21ba-98f2-b4a4-a8f490023eab\",\"request_id\":\"e15fe90f-21ba-98f2-b4a4-a8f490023eab\"}"
+          }
+        ],
+        "tool_calls": [
+          {
+            "tool": "schema.search",
+            "params": {
+              "keywords": "sales order 订货单"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 242,
+            "surface_id": "evidence-surface-3"
+          },
+          {
+            "tool": "meta.fields",
+            "params": {
+              "doctype": "Sales Order",
+              "keywords": "date 日期"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 7,
+            "surface_id": "evidence-surface-3"
+          },
+          {
+            "tool": "meta.fields",
+            "params": {
+              "doctype": "Sales Order",
+              "keywords": "order_no customer_name"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 7,
+            "surface_id": "evidence-surface-3"
+          },
+          {
+            "tool": "meta.fields",
+            "params": {
+              "keywords": "order_number 订货单号",
+              "doctype": "Sales Order"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 7,
+            "surface_id": "evidence-surface-3"
+          },
+          {
+            "tool": "meta.fields",
+            "params": {
+              "doctype": "Sales Order",
+              "keywords": "order_number 单号 订货"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 7,
+            "surface_id": "evidence-surface-3"
+          },
+          {
+            "tool": "schema.search",
+            "params": {
+              "keywords": "订货单 单据编号 order number"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 242,
+            "surface_id": "evidence-surface-3"
+          },
+          {
+            "tool": "meta.fields",
+            "params": {
+              "doctype": "Sales Order",
+              "keywords": "order_number 订货单号 so_no"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 7,
+            "surface_id": "evidence-surface-3"
+          },
+          {
+            "tool": "snapshot.read",
+            "params": {
+              "scope": "Sales Order"
+            },
+            "ok": false,
+            "stage": "execute",
+            "reasons": [
+              "调用无法执行：站点来源不认识 scope 'Sales Order'；已知：['doctypes']（返回空会让「scope 拼错了」和「这个 scope 下没有定制」长得一模一样）"
+            ],
+            "request_count": 0,
+            "surface_id": "evidence-surface-3"
+          },
+          {
+            "tool": "schema.search",
+            "params": {
+              "keywords": "订货单号 order_number 客户订货单号"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 242,
+            "surface_id": "evidence-surface-3"
+          },
+          {
+            "tool": "snapshot.read",
+            "params": {
+              "scope": "doctypes"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 1,
+            "surface_id": "evidence-surface-3"
+          },
+          {
+            "tool": "meta.fields",
+            "params": {
+              "doctype": "Sales Order",
+              "keywords": "number no 编号"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 7,
+            "surface_id": "evidence-surface-3"
+          },
+          {
+            "tool": "meta.fields",
+            "params": {
+              "doctype": "Sales Order",
+              "keywords": "订货"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 7,
+            "surface_id": "evidence-surface-3"
+          },
+          {
+            "tool": "rule.lookup",
+            "params": {
+              "doctype": "Sales Order"
+            },
+            "ok": false,
+            "stage": "preconditions",
+            "reasons": [
+              "前置未满足：行业包必须已装载——「无需指令」成立，「无需规则」不成立 —— 上下文缺少事实 'industry_pack_loaded'"
+            ],
+            "request_count": 0,
+            "surface_id": "evidence-surface-3"
+          },
+          {
+            "tool": "schema.search",
+            "params": {
+              "keywords": "订货单 客户订单号 销售订单号"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 242,
+            "surface_id": "evidence-surface-3"
+          },
+          {
+            "tool": "meta.fields",
+            "params": {
+              "doctype": "Sales Order",
+              "keywords": "order_number 订货单号 客户订单编号"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 7,
+            "surface_id": "evidence-surface-3"
+          },
+          {
+            "tool": "schema.search",
+            "params": {
+              "keywords": "Sales Order Number 订单号 order id"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 242,
+            "surface_id": "evidence-surface-3"
+          },
+          {
+            "tool": "meta.fields",
+            "params": {
+              "doctype": "Sales Order",
+              "keywords": "单号 编号 number code id"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 7,
+            "surface_id": "evidence-surface-3"
+          }
+        ],
+        "gate_checks": [],
+        "forced_continues": [],
+        "breaker_events": [],
+        "runaway_events": [],
+        "model_tool_calls": 17,
+        "opening_request_count": 240,
+        "execute_calls": 17,
+        "stopped": "model-error",
+        "cost_ledger": {
+          "entries": [
+            {
+              "index": 1,
+              "model": "qwen3.8-flash",
+              "usage": {
+                "prompt": 1744,
+                "completion": 30,
+                "reasoning": 0,
+                "cached": 1024
+              },
+              "outcome": "tools",
+              "endpoint_total": 1774,
+              "endpoint_reasoning": 0,
+              "endpoint_cached": 1024,
+              "detail": ""
+            },
+            {
+              "index": 2,
+              "model": "qwen3.8-flash",
+              "usage": {
+                "prompt": 2072,
+                "completion": 41,
+                "reasoning": 0,
+                "cached": 1024
+              },
+              "outcome": "tools",
+              "endpoint_total": 2113,
+              "endpoint_reasoning": 0,
+              "endpoint_cached": 1024,
+              "detail": ""
+            },
+            {
+              "index": 3,
+              "model": "qwen3.8-flash",
+              "usage": {
+                "prompt": 2809,
+                "completion": 42,
+                "reasoning": 0,
+                "cached": 2048
+              },
+              "outcome": "tools",
+              "endpoint_total": 2851,
+              "endpoint_reasoning": 0,
+              "endpoint_cached": 2048,
+              "detail": ""
+            },
+            {
+              "index": 4,
+              "model": "qwen3.8-flash",
+              "usage": {
+                "prompt": 2927,
+                "completion": 44,
+                "reasoning": 0,
+                "cached": 2048
+              },
+              "outcome": "tools",
+              "endpoint_total": 2971,
+              "endpoint_reasoning": 0,
+              "endpoint_cached": 2048,
+              "detail": ""
+            },
+            {
+              "index": 5,
+              "model": "qwen3.8-flash",
+              "usage": {
+                "prompt": 8564,
+                "completion": 45,
+                "reasoning": 0,
+                "cached": 2048
+              },
+              "outcome": "tools",
+              "endpoint_total": 8609,
+              "endpoint_reasoning": 0,
+              "endpoint_cached": 2048,
+              "detail": ""
+            },
+            {
+              "index": 6,
+              "model": "qwen3.8-flash",
+              "usage": {
+                "prompt": 14202,
+                "completion": 32,
+                "reasoning": 0,
+                "cached": 8192
+              },
+              "outcome": "tools",
+              "endpoint_total": 14234,
+              "endpoint_reasoning": 0,
+              "endpoint_cached": 8192,
+              "detail": ""
+            },
+            {
+              "index": 7,
+              "model": "qwen3.8-flash",
+              "usage": {
+                "prompt": 14459,
+                "completion": 46,
+                "reasoning": 0,
+                "cached": 13312
+              },
+              "outcome": "tools",
+              "endpoint_total": 14505,
+              "endpoint_reasoning": 0,
+              "endpoint_cached": 13312,
+              "detail": ""
+            },
+            {
+              "index": 8,
+              "model": "qwen3.8-flash",
+              "usage": {
+                "prompt": 20098,
+                "completion": 27,
+                "reasoning": 0,
+                "cached": 14336
+              },
+              "outcome": "tools",
+              "endpoint_total": 20125,
+              "endpoint_reasoning": 0,
+              "endpoint_cached": 14336,
+              "detail": ""
+            },
+            {
+              "index": 9,
+              "model": "qwen3.8-flash",
+              "usage": {
+                "prompt": 20189,
+                "completion": 35,
+                "reasoning": 0,
+                "cached": 19456
+              },
+              "outcome": "tools",
+              "endpoint_total": 20224,
+              "endpoint_reasoning": 0,
+              "endpoint_cached": 19456,
+              "detail": ""
+            },
+            {
+              "index": 10,
+              "model": "qwen3.8-flash",
+              "usage": {
+                "prompt": 20265,
+                "completion": 28,
+                "reasoning": 0,
+                "cached": 19968
+              },
+              "outcome": "tools",
+              "endpoint_total": 20293,
+              "endpoint_reasoning": 0,
+              "endpoint_cached": 19968,
+              "detail": ""
+            },
+            {
+              "index": 11,
+              "model": "qwen3.8-flash",
+              "usage": {
+                "prompt": 24141,
+                "completion": 42,
+                "reasoning": 0,
+                "cached": 19456
+              },
+              "outcome": "tools",
+              "endpoint_total": 24183,
+              "endpoint_reasoning": 0,
+              "endpoint_cached": 19456,
+              "detail": ""
+            },
+            {
+              "index": 12,
+              "model": "qwen3.8-flash",
+              "usage": {
+                "prompt": 25026,
+                "completion": 39,
+                "reasoning": 0,
+                "cached": 23552
+              },
+              "outcome": "tools",
+              "endpoint_total": 25065,
+              "endpoint_reasoning": 0,
+              "endpoint_cached": 23552,
+              "detail": ""
+            },
+            {
+              "index": 13,
+              "model": "qwen3.8-flash",
+              "usage": {
+                "prompt": 30658,
+                "completion": 27,
+                "reasoning": 0,
+                "cached": 24960
+              },
+              "outcome": "tools",
+              "endpoint_total": 30685,
+              "endpoint_reasoning": 0,
+              "endpoint_cached": 24960,
+              "detail": ""
+            },
+            {
+              "index": 14,
+              "model": "qwen3.8-flash",
+              "usage": {
+                "prompt": 30739,
+                "completion": 35,
+                "reasoning": 0,
+                "cached": 29696
+              },
+              "outcome": "tools",
+              "endpoint_total": 30774,
+              "endpoint_reasoning": 0,
+              "endpoint_cached": 29696,
+              "detail": ""
+            },
+            {
+              "index": 15,
+              "model": "qwen3.8-flash",
+              "usage": {
+                "prompt": 30814,
+                "completion": 48,
+                "reasoning": 0,
+                "cached": 30720
+              },
+              "outcome": "tools",
+              "endpoint_total": 30862,
+              "endpoint_reasoning": 0,
+              "endpoint_cached": 30720,
+              "detail": ""
+            },
+            {
+              "index": 16,
+              "model": "qwen3.8-flash",
+              "usage": {
+                "prompt": 36455,
+                "completion": 33,
+                "reasoning": 0,
+                "cached": 30720
+              },
+              "outcome": "tools",
+              "endpoint_total": 36488,
+              "endpoint_reasoning": 0,
+              "endpoint_cached": 30720,
+              "detail": ""
+            },
+            {
+              "index": 17,
+              "model": "qwen3.8-flash",
+              "usage": {
+                "prompt": 36796,
+                "completion": 45,
+                "reasoning": 0,
+                "cached": 35840
+              },
+              "outcome": "tools",
+              "endpoint_total": 36841,
+              "endpoint_reasoning": 0,
+              "endpoint_cached": 35840,
+              "detail": ""
+            },
+            {
+              "index": 18,
+              "model": "qwen3.8-flash",
+              "usage": {
+                "prompt": 0,
+                "completion": 0,
+                "reasoning": 0,
+                "cached": 0
+              },
+              "outcome": "model-error",
+              "endpoint_total": null,
+              "endpoint_reasoning": null,
+              "endpoint_cached": null,
+              "detail": "模型端点返回 HTTP 403：{\"error\":{\"message\":\"Free quota exhausted. To continue accessing the model on a paid basis, please add funds or disable the \\\"use free tier only\\\" mode in the management console.\",\"type\":\"AllocationQuota.FreeTierOnly\",\"param\":null,\"code\":\"AllocationQuota.FreeTierOnly\"},\"id\":\"chatcmpl-e15fe90f-21ba-98f2-b4a4-a8f490023eab\",\"request_id\":\"e15fe90f-21ba-98f2-b4a4-a8f490023eab\"}"
+            }
+          ]
+        }
+      },
+      "stopped": "model-error",
+      "forced_continues": [],
+      "gate_checks": [],
+      "committed": null,
+      "commit_note": "空答案",
+      "passed": false,
+      "cause": "infrastructure",
+      "why": "空答案；模型端点报错 ⇒ **不计分**"
+    }
+  ]
+}
