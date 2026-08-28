@@ -201,25 +201,60 @@ def test_it_sends_no_rest_request_at_all():
     assert result.request_count == 0, "巡检发了 REST 请求 —— 它只该走带外只读通道"
 
 
-def test_the_postconditions_are_derived_from_behaviour_not_self_declared():
-    """后置事实要能**为假**。恒真的事实等于没挂后置。
+def test_the_postconditions_can_be_false():
+    """🔴 **「能为假」才证明它在算。**
 
-    这里把带外命令换成一条不是 `trim_table` 的，`uses_frappe_trim_table_dry_run`
-    必须翻成 False —— 靠 `execute` 的后置求值把整次调用判成违约。
+    2026-08-28 独立收口审计抓到的：原来这条判据只断言两条事实**等于 True** ——
+    而把实现改成写死的 `True`，**13 条判据一条都不红**。
+    一条名叫「不是自报的」、实际分辨不出自报的判据，正是本仓最忌讳的那种绿。
+
+    修法是把推导抽成纯函数，然后喂**该为假**的输入。
+    下面每一格都是「实现写死 True 就会红」的那种断言。
     """
+    from agenerp.oob import TRIM_TABLE, OobCommand
+    from agenerp.tools.drift import derive_facts
+
+    def cmd(*argv: str) -> OobCommand:
+        return OobCommand(service="backend", argv=argv)
+
+    good = cmd("bench", "execute", TRIM_TABLE, "--kwargs", "{'dry_run': True}")
+
+    # ① 正常一轮：两条都真
+    facts = derive_facts([good], 0)
+    assert facts["uses_frappe_trim_table_dry_run"] is True
+    assert facts["reports_without_dropping"] is True
+
+    # ② 一条命令都没发过 ⇒ 说不出「口径来自 Frappe」
+    assert derive_facts([], 0)["uses_frappe_trim_table_dry_run"] is False
+
+    # ③ 调的不是 trim_table ⇒ 假
+    other = cmd("bench", "execute", "frappe.db.sql", "--kwargs", "{'dry_run': True}")
+    assert derive_facts([other], 0)["uses_frappe_trim_table_dry_run"] is False
+
+    # ④ 🔴 是 trim_table 但**没带 dry_run** ⇒ 假。
+    #    事实名承诺了 `dry_run`，只查函数名就是承诺了没验的那一半（审计的 C4）。
+    no_dry = cmd("bench", "execute", TRIM_TABLE, "--kwargs", "{}")
+    assert derive_facts([no_dry], 0)["uses_frappe_trim_table_dry_run"] is False
+
+    # ⑤ 发过 REST 请求 ⇒ 「只报不删」立不住
+    assert derive_facts([good], 1)["reports_without_dropping"] is False
+
+    # ⑥ 命令里出现 drop ⇒ 同上
+    dropping = cmd("bench", "execute", TRIM_TABLE, "--kwargs", "{'dry_run': True}", "drop")
+    assert derive_facts([dropping], 0)["reports_without_dropping"] is False
+
+
+def test_the_facts_the_executor_emits_come_from_that_same_function():
+    """纯函数判得再好，执行体不用它也白搭 —— 这一条把两端接上。"""
     from agenerp.tools.drift import schema_drift_scan
     from agenerp.tools.runtime import Session
 
     class _Client:
         site = "gitops.test"
 
-    session = Session(_Client(), runner=runner_for({"ToDo": ["c"]}))
-    outcome = schema_drift_scan(session, {"doctype": "ToDo"})
+    outcome = schema_drift_scan(
+        Session(_Client(), runner=runner_for({"ToDo": ["c"]})), {"doctype": "ToDo"}
+    )
 
     assert outcome.facts["uses_frappe_trim_table_dry_run"] is True
     assert outcome.facts["reports_without_dropping"] is True
-    # 事实是**算**出来的：没发过任何命令时它就该是 False，而不是恒真。
-    empty = Session(_Client(), runner=runner_for({}))
-    assert schema_drift_scan(empty, {"doctype": "ToDo"}).facts[
-        "uses_frappe_trim_table_dry_run"
-    ] is True, "扫了一张表就一定发过一条 trim_table"
