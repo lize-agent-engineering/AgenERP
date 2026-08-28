@@ -623,12 +623,41 @@ jobs:
       - name: ⑥ 实验设施（tests/experiments）
         run: python3 -m pytest tests/experiments -q
 
+      # ⑦–⑨ 由人 2026-08-28 授权补（「CI 门禁也由你来处理就行了」）。
+      #
+      # 🔴 **这三个目录 2026-08-26 起就漏在 CI 之外，而门禁⑩ 一直是红的**：
+      #   tests/dsl    2026-08-26（P2.1）← 门禁⑩ 从这天起就红
+      #   tests/i18n   2026-08-27（P2.7）
+      #   tests/render 2026-08-27（P2.2）
+      #   tests/agents 2026-08-28（P2.3）
+      # `COVERED` 最后一次设定是 2026-08-24（b0ad632）。
+      # **它恰恰在做它被造出来要做的事，而它连着咬了四个工作项没人看见** ——
+      # 因为 mission 的 commands.test 是 `check_expected_red.py && pytest tests/unit`，**不跑 CI**。
+      # 连带后果：WBS §5 第 103 行那条 P2.3 验收命令，CI 上从来没跑过。
+      - name: ⑦ 视图 DSL（tests/dsl）
+        run: python3 -m pytest tests/dsl -q
+
+      - name: ⑧ 术语层（tests/i18n）
+        run: python3 -m pytest tests/i18n -q
+
+      # ⚠️ **必须带 `-m "not live"`**：tests/agents 里两种判据同住 ——
+      # test_view_agent.py 是离线本体（WBS 第 103 行那条验收打的就是它），
+      # 而 test_view_agent_live.py 是活体严格壳，**缺凭据时它必须红**（那是它的设计）。
+      # 不加这个标记，本步会因为 runner 上没有站点与模型凭据而必然红。
+      - name: ⑨ 视图 Agent（tests/agents，离线那半）
+        run: python3 -m pytest tests/agents -q -m "not live"
+
       # 判据自身的判据：新增目录若忘了接进来，这一步会红。
       # 不写死条数——条数会长；写死目录集合，多出目录即红。
-      - name: ⑦ 没有测试目录被漏在 CI 之外
+      #
+      # ⚠️ `render` 与 `ui` 列在 COVERED 里但**本 job 不跑**，理由与 `gates` 同：
+      # 它们要真浏览器 + 活栈（`tests/render` 还要 playwright 的浏览器二进制，D-25：
+      # 装包不等于能跑），归 `gates-l2-live` 那条线。**列出来是为了让「为何不跑」可被复核**，
+      # 不是为了让它们从视野里消失。
+      - name: ⑩ 没有测试目录被漏在 CI 之外
         run: |
           set -euo pipefail
-          COVERED="contracts context experiments fixtures gates routing tools ui unit"
+          COVERED="agents contracts context dsl experiments fixtures gates i18n render routing tools ui unit"
           ACTUAL=$(ls -d tests/*/ | xargs -n1 basename | sort | tr '\n' ' ' | sed 's/ $//')
           EXPECTED=$(echo $COVERED | tr ' ' '\n' | sort | tr '\n' ' ' | sed 's/ $//')
           if [ "$ACTUAL" != "$EXPECTED" ]; then
