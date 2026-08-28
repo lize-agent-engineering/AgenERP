@@ -222,6 +222,38 @@ def _dump(obj, _depth: int = 0):
     return repr(obj)[:400]
 
 
+def _flush(args, detail: list, usage: dict, halted_at=None) -> None:
+    """**每条跑完就写一次盘。**
+
+    🔴 原实现只在最后 `json.dump` 一次 —— 中途停下来（没额度、人叫停）就**全丢**，
+    这一场已经因此丢过两轮的轨迹。既然改成一条一条跑，就得一条一条落，
+    否则「跑到哪算哪」这件事在结果文件上是不存在的。
+    """
+    if not getattr(args, "out", ""):
+        return
+    scored = [d for d in detail if d.get("cause") != "infrastructure"]
+    passed = [d for d in scored if d.get("passed")]
+    json.dump(
+        {
+            "metric": "task_completion_rate",
+            "n_scored": len(scored),
+            "n_infrastructure": len(detail) - len(scored),
+            "task_completion_pct": (
+                round(len(passed) * 100 / len(scored), 1) if scored else 0.0
+            ),
+            "judge_model": args.judge_model,
+            "max_turns": args.max_turns,
+            "halted_at": halted_at,
+            "usage": usage,
+            "causes": list(CAUSES),
+            "detail": detail,
+        },
+        open(args.out, "w"),
+        ensure_ascii=False,
+        indent=2,
+    )
+
+
 def committed_field(answer: str) -> tuple[str | None, str]:
     """从答案里取**最后一行**上的那一个字段 —— agent 必须承诺。
 
@@ -386,6 +418,7 @@ def run_eval(
         except Exception as exc:  # noqa: BLE001
             rec.update(passed=False, cause="infrastructure", why=f"{type(exc).__name__}: {exc}")
             detail.append(rec)
+            _flush(args, detail, usage)
             print(f"  {n}/{len(items)}  ⚠️ infrastructure：{exc}", flush=True)
             continue
 
@@ -466,7 +499,21 @@ def run_eval(
             if rec.get("stopped") == "model-error":
                 rec.update(passed=False, cause="infrastructure",
                            why=f"{how}；模型端点报错 ⇒ **不计分**")
+                # 🔴 **额度耗尽就停，别一条条继续撞**（人 2026-08-28：
+                # 「一个任务一个任务的跑……如果没有额度就停下来」）。
+                # 继续跑只会把剩下的题一条条变成 infrastructure ——
+                # 既拿不到数，又在结果文件里堆一批没有信息量的失败。
+                blob = json.dumps(rec.get("trace") or {}, ensure_ascii=False)
+                if any(k in blob for k in ("quota", "Arrearage", "insufficient", "额度")):
+                    detail.append(rec)
+                    halted_at = n          # ⚠️ 要带到最后那次落盘，否则被覆写成 None
+                    _flush(args, detail, usage, halted_at=n)
+                    print(f"\n🔴 **额度耗尽，停在第 {n} 条（共 {len(items)} 条）。**"
+                          f"\n   已跑的都已落盘；**未跑的既不算通过也不算失败**。",
+                          flush=True)
+                    break
                 detail.append(rec)
+                _flush(args, detail, usage)
                 print(f"  {n}/{len(items)}  ⚠️ 模型端点报错（infrastructure，不计分）", flush=True)
                 continue
             # 🔴 **被我们自己的单条 token 闸停下的，不是能力问题。**
@@ -530,6 +577,7 @@ def run_eval(
               f" · {rec['tokens']['in'] + rec['tokens']['out']} token"
               f" · 工具 {len(rec['trajectory'])} 次", flush=True)
         detail.append(rec)
+        _flush(args, detail, usage)
 
     # ⚠️ **只有 `infrastructure` 不计分**（构建/凭据/判官这类真的坏了）。
     # `harness` 计分 —— 那是我们自己的配置问题，藏起来等于把失败洗掉。
@@ -554,7 +602,11 @@ def run_eval(
     print(f"   用量：{tot:,} token（agent）+ 判官 {usage.get('judge_in', 0)}"
           f"/{usage.get('judge_out', 0)}（{usage.get('judge_calls', 0)} 次）")
 
+    # ⚠️ **最后这次落盘也要带 `halted_at`** —— 不带的话它会把循环里
+    # 记下的「停在第几条」覆写成 None，结果文件上就看不出这一轮是**没跑完的**，
+    # 而一个看不出没跑完的部分结果，最容易被当成全集结论。实测踩过一次。
     payload = {"metric": "task_completion_rate", "n_scored": len(scored),
+               "halted_at": halted_at or None,
                "n_infrastructure": len(infra), "task_completion_pct": round(rate, 1),
                "judge_model": args.judge_model, "max_turns": args.max_turns,
                "usage": usage, "causes": list(CAUSES), "detail": detail}
