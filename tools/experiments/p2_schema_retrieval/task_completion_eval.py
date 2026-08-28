@@ -79,7 +79,9 @@ COMMIT_QUESTION = """你是 ERP 系统的字段专家。请回答下面这个问
 问题：{q}
 
 要求：
-- **只给一个字段**，格式严格为 `DocType.fieldname`（例如 `Sales Order.customer`）
+- **只给一个字段**，形如「单据名.字段名」，例如 `Sales Order.customer`
+  🔴 **「单据名」「字段名」是占位说明，不是答案** —— 要填这个站点上真实的名字。
+     答成 `DocType.fieldname` 或 `Quotation.fieldname` 一律算没回答。
 - 必须是这个站点上**真实存在**的字段 —— 拿不准就用 `meta.fields` 查这个 DocType 的字段表
 - 🔴 **这是一个 schema 问题：只查字段表，不要去读业务数据行。**
   `meta.fields` 和 `schema.search` 就够了。**不要**用 `doc.links` 追单据血缘、
@@ -399,6 +401,17 @@ def run_eval(
         rec["trajectory"] = [
             (c.get("tool") if isinstance(c, dict) else getattr(c, "tool", "")) for c in calls
         ]
+        # ⚠️ **判重复只许看这一份。** 只按工具名数会把「同一个工具、不同参数」
+        # 算成重复 —— 那是探索不是打转，这个误判骗了四次
+        # （同一批轨迹：按名字 17/16/37/12 次，按名字+参数只有 2/0/1/0 次）。
+        rec["trajectory_full"] = [
+            json.dumps(
+                [c.get("tool"), c.get("params")] if isinstance(c, dict)
+                else [getattr(c, "tool", ""), getattr(c, "params", None)],
+                ensure_ascii=False, sort_keys=True, default=str,
+            )
+            for c in calls
+        ]
         # 🔴 **全量留痕** —— calibration 第一条：Read complete runs。
         rec["raw_answer"] = answer
         # ⚠️ 第一版只存了工具名和最终答案，**归因照样卡住**：
@@ -438,7 +451,10 @@ def run_eval(
             # 轨迹里 `schema.search` **重复 12 次** —— 那是**打转**，是 capability，
             # 不是「没给够」。⇒ 只有当轨迹**没有明显重复**时才算 harness；
             # 重复占比过半的一律算 capability，**并且这一格永远要人复核**。
-            traj = rec["trajectory"]
+            # ⚠️ **判重复用 `trajectory_full`（名字+参数），不用 `trajectory`（只名字）。**
+            # 只按名字数会把探索误判成死循环 —— 那个误判骗了四次，而且每次都把人
+            # 引向「做调用去重」这个什么也修不了的方向。
+            traj = rec["trajectory_full"]
             repeats = len(traj) - len(set(traj)) if traj else 0
             looping = bool(traj) and repeats >= len(traj) / 2
             # 🔴 **模型端点自己报错的，一律 infrastructure，不看轨迹像不像打转。**
@@ -453,14 +469,28 @@ def run_eval(
                 detail.append(rec)
                 print(f"  {n}/{len(items)}  ⚠️ 模型端点报错（infrastructure，不计分）", flush=True)
                 continue
-            hit_turn_cap = (rec["tokens"]["model_calls"] >= args.max_turns) and not looping
+            # 🔴 **被我们自己的单条 token 闸停下的，不是能力问题。**
+            # 这是同一类错误的第五次：把**我们的配置**造成的失败记成 agent 的能力问题。
+            # 实测（qwen3.7-flash，独立集）：13 条失败里 3 条 `stopped == "token-budget"`，
+            # 被记成 capability「打转」—— 而它们**按名字+参数的重复数是 0**，
+            # 根本没在打转，是探索到一半被闸切断的。
+            stopped_by_our_gate = rec.get("stopped") == "token-budget"
+            hit_turn_cap = (
+                rec["tokens"]["model_calls"] >= args.max_turns
+                and not looping
+                and not stopped_by_our_gate
+            )
             rec.update(
                 passed=False,
-                cause="harness" if hit_turn_cap else "capability",
-                why=(f"{how}；模型调用 {rec['tokens']['model_calls']} 次 = max_turns "
+                cause=("harness" if (hit_turn_cap or stopped_by_our_gate) else "capability"),
+                why=(
+                    f"{how}；**被我们自己的单条 token 闸停下** —— 不是能力问题，"
+                    f"要洗掉这个归因得把闸放开重跑" if stopped_by_our_gate
+                    else f"{how}；模型调用 {rec['tokens']['model_calls']} 次 = max_turns "
                      f"上限 ⇒ 被截断（轨迹无明显重复）" if hit_turn_cap
-                     else (f"{how}；烧满 {len(traj)} 次工具且 {repeats} 次重复 ⇒ **打转**"
-                           if looping else how)),
+                    else (f"{how}；烧满 {len(traj)} 次工具且 {repeats} 次**同名同参**"
+                          f"重复 ⇒ 打转" if looping else how)
+                ),
             )
         elif field not in by_key:
             rec.update(passed=False, cause="capability",
