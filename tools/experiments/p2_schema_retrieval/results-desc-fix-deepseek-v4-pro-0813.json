@@ -1,0 +1,1136 @@
+{
+  "metric": "task_completion_rate",
+  "n_scored": 3,
+  "halted_at": null,
+  "n_infrastructure": 0,
+  "task_completion_pct": 66.7,
+  "judge_model": "deepseek-v4-pro-0813",
+  "max_turns": 40,
+  "usage": {},
+  "causes": [
+    "capability",
+    "missing_info",
+    "harness",
+    "environment",
+    "false_rejection",
+    "false_acceptance",
+    "leakage",
+    "infrastructure"
+  ],
+  "detail": [
+    {
+      "q": "还没收到各家回价，我发出去问价的那张单里，这行料写着最迟哪天要用？",
+      "acceptable": [
+        "Request for Quotation Item.schedule_date"
+      ],
+      "expected": [
+        "Request for Quotation Item.schedule_date"
+      ],
+      "why_acceptable": "",
+      "difficulty": "hard",
+      "why_hard": "容易混成 Supplier Quotation Item.expected_delivery_date、Material Request Item.schedule_date 或 Purchase Order Item.schedule_date；要识别发出的询价要求，而不是对方承诺或内部申请。",
+      "domain": "buying",
+      "tokens": {
+        "in": 6260,
+        "out": 260,
+        "reasoning": 0,
+        "model_calls": 3
+      },
+      "trajectory": [
+        "schema.search",
+        "meta.fields"
+      ],
+      "trajectory_full": [
+        "[\"schema.search\", {\"keywords\": \"Request for Quotation\"}]",
+        "[\"meta.fields\", {\"doctype\": \"Request for Quotation\", \"keywords\": \"required date schedule\"}]"
+      ],
+      "raw_answer": "问题问的是\"这行料\"最迟哪天要用，是行级别（每行料）的字段，对应子表 `Request for Quotation Item` 里的 `schedule_date`（标签为 \"Required Date\"，必填）。\n\nRequest for Quotation Item.schedule_date",
+      "trace": {
+        "question": "你是 ERP 系统的字段专家。请回答下面这个问题需要用到**哪一个**字段。\n\n问题：还没收到各家回价，我发出去问价的那张单里，这行料写着最迟哪天要用？\n\n要求：\n- **只给一个字段**，形如「单据名.字段名」，例如 `Sales Order.customer`\n  🔴 **「单据名」「字段名」是占位说明，不是答案** —— 要填这个站点上真实的名字。\n     答成 `DocType.fieldname` 或 `Quotation.fieldname` 一律算没回答。\n- 必须是这个站点上**真实存在**的字段 —— 拿不准就用 `meta.fields` 查这个 DocType 的字段表\n- 🔴 **这是一个 schema 问题：只查字段表，不要去读业务数据行。**\n  `meta.fields` 和 `schema.search` 就够了。**不要**用 `doc.links` 追单据血缘、\n  也不要为了看一眼取值去 `query.read` 业务单据 —— 那是回答「这个数是怎么来的」时才要做的事，\n  与「哪个字段」无关，只会把轮数耗光。\n- 最后一行只输出那个字段本身，前面可以写你的查证过程\n\n⚠️ **「存在」= 它在这个 DocType 的字段表里，不是「能找到一行填了值的数据」。**\n很多字段在演示站点上没有数据（比如「拒收仓库」要有拒收才会填），\n**找不到有值的行是正常的，不代表字段不对，也不需要继续找。**\n字段表里有它，就够了 —— 别为了佐证一个取值把轮数耗光。\n\n⚠️ 这是**要你做决定**，不是要你列候选。给多个字段视同没回答。",
+        "model": "deepseek-v4-pro-0813",
+        "task_class": "explain",
+        "turns": [
+          {
+            "index": 1,
+            "kind": "tools",
+            "usage": {
+              "prompt": 1762,
+              "completion": 121,
+              "reasoning": 0,
+              "cached": 1024,
+              "total": 1883
+            },
+            "calls": [
+              "schema.search"
+            ]
+          },
+          {
+            "index": 2,
+            "kind": "tools",
+            "usage": {
+              "prompt": 2105,
+              "completion": 80,
+              "reasoning": 0,
+              "cached": 1024,
+              "total": 2185
+            },
+            "calls": [
+              "meta.fields"
+            ]
+          },
+          {
+            "index": 3,
+            "kind": "answer",
+            "usage": {
+              "prompt": 2393,
+              "completion": 59,
+              "reasoning": 0,
+              "cached": 2048,
+              "total": 2452
+            }
+          }
+        ],
+        "tool_calls": [
+          {
+            "tool": "schema.search",
+            "params": {
+              "keywords": "Request for Quotation"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 242,
+            "surface_id": "evidence-surface-1"
+          },
+          {
+            "tool": "meta.fields",
+            "params": {
+              "doctype": "Request for Quotation",
+              "keywords": "required date schedule"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 3,
+            "surface_id": "evidence-surface-1"
+          }
+        ],
+        "gate_checks": [
+          {
+            "turn": 3,
+            "enforced": true,
+            "surface_id": "evidence-surface-1",
+            "facts": {
+              "documents_named_in_question": [],
+              "doc_links_called_for": [],
+              "doc_get_called_for": [],
+              "submitted_downstream_documents": [],
+              "inbound_vouchers_of_quantities_in_answer": []
+            },
+            "failed": []
+          }
+        ],
+        "forced_continues": [],
+        "breaker_events": [],
+        "runaway_events": [],
+        "model_tool_calls": 2,
+        "opening_request_count": 240,
+        "execute_calls": 2,
+        "stopped": "answered",
+        "cost_ledger": {
+          "entries": [
+            {
+              "index": 1,
+              "model": "deepseek-v4-pro-0813",
+              "usage": {
+                "prompt": 1762,
+                "completion": 121,
+                "reasoning": 0,
+                "cached": 1024
+              },
+              "outcome": "tools",
+              "endpoint_total": 1883,
+              "endpoint_reasoning": 0,
+              "endpoint_cached": 1024,
+              "detail": ""
+            },
+            {
+              "index": 2,
+              "model": "deepseek-v4-pro-0813",
+              "usage": {
+                "prompt": 2105,
+                "completion": 80,
+                "reasoning": 0,
+                "cached": 1024
+              },
+              "outcome": "tools",
+              "endpoint_total": 2185,
+              "endpoint_reasoning": 0,
+              "endpoint_cached": 1024,
+              "detail": ""
+            },
+            {
+              "index": 3,
+              "model": "deepseek-v4-pro-0813",
+              "usage": {
+                "prompt": 2393,
+                "completion": 59,
+                "reasoning": 0,
+                "cached": 2048
+              },
+              "outcome": "answer",
+              "endpoint_total": 2452,
+              "endpoint_reasoning": 0,
+              "endpoint_cached": 2048,
+              "detail": ""
+            }
+          ]
+        }
+      },
+      "stopped": "answered",
+      "forced_continues": [],
+      "gate_checks": [
+        {
+          "turn": 3,
+          "failed": []
+        }
+      ],
+      "committed": "Quotation Item.schedule_date",
+      "commit_note": "最后一行承诺",
+      "passed": false,
+      "cause": "capability",
+      "why": "承诺了一个站点上不存在的字段：Quotation Item.schedule_date"
+    },
+    {
+      "q": "我查的是整张生产工单下面那道工序，系统已经记下的实际耗时是多少？不是其中某一次报工的时长。",
+      "acceptable": [
+        "Work Order Operation.actual_operation_time"
+      ],
+      "expected": [
+        "Work Order Operation.actual_operation_time"
+      ],
+      "why_acceptable": "",
+      "difficulty": "hard",
+      "why_hard": "容易混成 BOM Operation.time_in_mins、Job Card.total_time_in_mins 或 Job Card Time Log.time_in_mins；需识别工单工序层级的现成实绩字段，不是标准工时或单段报工，也不用重新汇总。",
+      "domain": "manufacturing",
+      "tokens": {
+        "in": 8934,
+        "out": 267,
+        "reasoning": 0,
+        "model_calls": 4
+      },
+      "trajectory": [
+        "schema.search",
+        "schema.search",
+        "schema.search",
+        "meta.fields"
+      ],
+      "trajectory_full": [
+        "[\"schema.search\", {\"keywords\": \"生产工单 工序 实际耗时\"}]",
+        "[\"schema.search\", {\"keywords\": \"Work Order Operation\"}]",
+        "[\"schema.search\", {\"keywords\": \"Job Card\"}]",
+        "[\"meta.fields\", {\"doctype\": \"Work Order\", \"keywords\": \"operation hour 工序 耗时\"}]"
+      ],
+      "raw_answer": "「Work Order Operation」是「生产工单」下面那道工序的子表（Operations 子表）。其中 `actual_operation_time`（实际工序耗时，分钟）正是系统累计记录整道工序的实际耗时（按 Time Log 更新），区别于某一次报工时长的 `time_logs` 子表。\n\nWork Order Operation.actual_operation_time",
+      "trace": {
+        "question": "你是 ERP 系统的字段专家。请回答下面这个问题需要用到**哪一个**字段。\n\n问题：我查的是整张生产工单下面那道工序，系统已经记下的实际耗时是多少？不是其中某一次报工的时长。\n\n要求：\n- **只给一个字段**，形如「单据名.字段名」，例如 `Sales Order.customer`\n  🔴 **「单据名」「字段名」是占位说明，不是答案** —— 要填这个站点上真实的名字。\n     答成 `DocType.fieldname` 或 `Quotation.fieldname` 一律算没回答。\n- 必须是这个站点上**真实存在**的字段 —— 拿不准就用 `meta.fields` 查这个 DocType 的字段表\n- 🔴 **这是一个 schema 问题：只查字段表，不要去读业务数据行。**\n  `meta.fields` 和 `schema.search` 就够了。**不要**用 `doc.links` 追单据血缘、\n  也不要为了看一眼取值去 `query.read` 业务单据 —— 那是回答「这个数是怎么来的」时才要做的事，\n  与「哪个字段」无关，只会把轮数耗光。\n- 最后一行只输出那个字段本身，前面可以写你的查证过程\n\n⚠️ **「存在」= 它在这个 DocType 的字段表里，不是「能找到一行填了值的数据」。**\n很多字段在演示站点上没有数据（比如「拒收仓库」要有拒收才会填），\n**找不到有值的行是正常的，不代表字段不对，也不需要继续找。**\n字段表里有它，就够了 —— 别为了佐证一个取值把轮数耗光。\n\n⚠️ 这是**要你做决定**，不是要你列候选。给多个字段视同没回答。",
+        "model": "deepseek-v4-pro-0813",
+        "task_class": "explain",
+        "turns": [
+          {
+            "index": 1,
+            "kind": "tools",
+            "usage": {
+              "prompt": 1765,
+              "completion": 50,
+              "reasoning": 0,
+              "cached": 1024,
+              "total": 1815
+            },
+            "calls": [
+              "schema.search"
+            ]
+          },
+          {
+            "index": 2,
+            "kind": "tools",
+            "usage": {
+              "prompt": 1847,
+              "completion": 76,
+              "reasoning": 0,
+              "cached": 1024,
+              "total": 1923
+            },
+            "calls": [
+              "schema.search",
+              "schema.search"
+            ]
+          },
+          {
+            "index": 3,
+            "kind": "tools",
+            "usage": {
+              "prompt": 2391,
+              "completion": 66,
+              "reasoning": 0,
+              "cached": 1024,
+              "total": 2457
+            },
+            "calls": [
+              "meta.fields"
+            ]
+          },
+          {
+            "index": 4,
+            "kind": "answer",
+            "usage": {
+              "prompt": 2931,
+              "completion": 75,
+              "reasoning": 0,
+              "cached": 2048,
+              "total": 3006
+            }
+          }
+        ],
+        "tool_calls": [
+          {
+            "tool": "schema.search",
+            "params": {
+              "keywords": "生产工单 工序 实际耗时"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 242,
+            "surface_id": "evidence-surface-2"
+          },
+          {
+            "tool": "schema.search",
+            "params": {
+              "keywords": "Work Order Operation"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 242,
+            "surface_id": "evidence-surface-2"
+          },
+          {
+            "tool": "schema.search",
+            "params": {
+              "keywords": "Job Card"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 242,
+            "surface_id": "evidence-surface-2"
+          },
+          {
+            "tool": "meta.fields",
+            "params": {
+              "doctype": "Work Order",
+              "keywords": "operation hour 工序 耗时"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 3,
+            "surface_id": "evidence-surface-2"
+          }
+        ],
+        "gate_checks": [
+          {
+            "turn": 4,
+            "enforced": true,
+            "surface_id": "evidence-surface-2",
+            "facts": {
+              "documents_named_in_question": [],
+              "doc_links_called_for": [],
+              "doc_get_called_for": [],
+              "submitted_downstream_documents": [],
+              "inbound_vouchers_of_quantities_in_answer": []
+            },
+            "failed": []
+          }
+        ],
+        "forced_continues": [],
+        "breaker_events": [],
+        "runaway_events": [],
+        "model_tool_calls": 4,
+        "opening_request_count": 240,
+        "execute_calls": 4,
+        "stopped": "answered",
+        "cost_ledger": {
+          "entries": [
+            {
+              "index": 1,
+              "model": "deepseek-v4-pro-0813",
+              "usage": {
+                "prompt": 1765,
+                "completion": 50,
+                "reasoning": 0,
+                "cached": 1024
+              },
+              "outcome": "tools",
+              "endpoint_total": 1815,
+              "endpoint_reasoning": 0,
+              "endpoint_cached": 1024,
+              "detail": ""
+            },
+            {
+              "index": 2,
+              "model": "deepseek-v4-pro-0813",
+              "usage": {
+                "prompt": 1847,
+                "completion": 76,
+                "reasoning": 0,
+                "cached": 1024
+              },
+              "outcome": "tools",
+              "endpoint_total": 1923,
+              "endpoint_reasoning": 0,
+              "endpoint_cached": 1024,
+              "detail": ""
+            },
+            {
+              "index": 3,
+              "model": "deepseek-v4-pro-0813",
+              "usage": {
+                "prompt": 2391,
+                "completion": 66,
+                "reasoning": 0,
+                "cached": 1024
+              },
+              "outcome": "tools",
+              "endpoint_total": 2457,
+              "endpoint_reasoning": 0,
+              "endpoint_cached": 1024,
+              "detail": ""
+            },
+            {
+              "index": 4,
+              "model": "deepseek-v4-pro-0813",
+              "usage": {
+                "prompt": 2931,
+                "completion": 75,
+                "reasoning": 0,
+                "cached": 2048
+              },
+              "outcome": "answer",
+              "endpoint_total": 3006,
+              "endpoint_reasoning": 0,
+              "endpoint_cached": 2048,
+              "detail": ""
+            }
+          ]
+        }
+      },
+      "stopped": "answered",
+      "forced_continues": [],
+      "gate_checks": [
+        {
+          "turn": 4,
+          "failed": []
+        }
+      ],
+      "committed": "Work Order Operation.actual_operation_time",
+      "commit_note": "最后一行承诺",
+      "passed": true,
+      "cause": null,
+      "why": "命中可接受集合"
+    },
+    {
+      "q": "小王把收通知的邮箱选成了公司给他的那个，具体地址是什么？",
+      "acceptable": [
+        "Employee.prefered_email",
+        "Employee.company_email"
+      ],
+      "expected": [
+        "Employee.prefered_email"
+      ],
+      "why_acceptable": "Employee.company_email 保存公司邮箱地址；题目已明确员工选择公司邮箱接收通知，因此 Employee.prefered_email 与它回答的是同一个地址。个人邮箱或登录账号不满足这个已给定条件。",
+      "difficulty": "medium",
+      "why_hard": "需区分邮箱类型选项和实际地址；题目明确选公司邮箱，因此选中地址与公司邮箱字段都成立。",
+      "domain": "hr",
+      "tokens": {
+        "in": 52187,
+        "out": 1563,
+        "reasoning": 0,
+        "model_calls": 12
+      },
+      "trajectory": [
+        "schema.search",
+        "schema.search",
+        "schema.search",
+        "schema.search",
+        "schema.search",
+        "schema.search",
+        "meta.fields",
+        "schema.search",
+        "schema.search",
+        "schema.search",
+        "schema.search",
+        "schema.search",
+        "meta.fields",
+        "schema.search",
+        "meta.fields",
+        "meta.fields",
+        "schema.search",
+        "meta.fields",
+        "schema.search",
+        "meta.fields"
+      ],
+      "trajectory_full": [
+        "[\"schema.search\", {\"keywords\": \"notification email contact\"}]",
+        "[\"schema.search\", {\"keywords\": \"email notification\"}]",
+        "[\"schema.search\", {\"keywords\": \"user notify email\"}]",
+        "[\"schema.search\", {\"keywords\": \"notification email address\"}]",
+        "[\"schema.search\", {\"keywords\": \"Notification\"}]",
+        "[\"schema.search\", {\"keywords\": \"receive notification email\"}]",
+        "[\"meta.fields\", {\"doctype\": \"User\", \"keywords\": \"email notification notify\"}]",
+        "[\"schema.search\", {\"keywords\": \"User\"}]",
+        "[\"schema.search\", {\"keywords\": \"notification settings\"}]",
+        "[\"schema.search\", {\"keywords\": \"notify email address\"}]",
+        "[\"schema.search\", {\"keywords\": \"notification recipient\"}]",
+        "[\"schema.search\", {\"keywords\": \"email id\"}]",
+        "[\"meta.fields\", {\"doctype\": \"Notification\", \"keywords\": \"email\"}]",
+        "[\"schema.search\", {\"keywords\": \"notification subscribe\"}]",
+        "[\"meta.fields\", {\"doctype\": \"Notification\"}]",
+        "[\"meta.fields\", {\"doctype\": \"Contact\", \"keywords\": \"email notification notify\"}]",
+        "[\"schema.search\", {\"keywords\": \"contact notify email\"}]",
+        "[\"meta.fields\", {\"doctype\": \"Employee\", \"keywords\": \"email notification notify\"}]",
+        "[\"schema.search\", {\"keywords\": \"notification email recipient address receive\"}]",
+        "[\"meta.fields\", {\"doctype\": \"Employee\", \"keywords\": \"company_email prefered_contact_email\"}]"
+      ],
+      "raw_answer": "查证过程：\n\n1. 问题描述\"小王把**收通知的邮箱选成了公司给他的那个**\"，对应的是 Employee 上的「首选联系邮箱」选择字段，它在 Employee 字段表中确实存在 —— `Employee.prefered_contact_email`（Select，选项为 Company Email / Personal Email / User ID）。\n2. 当该选择为「Company Email」时，具体地址就落在 `Employee.company_email` 字段（label 为 \"Company Email\"，description 注明 \"Provide Email Address registered in company\"），该字段确实存在于字段表。\n\n因此，回答「具体地址是什么」所需的字段是：\n\nEmployee.company_email",
+      "trace": {
+        "question": "你是 ERP 系统的字段专家。请回答下面这个问题需要用到**哪一个**字段。\n\n问题：小王把收通知的邮箱选成了公司给他的那个，具体地址是什么？\n\n要求：\n- **只给一个字段**，形如「单据名.字段名」，例如 `Sales Order.customer`\n  🔴 **「单据名」「字段名」是占位说明，不是答案** —— 要填这个站点上真实的名字。\n     答成 `DocType.fieldname` 或 `Quotation.fieldname` 一律算没回答。\n- 必须是这个站点上**真实存在**的字段 —— 拿不准就用 `meta.fields` 查这个 DocType 的字段表\n- 🔴 **这是一个 schema 问题：只查字段表，不要去读业务数据行。**\n  `meta.fields` 和 `schema.search` 就够了。**不要**用 `doc.links` 追单据血缘、\n  也不要为了看一眼取值去 `query.read` 业务单据 —— 那是回答「这个数是怎么来的」时才要做的事，\n  与「哪个字段」无关，只会把轮数耗光。\n- 最后一行只输出那个字段本身，前面可以写你的查证过程\n\n⚠️ **「存在」= 它在这个 DocType 的字段表里，不是「能找到一行填了值的数据」。**\n很多字段在演示站点上没有数据（比如「拒收仓库」要有拒收才会填），\n**找不到有值的行是正常的，不代表字段不对，也不需要继续找。**\n字段表里有它，就够了 —— 别为了佐证一个取值把轮数耗光。\n\n⚠️ 这是**要你做决定**，不是要你列候选。给多个字段视同没回答。",
+        "model": "deepseek-v4-pro-0813",
+        "task_class": "explain",
+        "turns": [
+          {
+            "index": 1,
+            "kind": "tools",
+            "usage": {
+              "prompt": 1753,
+              "completion": 89,
+              "reasoning": 0,
+              "cached": 1024,
+              "total": 1842
+            },
+            "calls": [
+              "schema.search",
+              "schema.search"
+            ]
+          },
+          {
+            "index": 2,
+            "kind": "tools",
+            "usage": {
+              "prompt": 1997,
+              "completion": 98,
+              "reasoning": 0,
+              "cached": 1024,
+              "total": 2095
+            },
+            "calls": [
+              "schema.search",
+              "schema.search"
+            ]
+          },
+          {
+            "index": 3,
+            "kind": "tools",
+            "usage": {
+              "prompt": 2254,
+              "completion": 106,
+              "reasoning": 0,
+              "cached": 1024,
+              "total": 2360
+            },
+            "calls": [
+              "schema.search",
+              "schema.search"
+            ]
+          },
+          {
+            "index": 4,
+            "kind": "tools",
+            "usage": {
+              "prompt": 2461,
+              "completion": 108,
+              "reasoning": 0,
+              "cached": 2048,
+              "total": 2569
+            },
+            "calls": [
+              "meta.fields",
+              "schema.search"
+            ]
+          },
+          {
+            "index": 5,
+            "kind": "tools",
+            "usage": {
+              "prompt": 3225,
+              "completion": 126,
+              "reasoning": 0,
+              "cached": 2048,
+              "total": 3351
+            },
+            "calls": [
+              "schema.search",
+              "schema.search"
+            ]
+          },
+          {
+            "index": 6,
+            "kind": "tools",
+            "usage": {
+              "prompt": 3568,
+              "completion": 118,
+              "reasoning": 0,
+              "cached": 3072,
+              "total": 3686
+            },
+            "calls": [
+              "schema.search",
+              "schema.search"
+            ]
+          },
+          {
+            "index": 7,
+            "kind": "tools",
+            "usage": {
+              "prompt": 3840,
+              "completion": 121,
+              "reasoning": 0,
+              "cached": 3072,
+              "total": 3961
+            },
+            "calls": [
+              "meta.fields",
+              "schema.search"
+            ]
+          },
+          {
+            "index": 8,
+            "kind": "tools",
+            "usage": {
+              "prompt": 4055,
+              "completion": 58,
+              "reasoning": 0,
+              "cached": 3072,
+              "total": 4113
+            },
+            "calls": [
+              "meta.fields"
+            ]
+          },
+          {
+            "index": 9,
+            "kind": "tools",
+            "usage": {
+              "prompt": 6544,
+              "completion": 158,
+              "reasoning": 0,
+              "cached": 3072,
+              "total": 6702
+            },
+            "calls": [
+              "meta.fields",
+              "schema.search"
+            ]
+          },
+          {
+            "index": 10,
+            "kind": "tools",
+            "usage": {
+              "prompt": 6970,
+              "completion": 240,
+              "reasoning": 0,
+              "cached": 6144,
+              "total": 7210
+            },
+            "calls": [
+              "meta.fields",
+              "schema.search"
+            ]
+          },
+          {
+            "index": 11,
+            "kind": "tools",
+            "usage": {
+              "prompt": 7577,
+              "completion": 207,
+              "reasoning": 0,
+              "cached": 6144,
+              "total": 7784
+            },
+            "calls": [
+              "meta.fields"
+            ]
+          },
+          {
+            "index": 12,
+            "kind": "answer",
+            "usage": {
+              "prompt": 7943,
+              "completion": 134,
+              "reasoning": 0,
+              "cached": 7168,
+              "total": 8077
+            }
+          }
+        ],
+        "tool_calls": [
+          {
+            "tool": "schema.search",
+            "params": {
+              "keywords": "notification email contact"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 242,
+            "surface_id": "evidence-surface-3"
+          },
+          {
+            "tool": "schema.search",
+            "params": {
+              "keywords": "email notification"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 242,
+            "surface_id": "evidence-surface-3"
+          },
+          {
+            "tool": "schema.search",
+            "params": {
+              "keywords": "user notify email"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 242,
+            "surface_id": "evidence-surface-3"
+          },
+          {
+            "tool": "schema.search",
+            "params": {
+              "keywords": "notification email address"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 242,
+            "surface_id": "evidence-surface-3"
+          },
+          {
+            "tool": "schema.search",
+            "params": {
+              "keywords": "Notification"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 242,
+            "surface_id": "evidence-surface-3"
+          },
+          {
+            "tool": "schema.search",
+            "params": {
+              "keywords": "receive notification email"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 242,
+            "surface_id": "evidence-surface-3"
+          },
+          {
+            "tool": "meta.fields",
+            "params": {
+              "doctype": "User",
+              "keywords": "email notification notify"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 6,
+            "surface_id": "evidence-surface-3"
+          },
+          {
+            "tool": "schema.search",
+            "params": {
+              "keywords": "User"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 242,
+            "surface_id": "evidence-surface-3"
+          },
+          {
+            "tool": "schema.search",
+            "params": {
+              "keywords": "notification settings"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 242,
+            "surface_id": "evidence-surface-3"
+          },
+          {
+            "tool": "schema.search",
+            "params": {
+              "keywords": "notify email address"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 242,
+            "surface_id": "evidence-surface-3"
+          },
+          {
+            "tool": "schema.search",
+            "params": {
+              "keywords": "notification recipient"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 242,
+            "surface_id": "evidence-surface-3"
+          },
+          {
+            "tool": "schema.search",
+            "params": {
+              "keywords": "email id"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 242,
+            "surface_id": "evidence-surface-3"
+          },
+          {
+            "tool": "meta.fields",
+            "params": {
+              "doctype": "Notification",
+              "keywords": "email"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 2,
+            "surface_id": "evidence-surface-3"
+          },
+          {
+            "tool": "schema.search",
+            "params": {
+              "keywords": "notification subscribe"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 242,
+            "surface_id": "evidence-surface-3"
+          },
+          {
+            "tool": "meta.fields",
+            "params": {
+              "doctype": "Notification"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 2,
+            "surface_id": "evidence-surface-3"
+          },
+          {
+            "tool": "meta.fields",
+            "params": {
+              "doctype": "Contact",
+              "keywords": "email notification notify"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 4,
+            "surface_id": "evidence-surface-3"
+          },
+          {
+            "tool": "schema.search",
+            "params": {
+              "keywords": "contact notify email"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 242,
+            "surface_id": "evidence-surface-3"
+          },
+          {
+            "tool": "meta.fields",
+            "params": {
+              "doctype": "Employee",
+              "keywords": "email notification notify"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 4,
+            "surface_id": "evidence-surface-3"
+          },
+          {
+            "tool": "schema.search",
+            "params": {
+              "keywords": "notification email recipient address receive"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 242,
+            "surface_id": "evidence-surface-3"
+          },
+          {
+            "tool": "meta.fields",
+            "params": {
+              "doctype": "Employee",
+              "keywords": "company_email prefered_contact_email"
+            },
+            "ok": true,
+            "stage": "postconditions",
+            "reasons": [],
+            "request_count": 4,
+            "surface_id": "evidence-surface-3"
+          }
+        ],
+        "gate_checks": [
+          {
+            "turn": 12,
+            "enforced": true,
+            "surface_id": "evidence-surface-3",
+            "facts": {
+              "documents_named_in_question": [],
+              "doc_links_called_for": [],
+              "doc_get_called_for": [],
+              "submitted_downstream_documents": [],
+              "inbound_vouchers_of_quantities_in_answer": []
+            },
+            "failed": []
+          }
+        ],
+        "forced_continues": [],
+        "breaker_events": [],
+        "runaway_events": [],
+        "model_tool_calls": 20,
+        "opening_request_count": 240,
+        "execute_calls": 20,
+        "stopped": "answered",
+        "cost_ledger": {
+          "entries": [
+            {
+              "index": 1,
+              "model": "deepseek-v4-pro-0813",
+              "usage": {
+                "prompt": 1753,
+                "completion": 89,
+                "reasoning": 0,
+                "cached": 1024
+              },
+              "outcome": "tools",
+              "endpoint_total": 1842,
+              "endpoint_reasoning": 0,
+              "endpoint_cached": 1024,
+              "detail": ""
+            },
+            {
+              "index": 2,
+              "model": "deepseek-v4-pro-0813",
+              "usage": {
+                "prompt": 1997,
+                "completion": 98,
+                "reasoning": 0,
+                "cached": 1024
+              },
+              "outcome": "tools",
+              "endpoint_total": 2095,
+              "endpoint_reasoning": 0,
+              "endpoint_cached": 1024,
+              "detail": ""
+            },
+            {
+              "index": 3,
+              "model": "deepseek-v4-pro-0813",
+              "usage": {
+                "prompt": 2254,
+                "completion": 106,
+                "reasoning": 0,
+                "cached": 1024
+              },
+              "outcome": "tools",
+              "endpoint_total": 2360,
+              "endpoint_reasoning": 0,
+              "endpoint_cached": 1024,
+              "detail": ""
+            },
+            {
+              "index": 4,
+              "model": "deepseek-v4-pro-0813",
+              "usage": {
+                "prompt": 2461,
+                "completion": 108,
+                "reasoning": 0,
+                "cached": 2048
+              },
+              "outcome": "tools",
+              "endpoint_total": 2569,
+              "endpoint_reasoning": 0,
+              "endpoint_cached": 2048,
+              "detail": ""
+            },
+            {
+              "index": 5,
+              "model": "deepseek-v4-pro-0813",
+              "usage": {
+                "prompt": 3225,
+                "completion": 126,
+                "reasoning": 0,
+                "cached": 2048
+              },
+              "outcome": "tools",
+              "endpoint_total": 3351,
+              "endpoint_reasoning": 0,
+              "endpoint_cached": 2048,
+              "detail": ""
+            },
+            {
+              "index": 6,
+              "model": "deepseek-v4-pro-0813",
+              "usage": {
+                "prompt": 3568,
+                "completion": 118,
+                "reasoning": 0,
+                "cached": 3072
+              },
+              "outcome": "tools",
+              "endpoint_total": 3686,
+              "endpoint_reasoning": 0,
+              "endpoint_cached": 3072,
+              "detail": ""
+            },
+            {
+              "index": 7,
+              "model": "deepseek-v4-pro-0813",
+              "usage": {
+                "prompt": 3840,
+                "completion": 121,
+                "reasoning": 0,
+                "cached": 3072
+              },
+              "outcome": "tools",
+              "endpoint_total": 3961,
+              "endpoint_reasoning": 0,
+              "endpoint_cached": 3072,
+              "detail": ""
+            },
+            {
+              "index": 8,
+              "model": "deepseek-v4-pro-0813",
+              "usage": {
+                "prompt": 4055,
+                "completion": 58,
+                "reasoning": 0,
+                "cached": 3072
+              },
+              "outcome": "tools",
+              "endpoint_total": 4113,
+              "endpoint_reasoning": 0,
+              "endpoint_cached": 3072,
+              "detail": ""
+            },
+            {
+              "index": 9,
+              "model": "deepseek-v4-pro-0813",
+              "usage": {
+                "prompt": 6544,
+                "completion": 158,
+                "reasoning": 0,
+                "cached": 3072
+              },
+              "outcome": "tools",
+              "endpoint_total": 6702,
+              "endpoint_reasoning": 0,
+              "endpoint_cached": 3072,
+              "detail": ""
+            },
+            {
+              "index": 10,
+              "model": "deepseek-v4-pro-0813",
+              "usage": {
+                "prompt": 6970,
+                "completion": 240,
+                "reasoning": 0,
+                "cached": 6144
+              },
+              "outcome": "tools",
+              "endpoint_total": 7210,
+              "endpoint_reasoning": 0,
+              "endpoint_cached": 6144,
+              "detail": ""
+            },
+            {
+              "index": 11,
+              "model": "deepseek-v4-pro-0813",
+              "usage": {
+                "prompt": 7577,
+                "completion": 207,
+                "reasoning": 0,
+                "cached": 6144
+              },
+              "outcome": "tools",
+              "endpoint_total": 7784,
+              "endpoint_reasoning": 0,
+              "endpoint_cached": 6144,
+              "detail": ""
+            },
+            {
+              "index": 12,
+              "model": "deepseek-v4-pro-0813",
+              "usage": {
+                "prompt": 7943,
+                "completion": 134,
+                "reasoning": 0,
+                "cached": 7168
+              },
+              "outcome": "answer",
+              "endpoint_total": 8077,
+              "endpoint_reasoning": 0,
+              "endpoint_cached": 7168,
+              "detail": ""
+            }
+          ]
+        }
+      },
+      "stopped": "answered",
+      "forced_continues": [],
+      "gate_checks": [
+        {
+          "turn": 12,
+          "failed": []
+        }
+      ],
+      "committed": "Employee.company_email",
+      "commit_note": "最后一行承诺",
+      "passed": true,
+      "cause": null,
+      "why": "命中可接受集合"
+    }
+  ]
+}
