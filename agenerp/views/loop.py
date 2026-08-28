@@ -28,10 +28,17 @@ from dataclasses import dataclass, field
 
 import json
 
+from agenerp.dsl.blocks import (
+    AGGREGATES,
+    BLOCK_TYPES,
+    CHART_KINDS,
+    FILTER_OPERATORS,
+    SORT_DIRECTIONS,
+    View,
+)
 from agenerp.dsl.fallback import RenderPlan, plan_render
 from agenerp.dsl.schema import SchemaView
 from agenerp.dsl.validate import SchemaUnavailable, ValidationResult, validate
-from agenerp.dsl.blocks import View
 from agenerp.routing import route
 from agenerp.routing.adapter import ChatAdapter
 from agenerp.site import SiteClient
@@ -81,12 +88,61 @@ VIEW_TOOLS = ("system.overview", "schema.search", "meta.fields")
 # `model-management.md` §12.5 那张 machine-read 表同步声明（两边不同步就红）。
 VIEW_TASK_CLASS = "view"
 
-SYSTEM_PROMPT = (
-    "你是 ERP 的视图 Agent。用户用一句话说他想看什么，你要交出一份视图 DSL。"
-    "字段必须来自工具查到的真实 DocType 字段，不许凭记忆写字段名。"
-    "最终只输出一个 JSON 对象，形如 "
-    '{"name": ..., "title": ..., "blocks": [...]}。'
-)
+# 连查几轮工具之后开始催它交。
+# 🔴 **这个数同样没有实测依据**（同 `REPAIR_ROUNDS`，见那里的注释）。
+# 实测只给出了「8 轮不催就查不完」这一个观察，没给出「几轮是对的」。
+# 量化评测跑完要回答：被催之后还需要几轮才交？
+TOOL_TURN_NUDGE = 4
+
+def _build_system_prompt() -> str:
+    """提示词**由 `blocks.py` 的封闭取值生成，不手抄。**
+
+    🔴 2026-08-28 活体实测抓出来的：原来的提示词只说「输出 `{name, title, blocks}`」，
+    **一个字都没说块长什么样**。真模型（`qwen3.7-flash-2026-07-15`）因此连查 8 轮
+    `meta.fields`（每轮关键词都不同 —— 按 §3① 的口径是**探索不是打转**），
+    始终没进入组装；放到 40 轮时端点直接回 400「同名同参的工具调用连续重复」。
+
+    归因照 §3②：**先问是不是我们自己的 harness**。是。
+    模型不是不会做，是**没人告诉它要交的东西长什么样**。
+
+    生成而不是手抄，是为了让「封闭表变了、提示词没跟上」这件事不可能发生 ——
+    判据在 `tests/agents/test_view_agent.py` 逐条比对。
+    """
+    return (
+        "你是 ERP 的视图 Agent。用户用一句话说他想看什么，你要交出一份视图 DSL。\n"
+        "\n"
+        "## 怎么找字段\n"
+        f"先 `schema.search` 找到 DocType，再 `meta.fields` 看它有哪些字段。\n"
+        "`meta.fields` 每行都带 `ref`（形如 `Work Order.status`）—— **照抄它**，不要自己拼。\n"
+        "⚠️ 字段名必须来自工具返回，凭记忆写的字段会被校验器拒掉并要求你重做。\n"
+        "⚠️ **查够了就交**。同一张表反复用不同关键词查，既拿不到新东西也会把轮次用光。\n"
+        "\n"
+        "## 要交什么\n"
+        "最终**只输出一个 JSON 对象**，不要任何解释文字：\n"
+        '{"name": "英文短名", "title": "中文标题", "blocks": [ … ]}\n'
+        "\n"
+        f"块类型只有这五种：{', '.join(BLOCK_TYPES)}。每种的 `fields` 含义不同：\n"
+        "- `list`：要展示的列，顺序即展示顺序。可带 `filters` / `sort` / `limit`\n"
+        "- `detail`：单据详情要展示的字段\n"
+        "- `metric`：**恰好一个**字段，配 `agg`\n"
+        "- `chart`：**恰好两个**字段 `[x 轴, y 轴]`，配 `chart_kind`\n"
+        "- `explain`：解释性文本块，**必须没有 fields**，用 `question` 写那个问题\n"
+        "\n"
+        f"`agg` 只能是：{', '.join(AGGREGATES)}\n"
+        f"`chart_kind` 只能是：{', '.join(CHART_KINDS)}\n"
+        f"`sort` 写成 `[字段, 方向]`，方向只能是：{', '.join(SORT_DIRECTIONS)}\n"
+        "`filters` 写成 `[[字段, 算子, 值], …]` —— **是数组不是对象**，算子只能是："
+        f"{', '.join(repr(op) for op in FILTER_OPERATORS)}\n"
+        "\n"
+        "一个块的例子：\n"
+        '{"type": "list", "title": "工单", "doctype": "Work Order", '
+        '"fields": ["production_item", "qty", "status"], '
+        '"filters": [["status", "=", "In Process"]], "sort": ["planned_start_date", "asc"], '
+        '"limit": 50}'
+    )
+
+
+SYSTEM_PROMPT = _build_system_prompt()
 
 
 def tool_schemas() -> list[dict]:
@@ -103,6 +159,22 @@ def tool_schemas() -> list[dict]:
         for contract in READONLY_CONTRACTS
         if contract.tool in VIEW_TOOLS
     ]
+
+
+def _signature(tool_calls) -> tuple:
+    """一轮工具调用的指纹 = **名字 + 参数**，不是名字。
+
+    🔴 handoff §3①：同一批轨迹按工具名重复 17/16/37/12 次，
+    按名字+参数只有 2/0/1/0 次 —— **同一个工具、不同参数是探索，不是打转。**
+    按名字判会把正常探索掐死。
+    """
+    return tuple(
+        (
+            str((call.get("function") or {}).get("name") or ""),
+            str((call.get("function") or {}).get("arguments") or ""),
+        )
+        for call in tool_calls
+    )
 
 
 def _tool_name(wire_name: str) -> str:
@@ -150,6 +222,7 @@ class ViewLoop:
         per_call_output_tokens: int = PER_CALL_OUTPUT_TOKENS,
         repair_rounds: int = REPAIR_ROUNDS,
         max_turns: int = MAX_TURNS,
+        tool_turn_nudge: int = TOOL_TURN_NUDGE,
         system_prompt: str = SYSTEM_PROMPT,
     ) -> None:
         self.adapter = adapter
@@ -160,6 +233,7 @@ class ViewLoop:
         self.per_call_output_tokens = per_call_output_tokens
         self.repair_rounds = repair_rounds
         self.max_turns = max_turns
+        self.tool_turn_nudge = tool_turn_nudge
         self.system_prompt = system_prompt
 
     def run(self, request: str, *, session_id: str = "view", user: str = "") -> ViewProposal:
@@ -182,12 +256,43 @@ class ViewLoop:
         ]
         schemas = tool_schemas()
         repairs = 0
+        # 🔴 判重复的口径**只有一个**：名字 + 参数（`trajectory_full`）。
+        # 按工具名数会把「同一工具不同参数」的探索误判成打转 ——
+        # 那个信号在 P2.0R 骗过四次（handoff §3①）。
+        last_signature: tuple | None = None
+        tool_turns = 0
 
         for turn in range(1, self.max_turns + 1):
             reply = self.adapter.chat(messages, schemas, self.per_call_output_tokens)
 
             if reply.tool_calls:
+                signature = _signature(reply.tool_calls)
+                if signature == last_signature:
+                    # 端点自己会因为「同名同参连续重复」回 400，**由它来杀我们什么都留不下**。
+                    # 自己判、自己回注，并且**不把这次的 tool_calls 写进 history** ——
+                    # 写进去，重复就留在了发给端点的消息里。
+                    messages.append(
+                        {
+                            "role": "user",
+                            "content": "你刚刚调过一模一样的工具（同名同参），结果不会变。"
+                            "换个参数，或者**现在就交**出那个 JSON 对象。",
+                        }
+                    )
+                    trace.turns.append({"index": turn, "kind": "repeat-blocked",
+                                        "usage": reply.usage.as_dict()})
+                    continue
+                last_signature = signature
+                tool_turns += 1
                 self._run_tools(reply, messages, trace, turn)
+                if tool_turns >= self.tool_turn_nudge:
+                    # 轮次是有限的，而模型**看不见还剩几轮**。实测：连查 8 轮不组装。
+                    messages.append(
+                        {
+                            "role": "user",
+                            "content": "查到的字段够用了。**现在就交**出那个 JSON 对象，"
+                            "不要再调工具。缺的字段就不要放进视图。",
+                        }
+                    )
                 continue
 
             view, problem = self._read(reply.text)

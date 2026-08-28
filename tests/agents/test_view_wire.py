@@ -113,3 +113,85 @@ def test_prose_without_any_json_is_a_wire_error():
 def test_broken_json_is_a_wire_error_not_a_crash():
     with pytest.raises(WireError):
         view_from_text('{"name":"x","title":"标题","blocks":[')
+
+
+# ── 🔴 活体实测抓到的：模型会把 filters 写成对象数组 ─────────────────────────
+#
+# `qwen3.7-flash-2026-07-15` 2026-08-28 真跑时交的是
+#   "filters": [{"field": "...", "operator": "=", "value": "..."}]
+# 而 DSL 的形状是 `(字段, 算子, 值)` 三元组。
+#
+# 当时 `wire.py` 原样放过去 ⇒ `validate()` 的 `len(entry) != 3` 对一个三键的 dict
+# **成立**（len 是 3），于是走到 `entry[1]` —— **KeyError 崩在循环里**。
+# 一个本该被干净拒绝、回注给模型的格式错，变成了整轮跑飞。
+#
+# ⇒ 线格式必须保证交给校验器的每一段都是**校验器能求值的形状**。
+#   这不违反「只解析形状不判对错」：判的正是形状本身。
+
+
+def test_a_filter_written_as_an_object_is_a_wire_error():
+    payload = {
+        "name": "x",
+        "title": "x",
+        "blocks": [
+            {
+                "type": "list",
+                "doctype": "Work Order",
+                "fields": ["qty"],
+                "filters": [{"field": "status", "operator": "=", "value": "In Process"}],
+            }
+        ],
+    }
+
+    with pytest.raises(WireError) as excinfo:
+        view_from_json(payload)
+
+    # 回注要能让模型改对：说清正确形状。
+    assert "filters" in str(excinfo.value)
+
+
+def test_a_filter_of_the_wrong_length_still_reaches_the_validator():
+    """长度不对**不是**线格式的事 —— `validate()` 有一条「要形如 (字段, 算子, 值)」在等它。
+
+    两者的界线：**形状能不能被求值**归线格式，**取值对不对**归校验器。
+    """
+    payload = {
+        "name": "x",
+        "title": "x",
+        "blocks": [
+            {"type": "list", "doctype": "Work Order", "fields": ["qty"],
+             "filters": [["status", "="]]},
+        ],
+    }
+
+    view = view_from_json(payload)
+
+    assert view.blocks[0].filters == (("status", "="),)
+
+
+def test_a_child_field_written_as_an_object_is_a_wire_error():
+    payload = {
+        "name": "x",
+        "title": "x",
+        "blocks": [
+            {"type": "detail", "doctype": "Work Order", "fields": ["required_items"],
+             "child_fields": [{"table": "required_items", "doctype": "Work Order Item"}]},
+        ],
+    }
+
+    with pytest.raises(WireError):
+        view_from_json(payload)
+
+
+def test_a_sort_written_as_an_object_is_a_wire_error():
+    payload = {
+        "name": "x",
+        "title": "x",
+        "blocks": [
+            {"type": "list", "doctype": "Work Order", "fields": ["qty"],
+             "sort": {"field": "qty", "direction": "asc"}},
+        ],
+    }
+
+    with pytest.raises(WireError):
+        view_from_json(payload)

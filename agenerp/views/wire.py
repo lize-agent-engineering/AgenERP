@@ -85,7 +85,7 @@ def _block_from_json(entry: Any, where: str) -> Block:
         type=_text(entry.get("type")),
         doctype=_text(entry.get("doctype")) or None,
         fields=_str_tuple(entry.get("fields")),
-        filters=tuple(_seq(entry.get("filters"), f"{where}.filters")),
+        filters=tuple(_seq(entry.get("filters"), f"{where}.filters", "[字段, 算子, 值]")),
         sort=_sort(entry.get("sort")),
         limit=entry.get("limit") if isinstance(entry.get("limit"), int) else None,
         child_fields=_child_fields(entry.get("child_fields"), f"{where}.child_fields"),
@@ -102,13 +102,33 @@ def _text(value: Any) -> str:
     return value if isinstance(value, str) else ""
 
 
-def _seq(value: Any, where: str) -> list:
-    """一个数组段。**每一项原样保留**（含长度不对的），判它的是校验器。"""
+def _seq(value: Any, where: str, item_shape: str) -> list:
+    """一个数组段。**长度不对的原样保留**（判它的是校验器），
+    但**每一项必须是数组** —— 这一条是线格式的事，理由见下。
+
+    🔴 2026-08-28 活体实测抓到的：`qwen3.7-flash-2026-07-15` 把 `filters` 交成了
+    `[{"field": …, "operator": …, "value": …}]` —— 对象数组，不是三元组数组。
+    当时这里原样放行，于是 `validate()` 的 `len(entry) != 3` 对一个**三键的 dict**
+    成立（`len` 是 3），走到 `entry[1]` ⇒ **KeyError 崩在循环里**。
+    一个本该被干净拒绝、回注给模型的格式错，变成了整轮跑飞。
+
+    ⇒ **线格式必须保证交给校验器的每一段都是校验器求得了值的形状。**
+    这不违反「只解析形状不判对错」—— 判的正是形状本身。
+    界线是：**能不能被求值**归线格式，**取值对不对**归校验器。
+    """
     if value is None:
         return []
     if isinstance(value, (str, bytes)) or not isinstance(value, Sequence):
         raise WireError(f"{where} 要是一个数组，收到 {type(value).__name__}。")
-    return [tuple(item) if isinstance(item, list) else item for item in value]
+    out = []
+    for index, item in enumerate(value):
+        if isinstance(item, (str, bytes)) or not isinstance(item, Sequence):
+            raise WireError(
+                f"{where}[{index}] 要写成数组 {item_shape}，"
+                f"收到 {type(item).__name__}。"
+            )
+        out.append(tuple(item))
+    return out
 
 
 def _str_tuple(value: Any) -> tuple[str, ...]:
@@ -129,7 +149,7 @@ def _sort(value: Any) -> tuple[str, str] | None:
 
 
 def _child_fields(value: Any, where: str) -> tuple:
-    entries = _seq(value, where)
+    entries = _seq(value, where, "[Table 字段, 子表 DocType, [字段…]]")
     out = []
     for entry in entries:
         if isinstance(entry, tuple) and len(entry) == 3 and isinstance(entry[2], (list, tuple)):

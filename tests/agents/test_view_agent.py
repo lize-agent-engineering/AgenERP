@@ -25,10 +25,17 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 
 import view_fakes as fakes  # noqa: E402
 
+from agenerp.dsl.blocks import (  # noqa: E402
+    AGGREGATES,
+    BLOCK_TYPES,
+    CHART_KINDS,
+    FILTER_OPERATORS,
+)
 from agenerp.dsl.validate import SchemaUnavailable  # noqa: E402
 from agenerp.routing import RoutingError  # noqa: E402
 from agenerp.views.loop import (  # noqa: E402
     STOP_PROPOSED,
+    SYSTEM_PROMPT,
     propose_view,
     STOP_REPAIR_EXHAUSTED,
     ViewLoop,
@@ -358,3 +365,107 @@ def test_the_repair_budget_is_not_reachable_from_the_product_entry():
     评测那类要拆闸的场合自己构造 `ViewLoop`。
     """
     assert "repair_rounds" not in propose_view.__code__.co_varnames
+
+
+# ── 🔴 提示词必须由封闭取值生成，不许手抄 ───────────────────────────────────
+#
+# 2026-08-28 活体实测抓到的：提示词只说了「输出 {name, title, blocks}」，
+# **没说一个块长什么样**。真模型（qwen3.7-flash-2026-07-15）因此连查 8 轮
+# `meta.fields`（每轮关键词都不同 —— 按 §3① 的口径是探索不是打转），
+# 一直没组装，最后撞 max-turns；放到 40 轮时端点直接回 400
+# 「同名同参的工具调用连续重复」。
+#
+# 归因照 §3②：**先问是不是我们自己的 harness**。是。
+
+
+def test_the_prompt_names_every_block_type():
+    """块类型是封闭表。加了一种而提示词没跟着改，模型就永远不会用它。"""
+    for block_type in BLOCK_TYPES:
+        assert block_type in SYSTEM_PROMPT, f"提示词里没有块类型 {block_type}"
+
+
+def test_the_prompt_names_every_filter_operator():
+    for operator in FILTER_OPERATORS:
+        assert operator in SYSTEM_PROMPT, f"提示词里没有算子 {operator!r}"
+
+
+def test_the_prompt_names_every_aggregate_and_chart_kind():
+    for value in AGGREGATES + CHART_KINDS:
+        assert value in SYSTEM_PROMPT, f"提示词里没有 {value!r}"
+
+
+def test_the_prompt_tells_the_model_to_copy_the_ref_from_meta_fields():
+    """P2.0R 实测换来的：`meta.fields` 每行都给 `ref`，**可照抄**。
+    提示词不说，模型就自己拼 —— 那正是当时改掉的失败形态。"""
+    assert "ref" in SYSTEM_PROMPT
+
+
+# ── 🔴 harness：重复调用自己挡，查够了催它交 ────────────────────────────────
+#
+# 2026-08-28 活体实测：40 轮那次**端点直接回 400**
+# 「同名同参的工具调用连续重复」—— 由端点来杀，我们这边整轮跑飞、什么都留不下。
+# ⇒ 这件事要**自己判、自己回注**，而判重复的口径只有一个：
+#   `trajectory_full`（名字 + 参数）。按工具名数会把「同一工具不同参数」的探索
+#   误判成打转 —— 那个信号在 P2.0R 骗过四次（handoff §3①）。
+
+SEARCH = fakes.call("schema.search", "c0", keywords="工单")
+
+
+def test_an_identical_repeat_is_pushed_back_instead_of_run_again():
+    site = fakes.site()
+    model = fakes.ScriptedModel(
+        [fakes.tools_step(SEARCH), fakes.tools_step(SEARCH), fakes.dsl_step(WORKER_VIEW)]
+    )
+
+    proposal = loop_for(model, site=site).run(REQUEST)
+
+    assert proposal.stop_reason == STOP_PROPOSED
+    tool_turns = [t for t in proposal.trace.turns if t["kind"] == "tools"]
+    assert len(tool_turns) == 1, "一模一样的第二次不该再打站点"
+
+
+def test_a_different_argument_is_not_treated_as_a_repeat():
+    """🔴 §3①：**同一个工具、不同参数是探索，不是打转。**
+
+    这一条是那个骗过四次的信号的反面判据 —— 少了它，重复保护会把正常探索掐死。
+    """
+    site = fakes.site()
+    model = fakes.ScriptedModel(
+        [
+            fakes.tools_step(fakes.call("meta.fields", "c0", doctype="Work Order")),
+            fakes.tools_step(fakes.call("meta.fields", "c1", doctype="Stock Entry")),
+            fakes.dsl_step(WORKER_VIEW),
+        ]
+    )
+
+    proposal = loop_for(model, site=site).run(REQUEST)
+
+    tool_turns = [t for t in proposal.trace.turns if t["kind"] == "tools"]
+    assert len(tool_turns) == 2, "换了参数就是探索，不许当重复掐掉"
+
+
+def test_the_repeat_push_back_tells_the_model_what_to_do():
+    model = fakes.ScriptedModel(
+        [fakes.tools_step(SEARCH), fakes.tools_step(SEARCH), fakes.dsl_step(WORKER_VIEW)]
+    )
+
+    loop_for(model).run(REQUEST)
+
+    assert "一模一样" in last_messages(model)
+
+
+def test_after_enough_tool_turns_the_model_is_told_to_deliver():
+    """查够了要催它交。
+
+    实测：真模型连查 8 轮 `meta.fields`（每轮关键词都不同，是探索不是打转），
+    始终没进入组装，最后把轮次用光。**轮次是有限的，而模型看不见还剩几轮。**
+    """
+    steps = [
+        fakes.tools_step(fakes.call("meta.fields", f"c{i}", doctype="Work Order", keywords=f"k{i}"))
+        for i in range(4)
+    ]
+    model = fakes.ScriptedModel([*steps, fakes.dsl_step(WORKER_VIEW)])
+
+    loop_for(model, tool_turn_nudge=3).run(REQUEST)
+
+    assert "现在就交" in last_messages(model)
