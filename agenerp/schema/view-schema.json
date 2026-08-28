@@ -2295,6 +2295,342 @@
       "fieldname": "actual_operating_cost",
       "fieldtype": "Currency",
       "options": "Company:company:default_currency"
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "name",
+      "fieldtype": "Data",
+      "options": null
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "owner",
+      "fieldtype": "Data",
+      "options": null
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "creation",
+      "fieldtype": "Datetime",
+      "options": null
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "modified",
+      "fieldtype": "Datetime",
+      "options": null
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "modified_by",
+      "fieldtype": "Data",
+      "options": null
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "docstatus",
+      "fieldtype": "Int",
+      "options": null
+    },
+    {
+      "doctype": "Item",
+      "fieldname": "idx",
+      "fieldtype": "Int",
+      "options": null
+    },
+    {
+      "doctype": "Item Barcode",
+      "fieldname": "name",
+      "fieldtype": "Data",
+      "options": null
+    },
+    {
+      "doctype": "Item Barcode",
+      "fieldname": "owner",
+      "fieldtype": "Data",
+      "options": null
+    },
+    {
+      "doctype": "Item Barcode",
+      "fieldname": "creation",
+      "fieldtype": "Datetime",
+      "options": null
+    },
+    {
+      "doctype": "Item Barcode",
+      "fieldname": "modified",
+      "fieldtype": "Datetime",
+      "options": null
+    },
+    {
+      "doctype": "Item Barcode",
+      "fieldname": "modified_by",
+      "fieldtype": "Data",
+      "options": null
+    },
+    {
+      "doctype": "Item Barcode",
+      "fieldname": "docstatus",
+      "fieldtype": "Int",
+      "options": null
+    },
+    {
+      "doctype": "Item Barcode",
+      "fieldname": "idx",
+      "fieldtype": "Int",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "name",
+      "fieldtype": "Data",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "owner",
+      "fieldtype": "Data",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "creation",
+      "fieldtype": "Datetime",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "modified",
+      "fieldtype": "Datetime",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "modified_by",
+      "fieldtype": "Data",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "docstatus",
+      "fieldtype": "Int",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry",
+      "fieldname": "idx",
+      "fieldtype": "Int",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry Detail",
+      "fieldname": "name",
+      "fieldtype": "Data",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry Detail",
+      "fieldname": "owner",
+      "fieldtype": "Data",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry Detail",
+      "fieldname": "creation",
+      "fieldtype": "Datetime",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry Detail",
+      "fieldname": "modified",
+      "fieldtype": "Datetime",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry Detail",
+      "fieldname": "modified_by",
+      "fieldtype": "Data",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry Detail",
+      "fieldname": "docstatus",
+      "fieldtype": "Int",
+      "options": null
+    },
+    {
+      "doctype": "Stock Entry Detail",
+      "fieldname": "idx",
+      "fieldtype": "Int",
+      "options": null
+    },
+    {
+      "doctype": "UOM Conversion Detail",
+      "fieldname": "name",
+      "fieldtype": "Data",
+      "options": null
+    },
+    {
+      "doctype": "UOM Conversion Detail",
+      "fieldname": "owner",
+      "fieldtype": "Data",
+      "options": null
+    },
+    {
+      "doctype": "UOM Conversion Detail",
+      "fieldname": "creation",
+      "fieldtype": "Datetime",
+      "options": null
+    },
+    {
+      "doctype": "UOM Conversion Detail",
+      "fieldname": "modified",
+      "fieldtype": "Datetime",
+      "options": null
+    },
+    {
+      "doctype": "UOM Conversion Detail",
+      "fieldname": "modified_by",
+      "fieldtype": "Data",
+      "options": null
+    },
+    {
+      "doctype": "UOM Conversion Detail",
+      "fieldname": "docstatus",
+      "fieldtype": "Int",
+      "options": null
+    },
+    {
+      "doctype": "UOM Conversion Detail",
+      "fieldname": "idx",
+      "fieldtype": "Int",
+      "options": null
+    },
+    {
+      "doctype": "Work Order",
+      "fieldname": "name",
+      "fieldtype": "Data",
+      "options": null
+    },
+    {
+      "doctype": "Work Order",
+      "fieldname": "owner",
+      "fieldtype": "Data",
+      "options": null
+    },
+    {
+      "doctype": "Work Order",
+      "fieldname": "creation",
+      "fieldtype": "Datetime",
+      "options": null
+    },
+    {
+      "doctype": "Work Order",
+      "fieldname": "modified",
+      "fieldtype": "Datetime",
+      "options": null
+    },
+    {
+      "doctype": "Work Order",
+      "fieldname": "modified_by",
+      "fieldtype": "Data",
+      "options": null
+    },
+    {
+      "doctype": "Work Order",
+      "fieldname": "docstatus",
+      "fieldtype": "Int",
+      "options": null
+    },
+    {
+      "doctype": "Work Order",
+      "fieldname": "idx",
+      "fieldtype": "Int",
+      "options": null
+    },
+    {
+      "doctype": "Work Order Item",
+      "fieldname": "name",
+      "fieldtype": "Data",
+      "options": null
+    },
+    {
+      "doctype": "Work Order Item",
+      "fieldname": "owner",
+      "fieldtype": "Data",
+      "options": null
+    },
+    {
+      "doctype": "Work Order Item",
+      "fieldname": "creation",
+      "fieldtype": "Datetime",
+      "options": null
+    },
+    {
+      "doctype": "Work Order Item",
+      "fieldname": "modified",
+      "fieldtype": "Datetime",
+      "options": null
+    },
+    {
+      "doctype": "Work Order Item",
+      "fieldname": "modified_by",
+      "fieldtype": "Data",
+      "options": null
+    },
+    {
+      "doctype": "Work Order Item",
+      "fieldname": "docstatus",
+      "fieldtype": "Int",
+      "options": null
+    },
+    {
+      "doctype": "Work Order Item",
+      "fieldname": "idx",
+      "fieldtype": "Int",
+      "options": null
+    },
+    {
+      "doctype": "Work Order Operation",
+      "fieldname": "name",
+      "fieldtype": "Data",
+      "options": null
+    },
+    {
+      "doctype": "Work Order Operation",
+      "fieldname": "owner",
+      "fieldtype": "Data",
+      "options": null
+    },
+    {
+      "doctype": "Work Order Operation",
+      "fieldname": "creation",
+      "fieldtype": "Datetime",
+      "options": null
+    },
+    {
+      "doctype": "Work Order Operation",
+      "fieldname": "modified",
+      "fieldtype": "Datetime",
+      "options": null
+    },
+    {
+      "doctype": "Work Order Operation",
+      "fieldname": "modified_by",
+      "fieldtype": "Data",
+      "options": null
+    },
+    {
+      "doctype": "Work Order Operation",
+      "fieldname": "docstatus",
+      "fieldtype": "Int",
+      "options": null
+    },
+    {
+      "doctype": "Work Order Operation",
+      "fieldname": "idx",
+      "fieldtype": "Int",
+      "options": null
     }
   ],
   "site": "frontend"

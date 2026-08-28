@@ -43,6 +43,32 @@ DEFAULT_PATH = pathlib.Path(__file__).resolve().parent / "schema" / "view-schema
 # 特意**不存 rowcount**：那会泄露站点上有多少数据，而仓库是公开的。
 KEPT = ("doctype", "fieldname", "fieldtype", "options")
 
+# 🔴 **Frappe 的标准字段 —— 每张表上都真实存在，但不在 `DocType.fields` 里。**
+#
+# 2026-08-28 由 P2.3 的活体判据抓出来：问「库存转移一共有多少笔」，
+# 模型交 `metric` / `agg=count` / `fields=["name"]` —— **那是正解**
+# （`name` 是每张单据的主键，计它的行数就是笔数），
+# 而校验器回「字段不存在：Stock Entry.name」，因为快照只收 DocField。
+# 模型于是退到 `naming_series`，一个语义更差的字段。
+#
+# **模型答对了，我们的 schema 说它不存在。**
+# 与 P2.0R 那一串同族（handoff §3④）：每一次「能力失败」往下查都是 harness。
+#
+# 取自 `frappe.model.default_fields`。**不是我们造的字段**，
+# 类型按 Frappe 的实际存储写，且每一条都要落在 `RENDERABLE_FIELDTYPES` 里
+# （判据 `tests/unit/test_schema_snapshot_standard_fields.py` 逐条盯着）。
+# ⚠️ 刻意**不收** `parent` / `parentfield` / `parenttype`：它们只在子表上有意义，
+# 放进父表就是给模型一组永远为空的列。
+STANDARD_FIELDS: dict[str, str] = {
+    "name": "Data",
+    "owner": "Data",
+    "creation": "Datetime",
+    "modified": "Datetime",
+    "modified_by": "Data",
+    "docstatus": "Int",
+    "idx": "Int",
+}
+
 
 def view_doctypes() -> tuple[str, ...]:
     """快照要覆盖哪些 DocType：**视图里出现过的，加上它们声明的子表**。
@@ -85,7 +111,28 @@ def build_from_site(site: str) -> dict[str, Any]:
             )
     if not rows:
         raise RuntimeError(f"{site} 上一个字段都没取到 —— 不写空快照（空快照 = 静默全落回）")
-    return {"site": site, "doctypes": list(view_doctypes()), "fields": rows}
+    return {
+        "site": site,
+        "doctypes": list(view_doctypes()),
+        "fields": _with_standard_fields(rows),
+    }
+
+
+def _with_standard_fields(rows: list[dict]) -> list[dict]:
+    """给每张表补上 Frappe 的标准字段（见 `STANDARD_FIELDS` 上方那段）。
+
+    ⚠️ **已有的同名字段不覆盖**：极少数 DocType 会自己声明同名 DocField，
+    那时以站点上的真实声明为准 —— 快照的职责是**如实**，不是「按我以为的写」。
+    """
+    present = {(row["doctype"], row["fieldname"]) for row in rows}
+    doctypes = sorted({row["doctype"] for row in rows})
+    extra = [
+        {"doctype": doctype, "fieldname": fieldname, "fieldtype": fieldtype, "options": None}
+        for doctype in doctypes
+        for fieldname, fieldtype in STANDARD_FIELDS.items()
+        if (doctype, fieldname) not in present
+    ]
+    return rows + extra
 
 
 def load(path: pathlib.Path | str | None = None):
