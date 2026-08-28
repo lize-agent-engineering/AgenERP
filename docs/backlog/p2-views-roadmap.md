@@ -199,7 +199,16 @@ Link 字段收敛）· 术语层反向索引（P2.7 的产物）· 行业包约�
   并补跑了 **S3 前三段对真首页视图**的那条链：`bash scripts/verify-view-gitops.sh` → **退 0**
   （改一列 → 首页真的少一列 → `git diff` 只含那一行 → **真 `git revert`** → 首页逐列回到原样），
   变异两轮见血（不重载模块 → 红 · revert 那步空转 → 红）。
-  ⚠️ **S3 第四段仍不成立**：视图定义只在 git 里、没落进站点的表（P2.0 判的「落自有表」那一半）。
+  🔴 **当天又补交了 P2.0 判的「落自有表」那一半**（人「按你的建议来」）：
+  自有表 `AgenERP View` + `agenerp/dsl/store.py`；服务端**按调用者 sid 从表读** ——
+  这**翻掉了 P2.6「视图计划端点不认人」那条明文裁定**，人把前提改了
+  （「schema 指的是**表的结构**对 agent 全局可见」，而视图定义是数据）。
+  ⇒ **S3 四段现在全部有实测**：`verify-view-site-sync.sh`（第四段）退 0，
+  定义同步到 `gitops.test` 后**读回来逐字段相同**、删得掉、`frontend` 不受影响。
+  ⚠️ 三件连带：① 翻端点引入**路径穿越面**（名字进 REST 路径而 `quote(path, safe="/")`
+  不转义 `/`），已加形状检查；② **没有视图定义行的站点没有首页** ⇒ 补 compose
+  一次性服务 `bootstrap-views`（**供给归部署，不归判据**）；
+  ③ S3①②③ 的链条因此含 publish 一步，**需要活栈、进不了 CI**。
   证据：[plan](../plans/p2-views/2026-08-28-P2.4-gitops-v0.md)
 - 7. **`schema.drift` 巡检**（P2.5）: **`done`** —— 前置 P2.4（已过）。
   `pytest tests/tools/test_schema_drift.py -q` → **退出码 0，13 passed**（WBS §5 第 105 行）。

@@ -22,13 +22,19 @@
 ⇒ 「一句话改老板首页 → `git diff` 看得见 → `git revert` 撤得回」这条链
 （`00-GOALS.md` §2 的 **S3** 前三段）对它们**真的成立**，不再是一句设想。
 
+✅ **P2.0 判的「产物落 AgenERP 自有表」那一半也落地了**（2026-08-28 当日）：
+`agenerp/dsl/store.py` + 自有表 `AgenERP View`（声明在 `agenerp/dsl/doctype/`）。
+本模块读到的这几份是**真相源**；站点上那张表是**每站一份的产物**，由
+`python3 -m agenerp.dsl.store` 同步（compose 的 `bootstrap-views` 会跑它）。
+⇒ **服务端不再读本模块的产物去渲染** —— 它按调用者的 sid 从站点表读
+（`agenerp/serve/app.py:view_plan`）。本模块今天只剩两个消费者：
+`home_for_roles` 的角色→首页封闭映射，与 `schema_snapshot.view_doctypes()`。
+
 ⚠️ **这一版仍然只覆盖车间工人一个角色**（`ROLE_HOMES` 只有一条）。
-⚠️ **P2.0 判的「产物落 AgenERP 自有表」这一半仍然欠着**：今天定义只在 git 里，
-**没有落进站点的表**。后果是 S3 的第四段「同步到另一站点**生效**」对视图这一层
-**不成立** —— 第二个站点上没有服务进程、也没有那张表。
-照 P1.2 会话 DocType 的既定形态（`module-boundaries.md` §449 的方案 B）：
-**DocType 声明落 git、建表是人的动作**。那一步没做，这句话写在这里，
-免得「视图落库」也悄悄变成「反正 git 里有」。
+⚠️ **建表是对活站点的结构性改动，回滚只能手工做** ——
+命令原文在 `agenerp/dsl/store.py:ensure_table` 的 docstring 里。
+P1.2 会话 DocType 的先例是「建表交人」，本项由人 2026-08-28 当场授权由 loop 建，
+**偏离写在那里供复核**。
 """
 
 from __future__ import annotations
