@@ -28,14 +28,7 @@ from dataclasses import dataclass, field
 
 import json
 
-from agenerp.dsl.blocks import (
-    AGGREGATES,
-    BLOCK_TYPES,
-    CHART_KINDS,
-    FILTER_OPERATORS,
-    SORT_DIRECTIONS,
-    View,
-)
+from agenerp.dsl.blocks import View
 from agenerp.dsl.fallback import RenderPlan, plan_render
 from agenerp.dsl.schema import SchemaView
 from agenerp.dsl.validate import SchemaUnavailable, ValidationResult, validate
@@ -44,7 +37,7 @@ from agenerp.routing.adapter import ChatAdapter
 from agenerp.site import SiteClient
 from agenerp.tools.runtime import Executor, execute
 from agenerp.tools_readonly import READONLY_CONTRACTS
-from agenerp.views.wire import WireError, view_from_text
+from agenerp.views.wire import WireError, view_from_text, view_json_schema
 
 # ⚠️ **借用 `explain` 的两份常量，不复制。** 两者都是**实测换来的**：
 #   · `TOOL_PARAMS["meta.fields"]` 的 `keywords` —— 大单据整表 38,000 字符会被截断
@@ -84,6 +77,15 @@ MAX_TURNS = 40
 # 它们由循环无条件执行。工具面里有它们，模型就有了「不调就交」这条路。
 VIEW_TOOLS = ("system.overview", "schema.search", "meta.fields")
 
+# 🔴 **交付通道**。模型通过它把视图交出来，参数就是那份 DSL，
+# schema 由 `blocks.py` 的封闭取值生成（`wire.view_json_schema()`）——
+# **端点先替我们挡一道形状**，那正是 2026-08-28 实测抓到的两条缺陷的根治法。
+#
+# ⚠️ **它不是校验器。** D2 说的「`dsl.validate` / `dsl.preview` 不进工具面」仍然成立：
+# 交付是一条通道，校验是一道闸。闸由循环无条件落下，模型没有绕过它的路。
+SUBMIT_TOOL = "view.submit"
+SUBMIT_TOOL_WIRE = SUBMIT_TOOL.replace(".", "_")
+
 # 视图 Agent 的任务类目。`agenerp/routing/capabilities.py` 与 owner doc
 # `model-management.md` §12.5 那张 machine-read 表同步声明（两边不同步就红）。
 VIEW_TASK_CLASS = "view"
@@ -95,50 +97,35 @@ VIEW_TASK_CLASS = "view"
 TOOL_TURN_NUDGE = 4
 
 def _build_system_prompt() -> str:
-    """提示词**由 `blocks.py` 的封闭取值生成，不手抄。**
+    """提示词**只讲「怎么找字段」，不讲「交什么形状」。**
 
-    🔴 2026-08-28 活体实测抓出来的：原来的提示词只说「输出 `{name, title, blocks}`」，
-    **一个字都没说块长什么样**。真模型（`qwen3.7-flash-2026-07-15`）因此连查 8 轮
-    `meta.fields`（每轮关键词都不同 —— 按 §3① 的口径是**探索不是打转**），
-    始终没进入组装；放到 40 轮时端点直接回 400「同名同参的工具调用连续重复」。
+    ## 形状为什么不在这里
 
-    归因照 §3②：**先问是不是我们自己的 harness**。是。
-    模型不是不会做，是**没人告诉它要交的东西长什么样**。
+    2026-08-28 活体实测抓到的两条，都出在**手搓结构化输出**：
+    模型把 `filters` 交成对象数组（解析崩）· 提示词没说块长什么样（连查 8 轮不组装）。
+    第一版的修法是把块结构用散文写进提示词 —— 那是在用自然语言描述一个本来就是
+    结构的东西，**每加一种块就要同步改两处**。
 
-    生成而不是手抄，是为了让「封闭表变了、提示词没跟上」这件事不可能发生 ——
-    判据在 `tests/agents/test_view_agent.py` 逐条比对。
+    人 2026-08-28 裁定「借 LangChain 那套的思想、不引依赖」⇒
+    形状交给 `wire.view_json_schema()` 生成的 JSON Schema，
+    当作 `view.submit` 的工具参数发出去，**端点先挡一道**。
+    这里只留 schema 表达不了的那部分：**去哪儿找字段、什么时候停**。
+
+    ⚠️ 「照抄 `ref`」这一条是 P2.0R 实测换来的（`meta.fields` 每行都给 `ref`，
+    不说模型就自己拼），它讲的是**怎么找**，所以留在这里。
     """
     return (
         "你是 ERP 的视图 Agent。用户用一句话说他想看什么，你要交出一份视图 DSL。\n"
         "\n"
         "## 怎么找字段\n"
-        f"先 `schema.search` 找到 DocType，再 `meta.fields` 看它有哪些字段。\n"
+        "先 `schema.search` 找到 DocType，再 `meta.fields` 看它有哪些字段。\n"
         "`meta.fields` 每行都带 `ref`（形如 `Work Order.status`）—— **照抄它**，不要自己拼。\n"
-        "⚠️ 字段名必须来自工具返回，凭记忆写的字段会被校验器拒掉并要求你重做。\n"
+        "⚠️ 凭记忆写的字段名会被校验器拒掉并要求你重做。\n"
         "⚠️ **查够了就交**。同一张表反复用不同关键词查，既拿不到新东西也会把轮次用光。\n"
         "\n"
-        "## 要交什么\n"
-        "最终**只输出一个 JSON 对象**，不要任何解释文字：\n"
-        '{"name": "英文短名", "title": "中文标题", "blocks": [ … ]}\n'
-        "\n"
-        f"块类型只有这五种：{', '.join(BLOCK_TYPES)}。每种的 `fields` 含义不同：\n"
-        "- `list`：要展示的列，顺序即展示顺序。可带 `filters` / `sort` / `limit`\n"
-        "- `detail`：单据详情要展示的字段\n"
-        "- `metric`：**恰好一个**字段，配 `agg`\n"
-        "- `chart`：**恰好两个**字段 `[x 轴, y 轴]`，配 `chart_kind`\n"
-        "- `explain`：解释性文本块，**必须没有 fields**，用 `question` 写那个问题\n"
-        "\n"
-        f"`agg` 只能是：{', '.join(AGGREGATES)}\n"
-        f"`chart_kind` 只能是：{', '.join(CHART_KINDS)}\n"
-        f"`sort` 写成 `[字段, 方向]`，方向只能是：{', '.join(SORT_DIRECTIONS)}\n"
-        "`filters` 写成 `[[字段, 算子, 值], …]` —— **是数组不是对象**，算子只能是："
-        f"{', '.join(repr(op) for op in FILTER_OPERATORS)}\n"
-        "\n"
-        "一个块的例子：\n"
-        '{"type": "list", "title": "工单", "doctype": "Work Order", '
-        '"fields": ["production_item", "qty", "status"], '
-        '"filters": [["status", "=", "In Process"]], "sort": ["planned_start_date", "asc"], '
-        '"limit": 50}'
+        "## 怎么交\n"
+        f"调 `{SUBMIT_TOOL_WIRE}` 工具，一次就好。**不要用文本作答。**\n"
+        "块类型与各段取值见那个工具的参数说明。"
     )
 
 
@@ -158,7 +145,35 @@ def tool_schemas() -> list[dict]:
         }
         for contract in READONLY_CONTRACTS
         if contract.tool in VIEW_TOOLS
+    ] + [
+        {
+            "type": "function",
+            "function": {
+                "name": SUBMIT_TOOL_WIRE,
+                "description": "交出最终的视图 DSL。查够字段之后调它，一次就好。",
+                "parameters": view_json_schema(),
+            },
+        }
     ]
+
+
+def _submit_call_id(tool_calls) -> str:
+    for call in tool_calls:
+        if (call.get("function") or {}).get("name") == SUBMIT_TOOL_WIRE:
+            return str(call.get("id") or "")
+    return ""
+
+
+def _submitted_payload(tool_calls) -> str | None:
+    """模型这一轮有没有交视图。有就回那段参数文本，没有回 `None`。
+
+    ⚠️ 与其它工具**混在同一轮**时，交付优先 —— 它一旦交了，别的调用就没有意义了。
+    """
+    for call in tool_calls or ():
+        function = call.get("function") or {}
+        if function.get("name") == SUBMIT_TOOL_WIRE:
+            return str(function.get("arguments") or "")
+    return None
 
 
 def _signature(tool_calls) -> tuple:
@@ -265,6 +280,40 @@ class ViewLoop:
         for turn in range(1, self.max_turns + 1):
             reply = self.adapter.chat(messages, schemas, self.per_call_output_tokens)
 
+            submitted = _submitted_payload(reply.tool_calls)
+            if submitted is not None:
+                view, problem = self._read(submitted)
+                if view is not None:
+                    result = validate(view, self.schema)
+                    if result.ok:
+                        trace.turns.append(
+                            {"index": turn, "kind": "proposed", "usage": reply.usage.as_dict()}
+                        )
+                        return ViewProposal(
+                            view=view,
+                            validation=result,
+                            render_plan=plan_render(view, self.schema),
+                            stop_reason=STOP_PROPOSED,
+                            trace=trace,
+                        )
+                    problem = _validation_message(result)
+                trace.turns.append(
+                    {"index": turn, "kind": "rejected", "detail": problem,
+                     "usage": reply.usage.as_dict()}
+                )
+                repairs += 1
+                if repairs > self.repair_rounds:
+                    return self._give_up(STOP_REPAIR_EXHAUSTED, trace)
+                messages.append(
+                    {"role": "assistant", "content": None,
+                     "tool_calls": list(reply.tool_calls)}
+                )
+                messages.append(
+                    {"role": "tool", "tool_call_id": _submit_call_id(reply.tool_calls),
+                     "content": problem}
+                )
+                continue
+
             if reply.tool_calls:
                 signature = _signature(reply.tool_calls)
                 if signature == last_signature:
@@ -295,22 +344,12 @@ class ViewLoop:
                     )
                 continue
 
-            view, problem = self._read(reply.text)
-            if view is not None:
-                result = validate(view, self.schema)
-                if result.ok:
-                    trace.turns.append(
-                        {"index": turn, "kind": "proposed", "usage": reply.usage.as_dict()}
-                    )
-                    return ViewProposal(
-                        view=view,
-                        validation=result,
-                        render_plan=plan_render(view, self.schema),
-                        stop_reason=STOP_PROPOSED,
-                        trace=trace,
-                    )
-                problem = _validation_message(result)
-
+            # 交付只有一条路：调 `view.submit`。直接吐文本时明说要用工具 ——
+            # 让它「重猜格式」是上一版的失败形态，那一版没有 schema 可依。
+            problem = (
+                f"不要用文本作答。请调用 `{SUBMIT_TOOL_WIRE}` 工具把视图交出来，"
+                "参数就是那份视图 DSL。"
+            )
             trace.turns.append(
                 {"index": turn, "kind": "rejected", "detail": problem,
                  "usage": reply.usage.as_dict()}
@@ -408,7 +447,7 @@ def _validation_message(result: ValidationResult) -> str:
     return (
         "这份视图没通过校验，逐条如下：\n"
         f"{lines}\n"
-        "字段必须来自工具查到的真实字段。改正后**只输出**那个 JSON 对象。"
+        f"字段必须来自工具查到的真实字段。改正后**再调一次 `{SUBMIT_TOOL_WIRE}`**。"
     )
 
 
