@@ -62,7 +62,9 @@ def home_columns() -> list[str]:
         del sys.modules[name]
     from agenerp.serve.app import build_server
 
-    server = build_server(port=0)
+    # `site` 是必填 —— 服务要知道 sid 拿去问谁。视图计划端点**不认人**
+    # （P2.6 裁定：schema 全局共享，回的是视图定义不是业务数据），占位站点名即可。
+    server = build_server(site="s3-chain-local", port=0)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
     try:
@@ -88,10 +90,20 @@ def ok(message: str) -> None:
 
 
 def run() -> None:
-    if git("status", "--porcelain", "--", str(VIEW_FILE)).strip():
+    # 🔴 **整个工作树必须干净，不只是那一个文件。**
+    #
+    # 2026-08-28 实测踩到：清理路径用的是 `git reset --hard`，那是**仓库级**的 ——
+    # 它把当时尚未提交的一处修复**一起抹掉了**，而现象是「sha 对得上、改动却不见了」，
+    # 离病因很远。⇒ 要么别用 reset --hard，要么**先保证没有东西可丢**。
+    # 这里取后者并把门槛提到整个工作树：本判据要做**历史手术**（commit + revert），
+    # 在脏工作树上做历史手术是拿别人的活冒险。
+    dirty = git("status", "--porcelain").strip()
+    if dirty:
         raise StepFailed(
-            f"{VIEW_FILE.name} 有未提交改动 —— 本判据要从干净状态出发，"
-            "否则第③步的「撤回来了」证明不了是 revert 干的。"
+            "工作树不干净，本判据拒绝运行 —— 它会 commit / revert / reset，"
+            "在脏工作树上做这些是拿未提交的改动冒险。\n"
+            f"  未提交：{dirty.splitlines()[:5]}\n"
+            "  先提交或 stash 再跑。"
         )
 
     # ── ① 改 ────────────────────────────────────────────────────────────────
@@ -163,11 +175,23 @@ def main() -> int:
         current = git("rev-parse", "HEAD").strip()
         if current != head_before:
             subjects = git("log", "--format=%s", f"{head_before}..HEAD").splitlines()
-            if all("chore(s3)" in s or "Revert \"chore(s3)" in s for s in subjects) and subjects:
+            still_clean = not git("status", "--porcelain").strip()
+            mine = subjects and all(
+                "chore(s3)" in s or 'Revert "chore(s3)' in s for s in subjects
+            )
+            if mine and still_clean:
+                # ⚠️ `reset --hard` 是仓库级的破坏性动作。上面两个条件缺一不可：
+                # ① 要回退的每一笔都是本判据造的；② 此刻**没有任何未提交改动可丢**。
                 git("reset", "--hard", "-q", head_before)
                 print(f"\n（已清掉本判据造的 {len(subjects)} 笔临时提交，HEAD 回到 {head_before[:8]}）")
-            else:
+            elif not mine:
                 print(f"\n⚠️ HEAD 变了但不全是本判据造的，**不动它**：{subjects}")
+            else:
+                print(
+                    "\n⚠️ 工作树里出现了未提交改动，**不做 reset --hard**（那会连它一起抹掉）。\n"
+                    f"   本判据造的 {len(subjects)} 笔提交留在历史里，请自行处置：\n"
+                    f"   git reset --hard {head_before[:12]}"
+                )
     print("\n✅ S3 前三段全过：改老板首页 → git diff 看得见 → git revert 撤得回。")
     print("⚠️ 第四段「同步到另一站点生效」**未做**：视图定义只在 git 里，没落进站点的表。")
     return 0
