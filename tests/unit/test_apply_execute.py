@@ -43,10 +43,18 @@ PROBE = "agenerp_gate_roundtrip"
 class FakeSiteClient:
     """记下每一次删除请求。`fail_on` 命中时抛 `SiteError`（站点侧失败的形状）。"""
 
-    def __init__(self, fail_on: tuple[str, str] | None = None) -> None:
+    def __init__(
+        self,
+        fail_on: tuple[str, str] | None = None,
+        fail_create_on: tuple[str, str] | None = None,
+    ) -> None:
         self.deleted: list[tuple[str, str]] = []
+        self.created: list[tuple[str, dict]] = []
+        # 建与删的**相对顺序**：先建后删这条纪律要判得出来，就得记在同一条时间线上。
+        self.order: list[str] = []
         self.listed: list[str] = []
         self._fail_on = fail_on
+        self._fail_create_on = fail_create_on
         self._rows: list[dict] = []
 
     def with_rows(self, rows: list[dict]) -> "FakeSiteClient":
@@ -61,6 +69,15 @@ class FakeSiteClient:
         if self._fail_on == (doctype, fieldname):
             raise SiteError(f"DELETE Custom Field/{doctype}-{fieldname} → HTTP 417（假件）")
         self.deleted.append((doctype, fieldname))
+        self.order.append(f"delete:{doctype}.{fieldname}")
+
+    def create_doc(self, doctype: str, payload: dict) -> dict:
+        target = (payload.get("dt"), payload.get("fieldname"))
+        if self._fail_create_on == target:
+            raise SiteError(f"POST {doctype} {target} → HTTP 417（假件）")
+        self.created.append((doctype, dict(payload)))
+        self.order.append(f"create:{target[0]}.{target[1]}")
+        return {"name": f"{target[0]}-{target[1]}"}
 
 
 class FakeOobRunner:
@@ -107,6 +124,16 @@ def oob(monkeypatch):
 
 def _entry(doctype: str, fieldname: str, **attributes) -> SnapshotEntry:
     return SnapshotEntry(doctype, fieldname, {"fieldtype": "Data", **attributes})
+
+
+def _orphan_free(command):
+    """带外执行器的假件：答「没有孤儿列」。清除面的判据在本文件 ⑨ 组。"""
+    from agenerp.oob import OobResult
+
+    return OobResult(0, "[]", "")
+
+
+_ORPHAN_FREE = _orphan_free
 
 
 def _site_row(doctype: str, fieldname: str, **extra) -> dict:
@@ -333,16 +360,74 @@ def test_empty_pack_and_empty_site_makes_zero_requests(tmp_path, wired):
 # --------------------------------------------------------------------------
 # ⑦ creates / updates 非空 → 抛且消息指名
 # --------------------------------------------------------------------------
-def test_creates_are_explicitly_rejected_with_a_named_successor():
+# --------------------------------------------------------------------------
+# ⑦ creates —— **2026-08-28 由 P2.4 接上**
+#
+# P0.5 把它 deferred 时把重开条件写死了：「出现需要用包在站点上**建**字段的调用方时」。
+# P2.4 的第四步「迁站点」正是那个调用方 —— 把包 apply 到一个还没有该字段的站点，
+# 那个字段就落在 `plan.creates` 里。下面这组是它的判据。
+# --------------------------------------------------------------------------
+def test_creates_land_as_custom_field_documents():
     client = FakeSiteClient()
-    plan = _plan(creates=(_entry("Item", "brand_code"),))
+    plan = _plan(creates=(_entry("ToDo", "brand_code", fieldtype="Data", label="品牌码"),))
 
-    with pytest.raises(NotImplementedError) as excinfo:
-        execute_plan(plan, "frontend", client=client)
+    execute_plan(plan, "gitops.test", client=client)
 
-    message = str(excinfo.value)
-    assert "2026-08-21-1922-3" in message and "Deferred" in message, message
-    assert client.deleted == [], "拒绝之后不该有任何副作用"
+    assert client.created == [
+        ("Custom Field", {"dt": "ToDo", "fieldname": "brand_code",
+                          "fieldtype": "Data", "label": "品牌码"})
+    ], client.created
+
+
+def test_creates_order_is_deterministic():
+    """与删除路径同口径：按 `key` 排序，复跑同一个计划的请求序一致、日志可比对。"""
+    client = FakeSiteClient()
+    plan = _plan(creates=(_entry("ToDo", "zulu"), _entry("Note", "alpha"), _entry("ToDo", "alpha")))
+
+    execute_plan(plan, "gitops.test", client=client)
+
+    assert [(d, p["fieldname"]) for d, p in client.created] == [
+        ("Custom Field", "alpha"), ("Custom Field", "alpha"), ("Custom Field", "zulu")
+    ]
+    assert [p["dt"] for _d, p in client.created] == ["Note", "ToDo", "ToDo"]
+
+
+def test_a_failed_create_aborts_and_does_not_continue():
+    """任一条失败即抛且**不继续建后面的** —— 与删除路径同一条纪律。
+
+    ⚠️ 本层**不做事务/回滚**（划给 P3.1）：中途失败会留下部分应用的状态，
+    这一点不假装有。判据只保证「不继续」，不保证「已建的会被撤回」。
+    """
+    client = FakeSiteClient(fail_create_on=("ToDo", "boom"))
+    plan = _plan(creates=(_entry("ToDo", "aaa"), _entry("ToDo", "boom"), _entry("ToDo", "zzz")))
+
+    with pytest.raises(SiteError):
+        execute_plan(plan, "gitops.test", client=client)
+
+    assert [p["fieldname"] for _d, p in client.created] == ["aaa"], "失败之后还在继续建"
+
+
+def test_creates_run_before_deletes():
+    """🔴 **先建后删。**
+
+    两者都失败得起，但代价不同：建失败时**什么都还没删**，损失最小；
+    先删后建时一旦建失败，字段已经没了。破坏性动作放在增量动作之后，
+    是本层在「没有事务」这个前提下能做的唯一取舍（事务归 P3.1）。
+    """
+    client = FakeSiteClient()
+    plan = _plan(_entry("ToDo", "old_one"), creates=(_entry("ToDo", "new_one"),))
+
+    execute_plan(plan, "gitops.test", client=client, runner=_ORPHAN_FREE)
+
+    assert client.order == ["create:ToDo.new_one", "delete:ToDo.old_one"], client.order
+
+
+def test_an_empty_creates_list_makes_zero_requests():
+    client = FakeSiteClient()
+
+    execute_plan(_plan(), "gitops.test", client=client)
+
+    assert client.created == [] and client.deleted == []
 
 
 def test_updates_are_explicitly_rejected_not_silently_skipped():

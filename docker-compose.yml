@@ -211,6 +211,24 @@ services:
     <<: *backend_defaults
     environment:
       <<: *ai_env
+    # 🔴 **只绑环回的一格端口，2026-08-28 由 P2.4 加。**
+    #
+    # 理由是实测：`frontend` 那一格（18080）走 nginx，而 nginx 的
+    # `FRAPPE_SITE_NAME_HEADER=frontend` 把**所有**请求钉在 `frontend` 上 ——
+    # 宿主上带 `Host: gitops.test` 打过去，落地的仍然是 `frontend`
+    # （2026-08-28 实测：两个 Host 都答「有 Item DocType」，而 gitops.test 上没有 erpnext）。
+    # ⇒ P2.4 第四步「把定制包 apply 到**另一个站点**」在只有 18080 的情况下**做不到**。
+    #
+    # ⚠️ **不能改成 `FRAPPE_SITE_NAME_HEADER=$$host`**：浏览器判据（tests/ui、tests/render）
+    # 打的是 `127.0.0.1:18080`，那时 Host 就是 `127.0.0.1`，Frappe 会去找一个叫
+    # `127.0.0.1` 的站点 —— 正是 `agenerp/site.py` 模块头记着的那个坑。
+    #
+    # gunicorn 自己**按 Host 正确分站**，所以直接给它一格端口就够了。
+    # 与 `agenerp-serve` 那条「没有 ports: 是刻意的」**不冲突**：
+    # 判据 `tests/unit/test_explain_same_origin.py` ① 守的是 `agenerp-serve`，不是 backend；
+    # 而 `test_published_ports_bind_loopback_literally` 要求字面绑 `127.0.0.1` —— 这里满足。
+    ports:
+      - "127.0.0.1:${AGENERP_BACKEND_PORT:-8001}:8000"
     # Host 头不能省：gunicorn 按 Host 解析站点，打 127.0.0.1 会被当成一个叫 127.0.0.1 的站点而 404。
     # 站点名与 create-site 的 --set-default、frontend 的 FRAPPE_SITE_NAME_HEADER 是同一个值。
     healthcheck:

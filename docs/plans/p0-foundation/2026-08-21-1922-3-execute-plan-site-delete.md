@@ -717,6 +717,10 @@ git diff --numstat tools/gates/expected-red.txt → 无输出（名单一行未�
   「用包把删掉的字段建回来」这条能力在本 plan 之后仍然缺（见 Infrastructure 的回滚策略）。
 - Successor Required: `yes`（P2 定制包 GitOps，或更早出现真实调用方时）
 - 重开事件：出现需要用包在站点上**建**字段的调用方时。
+- ✅ **2026-08-28 已消费**：P2.4 的第四步「迁站点」就是那个调用方，`creates` 已落地
+  （`docs/plans/p2-views/2026-08-28-P2.4-gitops-v0.md` Phase 1）。
+  ⚠️ **`updates` 那一半仍然 deferred**，重开条件原样保留：出现需要用包在站点上**改**字段属性的调用方时。
+  本条的历史结论一个字不改 —— 这里只加一行「后来怎么样了」。
 
 ### 靠**删除包文件**表达「清空该 DocType 的全部定制」这一意图无法表达（空数组文件可以）
 
