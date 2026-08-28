@@ -41,14 +41,16 @@ from agenerp.routing.config import from_env as config_from_env
 from agenerp.routing.errors import RoutingError
 from agenerp.dsl.blocks import Block, View
 from agenerp.dsl.fallback import plan_render
-from agenerp.dsl.roles import WORKER_DAILY_VIEWS, home_for_roles
+from agenerp.dsl.roles import home_for_roles
 from agenerp.dsl.schema import SchemaView
 from agenerp.dsl.validate import validate
 from agenerp.i18n import load_terms
 from agenerp.site import RESOURCE_PATH, SiteError, client_from_sid
 
 # 可渲染的视图，**按名字查表**。v0 硬编码（P2.4 的 GitOps 会把它换成存储）。
-VIEWS_BY_NAME = {view.name: view for view in WORKER_DAILY_VIEWS}
+# ⚠️ **视图定义不再在这里常驻。** 2026-08-28 起本端点按调用者的 sid
+# 从站点的 `AgenERP View` 表读（见 `view_plan`）。
+# `WORKER_DAILY_VIEWS` 仍然被 `home_for_roles` 那条封闭映射间接用到（角色 → 首页名）。
 
 # 监听面。**地址写死回环**：本期服务不出宿主（§7.20 `D-a-1` 的残余风险那一条）。
 LOOPBACK = "127.0.0.1"
@@ -391,18 +393,31 @@ def _failure_detail(result) -> dict:
     return {"stopped": stopped, "reason": detail} if detail else {"stopped": stopped}
 
 
-def view_plan(name: str, schema: SchemaView | None) -> dict:
-    """给一个视图名，回它的渲染计划。**不取任何业务数据。**
+def view_plan(name: str, schema: SchemaView | None, client: Any) -> dict:
+    """给一个视图名，回它的渲染计划。**定义从站点表读，不取任何业务数据。**
+
+    🔴 **2026-08-28 翻掉了一条明文裁定。** 原来的本端点「不认人」，理由逐字是
+    「本端点只回视图定义，不是业务数据」。人 2026-08-28 把那条裁定的前提改了 ——
+    逐字：「**schema 指的是表的结构对 agent 全局可见**」。
+    ⇒ 表结构全局共享成立，**而视图定义是数据**，该按调用者的权限读。
+
+    ⇒ `client` 是**按调用者 sid 造的**那个（判据⑧：服务端只以调用者身份对站点说话），
+    定义从 `AgenERP View` 表读（P2.0 判的「产物落自有表」）。
 
     ⚠️ `schema` 为 `None` 时**抛**，不回一个「都画得了」的乐观计划 ——
     与 `agenerp/dsl/validate.py` 同一条：**验不了的东西不许算过。**
 
-    ⚠️ 视图名只做**字典查表**（`VIEWS_BY_NAME`），不参与任何路径拼接、不做前缀匹配。
-    查不到就 404，不回显调用方给的名字（那是一条反射面）。
+    ⚠️ 视图名只用来查表，不参与任何路径拼接、不做前缀匹配；
+    查不到就 404，**不回显调用方给的名字**（那是一条反射面）。
     """
-    view = VIEWS_BY_NAME.get(name)
-    if view is None:
-        raise ServiceError(404, "没有这个视图")
+    from agenerp.dsl.store import ViewStoreError, read_view
+
+    try:
+        view = read_view(client, name)
+    except ViewStoreError:
+        # ⚠️ 「表没建」「没权限」「名字错」在这里**都收敛成 404** ——
+        # 分开报会把站点的内部状态泄露给调用方。服务端这一侧仍看得见真因（下面的日志）。
+        raise ServiceError(404, "没有这个视图") from None
     if schema is None:
         raise ServiceError(503, "站点 schema 取不到，无法判定字段是否存在 —— 验不了的不算过")
 
@@ -699,12 +714,15 @@ def _make_handler(deps: ServiceDeps) -> type[BaseHTTPRequestHandler]:
             self._respond(200, {"role": role, "view": view_name})
 
         def _respond_view_plan(self) -> None:
-            """回一个视图的渲染计划。**不认人、不取业务数据。**
+            """回一个视图的渲染计划。**认人，但仍不取业务数据。**
 
-            为什么不认人：本端点只回「这个视图长什么样、哪些块画得了」——
-            那是**视图定义**，不是业务数据。业务数据由浏览器同源直打 Frappe，
-            带自己的 sid，权限由后端强制（`system-baseline.md` §4）。
-            让本服务代取数据等于给它开一条绕过浏览器身份的路。
+            🔴 **2026-08-28 由「不认人」改成「认人」** —— 这是翻掉一条明文裁定。
+            原裁定逐字：「本端点只回视图定义，不是业务数据」。
+            人 2026-08-28 把前提改了：「**schema 指的是表的结构对 agent 全局可见**」
+            ⇒ 表结构全局共享成立，**而视图定义是数据**，该按调用者的权限读。
+
+            **没变的那一半**：业务数据仍由浏览器同源直打 Frappe、带自己的 sid，
+            权限由后端强制（`system-baseline.md` §4）。本服务**仍然不代取一行业务数据**。
             """
             params = parse_qs(urlsplit(self.path).query)
             names = params.get("name") or []
@@ -712,7 +730,10 @@ def _make_handler(deps: ServiceDeps) -> type[BaseHTTPRequestHandler]:
                 self._respond(400, {"error": "要恰好一个 name 参数"})
                 return
             try:
-                payload = view_plan(names[0], deps.schema())
+                # 🔴 **认人**：视图定义是数据，没有身份就没有答案（见 `view_plan` 的 docstring）。
+                sid = _sid_from_cookie(self.headers.get("Cookie"))
+                client, _user = _resolve_identity(deps, sid)
+                payload = view_plan(names[0], deps.schema(), client)
             except ServiceError as exc:
                 self._respond(exc.status, {"error": exc.message})
             except Exception:

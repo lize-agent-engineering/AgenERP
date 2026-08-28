@@ -31,6 +31,7 @@ from __future__ import annotations
 
 import json
 import pathlib
+import re
 from collections.abc import Sequence
 
 from agenerp.dsl.blocks import View
@@ -38,6 +39,17 @@ from agenerp.dsl.wire import WireError, view_from_json, view_to_json
 
 #: 自有表的名字。声明落 `agenerp/dsl/doctype/agenerp_view.json`。
 VIEW_DOCTYPE = "AgenERP View"
+
+#: 视图名的合法形状。**与文件名同源**（`agenerp/dsl/views/<name>.json`）。
+#
+# 🔴 **这不是洁癖，是一条安全面。** 名字要进 REST 路径，而
+# `agenerp/site.py` 的编码是 `urllib.parse.quote(path, safe="/")` —— **`/` 不转义**。
+# 一个叫 `../../x` 的名字会拼出 `/api/resource/AgenERP View/../../x`，
+# 而 HTTP 客户端会替你规范化掉它 ⇒ **路径穿越**。
+#
+# 视图名此前只做字典查表（`VIEWS_BY_NAME.get(name)`），压根进不了路径；
+# 2026-08-28 改成从站点表读之后，那层保护没了，**必须在这里补回来**。
+VIEW_NAME = re.compile(r"^[a-z0-9][a-z0-9-]{0,63}$")
 
 
 class ViewStoreError(RuntimeError):
@@ -135,6 +147,11 @@ def read_view(client, name: str) -> View:
     """
     from agenerp.site import RESOURCE_PATH, SiteError
 
+    if not VIEW_NAME.match(name or ""):
+        # ⚠️ **一个站点请求都不发就拒**：名字不合形状时连问都不问。
+        # 不回显那个名字 —— 调用方能控制它，回显就是一条反射面。
+        raise ViewStoreError("视图名不合法")
+
     try:
         payload = client.get(f"{RESOURCE_PATH}/{VIEW_DOCTYPE}/{name}")
     except SiteError as exc:
@@ -150,3 +167,43 @@ def read_view(client, name: str) -> View:
         return view_from_json(json.loads(row["definition"]))
     except (ValueError, WireError) as exc:
         raise ViewStoreError(f"视图 {name!r} 的 definition 不是一份视图：{exc}") from exc
+
+
+def main() -> int:
+    """把 git 里的视图定义同步到站点。**部署步骤，不是判据。**
+
+        docker compose exec -T agenerp-serve python3 -m agenerp.dsl.store
+        # 或本机：AGENERP_SITE=frontend python3 -m agenerp.dsl.store
+
+    🔴 **为什么它必须是部署的一步**：2026-08-28 起服务端从站点表读视图定义
+    （翻掉了「视图计划端点不认人」那条裁定）。⇒ **一个没有视图定义行的站点没有首页** ——
+    P2.6 的门禁 `test_no_empty_workspace` 在空表上会红，而那是**对的**行为。
+    供给不该由判据做（判据供给自己等于自己给自己发考卷），该由部署做。
+
+    幂等：`ensure_table` 先查后建，`publish_views` 是**同步**（多的删、缺的补）。
+    """
+    import os
+    import sys
+
+    from agenerp.dsl.roles import WORKER_DAILY_VIEWS
+    from agenerp.site import SiteError, client_from_env
+
+    site = os.environ.get("AGENERP_SITE", "").strip()
+    if not site:
+        print("AGENERP_SITE 为空 —— 不猜站点名。", file=sys.stderr)
+        return 2
+    try:
+        client = client_from_env(site)
+        made = ensure_table(client)
+        count = publish_views(client, WORKER_DAILY_VIEWS)
+    except (SiteError, ViewStoreError) as exc:
+        print(f"同步视图定义到 {site} 失败：{exc}", file=sys.stderr)
+        return 1
+    print(f"→ {site}：表{'已建' if made else '已存在'}，同步了 {count} 个视图定义")
+    return 0
+
+
+if __name__ == "__main__":
+    import sys
+
+    sys.exit(main())

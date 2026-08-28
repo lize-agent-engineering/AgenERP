@@ -90,11 +90,44 @@ def _schema():
     return SchemaView(fields, children)
 
 
+def _definition_client():
+    """一个只答「`AgenERP View` 表里那一行」的假客户端。
+
+    ⚠️ **2026-08-28 新增**：`view_plan()` 改成按调用者 sid **从站点表**读定义
+    （翻掉了「本端点不认人」那条裁定）。本文件的口径不变 ——
+    模块头逐字「**被桩掉的只有 HTTP 传输那一段**」，这里桩的正是那一段：
+    定义仍取**真相源**（`agenerp/dsl/views/*.json`），只是不真去打站点。
+    """
+    from agenerp.dsl.roles import WORKER_DAILY_VIEWS
+    from agenerp.dsl.wire import view_to_json
+    from agenerp.site import SiteError
+
+    by_name = {view.name: view for view in WORKER_DAILY_VIEWS}
+
+    class _Client:
+        def get(self, path, params=None):  # noqa: ARG002
+            want = path.rsplit("/", 1)[-1]
+            if want not in by_name:
+                raise SiteError(f"GET {path} → HTTP 404（假件）")
+            view = by_name[want]
+            return {
+                "data": {
+                    "view_name": view.name,
+                    "title": view.title,
+                    "definition": json.dumps(view_to_json(view), ensure_ascii=False),
+                }
+            }
+
+    return _Client()
+
+
 def _plan_json(view_name: str) -> str:
     """用**真的** `view_plan()` 算一份计划。schema 取自提交在仓里的活站点导出子集。"""
     from agenerp.serve.app import view_plan
 
-    return json.dumps(view_plan(view_name, _schema()), ensure_ascii=False)
+    return json.dumps(
+        view_plan(view_name, _schema(), _definition_client()), ensure_ascii=False
+    )
 
 
 def _falling_back_plan_json() -> str:
