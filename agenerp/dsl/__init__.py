@@ -22,7 +22,7 @@ Workspace 会被 app 升级整条 `delete_doc` + 重插，只有 `is_hidden` 幸
 from agenerp.dsl.blocks import BLOCK_TYPES, Block, View
 from agenerp.dsl.fallback import RenderPlan, plan_render
 from agenerp.dsl.schema import SchemaView
-from agenerp.dsl.wire import WireError, view_from_json, view_from_text
+from agenerp.dsl.wire import WireError, view_from_json, view_from_text, view_to_json
 from agenerp.dsl.validate import DslError, SchemaUnavailable, ValidationResult, validate
 
 __all__ = [
@@ -37,6 +37,7 @@ __all__ = [
     "WireError",
     "view_from_json",
     "view_from_text",
+    "view_to_json",
     "plan_render",
     "validate",
 ]

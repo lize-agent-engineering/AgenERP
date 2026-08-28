@@ -195,3 +195,30 @@ def test_a_sort_written_as_an_object_is_a_wire_error():
 
     with pytest.raises(WireError):
         view_from_json(payload)
+
+
+# ── `view_to_json` 是 `view_from_json` 的逆（2026-08-28 由 P2.4 第二半补上）──
+
+
+def test_a_view_survives_a_round_trip_through_json():
+    """🔴 往返必须回到**同一个对象** —— 落库那一半整个压在这上面。"""
+    from agenerp.dsl.roles import WORKER_DAILY_VIEWS
+    from agenerp.dsl.wire import view_to_json
+
+    for view in WORKER_DAILY_VIEWS:
+        assert view_from_json(view_to_json(view)) == view, view.name
+
+
+def test_empty_segments_are_left_out_not_written_as_null():
+    """`{"limit": null}` 与「没有 limit」在解析那边一样，在 `git diff` 里不一样。
+
+    产物要能被人读、被 diff —— 这一条守的是**可读性**，不是正确性。
+    """
+    from agenerp.dsl.wire import view_to_json
+
+    payload = view_to_json(view_from_json({"name": "x", "title": "x", "blocks": [
+        {"type": "explain", "question": "为什么"}]}))
+
+    block = payload["blocks"][0]
+    assert "limit" not in block and "sort" not in block and "fields" not in block
+    assert block["question"] == "为什么"

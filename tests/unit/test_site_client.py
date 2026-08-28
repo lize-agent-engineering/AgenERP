@@ -59,6 +59,10 @@ WRITE_METHOD_ALLOWLIST: tuple[str, ...] = (
     "SiteClient.create_doc",
     "SiteClient.ensure_doc",
     "SiteClient.submit_doc",
+    # 2026-08-28 第五个：**只删 `AgenERP View` 一张表**（P2.4 第二半）。
+    # 模块头第 4 条「不提供删任意 DocType 文档的通用方法」仍然成立 ——
+    # 它不收 `doctype` 参数，DocType 名写死在方法体里。
+    "SiteClient.delete_view",
 )
 
 # 名字里**不含任何 `WRITE_VERB`**、因而下面那道扫描守卫**看不见**的写方法。

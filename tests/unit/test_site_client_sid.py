@@ -250,12 +250,23 @@ def test_the_write_registration_surface_is_unchanged_by_the_sid_mode():
     ]
 
     assert offenders == [], f"未登记的写方法：{offenders}；白名单={WRITE_METHOD_ALLOWLIST}"
+    # ⚠️ **2026-08-28 由 4 条变 5 条**（P2.4 第二半 · 视图落自有表加了 `delete_view`）。
+    #
+    # 本条锁守的东西**一个字没松**：它挡的是「**借某次改动顺手加一个写方法**」，
+    # 而 sid 那份 plan 自己的「对活站点只读」声明**仍然成立** ——
+    # 新增那一条不是它加的，是另一份工作另付了一次 diff + 一次登记
+    # （`agenerp/site.py` 模块头第 4 条那段「收窄式演进」写着这个规矩）。
+    #
+    # 🔴 **改这张表的门槛不许降低**：加一条就要在这里改一次、在
+    # `test_site_client.py` 的 `WRITE_METHOD_ALLOWLIST` 改一次、在模块头登记一次。
+    # 三处都得动，才谈得上「付了留痕」。
     assert WRITE_METHOD_ALLOWLIST == (
         "SiteClient.delete_custom_field",
         "SiteClient.create_doc",
         "SiteClient.ensure_doc",
         "SiteClient.submit_doc",
-    ), "写方法白名单变了 —— 本 plan 逐字声明它一个字不动"
+        "SiteClient.delete_view",
+    ), "写方法白名单变了 —— 每加一条都要在三处同时留痕，见上方注释"
 
 
 # ⑧ ---------------------------------------------------------------------------

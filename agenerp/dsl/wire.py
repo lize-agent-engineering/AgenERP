@@ -264,3 +264,52 @@ def _block_json_schema() -> dict:
         },
         "required": ["type"],
     }
+
+
+def view_to_json(view: View) -> dict:
+    """`View` → 线格式。**`view_from_json` 的逆**，判据钉死往返。
+
+    ⚠️ **2026-08-28 才补上**：P2.3 按 YAGNI 没做它，理由逐字写在那份 plan 里
+    ——「本项没有任何一处需要把 `View` 序列化回去（**落库是 P2.4**）」。
+    P2.4 的第二半（视图落自有表）来了，这就是它的重开条件。
+
+    🔴 **空值不写进去**：`{"limit": null}` 与「没有 limit」在 `view_from_json`
+    那边是同一个结果，但在 `git diff` 里是两行不同的字。
+    产物要能被人读、被 diff —— 所以只写真正有内容的段。
+    """
+    return {
+        "name": view.name,
+        "title": view.title,
+        "blocks": [_block_to_json(block) for block in view.blocks],
+    }
+
+
+def _block_to_json(block: Block) -> dict:
+    out: dict[str, Any] = {"type": block.type}
+    if block.title:
+        out["title"] = block.title
+    if block.doctype:
+        out["doctype"] = block.doctype
+    if block.fields:
+        out["fields"] = list(block.fields)
+    if block.filters:
+        out["filters"] = [list(entry) for entry in block.filters]
+    if block.sort:
+        out["sort"] = list(block.sort)
+    if block.limit is not None:
+        out["limit"] = block.limit
+    if block.child_fields:
+        out["child_fields"] = [
+            [table, child, list(names)] for table, child, names in block.child_fields
+        ]
+    if block.agg:
+        out["agg"] = block.agg
+    if block.baseline:
+        out["baseline"] = block.baseline
+    if block.chart_kind:
+        out["chart_kind"] = block.chart_kind
+    if block.question:
+        out["question"] = block.question
+    if block.subject:
+        out["subject"] = block.subject
+    return out
