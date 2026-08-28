@@ -305,7 +305,7 @@ def test_a_recorded_measurement_backs_the_claim_that_the_bar_was_met():
     print(f"\n支撑这条线的测量：{'、'.join(good)}")  # noqa: T201
 
 
-def test_every_ground_truth_field_really_exists_on_the_site(live_site):
+def test_every_ground_truth_field_really_exists_on_the_site():
     """硬约束 ④ 用在**评测集自己**身上：ground truth 必须指回**活站点上**真实存在的字段。
 
     🔴 **为什么这条必须在跑之前**：`expected` 若指向一个站点上不存在的字段，
@@ -320,9 +320,18 @@ def test_every_ground_truth_field_really_exists_on_the_site(live_site):
     """
     from agenerp.site import SiteClient, SiteError
 
-    client = SiteClient(
-        os.environ["AGENERP_SITE"], admin_password=os.environ["AGENERP_ADMIN_PASSWORD"]
-    )
+    # ⚠️ **不用 `live_site` fixture** —— 它挂在 `compose_stack` 上，那个会去起
+    # 自己的一整套 compose 栈，且**刻意不自动挑空闲端口**（`conftest.py:175`：
+    # 「那会把一个真实冲突藏起来」）。本机上开发栈占着端口时它必然起不来，
+    # 于是这条判据在**本地一次都跑不了** —— 而跑不了的判据等于不存在。
+    # 同日落地的 `test_no_empty_workspace.py` 走的就是「直接读 env」，两者对齐。
+    # `AGENERP_LIVE` 那道闸由 `pytestmark = pytest.mark.live` 与下面的 fail 承担。
+    site = (os.environ.get("AGENERP_SITE") or "").strip()
+    password = (os.environ.get("AGENERP_ADMIN_PASSWORD") or "").strip()
+    if not site or not password:
+        # ⚠️ **fail 不是 skip** —— 一条会 skip 的门禁等于一条不存在的门禁。
+        pytest.fail("AGENERP_SITE / AGENERP_ADMIN_PASSWORD 没设 —— 连不上站点就验不了")
+    client = SiteClient(site, admin_password=password)
     cache: dict[str, dict] = {}
 
     def fields_of(doctype: str) -> dict:
