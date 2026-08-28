@@ -40,9 +40,29 @@ import pathlib
 _REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
 _PKG = _REPO_ROOT / "agenerp"
 
-# 唯一允许承载 agent 循环的模块。要加第二处，先改这里 —— 而改这里会逼人
-# 在 review 里正面回答「为什么需要第二处循环」，那正是本门禁的目的。
-_ALLOWED_LOOP = {"agenerp/explain/loop.py"}
+# 允许承载 agent 循环的模块。要加一处，先改这里 —— 而改这里会逼人
+# 在 review 里正面回答「为什么需要多一处循环」，那正是本门禁的目的。
+#
+# 🔴 **2026-08-28 由一处放宽到两处，人当场裁定（P2.3）。** 这是本门禁第一次被放宽，
+# 下面是那次「正面回答」的原文，留在这里供后来人复核：
+#
+# **问**：为什么视图 Agent 不能复用 `agenerp/explain/loop.py`？
+# **答**：两个循环的停止条件不同 —— 解释 Agent 停在「证据够不够」，
+#   视图 Agent 停在「DSL 合不合法」。塞进 `ExplainLoop` 只有一条实现路径：
+#   在证据充分性门禁上开一个 `if task_class == "view": skip`。
+#   **那是给 P1.4 那道门禁开后门**，比多一处循环更坏。
+#
+# **问**：那本门禁担心的 O(N) 迁移成本呢？
+# **答**：`agenerp/views/loop.py` 的循环体约 50 行编排，**接缝一个没绕**：
+#   模型调用走 `route()` 拿到的 `ChatAdapter`、工具走 `ToolContract` + `execute()`、
+#   `TOOL_PARAMS` / `RESULT_CHARS` 直接从 `explain.loop` 借用**不复制**。
+#   换 harness 时要迁的仍是「一个适配器」。
+#
+# ⚠️ **反对的话照记**：这正是每一次加白名单时都会说的话。
+#   本门禁的判别力**正比于这张表有多短** —— 第三处要不要放，重新回答一遍，不许照抄本条。
+# ⚠️ **正确的形状仍是抽公共骨架**（切换成本 O(1)）。今天不做的理由是它要动
+#   `agenerp/explain/`，而 P1.4 的证据门禁判据长在那儿。P3 出现第三个循环时一起做。
+_ALLOWED_LOOP = {"agenerp/explain/loop.py", "agenerp/views/loop.py"}
 # `ChatAdapter` 的合法构造域。
 _ALLOWED_ADAPTER_PREFIX = "agenerp/routing/"
 
