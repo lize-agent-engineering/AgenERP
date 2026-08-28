@@ -1,0 +1,132 @@
+{
+  "model": "qwen3.7-flash-2026-07-15",
+  "request": "我想看今天要做的工单，把物料、计划数量和状态列出来",
+  "stop_reason": "proposed",
+  "turns": [
+    {
+      "index": 1,
+      "kind": "tools",
+      "calls": [
+        {
+          "tool": "schema.search",
+          "params": {
+            "keywords": "工单 Work Order"
+          },
+          "ok": true
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "kind": "tools",
+      "calls": [
+        {
+          "tool": "meta.fields",
+          "params": {
+            "doctype": "Work Order",
+            "keywords": "物料 计划数量 状态 planned_start_date"
+          },
+          "ok": true
+        }
+      ]
+    },
+    {
+      "index": 3,
+      "kind": "tools",
+      "calls": [
+        {
+          "tool": "meta.fields",
+          "params": {
+            "doctype": "Work Order",
+            "keywords": "物料 item_code production_item"
+          },
+          "ok": true
+        }
+      ]
+    },
+    {
+      "index": 4,
+      "kind": "tools",
+      "calls": [
+        {
+          "tool": "meta.fields",
+          "params": {
+            "doctype": "Work Order",
+            "keywords": "计划数量 qty planned_qty"
+          },
+          "ok": true
+        }
+      ]
+    },
+    {
+      "index": 5,
+      "kind": "proposed"
+    }
+  ],
+  "usage": [
+    {
+      "prompt": 960,
+      "completion": 29,
+      "reasoning": 0,
+      "cached": 0,
+      "total": 989
+    },
+    {
+      "prompt": 1235,
+      "completion": 47,
+      "reasoning": 0,
+      "cached": 0,
+      "total": 1282
+    },
+    {
+      "prompt": 1364,
+      "completion": 43,
+      "reasoning": 0,
+      "cached": 0,
+      "total": 1407
+    },
+    {
+      "prompt": 1546,
+      "completion": 43,
+      "reasoning": 0,
+      "cached": 0,
+      "total": 1589
+    },
+    {
+      "prompt": 2380,
+      "completion": 130,
+      "reasoning": 0,
+      "cached": 0,
+      "total": 2510
+    }
+  ],
+  "view": {
+    "name": "today_work_orders",
+    "title": "今日工单视图",
+    "field_refs": [
+      "Work Order.planned_start_date",
+      "Work Order.production_item",
+      "Work Order.qty",
+      "Work Order.status"
+    ],
+    "blocks": [
+      {
+        "type": "list",
+        "title": "今日工单列表",
+        "doctype": "Work Order",
+        "fields": [
+          "production_item",
+          "qty",
+          "status"
+        ],
+        "sort": [
+          "planned_start_date",
+          "asc"
+        ],
+        "limit": null,
+        "agg": null
+      }
+    ]
+  },
+  "fallbacks": []
+}
