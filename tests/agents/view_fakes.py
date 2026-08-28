@@ -167,6 +167,31 @@ def dsl_step(payload: object) -> dict:
     }
 
 
+def submit_step(payload: object) -> dict:
+    """模型**通过工具**交视图 —— 参数就是那份 DSL。
+
+    这是 2026-08-28 之后的交付路径：schema 由 `blocks.py` 的封闭取值生成、
+    当作工具参数交给模型，**端点替我们把形状挡住**。
+    """
+    args = payload if isinstance(payload, str) else json.dumps(payload, ensure_ascii=False)
+    return {
+        "choices": [
+            {
+                "message": {
+                    "role": "assistant",
+                    "content": None,
+                    "tool_calls": [
+                        {"id": "call-submit", "type": "function",
+                         "function": {"name": "view_submit", "arguments": args}}
+                    ],
+                },
+                "finish_reason": "tool_calls",
+            }
+        ],
+        "usage": usage(),
+    }
+
+
 def models() -> list[ModelProfile]:
     return [
         ModelProfile(

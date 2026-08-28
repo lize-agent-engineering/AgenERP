@@ -33,6 +33,7 @@ from agenerp.dsl.blocks import (  # noqa: E402
 )
 from agenerp.dsl.validate import SchemaUnavailable  # noqa: E402
 from agenerp.routing import RoutingError  # noqa: E402
+from agenerp.views.wire import view_json_schema  # noqa: E402
 from agenerp.views.loop import (  # noqa: E402
     STOP_PROPOSED,
     SYSTEM_PROMPT,
@@ -59,6 +60,14 @@ WORKER_VIEW = {
 REQUEST = "我想看今天要做的工单"
 
 
+def _schema_enum(path: str) -> list:
+    """从生成的 JSON Schema 里取一个枚举 —— **判据读的是产物，不是常量表**。"""
+    block = view_json_schema()["properties"]["blocks"]["items"]["properties"]
+    if path == "filters-operator":
+        return block["filters"]["items"]["prefixItems"][1]["enum"]
+    return block[path]["enum"]
+
+
 def loop_for(transport, *, site=None, **kwargs) -> ViewLoop:
     return ViewLoop(
         adapter=fakes.adapter_for(transport),
@@ -70,7 +79,7 @@ def loop_for(transport, *, site=None, **kwargs) -> ViewLoop:
 
 
 def test_a_valid_dsl_becomes_a_proposal():
-    model = fakes.ScriptedModel([fakes.dsl_step(WORKER_VIEW)])
+    model = fakes.ScriptedModel([fakes.submit_step(WORKER_VIEW)])
 
     proposal = loop_for(model).run(REQUEST)
 
@@ -81,7 +90,7 @@ def test_a_valid_dsl_becomes_a_proposal():
 
 def test_the_proposal_carries_the_validation_result():
     """产出**带着**校验结论走 —— 不是「循环内部验过了，相信我」。"""
-    model = fakes.ScriptedModel([fakes.dsl_step(WORKER_VIEW)])
+    model = fakes.ScriptedModel([fakes.submit_step(WORKER_VIEW)])
 
     proposal = loop_for(model).run(REQUEST)
 
@@ -92,7 +101,7 @@ def test_the_proposal_carries_the_validation_result():
 
 def test_the_proposal_carries_the_render_plan():
     """落回是**块粒度**的既有行为（P2.2）。视图 Agent 照样要把它交出来。"""
-    model = fakes.ScriptedModel([fakes.dsl_step(WORKER_VIEW)])
+    model = fakes.ScriptedModel([fakes.submit_step(WORKER_VIEW)])
 
     proposal = loop_for(model).run(REQUEST)
 
@@ -132,7 +141,7 @@ def last_messages(model: fakes.ScriptedModel) -> str:
 
 def test_a_reply_that_is_not_dsl_is_pushed_back_and_the_second_try_lands():
     model = fakes.ScriptedModel(
-        [fakes.dsl_step("我建议你看一下工单列表。"), fakes.dsl_step(WORKER_VIEW)]
+        [fakes.submit_step("我建议你看一下工单列表。"), fakes.submit_step(WORKER_VIEW)]
     )
 
     proposal = loop_for(model).run(REQUEST)
@@ -144,7 +153,7 @@ def test_a_reply_that_is_not_dsl_is_pushed_back_and_the_second_try_lands():
 
 def test_a_field_that_does_not_exist_is_pushed_back_and_the_second_try_lands():
     model = fakes.ScriptedModel(
-        [fakes.dsl_step(BAD_FIELD_VIEW), fakes.dsl_step(WORKER_VIEW)]
+        [fakes.submit_step(BAD_FIELD_VIEW), fakes.submit_step(WORKER_VIEW)]
     )
 
     proposal = loop_for(model).run(REQUEST)
@@ -157,7 +166,7 @@ def test_a_field_that_does_not_exist_is_pushed_back_and_the_second_try_lands():
 def test_the_push_back_names_the_field_that_does_not_exist():
     """🔴 回注说不清是哪个字段，模型只能重猜 —— 而重猜要花掉一整轮修复预算。"""
     model = fakes.ScriptedModel(
-        [fakes.dsl_step(BAD_FIELD_VIEW), fakes.dsl_step(WORKER_VIEW)]
+        [fakes.submit_step(BAD_FIELD_VIEW), fakes.submit_step(WORKER_VIEW)]
     )
 
     loop_for(model).run(REQUEST)
@@ -171,7 +180,7 @@ def test_the_push_back_names_the_field_that_does_not_exist():
 def test_the_push_back_for_a_missing_doctype_is_not_the_same_message():
     """DocType 找错和字段找错是**两种错法**，回注话术不许混成一句。"""
     model = fakes.ScriptedModel(
-        [fakes.dsl_step(BAD_DOCTYPE_VIEW), fakes.dsl_step(WORKER_VIEW)]
+        [fakes.submit_step(BAD_DOCTYPE_VIEW), fakes.submit_step(WORKER_VIEW)]
     )
 
     loop_for(model).run(REQUEST)
@@ -185,7 +194,7 @@ def test_a_broken_reply_says_the_format_is_wrong_not_the_fields():
     """`WireError` 与 `DslError` 分开的意义就在这一句回注上：
     模型要改的是**输出格式**，不是字段。"""
     model = fakes.ScriptedModel(
-        [fakes.dsl_step("我建议你看一下工单列表。"), fakes.dsl_step(WORKER_VIEW)]
+        [fakes.submit_step("我建议你看一下工单列表。"), fakes.submit_step(WORKER_VIEW)]
     )
 
     loop_for(model).run(REQUEST)
@@ -198,7 +207,7 @@ def test_a_broken_reply_says_the_format_is_wrong_not_the_fields():
 
 def test_a_model_that_never_fixes_it_never_gets_a_view():
     """🔴 **校验绕不过去。** 模型一再交同一份坏 DSL，循环一次都不许放它过。"""
-    model = fakes.ScriptedModel([fakes.dsl_step(BAD_FIELD_VIEW)])
+    model = fakes.ScriptedModel([fakes.submit_step(BAD_FIELD_VIEW)])
 
     proposal = loop_for(model).run(REQUEST)
 
@@ -212,7 +221,7 @@ def test_running_out_of_repairs_does_not_downgrade_to_a_partial_view():
     那正是 `agenerp/dsl/fallback.py` 模块头点名的坏选择：静默丢弃，
     用户以为那块内容本来就不存在。
     """
-    model = fakes.ScriptedModel([fakes.dsl_step(BAD_FIELD_VIEW)])
+    model = fakes.ScriptedModel([fakes.submit_step(BAD_FIELD_VIEW)])
 
     proposal = loop_for(model).run(REQUEST)
 
@@ -223,7 +232,7 @@ def test_running_out_of_repairs_does_not_downgrade_to_a_partial_view():
 
 def test_the_repair_budget_is_spent_before_giving_up():
     """放弃之前**真的把修复轮用完了** —— 否则「顶回去」是一句空话。"""
-    model = fakes.ScriptedModel([fakes.dsl_step(BAD_FIELD_VIEW)])
+    model = fakes.ScriptedModel([fakes.submit_step(BAD_FIELD_VIEW)])
 
     loop = loop_for(model, repair_rounds=2)
     loop.run(REQUEST)
@@ -237,7 +246,7 @@ def test_without_a_schema_nothing_is_proposed_and_no_token_is_spent():
     与 `validate(view, None)` 抛 `SchemaUnavailable` 同源。
     先跑一遍再抛等于白烧一次 token —— 而它抛不抛跟模型答什么无关。
     """
-    model = fakes.ScriptedModel([fakes.dsl_step(WORKER_VIEW)])
+    model = fakes.ScriptedModel([fakes.submit_step(WORKER_VIEW)])
     loop = ViewLoop(
         adapter=fakes.adapter_for(model),
         client=fakes.client_for(fakes.site()),
@@ -264,7 +273,7 @@ def test_the_model_can_navigate_schema_before_submitting():
     model = fakes.ScriptedModel(
         [
             fakes.tools_step(fakes.call("schema.search", keywords="工单")),
-            fakes.dsl_step(WORKER_VIEW),
+            fakes.submit_step(WORKER_VIEW),
         ]
     )
 
@@ -281,7 +290,7 @@ def test_a_tool_result_is_fed_back_to_the_model():
     model = fakes.ScriptedModel(
         [
             fakes.tools_step(fakes.call("meta.fields", doctype="Work Order")),
-            fakes.dsl_step(WORKER_VIEW),
+            fakes.submit_step(WORKER_VIEW),
         ]
     )
 
@@ -296,7 +305,7 @@ def test_dsl_validate_and_preview_are_not_on_the_tool_surface():
 
     工具面里有它们，模型就有了「不调就交」这条路 —— 而那正是本项要挡住的形态。
     """
-    model = fakes.ScriptedModel([fakes.dsl_step(WORKER_VIEW)])
+    model = fakes.ScriptedModel([fakes.submit_step(WORKER_VIEW)])
 
     loop_for(model).run(REQUEST)
 
@@ -308,18 +317,20 @@ def test_dsl_validate_and_preview_are_not_on_the_tool_surface():
 def test_the_tool_surface_is_exactly_the_three_schema_tools():
     """视图 Agent 要的是 schema 不是数据行。给它 `query.read` / `doc.get`
     只会让它去查数据、烧 token，而答案不在那儿。"""
-    model = fakes.ScriptedModel([fakes.dsl_step(WORKER_VIEW)])
+    model = fakes.ScriptedModel([fakes.submit_step(WORKER_VIEW)])
 
     loop_for(model).run(REQUEST)
 
-    assert set(model.tools_offered()) == {"schema_search", "meta_fields", "system_overview"}
+    assert set(model.tools_offered()) == {
+        "schema_search", "meta_fields", "system_overview", "view_submit",
+    }
 
 
 # ── 产品入口：走 route()，不静默降级 ────────────────────────────────────────
 
 
 def test_the_product_entry_routes_through_the_view_task_class():
-    model = fakes.ScriptedModel([fakes.dsl_step(WORKER_VIEW)])
+    model = fakes.ScriptedModel([fakes.submit_step(WORKER_VIEW)])
 
     proposal = propose_view(
         REQUEST,
@@ -352,7 +363,7 @@ def test_a_model_that_cannot_call_tools_is_refused_not_downgraded():
             schema=fakes.schema(),
             models=weak,
             config=fakes.config(),
-            transport=fakes.ScriptedModel([fakes.dsl_step(WORKER_VIEW)]),
+            transport=fakes.ScriptedModel([fakes.submit_step(WORKER_VIEW)]),
         )
 
 
@@ -367,37 +378,70 @@ def test_the_repair_budget_is_not_reachable_from_the_product_entry():
     assert "repair_rounds" not in propose_view.__code__.co_varnames
 
 
-# ── 🔴 提示词必须由封闭取值生成，不许手抄 ───────────────────────────────────
+# ── 🔴 交付走「带 JSON Schema 的工具调用」，形状由端点挡 ─────────────────────
 #
-# 2026-08-28 活体实测抓到的：提示词只说了「输出 {name, title, blocks}」，
-# **没说一个块长什么样**。真模型（qwen3.7-flash-2026-07-15）因此连查 8 轮
-# `meta.fields`（每轮关键词都不同 —— 按 §3① 的口径是探索不是打转），
-# 一直没组装，最后撞 max-turns；放到 40 轮时端点直接回 400
-# 「同名同参的工具调用连续重复」。
+# 2026-08-28 活体实测抓到的两条，都出在**手搓结构化输出**这一段：
+#   ② 模型把 filters 交成对象数组 → 解析崩
+#   ③ 提示词里没说块长什么样 → 模型连查 8 轮不组装
+# 这正是成熟框架（LangChain `with_structured_output`）替人做掉的那件事。
 #
-# 归因照 §3②：**先问是不是我们自己的 harness**。是。
+# 人 2026-08-28 裁定：**借思想不引依赖** —— 用 `blocks.py` 的封闭取值生成 JSON Schema，
+# 当作工具参数交给模型，**端点替我们把形状挡住**。
+# D-22 / D-22.1 不翻（Deep Agents 的 Filesystem middleware 删不掉，
+# 会给一个零写工具面凭空开一条绕过 has_permission 的写通道）。
 
 
-def test_the_prompt_names_every_block_type():
-    """块类型是封闭表。加了一种而提示词没跟着改，模型就永远不会用它。"""
-    for block_type in BLOCK_TYPES:
-        assert block_type in SYSTEM_PROMPT, f"提示词里没有块类型 {block_type}"
+def test_the_schema_enumerates_every_block_type():
+    """块类型是封闭表。加了一种而 schema 没跟着改，模型就永远不会用它。"""
+    enum = _schema_enum("type")
+    assert set(enum) == set(BLOCK_TYPES)
 
 
-def test_the_prompt_names_every_filter_operator():
-    for operator in FILTER_OPERATORS:
-        assert operator in SYSTEM_PROMPT, f"提示词里没有算子 {operator!r}"
+def test_the_schema_enumerates_every_filter_operator():
+    assert set(_schema_enum("filters-operator")) == set(FILTER_OPERATORS)
 
 
-def test_the_prompt_names_every_aggregate_and_chart_kind():
-    for value in AGGREGATES + CHART_KINDS:
-        assert value in SYSTEM_PROMPT, f"提示词里没有 {value!r}"
+def test_the_schema_enumerates_every_aggregate():
+    assert set(_schema_enum("agg")) == set(AGGREGATES)
 
 
-def test_the_prompt_tells_the_model_to_copy_the_ref_from_meta_fields():
+def test_the_schema_enumerates_every_chart_kind():
+    assert set(_schema_enum("chart_kind")) == set(CHART_KINDS)
+
+
+def test_the_schema_makes_filters_an_array_not_an_object():
+    """🔴 活体实测那条 ②：模型交了对象数组。**schema 里写死它是数组**，端点先挡一道。"""
+    block = view_json_schema()["properties"]["blocks"]["items"]["properties"]
+    assert block["filters"]["type"] == "array"
+    assert block["filters"]["items"]["type"] == "array"
+
+
+def test_the_prompt_still_tells_the_model_to_copy_the_ref():
     """P2.0R 实测换来的：`meta.fields` 每行都给 `ref`，**可照抄**。
-    提示词不说，模型就自己拼 —— 那正是当时改掉的失败形态。"""
+    这条是「怎么找字段」，不是「交什么形状」—— 留在提示词里。"""
     assert "ref" in SYSTEM_PROMPT
+
+
+def test_the_submit_tool_is_on_the_surface():
+    """交付通道**是**一个工具；校验器**不是**（D2）。两件事不许混。"""
+    model = fakes.ScriptedModel([fakes.submit_step(WORKER_VIEW)])
+
+    loop_for(model).run(REQUEST)
+
+    assert "view_submit" in model.tools_offered()
+
+
+def test_a_plain_text_reply_is_pushed_back_to_the_tool():
+    """交付只有一条路。模型直接吐文本时，要明说「用工具交」，不是让它重猜格式。"""
+    model = fakes.ScriptedModel(
+        # 第一步刻意走**文本**：哪怕文本里就是一份合法 DSL，也不算交付。
+        [fakes.dsl_step(WORKER_VIEW), fakes.submit_step(WORKER_VIEW)]
+    )
+
+    proposal = loop_for(model).run(REQUEST)
+
+    assert proposal.stop_reason == STOP_PROPOSED
+    assert "view_submit" in last_messages(model)
 
 
 # ── 🔴 harness：重复调用自己挡，查够了催它交 ────────────────────────────────
@@ -414,7 +458,7 @@ SEARCH = fakes.call("schema.search", "c0", keywords="工单")
 def test_an_identical_repeat_is_pushed_back_instead_of_run_again():
     site = fakes.site()
     model = fakes.ScriptedModel(
-        [fakes.tools_step(SEARCH), fakes.tools_step(SEARCH), fakes.dsl_step(WORKER_VIEW)]
+        [fakes.tools_step(SEARCH), fakes.tools_step(SEARCH), fakes.submit_step(WORKER_VIEW)]
     )
 
     proposal = loop_for(model, site=site).run(REQUEST)
@@ -434,7 +478,7 @@ def test_a_different_argument_is_not_treated_as_a_repeat():
         [
             fakes.tools_step(fakes.call("meta.fields", "c0", doctype="Work Order")),
             fakes.tools_step(fakes.call("meta.fields", "c1", doctype="Stock Entry")),
-            fakes.dsl_step(WORKER_VIEW),
+            fakes.submit_step(WORKER_VIEW),
         ]
     )
 
@@ -446,7 +490,7 @@ def test_a_different_argument_is_not_treated_as_a_repeat():
 
 def test_the_repeat_push_back_tells_the_model_what_to_do():
     model = fakes.ScriptedModel(
-        [fakes.tools_step(SEARCH), fakes.tools_step(SEARCH), fakes.dsl_step(WORKER_VIEW)]
+        [fakes.tools_step(SEARCH), fakes.tools_step(SEARCH), fakes.submit_step(WORKER_VIEW)]
     )
 
     loop_for(model).run(REQUEST)
@@ -464,7 +508,7 @@ def test_after_enough_tool_turns_the_model_is_told_to_deliver():
         fakes.tools_step(fakes.call("meta.fields", f"c{i}", doctype="Work Order", keywords=f"k{i}"))
         for i in range(4)
     ]
-    model = fakes.ScriptedModel([*steps, fakes.dsl_step(WORKER_VIEW)])
+    model = fakes.ScriptedModel([*steps, fakes.submit_step(WORKER_VIEW)])
 
     loop_for(model, tool_turn_nudge=3).run(REQUEST)
 

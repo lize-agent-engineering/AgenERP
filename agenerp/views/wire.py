@@ -30,7 +30,15 @@ import re
 from collections.abc import Mapping, Sequence
 from typing import Any
 
-from agenerp.dsl.blocks import Block, View
+from agenerp.dsl.blocks import (
+    AGGREGATES,
+    BLOCK_TYPES,
+    CHART_KINDS,
+    FILTER_OPERATORS,
+    SORT_DIRECTIONS,
+    Block,
+    View,
+)
 
 
 class WireError(ValueError):
@@ -157,3 +165,96 @@ def _child_fields(value: Any, where: str) -> tuple:
         else:
             out.append(entry)
     return tuple(out)
+
+
+def view_json_schema() -> dict:
+    """视图 DSL 的 JSON Schema —— **由 `blocks.py` 的封闭取值生成，不手抄**。
+
+    ## 为什么有这个东西
+
+    2026-08-28 活体实测抓到两条，都出在**手搓结构化输出**这一段：
+
+    - 模型把 `filters` 交成对象数组 ⇒ 解析崩（`_seq` 那段注释记着全过程）
+    - 提示词里没说块长什么样 ⇒ 模型连查 8 轮 `meta.fields` 也不组装
+
+    这正是成熟框架（LangChain `with_structured_output`）替人做掉的那件事：
+    **把形状声明成 schema 交给端点，而不是用散文描述给模型。**
+
+    人 2026-08-28 裁定「**借思想不引依赖**」：本函数生成 schema，
+    `loop.py` 把它当 `view.submit` 的工具参数交出去 —— 端点先挡一道形状，
+    我们这边照样跑完整的两层校验。
+    **D-22 / D-22.1 不翻**：Deep Agents 的 Filesystem middleware 删不掉，
+    会给一个零写工具面凭空开一条绕过 `frappe.has_permission` 的写通道。
+
+    ⚠️ **schema 挡形状，不挡对错。** 「`Work Order.qtyy` 存不存在」端点不知道 ——
+    那仍然是 `validate()` 的活，且循环无条件跑它。
+    """
+    return {
+        "type": "object",
+        "properties": {
+            "name": {"type": "string", "description": "英文短名，作视图标识"},
+            "title": {"type": "string", "description": "中文标题，给用户看"},
+            "blocks": {
+                "type": "array",
+                "minItems": 1,
+                "items": _block_json_schema(),
+            },
+        },
+        "required": ["name", "title", "blocks"],
+    }
+
+
+def _block_json_schema() -> dict:
+    return {
+        "type": "object",
+        "properties": {
+            "type": {
+                "type": "string",
+                "enum": list(BLOCK_TYPES),
+                "description": "list=列表 detail=单据详情 metric=一个数 "
+                               "chart=图 explain=解释性文本块",
+            },
+            "title": {"type": "string"},
+            "doctype": {"type": "string", "description": "explain 块之外必填"},
+            "fields": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": "字段名照抄 meta.fields 的 ref 右半边。"
+                               "metric 恰好一个；chart 恰好两个 [x 轴, y 轴]；"
+                               "explain 块必须没有 fields",
+            },
+            "filters": {
+                "type": "array",
+                # 🔴 写死成**数组的数组**。实测那条 ②：模型交了对象数组。
+                "items": {
+                    "type": "array",
+                    "minItems": 3,
+                    "maxItems": 3,
+                    "prefixItems": [
+                        {"type": "string", "description": "字段名"},
+                        {"type": "string", "enum": list(FILTER_OPERATORS)},
+                        {"description": "值"},
+                    ],
+                },
+                "description": "形如 [[字段, 算子, 值], …] —— 是数组不是对象",
+            },
+            "sort": {
+                "type": "array",
+                "minItems": 2,
+                "maxItems": 2,
+                "prefixItems": [
+                    {"type": "string", "description": "字段名"},
+                    {"type": "string", "enum": list(SORT_DIRECTIONS)},
+                ],
+            },
+            "limit": {"type": "integer", "minimum": 1},
+            "agg": {"type": "string", "enum": list(AGGREGATES), "description": "metric 专用"},
+            "chart_kind": {
+                "type": "string",
+                "enum": list(CHART_KINDS),
+                "description": "chart 专用",
+            },
+            "question": {"type": "string", "description": "explain 专用：那个问题本身"},
+        },
+        "required": ["type"],
+    }
