@@ -457,3 +457,32 @@ def test_every_field_row_carries_a_ref_the_caller_can_copy_verbatim(fake_site, f
     )
     parent = next((r for r in result.data if r.get("level") != "child_table"), None)
     assert parent["ref"] == f"Sales Order.{parent['fieldname']}"
+
+
+def test_a_field_description_reaches_the_caller_when_the_site_has_one(fake_site, fake_client):
+    """🔴 **字段说明是分辨点，不给等于让模型猜。**
+
+    人 2026-08-28 问「有没有可能是没提供字段说明导致模型不知道怎么选」——
+    查下去是的，而且**直接命中最后一轮三条失败里的两条**：
+      `Employee.company_email` 的 description 是
+        'Provide Email Address registered in company'
+        ← 问句是「**公司给他的那个**邮箱」，这句就是分辨点
+      `Work Order Operation.actual_operation_time` 的 description 是
+        "Updated via 'Time Log' (In Minutes)"
+        ← 问句是「系统**已经记下的**实际耗时，不是某一次报工」，同样是分辨点
+    而 `meta.fields` 此前**一个字都没回**。
+
+    ⚠️ **只有非空才进** —— 站点上本来就稀疏（Employee 7/108 · Work Order Operation 6/26），
+    空的也塞进去只会白占上下文。
+    """
+    fake_site.doctypes["Sales Order"]["fields"].append(
+        {"fieldname": "channel", "fieldtype": "Data", "label": "渠道",
+         "description": "客户是从哪条渠道下的单"}
+    )
+
+    rows = _run("meta.fields", {"doctype": "Sales Order"}, fake_client).data
+    withdesc = next(r for r in rows if r["fieldname"] == "channel")
+    plain = next(r for r in rows if r["fieldname"] == "customer")
+
+    assert withdesc["description"] == "客户是从哪条渠道下的单"
+    assert "description" not in plain, "站点上没写说明的字段不该凭空多一个空键"
