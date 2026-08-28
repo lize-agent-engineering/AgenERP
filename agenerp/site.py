@@ -25,6 +25,12 @@
    ⚠️ `ensure_doc` 的名字里**一个 `WRITE_VERB` 都没有**，守卫扫不到它；
    它是**主动登记**的——漏登记等于把「加写面要付一次留痕」这条规矩掏空。
    **不提供「删任意 DocType 文档」的通用方法**：通用删除接口等于把业务数据交出去。
+   ⚠️ **2026-08-28 起第五个写方法：`SiteClient.delete_view`**（P2.4 第二半 · 视图落自有表）。
+   它**只删 `AgenERP View` 那一张表**，DocType 名写死在方法体里、不由调用方给 ——
+   这正是「不提供通用删除」那条规矩下**收窄式演进**的形状：
+   要删别的表，得再付一次 diff 和一次登记，而不是复用一个通用口子。
+   为什么需要它：真相源（git）里删掉一个视图，站点上也要没有 ——
+   只增不减的同步等于 `git revert` 撤不回（与 P0.5 那条「承重条款」同源）。
    ⚠️ **「本模块的写面只覆盖结构定制」这句话 2026-08-22 起不再成立**：`create_doc` / `ensure_doc`
    是**通用建档面**，覆盖业务主数据（公司 / 科目 / 仓库 / 物料 / BOM…）。
    代偿有三条，且都可判：`docs/context/ai-autonomy-policy.md` Protected Areas 新增的
@@ -424,6 +430,19 @@ class SiteClient:
         self._ensure_authenticated()
         name = custom_field_name(doctype, fieldname)
         self._request("DELETE", f"{RESOURCE_PATH}/{CUSTOM_FIELD_DOCTYPE}/{name}")
+
+    def delete_view(self, view_name: str) -> None:
+        """删掉站点上的一条 `AgenERP View`。**只删这一张表**，形态照 `delete_custom_field`。
+
+        ⚠️ **DocType 名写死在方法体里，不由调用方给** —— 模块头第 4 条逐字
+        「不提供『删任意 DocType 文档』的通用方法」。一个收 `doctype` 参数的删除方法
+        就是那个通用口子，只是换了个名字。
+
+        成败判据沿用 `_request`（`200 <= status < 300`）：
+        **「要删的东西不在」被判为失败并抛 `SiteError`**，不静默吞掉 —— 同 `delete_custom_field`。
+        """
+        self._ensure_authenticated()
+        self._request("DELETE", f"{RESOURCE_PATH}/AgenERP View/{view_name}")
 
     def _ensure_authenticated(self) -> None:
         if self._sid:

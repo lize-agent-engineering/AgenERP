@@ -1,0 +1,36 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "field:view_name",
+ "creation": "2026-08-28 00:00:00.000000",
+ "custom": 1,
+ "description": "AgenERP 视图定义在站点上的落处（P2.0 判定「视图产物落自有表」的那一半）。**不落标准 Workspace**：Spike 11 端到端实测，Workspace 会被 app 升级整条 delete_doc + 重插，只有 is_hidden 幸存 —— 定制寿命 = 一次升级。真相源仍是 git 里的 agenerp/dsl/views/*.json，本表是**每个站点一份的产物**（与 P2.4「包是唯一真相源，站点是可再生的产物」同一条线）。",
+ "doctype": "DocType",
+ "editable_grid": 0,
+ "engine": "InnoDB",
+ "field_order": ["view_name", "title", "definition"],
+ "fields": [
+  {"fieldname": "view_name", "fieldtype": "Data", "in_list_view": 1, "label": "View Name", "reqd": 1, "unique": 1,
+   "description": "视图名，与 git 里那个文件名同源。autoname 用它 —— 名字由内容决定，不由站点派生序号决定，两个站点上同一个视图才会同名。"},
+  {"fieldname": "title", "fieldtype": "Data", "in_list_view": 1, "label": "Title"},
+  {"fieldname": "definition", "fieldtype": "Code", "label": "Definition", "options": "JSON", "reqd": 1,
+   "description": "整份视图 DSL 的线格式 JSON（agenerp/dsl/wire.py）。**存整份而不拆成子表**：线格式已经是唯一口径，拆表会产生第二套结构。代价照实记 —— 这一列不可 SQL 查询（按块类型筛之类做不到）。"}
+ ],
+ "index_web_pages_for_search": 0,
+ "is_submittable": 0,
+ "links": [],
+ "modified": "2026-08-28 00:00:00.000000",
+ "module": "Custom",
+ "name": "AgenERP View",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {"create": 1, "delete": 1, "email": 0, "export": 0, "print": 0, "read": 1, "report": 0, "role": "System Manager", "share": 0, "write": 1},
+  {"create": 0, "delete": 0, "email": 0, "export": 0, "print": 0, "read": 1, "report": 0, "role": "车间工人", "share": 0, "write": 0}
+ ],
+ "quick_entry": 0,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}
