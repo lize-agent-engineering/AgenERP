@@ -73,7 +73,8 @@ Link 字段收敛）· 术语层反向索引（P2.7 的产物）· 行业包约�
   ⇒ 🔴 **载体结论：视图产物落 AgenERP 自有表，不落标准 `Workspace`。**
   证据：[`docs/plans/p2-views/2026-08-26-P2.0-…-workspace-upgrade-overwrite.md`](../plans/p2-views/2026-08-26-P2.0-entry-gate-spike11-workspace-upgrade-overwrite.md)（`f7cc4bd` 预测 → `7ca312a` 结果）·
   [`module-boundaries.md` §11.4](../architecture/module-boundaries.md)（机制陈述已按实测订正）
-- 2. **schema 检索可用性**（P2.0R 🔴，头号风险）: `todo`。
+- 2. **schema 检索可用性**（P2.0R 🔴，头号风险）: **`done`** —— **人 2026-08-28 判过**（`DECISIONS.md` **D-29**）：`deepseek-v4-pro-0813` · 独立评测集 60 条全跑 · 一道闸不设 · **57/60 = 95.0%**（按**点估计**判过；⚠️ 95% 置信下界 87.6%，D-28 括号里那句「零失败」并未满足）。🔴 **P2.3 / P2.4 / P2.5 三项就此解锁。**
+  ⚠️ 留着的残余（人：「留作后续再优化」）：**近似单据混淆**（`Quotation` vs `Request for Quotation`）—— 那张表一个字段说明都没有。
   🔴 **2026-08-27 口径变更 —— 下面那张五轮表按 Top-5 记，而 Top-5 这个指标已被证伪。**
   按 `verifier-design` 的边界 fixture 实测：塞满五个候选（其中一个对）旧口径判 **Pass**
   ⇒ **它奖励撒网**，而生产要的是 agent **敢承诺一个答案**。

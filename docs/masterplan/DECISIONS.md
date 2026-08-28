@@ -423,6 +423,23 @@
 
 ---
 
+### D-29 · P2.0R 判**过** —— 依据是点估计 57/60 = 95.0%
+
+| | |
+|---|---|
+| 裁定 | 人 2026-08-28：「先不跑了，留作后续再优化，现在宣布通过测试。」 |
+| 依据的那次测量 | `deepseek-v4-pro-0813` · 独立评测集（**人出题，loop 未参与**）**60 条全跑** · **一道 token 闸都不设**（单条 0 · 总闸 0 · 工具调用闸 0）· 思考关（D-28 另一半）· 634,442 token · 中位 7,785 |
+| 干净性逐项验过 | `halted_at=None`（跑满没截断）· **infrastructure 排除 0 条**（没有靠归类做数字）· 停止原因 `answered` ×60 · 承诺来源「最后一行承诺」×60 |
+| 结果 | **57/60 = 95.0%** · easy **18/18** · medium 23/24 · hard 16/18 |
+| ⚠️ **按哪个口径过的，写清楚** | **点估计**（D-28 正文「≥95%」的字面）⇒ 95.0% **刚好压线，判过**。**不是**按统计保证：95% 置信下界只有 **87.6%**，而 D-28 括号里那句「n≥60 **零失败**，下界才压得过 95%」并未满足（有 3 条失败）。**再多错一条就是 93.3%。** 本条不掩饰这一点 |
+| 三条失败的形态 | ① `Quotation Item.schedule_date`（**站点上不存在**，第 1 层抓住）← 正解 `Request for Quotation Item.schedule_date`，**近似单据混淆** ② `Job Card.total_time_in_mins` ← 正解 `Work Order Operation.actual_operation_time`，粒度错 ③ `Employee.prefered_contact_email` ← 正解 `company_email`，选了**选择器**字段而非地址 |
+| 🔴 裁定之后又发现 ②③ 仍是 harness | 人问「有没有可能是没提供字段说明」—— 是。`meta.fields` 此前**不回 `description`**，而 `Employee.company_email` 的说明逐字是「Provide Email Address registered in company」、`Work Order Operation.actual_operation_time` 的是「Updated via 'Time Log' (In Minutes)」—— **两句恰好就是分辨点**。补上之后同模型重跑那三条：**②③ 都翻过来了，① 仍不翻**（`3062355` 提交信息里**事先写死**了「① 帮不上：RFQ Item 全部 28 个字段无说明」，git 时间戳可证） |
+| ⚠️ **不得把它写成 59/60 = 98.3%** | 只重跑失败项会**系统性偏高**；更要紧的是 `description` 给**每一条题**都加了上下文，**此前通过的 57 条有没有因此回退，没测过**。要那个数就得全量重跑（额度不够，人裁定先不跑）|
+| 留着的残余 | **近似单据混淆**（`Quotation` vs `Request for Quotation`）—— 那张表一个字段说明都没有，得往「单据语义/领域知识」走，属人 2026-08-28 说的「留作后续再优化」|
+| 翻案条件 | 全量重跑（含 `description`）低于 95%；或独立评测集被发现有系统性偏差；或换到别的站点后 hard 档明显退化 |
+
+---
+
 ## 2. 翻案条款登记簿
 
 方案 C §7 的七条风险（`REF:RISK`）在此各占一行。**每条都预先写死了触发信号与处置**，不留「到时候再看」。
