@@ -179,7 +179,20 @@ Link 字段收敛）· 术语层反向索引（P2.7 的产物）· 行业包约�
   ⚠️ 两条硬判失败**是评测集过严**（`must_fields` 编码的是「我想到的答案」不是「答案集合」），
   人 2026-08-28 裁定**不改**：「不用改，感觉挺好的，单从数据上看，验收通过。」
   证据：[plan](../plans/p2-views/2026-08-28-P2.3-view-agent.md)
-- 6. **定制包 GitOps v0**（P2.4）: `todo` —— 前置 P2.3
+- 6. **定制包 GitOps v0**（P2.4）: **`done`** —— 前置 P2.3（已过）。
+  `bash scripts/verify-gitops.sh` → **退出码 0**（WBS §5 第 104 行那条验收），**连跑两次都退 0**。
+  四步：改 → diff → **真 `git revert`** → **迁站点**（`frontend` → `gitops.test`）。
+  🔴 **第四步是 P0.5 那笔 deferred 的正身**：`execute_plan` 原来对 `creates` 当场抛，
+  而 P0.5 写死的重开条件正是「出现需要用包在站点上**建**字段的调用方」——
+  P2.4 第四步就是它。`creates` 已落地（**先建后删**，没有事务时唯一的取舍），
+  `updates` 那一半仍然显式拒绝、纪律没松。
+  🔴 **第四步一度假绿，被那条隔离断言咬住**：nginx 的 `FRAPPE_SITE_NAME_HEADER=frontend`
+  把所有请求钉在 `frontend` 上，字段实际建在了 `frontend`。
+  修法是给 backend 加一格**只绑环回**的端口（人 2026-08-28 裁定）；
+  **不能**改 `$host` —— 浏览器判据打 `127.0.0.1:18080`，那会去找一个叫 `127.0.0.1` 的站点。
+  变异两轮见血：删除路径改成不删 → 第③步红；第④步目标改回 `frontend` → 第④步红。
+  ⚠️ 第二站点**不装 erpnext** ⇒ 探针用 `ToDo` 不是 `Item`，与 P0.5 那条门禁**互不替代**。
+  证据：[plan](../plans/p2-views/2026-08-28-P2.4-gitops-v0.md)
 - 7. **`schema.drift` 巡检**（P2.5）: `todo` —— 前置 P2.4
 - 8. **角色首页**（P2.6）: **`done`** —— 前置 P2.2（已过）。
   🔴 **2026-08-27 判据已落地**：人明确指派 loop 落地，`tests/gates/test_no_empty_workspace.py`
