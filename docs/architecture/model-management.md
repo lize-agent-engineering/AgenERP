@@ -246,6 +246,9 @@ Spike 02 实测（`claude:sonnet`，四道探针的通过态）：
 | `glm-5.2` | `tool_calling` | 是 | **2026-08-27 实测**（P2.0R 评测选型）：给了工具定义后真发起 `meta_fields({"doctype": "Sales Order"})` ⇒ `tool_calling`；回包 `reasoning_tokens = 33` ⇒ 计 reasoning。⚠️ `long_context` / `reasoning` / `multi_hop` **那次探针判不了，故不声明** ——今天只够 `permission` / `explain` 两档 |
 | `qwen3.8-flash` | `tool_calling` | 是 | **2026-08-27 实测**（人指定的备选，glm-5.2 免费额度不够时用）：给了工具定义后真发起 `meta_fields({"doctype": "Sales Order"})`；回包 `reasoning_tokens = 52`。⚠️ `long_context` / `reasoning` / `multi_hop` **那次探针判不了，故不声明** ——今天只够 `permission` / `explain` 两档 |
 | `qwen3.7-flash` | `tool_calling` | 是 | **2026-08-27 实测**（同上）：真发起同一个工具调用；回包 `reasoning_tokens = 436`。⚠️ 其余三项**判不了，故不声明** |
+| `deepseek-v4-pro-0813` | `tool_calling` | 是 | **2026-08-28 实测**（人授权的第三批）：真发起 `meta_fields({"doctype": "Sales Order"})`；`reasoning_tokens = 41`。⚠️ 其余三项判不了，故不声明 |
+| `qwen3.8-2.4t-a95b` | `tool_calling` | 是 | **2026-08-28 实测**：真发起工具调用，`reasoning_tokens = 85`。⚠️ 观察一笔：它把 doctype 写成**中文「销售订单」**（同批另两个写英文名），站点上不存在那个名字。其余三项判不了，故不声明 |
+| `qwen3.7-flash-2026-07-15` | `tool_calling` | 是 | **2026-08-28 实测**：真发起工具调用，`reasoning_tokens = 356`。⚠️ 其余三项判不了，故不声明 |
 | `qwen3:14b` | `tool_calling` | 否 | §12.3 Spike 03：JSON 动作协议稳定（结论 1），多跳追溯不够（结论 3）；长上下文与推理强度**本仓未观测，故不声明** |
 
 **摆放规矩，三条**：

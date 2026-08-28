@@ -141,6 +141,28 @@ KNOWN_MODEL_PROFILES: Mapping[str, ModelProfile] = {
         capabilities=frozenset({"tool_calling"}),
         is_reasoning_model=True,
     ),
+    # 2026-08-28 实测加入（人授权的第三批：前四个免费额度全部用尽）。
+    # **只声明探到的那两项** —— 三个都真发起了 `meta_fields(...)`；回包都计 reasoning
+    # （`deepseek-v4-pro-0813` 41 · `qwen3.8-2.4t-a95b` 85 · `qwen3.7-flash-2026-07-15` 356）。
+    # ⚠️ `long_context` / `reasoning` / `multi_hop` **判不了 ⇒ 一律不声明**
+    # ⇒ 三个今天都只够 `permission` / `explain` 两档。
+    # ⚠️ 探针里记一笔：`qwen3.8-2.4t-a95b` 把 doctype 写成了**中文「销售订单」**
+    #    （另两个写英文名）—— 站点上不存在那个名字。这不是能力声明，是观察。
+    "deepseek-v4-pro-0813": ModelProfile(
+        name="deepseek-v4-pro-0813",
+        capabilities=frozenset({"tool_calling"}),
+        is_reasoning_model=True,
+    ),
+    "qwen3.8-2.4t-a95b": ModelProfile(
+        name="qwen3.8-2.4t-a95b",
+        capabilities=frozenset({"tool_calling"}),
+        is_reasoning_model=True,
+    ),
+    "qwen3.7-flash-2026-07-15": ModelProfile(
+        name="qwen3.7-flash-2026-07-15",
+        capabilities=frozenset({"tool_calling"}),
+        is_reasoning_model=True,
+    ),
     "qwen3:14b": ModelProfile(
         name="qwen3:14b",
         capabilities=frozenset({"tool_calling"}),
