@@ -13,7 +13,7 @@ import pytest
 from agenerp.contracts import ReadOnlyContext
 from agenerp.tools.registry import EXECUTORS
 from agenerp.tools.runtime import DATA_BOUNDARY_OPEN, Outcome, execute
-from agenerp.tools_readonly import READONLY_CONTRACTS, get as contract_of
+from agenerp.tools_readonly import ALL_CONTRACTS, get as contract_of
 
 SO = {"doctype": "Sales Order", "name": "SAL-ORD-2026-00001"}
 
@@ -43,7 +43,14 @@ def _method_calls(site, method):
 
 
 # ── 后置断言确实挂上了：十个工具一个都不能漏 ────────────────────────────────
-@pytest.mark.parametrize("contract", READONLY_CONTRACTS, ids=lambda c: c.tool)
+# ⚠️ **2026-08-28 由 `READONLY_CONTRACTS` 改为 `ALL_CONTRACTS`**（独立收口审计 B1）：
+# P2.5 分出巡检族之后，这些**逐契约**的不变量原本只参数化那十个，新族整族逃逸 ——
+# 「只读 L0 / returns 三段齐 / 实测约束带 source / 至少一条后置」这些是**对每一份契约**
+# 的要求，不是对「那十个」的要求。今天 `schema.drift` 逐条都过，
+# 但**下一条巡检契约就没有任何东西拦着它违约**。
+# ⚠️ 「恰好十个」与「十个名字逐字对齐 owner doc」两条**仍按 `READONLY_CONTRACTS`**，
+#    那两条守的就是那十个本身。
+@pytest.mark.parametrize("contract", ALL_CONTRACTS, ids=lambda c: c.tool)
 def test_every_contract_enforces_its_postconditions(contract, fake_client):
     """形状合法但**事实缺席**的返回值必须被挡下。
 

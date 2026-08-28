@@ -10,10 +10,16 @@
 import pytest
 
 from agenerp.contracts import ReadOnlyContext, check_postconditions, unsatisfied
-from agenerp.tools_readonly import READONLY_CONTRACTS, get
+from agenerp.tools_readonly import ALL_CONTRACTS, get
 
 # 每个工具一组「全部成立」的返回事实。不成立的那一半由下面逐条打掉一个事实来构造。
 SATISFYING_FACTS = {
+    # 巡检族（P2.5）。两条都从**观测到的行为**算出来（`agenerp/tools/drift.py:derive_facts`），
+    # 判据在 `tests/tools/test_schema_drift.py`：喂该为假的输入时它们必须翻成 False。
+    "schema.drift": {
+        "uses_frappe_trim_table_dry_run": True,
+        "reports_without_dropping": True,
+    },
     "query.read": {"rows_all_from_requested_doctype": True},
     "schema.search": {"returns_candidate_list_not_single_pick": True},
     "snapshot.read": {"snapshot_normalized": True},
@@ -36,20 +42,27 @@ SATISFYING_FACTS = {
 }
 
 
-@pytest.mark.parametrize("contract", READONLY_CONTRACTS, ids=lambda c: c.tool)
+# ⚠️ **2026-08-28 由 `READONLY_CONTRACTS` 改为 `ALL_CONTRACTS`**（独立收口审计 B1）：
+# P2.5 分出巡检族之后，这些**逐契约**的不变量原本只参数化那十个，新族整族逃逸 ——
+# 「只读 L0 / returns 三段齐 / 实测约束带 source / 至少一条后置」这些是**对每一份契约**
+# 的要求，不是对「那十个」的要求。今天 `schema.drift` 逐条都过，
+# 但**下一条巡检契约就没有任何东西拦着它违约**。
+# ⚠️ 「恰好十个」与「十个名字逐字对齐 owner doc」两条**仍按 `READONLY_CONTRACTS`**，
+#    那两条守的就是那十个本身。
+@pytest.mark.parametrize("contract", ALL_CONTRACTS, ids=lambda c: c.tool)
 def test_every_tool_has_at_least_one_postcondition(contract):
     """一个没有后置断言的只读工具契约 = 没人管它返回了什么。"""
     assert contract.postconditions, contract.tool
 
 
-@pytest.mark.parametrize("contract", READONLY_CONTRACTS, ids=lambda c: c.tool)
+@pytest.mark.parametrize("contract", ALL_CONTRACTS, ids=lambda c: c.tool)
 def test_postconditions_hold_on_a_conforming_result(contract):
     context = ReadOnlyContext(SATISFYING_FACTS[contract.tool])
     failures = unsatisfied(check_postconditions(contract, context))
     assert failures == (), [f.reason for f in failures]
 
 
-@pytest.mark.parametrize("contract", READONLY_CONTRACTS, ids=lambda c: c.tool)
+@pytest.mark.parametrize("contract", ALL_CONTRACTS, ids=lambda c: c.tool)
 def test_postconditions_fail_on_an_empty_result(contract):
     """空上下文 = 一次什么都没记录的调用。每一条后置断言都必须判为不成立。"""
     failures = unsatisfied(check_postconditions(contract, ReadOnlyContext({})))

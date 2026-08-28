@@ -114,11 +114,38 @@ class Session:
         # （§11.8：compose 未对宿主发布 db 端口，这是一条独立的传输决策）。
         # ⚠️ 默认 `None` ⇒ 落到 `agenerp.oob` 自己的默认执行器；注入是为了让判据喂假件，
         # **不是给产品代码多一条配置路径**（与 `SiteSnapshotSource.client` 同一个理由）。
-        self.runner = runner
+        self._runner = runner
+        # 🔴 **带外命令的记录点在这里，不在执行体里。**
+        # 2026-08-28 独立收口审计的变异 B 抓到的：记录点原来放在 `drift.py` 的一个
+        # 局部包装器上 ⇒ 执行体只要拿**没被包装的那个** runner 去发命令，
+        # 记录里就看不见 —— 实测真的发出了 `ALTER TABLE … DROP COLUMN`，
+        # 而「只报不删」那条后置照报 True，14 条判据全绿。
+        # ⇒ 记录下沉到 `Session`：**执行体从 session 拿不到未被记录的 runner。**
+        # 与 `calls` 记 REST 请求是同一条纪律 —— 这个类的职责就是「唯一通道 + 留痕」。
+        self.oob_calls: list[Any] = []
 
     @property
     def client(self) -> SiteClient:
         return self._client
+
+    @property
+    def runner(self):
+        """带外执行器，**每一次调用都记进 `oob_calls`**。
+
+        ⚠️ 边界照实说：它挡的是「执行体从 session 拿到未被记录的通道」。
+        执行体若**绕开 session、直接 import `agenerp.oob`**，这里仍然看不见 ——
+        那是另一类问题（判据面是 `test_no_product_module_imports_certifi_at_module_level`
+        那种静态扫描的活），本属性不假装挡得住。
+        """
+        from agenerp.oob import _resolve_runner
+
+        underlying = _resolve_runner(self._runner)
+
+        def _recording(command):
+            self.oob_calls.append(command)
+            return underlying(command)
+
+        return _recording
 
     @property
     def request_count(self) -> int:

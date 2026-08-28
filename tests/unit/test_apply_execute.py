@@ -640,3 +640,35 @@ def test_columns_are_dropped_only_after_the_custom_fields_are_gone(oob):
 
     assert client.deleted == [("Item", PROBE)]
     assert oob.ddl, "字段删了却没清列"
+
+
+def test_system_generated_fields_are_skipped_on_delete_but_not_on_create():
+    """🔴 钉住一处**不对称**：删不敢碰 `is_system_generated`，建照建。
+
+    独立收口审计（2026-08-28）指出的。删除侧刻意跳过应用自带的 Custom Field
+    （`narrow_deletes`，理由：删掉可能直接弄坏应用功能，如 `Customer.crm_deal`）；
+    **建立侧一条过滤都没有** —— 把一个从装了 erpnext 的站点导出的包 apply 到别处，
+    erpnext 自己的 Custom Field 会被当成用户定制 POST 上去。
+
+    ⚠️ **本条不是在说现状是错的，是在把现状钉住。** 取舍写清楚：
+    - 失败是**响的**（重名 409 / 缺前置 417），不是静默错值 ⇒ 归 watch-only；
+    - 给建立侧也加过滤会让「包里明写要建」被静默丢弃，那是另一种坏
+      —— 而「静默丢弃」正是本仓反复挡的那件事。
+
+    ⇒ 要改成对称，得先回答「包里出现应用自带字段时，该拒、该跳、还是该建」。
+    在那之前，这条判据保证**改动是故意的**，不是顺手改掉的。
+    重开条件记在 P2.4 plan 的 Deferred。
+    """
+    from agenerp.apply import narrow_deletes
+
+    app_owned = _entry("Quotation", "crm_deal", is_system_generated=1)
+
+    # 删：被跳过
+    narrowed = narrow_deletes(_plan(app_owned), frozenset({"Quotation"}))
+    assert narrowed.deletes == (), "删除侧不再跳过应用自带字段 —— 那会弄坏应用功能"
+
+    # 建：照建，且载荷里 `is_system_generated` 原样带过去
+    client = FakeSiteClient()
+    execute_plan(_plan(creates=(app_owned,)), "gitops.test", client=client)
+    assert [p["fieldname"] for _d, p in client.created] == ["crm_deal"]
+    assert client.created[0][1]["is_system_generated"] == 1

@@ -341,6 +341,27 @@ jobs:
             exit 1
           fi
 
+      # 🔴 2026-08-28 补：**`tests/render` 此前 CI 上一次都没跑过。**
+      # 独立收口审计核出来的：它当天被写进门禁⑩ 的 COVERED（红因此消失），
+      # 而仓里**没有任何 job 跑它** —— 那是**用绿换掉了一条正在说真话的红**。
+      # 它要的东西（活栈 + playwright 浏览器二进制）这个 job 已经全有，接进来即可。
+      # ⚠️ 整个目录都是 live 标记（`pytest tests/render -m "not live"` → 18 deselected），
+      #    所以只能在这条线上跑，不能进 unit-and-contracts。
+      - name: 🔴 渲染器活体门禁（零 skip）
+        env:
+          AGENERP_LIVE: "1"
+          AGENERP_ADMIN_PASSWORD: admin
+          AGENERP_SITE: frontend
+          AGENERP_SITE_URL: http://127.0.0.1:8080
+          AGENERP_HTTP_PORT: "8080"
+        run: |
+          set -euo pipefail
+          python3 -m pytest -m live tests/render -q | tee /tmp/render-gate.log
+          if grep -qE '[0-9]+ skipped' /tmp/render-gate.log; then
+            echo "❌ 渲染器门禁出现 skip —— 未跑就是红。" >&2
+            exit 1
+          fi
+
       - name: 全部门禁的 live 判定（条数由 check_expected_red.py 自己数）
         env:
           AGENERP_LIVE: "1"
@@ -650,9 +671,14 @@ jobs:
       # 判据自身的判据：新增目录若忘了接进来，这一步会红。
       # 不写死条数——条数会长；写死目录集合，多出目录即红。
       #
-      # ⚠️ `render` 与 `ui` 列在 COVERED 里但**本 job 不跑**，理由与 `gates` 同：
-      # 它们要真浏览器 + 活栈（`tests/render` 还要 playwright 的浏览器二进制，D-25：
-      # 装包不等于能跑），归 `gates-l2-live` 那条线。**列出来是为了让「为何不跑」可被复核**，
+      # ⚠️ `gates` / `ui` / `render` 列在 COVERED 里但**本 job 不跑** —— 它们要真浏览器 + 活栈
+      # （`render`/`ui` 还要 playwright 的浏览器二进制，D-25：装包不等于能跑），
+      # 跑在 **`gates-l2-live` 那条线上**（本文件 `-m live tests/ui/test_sidebar.py`、
+      # `-m live tests/render`、以及门禁自己的那几步）。
+      #
+      # 🔴 **这句话 2026-08-28 当天一度是假的**：`render` 被写进 COVERED 让门禁⑩ 转绿，
+      # 而当时**没有任何 job 跑它** —— 独立收口审计抓到，逐字是「用绿换掉了一条正在说真话的红」。
+      # 现在它真的被跑了（上面那一步）。**列出来是为了让「为何不在本 job 跑」可被复核**，
       # 不是为了让它们从视野里消失。
       - name: ⑩ 没有测试目录被漏在 CI 之外
         run: |
@@ -700,7 +726,7 @@ jobs:
           python-version: "3.11"
       - run: pip install ruff==0.14.1
 
-      # 作用域**八个目录**（2026-08-26 随 tests/ui 落地改准）。此前这句逐字写「三个目录」，
+      # 作用域**十三个**（2026-08-28 随 dsl/i18n/agents/render/tools-gitops 补齐）。此前这句逐字写「三个目录」，
       # 而下面那行早已是七个 —— 数字与字面长期不一致，本次一并改准，不留第二处真相源。
       # 仍逐字照抄 docs/context/project-context.md 的 Lint / static check 一行，
       # 一个字不加不减 —— 尤其不扩到 tests/gates（pyproject.toml 的 [tool.ruff] exclude 已排除它，
@@ -708,7 +734,7 @@ jobs:
       # tests/gates 由 pyproject 的 exclude + force-exclude 挡在外面（红线内，
       # 免得 lint 逼着去改裁判）。其余目录一律扫。
       - name: ruff check（agenerp + tests/ 全部非门禁目录）
-        run: ruff check agenerp tests/unit tests/contracts tests/tools tests/routing tests/context tests/experiments tests/ui
+        run: ruff check agenerp tests/unit tests/contracts tests/tools tests/routing tests/context tests/experiments tests/ui tests/dsl tests/i18n tests/agents tests/render tools/gitops
 
   # 集合判据（plan 2026-08-23-0337-2，见 docs/architecture/system-baseline.md §14.8）。
   # 与上面的 expected-red-ratchet 并存、判据不同：那个数行数，这个比条目集合。
