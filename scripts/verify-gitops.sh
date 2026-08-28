@@ -28,6 +28,16 @@ fail() { echo "❌ $*" >&2; exit 1; }
 # gunicorn 自己按 Host 正确分站 ⇒ 直打 backend 那一格（compose 2026-08-28 加的
 # `127.0.0.1:${AGENERP_BACKEND_PORT:-8001}:8000`）。
 # 调用方显式设了 AGENERP_SITE_URL 就尊重它 —— 但那时**分站对不对由调用方负责**。
+# ⚠️ **交接文档 §6 那套「活栈环境」会把 AGENERP_SITE_URL 设成 18080** ——
+# 照它配好再跑本脚本，第④步会落到 `frontend` 并被隔离断言咬红。
+# 结论是**响的**（不是假绿），但它会把一个环境问题伪装成「跨站点坏了」，
+# 正是交接文档 §3② 记着的那类误归因。⇒ 显式设了 18080 时**当场拦下并说清楚**。
+if [ "${AGENERP_SITE_URL:-}" = "http://127.0.0.1:18080" ] ||    [ "${AGENERP_SITE_URL:-}" = "http://localhost:18080" ]; then
+  fail "AGENERP_SITE_URL 指向 nginx（18080），而 nginx 把**所有**请求钉在 frontend 上
+  ⇒ 第四步「迁站点」会落到 frontend，被隔离断言咬红，看起来像跨站点坏了。
+  改用 backend 那一格，或者干脆 unset 让本脚本自己选：
+    unset AGENERP_SITE_URL   # 本脚本会用 http://127.0.0.1:\${AGENERP_BACKEND_PORT:-8001}"
+fi
 export AGENERP_SITE_URL="${AGENERP_SITE_URL:-http://127.0.0.1:${AGENERP_BACKEND_PORT:-8001}}"
 echo "站点入口：$AGENERP_SITE_URL"
 

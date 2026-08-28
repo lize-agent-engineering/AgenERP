@@ -141,6 +141,13 @@ export AGENERP_LLM_API_KEY="$DASHSCOPE_API_KEY"
 export AGENERP_LLM_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
 export AGENERP_SITE=frontend AGENERP_SITE_URL=http://127.0.0.1:18080 AGENERP_ADMIN_PASSWORD=admin
 
+# ⚠️ **`scripts/verify-gitops.sh`（P2.4）不能用上面这个 URL** ——
+# 18080 走 nginx，而 nginx 把**所有**请求钉在 `frontend` 上（`FRAPPE_SITE_NAME_HEADER`），
+# 第四步「迁站点」会落到 `frontend` 并被隔离断言咬红，看起来像跨站点坏了。
+# 那个脚本自己会选 backend 那一格（`127.0.0.1:${AGENERP_BACKEND_PORT:-8001}`）：
+#   unset AGENERP_SITE_URL; bash scripts/verify-gitops.sh
+# 显式设成 18080 时脚本会**当场拦下并说清楚**（2026-08-28 独立审计的 C5）。
+
 # 重新量 P2.0R（**三个 0，一道闸都不设**）
 python3 tools/experiments/p2_schema_retrieval/task_completion_eval.py \
   --eval tools/experiments/p2_schema_retrieval/eval-set-independent.jsonl \

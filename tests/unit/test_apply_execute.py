@@ -458,6 +458,34 @@ def test_direction_invariant_raises_an_explicit_error_not_a_bare_assert():
         _assert_direction(_plan(entry), desired=both, current=both)
 
 
+def test_direction_invariant_also_guards_the_creates_branch():
+    """🔴 **建的那一半也要挡得住** —— 2026-08-28 独立收口审计抓到的：
+    把 `_assert_direction` 里 creates 那条循环整条打掉，**989 条判据一条都不红**。
+
+    上面那条只喂了 deletes，creates 分支因此从来没被判过。而 P2.4 之后
+    creates 是**会真的落地建字段**的路径 —— 一条没人守的方向不变量，
+    在「desired / current 传反」时会把「站点上已经有的」当成「包要求新建的」。
+
+    这条自检同样走不到 `plan_apply` 的正常路径（`diff` 自洽），
+    挡的是「`diff` 或映射被改坏」那一类，所以直接喂一个不自洽的计划。
+    """
+    entry = _entry("ToDo", "brand_code")
+    both = Snapshot(scope=PACK_SCOPE, entries=(entry,))
+
+    with pytest.raises(ApplyDirectionError):
+        # creates 里出现了**站点上已有**的条目 = desired / current 传反了
+        _assert_direction(_plan(creates=(entry,)), desired=both, current=both)
+
+
+def test_direction_invariant_creates_branch_also_catches_the_missing_side():
+    """creates 里出现了**包里没有**的条目 —— 同一条不变量的另一半。"""
+    entry = _entry("ToDo", "brand_code")
+    empty = Snapshot(scope=PACK_SCOPE, entries=())
+
+    with pytest.raises(ApplyDirectionError):
+        _assert_direction(_plan(creates=(entry,)), desired=empty, current=empty)
+
+
 def test_direction_invariant_survives_python_dash_O():
     """**这条才是把裸 `assert` 换掉的理由**：`-O` 下裸 `assert` 整条消失。
 
