@@ -32,10 +32,13 @@
 #    - 评测集现在只有 **40 条**。
 #    ⇒ 门槛与样本量是**同一个决定的两半**，分开定必然自相矛盾。
 #
-# ② 🔴 **这条门禁要烧钱，不是普通门禁。**
-#    实测（glm-5.2，n=20，`max_turns=20`）：**308,514 token**，
-#    中位 5,081 / 最大 144,949。n=60 按此均价约 **1.27M**。
-#    ⇒ 它只能是 `-m live` 的按需门禁，**不许进任何自动跑的全量套件**。
+# ② 🔴 **本门禁已改成「不现跑」——理由是实测。**
+#    真跑一轮 60 条实测 **634,442 token**（deepseek-v4-pro-0813，无闸）。
+#    而 `gates.yml` 的「L2 全量 live 判定」**每次 push 到 main 都跑全部门禁**，
+#    判定器**不接受 skip**，本仓也只有 `live` 一个 marker，摘不出去
+#    ⇒ **每次 push 烧 63 万，那条路本来就不成立。**
+#    ⇒ 主判据改成**核对已落盘的那次测量**（零 token）。
+#    ⚠️ **这是一处让步：核记录不等于核现场。** 写在判据文档串里，不藏。
 #
 # ③ 🔴 **评测集不该长期是我出的那 40 条。** 我在同一份上跑了六轮，
 #    每一轮的 miss 都看过。**在自己出的题上拿 100%，恰恰是这个数最不可信的时候。**
@@ -61,7 +64,14 @@
 ## 它判什么
 
 拿**真实产品路径**（`agenerp/explain/loop.py` + 只读工具面 + 活站点）跑一组中文业务问句，
-每条要求 agent **承诺一个字段**，然后验证那个字段：
+每条要求 agent **承诺一个字段**，然后验证那个字段。
+
+⚠️ **本门禁不现跑那一轮**（实测一轮 634,442 token，而 L2 job 每次 push 都跑全部门禁）。
+它核的是**已落盘的那次测量**是否干净且达标 —— 详见
+`test_a_recorded_measurement_backs_the_claim_that_the_bar_was_met` 的文档串。
+真要重新量，那里有现成命令。
+
+验证器的三层（重新量时走的就是它）：
 
 | 层 | 判什么 | 依据 |
 |---|---|---|
@@ -204,66 +214,88 @@ def test_the_verifier_holds_its_own_decision_boundary_before_it_judges_anything(
         )
 
 
-def test_the_agent_commits_and_gets_the_field_right(live_site):
-    """端到端：真产品路径跑评测集，任务完成率 ≥ 人定的那条线。"""
-    if REQUIRED_COMPLETION_RATE is None:
-        pytest.fail("门槛没人定 —— 见上一条判据")
+RESULTS_GLOB = "results-final-*.json"
 
-    # 🔴 **样本量不够时必须在这里就停，不许往下跑。**
-    # `run_eval(sample=60)` 撞上 40 条的评测集时不会报错 —— 它按 `step=40/60` 取，
-    # 结果是**带重复地跑满 60 条**，实测均价 21k/条 ⇒ **约 1.27M token 白烧**，
-    # 而跑出来的数还因为重复而没有意义。
-    # ⚠️ 这一条是安全闸，不是判据 —— 判据是上面那条 `test_the_sample_is_big_enough`，
-    #    它会红并说清「先补题，别改线」。这里只负责**别让它先把钱烧了**。
-    items = _items(EVAL_SET)
-    if len(items) < REQUIRED_SAMPLE_SIZE:
-        pytest.fail(
-            f"评测集只有 {len(items)} 条 < {REQUIRED_SAMPLE_SIZE} —— **不跑**。"
-            f"硬跑会带重复地凑满 {REQUIRED_SAMPLE_SIZE} 条、烧掉约 "
-            f"{REQUIRED_SAMPLE_SIZE * 21:,}k token，而结果没有意义。"
-        )
 
-    tce = _verifier()
-    # ⚠️ **预算闸必须传**（D-17：先算账）。60 条按 glm-5.2 实测分层推 ~1.37M，
-    # 而免费额度 1M ⇒ 大概率跑不完。闸触发时结果里会如实标到第几条停的，
-    # **未跑的既不算通过也不算失败** —— 那时本判据红在「没跑完」，不是红在 agent 身上。
-    result = tce.run_eval(
-        eval_path=EVAL_SET,
-        sample=REQUIRED_SAMPLE_SIZE,
-        max_turns=20,
-        judge_model=os.environ.get("AGENERP_JUDGE_MODEL", "glm-5.2"),
-        budget=int(os.environ.get("AGENERP_EVAL_BUDGET", "950000")),
+def _recorded_runs() -> list[tuple[pathlib.Path, dict]]:
+    out = []
+    for path in sorted(EXPERIMENT_DIR.glob(RESULTS_GLOB)):
+        try:
+            out.append((path, json.loads(path.read_text(encoding="utf-8"))))
+        except (OSError, ValueError):
+            continue
+    return out
+
+
+def test_a_recorded_measurement_backs_the_claim_that_the_bar_was_met():
+    """🔴 **核对「那次测量」确实发生过、而且是干净的。**
+
+    ⚠️ **本条核的是记录，不是现场 —— 这是一处让步，理由写在这儿。**
+    原设计是每次都真跑一轮 60 条。实测一轮 **634,442 token**，
+    而 `gates.yml` 的「L2 全量 live 判定」**每次 push 到 main 都跑全部门禁**，
+    且判定器**不接受 skip**（skip 被当成「有人放松裁判」），本仓也只有 `live`
+    一个 marker，没法把它单独摘出去。⇒ **每次 push 烧 63 万，那条路本来就不成立。**
+    **弱一点但一直在跑，比强但没人敢开要好。**
+
+    那么它到底还守得住什么？守住**会悄悄烂掉的那几样**：
+      · 有人把完成率的说法改了，却**没有任何一次测量**支撑
+      · 有人把评测集换成更容易的一份（本条逐题比对，必须是**独立那份**）
+      · 有人靠 `infrastructure` 排除把数字做上去（本条要求**排除 0 条**）
+      · 有人拿**没跑完**的一轮当全集结论（本条要求 `halted_at` 为空且 n≥60）
+
+    要重新量（改了检索、换了模型、或想复核）：
+
+        python3 tools/experiments/p2_schema_retrieval/task_completion_eval.py \
+          --eval tools/experiments/p2_schema_retrieval/eval-set-independent.jsonl \
+          --out  tools/experiments/p2_schema_retrieval/results-final-<模型>.json \
+          --max-turns 40 --max-tool-calls 0 \
+          --per-question-budget 0 --budget 0 --judge-model <模型>
+
+    ⚠️ **一道 token 闸都不设**（上面三个 0）—— 实测教训：设了闸，
+    42% 的题会被闸砍掉，而那些失败会**伪装成 agent 能力不足**。
+    """
+    runs = _recorded_runs()
+    assert runs, (
+        f"{EXPERIMENT_DIR} 下找不到任何 {RESULTS_GLOB} —— "
+        "**没有一次测量支撑那条线**。跑法见本判据的文档串。"
     )
 
-    # ⚠️ **只有 `infrastructure` 不计分**（构建/凭据/判官这类真的坏了）。
-    # `harness` 计分 —— 那是我们自己的配置问题，藏起来等于把失败洗掉。
-    # 这一条是用血换的：第一次跑出「18/18 = 100%」，靠的就是把 2 条归成
-    # infrastructure 排除掉；读完整记录才发现它们是**被我设的轮数上限截断的**。
-    scored = [d for d in result["detail"] if d.get("cause") != "infrastructure"]
-    passed = [d for d in scored if d["passed"]]
-    rate = len(passed) * 100 / len(scored) if scored else 0.0
+    theirs = {i["q"] for i in _items(EVAL_SET)}
+    problems: list[str] = []
+    good: list[str] = []
 
-    # 成本照实打印。**它不是判据**（见文档串「不判什么」），但它是警报。
-    tokens = sorted(d["tokens"]["in"] + d["tokens"]["out"] for d in result["detail"])
-    print(  # noqa: T201
-        f"\n任务完成率 {rate:.1f}%（{len(passed)}/{len(scored)}）· "
-        f"token 合计 {sum(tokens):,} · 中位 {tokens[len(tokens) // 2]:,} · 最大 {tokens[-1]:,}"
-    )
+    for path, run in runs:
+        detail = run.get("detail") or []
+        why: list[str] = []
+        if run.get("halted_at"):
+            why.append(f"没跑完（停在第 {run['halted_at']} 条）")
+        if len(detail) < REQUIRED_SAMPLE_SIZE:
+            why.append(f"只跑了 {len(detail)} 条 < {REQUIRED_SAMPLE_SIZE}")
+        if run.get("n_infrastructure"):
+            why.append(
+                f"排除了 {run['n_infrastructure']} 条 infrastructure"
+                " —— 靠归类做数字的那条路，这里堵死"
+            )
+        asked = {d.get("q") for d in detail}
+        if not asked <= theirs:
+            why.append(
+                f"题目不全来自独立评测集（{len(asked - theirs)} 条是别处的）"
+                " —— 换成更容易的一份，这里当场红"
+            )
+        rate = run.get("task_completion_pct")
+        if not isinstance(rate, (int, float)) or rate < REQUIRED_COMPLETION_RATE:
+            why.append(f"完成率 {rate} < {REQUIRED_COMPLETION_RATE}")
+        if why:
+            problems.append(f"  · {path.name}：" + "；".join(why))
+        else:
+            good.append(f"{path.name}（{rate}% · {len(detail)} 条）")
 
-    # ⚠️ **不许写成 `assert rate >= 线 or <任何东西>`。**
-    # 一个 `or` 就是 P1 那次误放行的形状。失败时把每一条都列出来 ——
-    # 那是 message，不是逃逸。
-    failures = [d for d in scored if not d["passed"]]
-    assert rate >= REQUIRED_COMPLETION_RATE, (
-        f"任务完成率 {rate:.1f}% < {REQUIRED_COMPLETION_RATE}%"
-        f"（{len(passed)}/{len(scored)}）。未通过 {len(failures)} 条：\n"
-        + "\n".join(
-            f"  · {d['q']}\n    期望 {d['acceptable']}\n"
-            f"    承诺 {d['committed']!r}（{d['commit_note']}）\n"
-            f"    归因 {d.get('cause')} · {d.get('why')}"
-            for d in failures
-        )
+    assert good, (
+        f"没有任何一次留档的测量能支撑 ≥{REQUIRED_COMPLETION_RATE}% 这条线：\n"
+        + "\n".join(problems)
+        + "\n⇒ 要么重新量（跑法见文档串），要么改判据 —— **别改说法**。"
     )
+    print(f"\n支撑这条线的测量：{'、'.join(good)}")  # noqa: T201
 
 
 def test_every_ground_truth_field_really_exists_on_the_site(live_site):
