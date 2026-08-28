@@ -32,6 +32,7 @@ from agenerp.dsl.fallback import RenderPlan, plan_render
 from agenerp.dsl.schema import SchemaView
 from agenerp.dsl.validate import SchemaUnavailable, ValidationResult, validate
 from agenerp.dsl.blocks import View
+from agenerp.routing import route
 from agenerp.routing.adapter import ChatAdapter
 from agenerp.site import SiteClient
 from agenerp.tools.runtime import Executor, execute
@@ -75,6 +76,10 @@ MAX_TURNS = 40
 # 🔴 **`dsl.validate` / `dsl.preview` 不在这里**（D2，人 2026-08-28 裁定）：
 # 它们由循环无条件执行。工具面里有它们，模型就有了「不调就交」这条路。
 VIEW_TOOLS = ("system.overview", "schema.search", "meta.fields")
+
+# 视图 Agent 的任务类目。`agenerp/routing/capabilities.py` 与 owner doc
+# `model-management.md` §12.5 那张 machine-read 表同步声明（两边不同步就红）。
+VIEW_TASK_CLASS = "view"
 
 SYSTEM_PROMPT = (
     "你是 ERP 的视图 Agent。用户用一句话说他想看什么，你要交出一份视图 DSL。"
@@ -300,3 +305,49 @@ def _validation_message(result: ValidationResult) -> str:
         f"{lines}\n"
         "字段必须来自工具查到的真实字段。改正后**只输出**那个 JSON 对象。"
     )
+
+
+def propose_view(
+    request: str,
+    *,
+    client: SiteClient,
+    schema: SchemaView | None,
+    models,
+    requested: str | None = None,
+    config=None,
+    transport=None,
+    doctypes: Sequence[str] | None = None,
+    session_id: str = "view",
+    user: str = "",
+    max_turns: int = MAX_TURNS,
+    per_call_output_tokens: int = PER_CALL_OUTPUT_TOKENS,
+    executors: Mapping[str, Executor] | None = None,
+) -> ViewProposal:
+    """产品入口：跑一次视图生成。**校验在这条路径上永远是开的**（无参数可关）。
+
+    任务类目写死 `"view"` —— 调用方不选类目。理由与 `explain()` 不同：那里
+    `explain` / `lineage` 都是合法取值（同一个 Agent 按题目难度分档），
+    而视图生成只有一档。**能力不满足就明确失败**（`RoutingError`），不静默降级（§12.1 ③）。
+
+    ⚠️ **`repair_rounds` 刻意不在这里暴露** —— 形态照 `explain()` 那条
+    「失控闸不许从产品入口被调」：一个能从产品入口调的闸，等于一个可以被调用方
+    一行关掉的闸。评测那类要拆闸的场合自己构造 `ViewLoop`。
+    判据在 `tests/agents/test_view_agent.py`。
+
+    ⚠️ **`schema` 仍是必传参数，且允许是 `None`** —— `None` 时在任何模型调用之前抛
+    `SchemaUnavailable`。给它一个「拿不到就自己去取」的默认值，等于让产品路径在
+    最需要结论的时候自己造一份来源不明的 schema。
+    """
+    adapter = route(
+        VIEW_TASK_CLASS, models=models, requested=requested, config=config, transport=transport
+    )
+    loop = ViewLoop(
+        adapter=adapter,
+        client=client,
+        schema=schema,
+        doctypes=doctypes,
+        executors=executors,
+        max_turns=max_turns,
+        per_call_output_tokens=per_call_output_tokens,
+    )
+    return loop.run(request, session_id=session_id, user=user)

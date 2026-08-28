@@ -26,8 +26,10 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 import view_fakes as fakes  # noqa: E402
 
 from agenerp.dsl.validate import SchemaUnavailable  # noqa: E402
+from agenerp.routing import RoutingError  # noqa: E402
 from agenerp.views.loop import (  # noqa: E402
     STOP_PROPOSED,
+    propose_view,
     STOP_REPAIR_EXHAUSTED,
     ViewLoop,
 )
@@ -304,3 +306,55 @@ def test_the_tool_surface_is_exactly_the_three_schema_tools():
     loop_for(model).run(REQUEST)
 
     assert set(model.tools_offered()) == {"schema_search", "meta_fields", "system_overview"}
+
+
+# ── 产品入口：走 route()，不静默降级 ────────────────────────────────────────
+
+
+def test_the_product_entry_routes_through_the_view_task_class():
+    model = fakes.ScriptedModel([fakes.dsl_step(WORKER_VIEW)])
+
+    proposal = propose_view(
+        REQUEST,
+        client=fakes.client_for(fakes.site()),
+        schema=fakes.schema(),
+        models=fakes.models(),
+        config=fakes.config(),
+        transport=model,
+        doctypes=list(fakes.SNAPSHOT_DOCTYPES),
+    )
+
+    assert proposal.stop_reason == STOP_PROPOSED
+
+
+def test_a_model_that_cannot_call_tools_is_refused_not_downgraded():
+    """§12.1 ③「绝不静默降级」—— 能力不满足就明确失败。
+
+    视图 Agent 不调工具就无从知道字段存不存在，`view` 档的 `tool_calling` 挡的就是这个。
+    """
+    weak = [
+        fakes.ModelProfile(
+            name="fake-view-builder", capabilities=frozenset(), is_reasoning_model=False
+        )
+    ]
+
+    with pytest.raises(RoutingError):
+        propose_view(
+            REQUEST,
+            client=fakes.client_for(fakes.site()),
+            schema=fakes.schema(),
+            models=weak,
+            config=fakes.config(),
+            transport=fakes.ScriptedModel([fakes.dsl_step(WORKER_VIEW)]),
+        )
+
+
+def test_the_repair_budget_is_not_reachable_from_the_product_entry():
+    """🔴 修复预算**不许从产品入口被调**。
+
+    形态照 `tests/unit/test_explain_runaway_guard.py` 的 H4 ⑤ ——
+    那里逐字断言失控闸不在 `explain.__code__.co_varnames` 里。同一条理由：
+    一个能从产品入口调的闸，等于一个可以被调用方一行关掉的闸。
+    评测那类要拆闸的场合自己构造 `ViewLoop`。
+    """
+    assert "repair_rounds" not in propose_view.__code__.co_varnames

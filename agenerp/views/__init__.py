@@ -6,6 +6,14 @@
 - `loop.py` 控制循环，**校验由循环无条件执行，模型没有绕过它的路**
 """
 
+from agenerp.views.loop import ViewLoop, ViewProposal, propose_view
 from agenerp.views.wire import WireError, view_from_json, view_from_text
 
-__all__ = ["WireError", "view_from_json", "view_from_text"]
+__all__ = [
+    "ViewLoop",
+    "ViewProposal",
+    "WireError",
+    "propose_view",
+    "view_from_json",
+    "view_from_text",
+]
