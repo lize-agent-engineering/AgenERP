@@ -57,3 +57,31 @@ git branch ci/2325-2-seed-land              5fec32301d8f484ab39f8389cc11f622ab5b
 /Users/lize/Claude/Projects/AgenERP           eb82f19 [main]
 /Users/lize/Claude/Projects/AgenERP-p2-views  2eb6a38 [p2-views]
 ```
+
+---
+
+## 追加复核（2026-08-28）：`p1-insight` **没有** main 缺的东西
+
+⚠️ **本文件上一版写着「p1-insight 真有独有工作」—— 那句是错的，在此更正。**
+它基于 `git cherry`（9 条报「main 里没有」），而**补丁 ID 匹配不上 ≠ 内容不在**
+—— 同一个坑本文件在 `ci/*` 那批上刚踩过一次，转头又踩了第二次。
+
+逐条查内容：
+
+| p1-insight 的提交 | main 里 |
+|---|---|
+| 样板公司重构为恒锐动力 | ✅ 在 `agenerp/seed/model.py`（名字挪进 model 模块，所以 `seedsite.py` 里搜不到字面）|
+| 外协批改用 ERPNext 原生四步链 | ✅ `seedsite.py` 里 39 处 |
+| 站点重建 runbook | ✅ 2 份 |
+| CP9 · P0 阶段复盘 | ✅ 在 |
+| D-9 / D-10 | ✅ 在 |
+
+**唯一的差异**是 CP9 复盘头部一行 SHA 引用（p1-insight 上是 `8ca4629`，
+main 上已更新为 `c446e53`）—— 即 **main 的版本更新，p1-insight 的更旧**。
+
+⇒ **人 2026-08-28 裁定：不合并。** 理由三条：
+1. 合并会冲突在 `docs/masterplan/` 三份（WBS / DECISIONS / STATE）—— **红线 5**，且它们是权威记录
+2. 有把 **main 更新的版本被旧版本盖回去**的风险（那行 SHA 就是活例子）
+3. **换不来任何新内容**（main 领先合并基点 250 条，早走过去了）
+
+`p1-insight` **保留为存档点**，标记 P1 结束在哪儿。**它不含未合并的工作。**
