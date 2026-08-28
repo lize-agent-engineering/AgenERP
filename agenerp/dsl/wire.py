@@ -1,4 +1,10 @@
-"""线格式：模型交出来的那段 JSON ↔ `View`。
+"""线格式：一段 JSON ↔ `View`。**视图 DSL 的一部分，不是 agent 的东西。**
+
+⚠️ **2026-08-28 由 `agenerp/views/wire.py` 迁到这里**（P2.4 欠账了结）：
+`agenerp/dsl/roles.py` 要用它把视图定义从 JSON 读回来，而让 `dsl` 去 import `views`
+会把**整个 agent 栈**（`views/__init__` → `loop` → `explain` → `tools`）
+拉进 `agenerp/serve/` 的进程 —— 服务端不该因为读几份视图定义就背上那些。
+方向反过来才对：**线格式属于 DSL，agent 引它。**
 
 🔴 **只解析形状，不判对错。** 纪律逐字来自 `agenerp/dsl/blocks.py` 的模块头：
 解析器要能造出**非法**的实例，否则校验器的拒绝路径根本没法测。

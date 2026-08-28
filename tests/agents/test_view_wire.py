@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import pytest
 
-from agenerp.views.wire import WireError, view_from_json, view_from_text
+from agenerp.dsl.wire import WireError, view_from_json, view_from_text
 
 WORK_ORDER_PAYLOAD = {
     "name": "worker-today",

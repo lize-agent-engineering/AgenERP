@@ -16,11 +16,13 @@ Workspace 会被 app 升级整条 `delete_doc` + 重插，只有 `is_hidden` 幸
 - `schema.py`   schema 视图 —— 校验器问「这个字段存在吗」的那个对象
 - `validate.py` 两层校验器（L1 结构 / L2 字段存在性）
 - `fallback.py` 「未支持的一律落回 Desk」，**规则面，无模型调用**（D-15）
+- `wire.py`     线格式（JSON ↔ `View`），**只解析形状不判对错**
 """
 
 from agenerp.dsl.blocks import BLOCK_TYPES, Block, View
 from agenerp.dsl.fallback import RenderPlan, plan_render
 from agenerp.dsl.schema import SchemaView
+from agenerp.dsl.wire import WireError, view_from_json, view_from_text
 from agenerp.dsl.validate import DslError, SchemaUnavailable, ValidationResult, validate
 
 __all__ = [
@@ -32,6 +34,9 @@ __all__ = [
     "SchemaView",
     "ValidationResult",
     "View",
+    "WireError",
+    "view_from_json",
+    "view_from_text",
     "plan_render",
     "validate",
 ]

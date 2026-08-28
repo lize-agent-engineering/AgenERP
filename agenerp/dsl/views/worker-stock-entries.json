@@ -1,0 +1,53 @@
+{
+  "name": "worker-stock-entries",
+  "title": "物料调拨",
+  "blocks": [
+    {
+      "type": "list",
+      "title": "调拨单",
+      "doctype": "Stock Entry",
+      "fields": [
+        "stock_entry_type",
+        "purpose",
+        "posting_date",
+        "work_order",
+        "from_warehouse",
+        "to_warehouse"
+      ],
+      "sort": [
+        "posting_date",
+        "desc"
+      ],
+      "limit": 50
+    },
+    {
+      "type": "detail",
+      "title": "调拨明细",
+      "doctype": "Stock Entry",
+      "fields": [
+        "stock_entry_type",
+        "posting_date",
+        "work_order",
+        "from_warehouse",
+        "to_warehouse",
+        "fg_completed_qty",
+        "items"
+      ],
+      "child_fields": [
+        [
+          "items",
+          "Stock Entry Detail",
+          [
+            "item_code",
+            "item_name",
+            "qty",
+            "uom",
+            "s_warehouse",
+            "t_warehouse",
+            "image"
+          ]
+        ]
+      ]
+    }
+  ]
+}
