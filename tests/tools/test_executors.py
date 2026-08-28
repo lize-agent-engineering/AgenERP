@@ -147,11 +147,38 @@ def test_schema_search_returns_candidates_not_a_single_pick(fake_site, fake_clie
     assert result.facts["returns_candidate_list_not_single_pick"] is True
 
 
-def test_schema_search_skips_empty_tables(fake_site, fake_client):
-    """只索引表里真有数据的 DocType——干扰项几乎全部来自空表。"""
+def test_schema_search_tags_empty_tables_instead_of_hiding_them(fake_site, fake_client):
+    """🔴 **表里没数据的 DocType 要回、并标记 `has_data: false` —— 不许剔。**
+
+    ⚠️ 本条 2026-08-27 **推翻了**前一版判据（`..._skips_empty_tables`，
+    逐字「只索引表里真有数据的 DocType——干扰项几乎全部来自空表」）。
+    推翻它的是实测，不是口味：
+
+      `schema.search("Request for Quotation")` → **0 个候选**
+      `schema.search("Production Plan")`       → **0 个候选**
+
+    两个单据在演示站点上没有行，于是**整个单据不在索引里**。而独立评测集里
+    这两个单据**正是正解所在**（`Request for Quotation Item.schedule_date` ·
+    `Production Plan Item.planned_qty`）—— agent 搜的是**完全正确的词**，
+    工具回了空，它只好去猜别的单据，于是错了 2 条。
+
+    ⚠️ 关键在于**问的是 schema 问题**：「哪个字段存这个」与站点上有没有数据**无关**。
+    与 `meta.fields` 那个 hidden 缺陷是同一 species：**工具把本该是答案的东西
+    过滤掉了**，而失败会伪装成 agent 选错。⇒ 一律「**标记而不是剔除**」。
+
+    「干扰项来自空表」这个担心**不作废** —— 它由排序承担：有数据的排前面。
+    排序是提示，过滤是断路，两者不是一回事。
+    """
     result = _run("schema.search", {"keywords": "customer"}, fake_client)
 
-    assert [row["doctype"] for row in result.data["candidates"]] == []
+    names = [row["doctype"] for row in result.data["candidates"]]
+    assert names, "空表 DocType 被整个剔掉了 —— agent 搜对了词也会拿到空手"
+    assert all("has_data" in row for row in result.data["candidates"]), (
+        "回了但没标记 —— 调用方分不出「这个单据没数据」和「这个单据不存在」"
+    )
+    assert any(row["has_data"] is False for row in result.data["candidates"]), (
+        "这一格的夹具本来就没有 customer 数据，标记应为 False"
+    )
 
 
 # ── doc.get ─────────────────────────────────────────────────────────────────
@@ -401,3 +428,32 @@ def test_keywords_that_match_nothing_fall_back_to_the_whole_table(fake_site, fak
 
     assert narrowed.ok, narrowed.reasons
     assert len(narrowed.data) == len(full.data), "没命中时应回全量，不许回空"
+
+
+# ── `meta.fields` 的 `ref`：**父表/子表要能照抄，不能让模型自己拼**──────────
+
+
+def test_every_field_row_carries_a_ref_the_caller_can_copy_verbatim(fake_site, fake_client):
+    """🔴 **子表字段的引用必须是现成的，不能要求调用方自己拼。**
+
+    实测（qwen3.7-flash，独立评测集）：3 条失败全是**父表/子表拼错** ——
+      `Customer.credit_limit`   而正解是 `Customer Credit Limit.credit_limit`
+      `Quotation.stock_qty`     而正解是 `Quotation Item.stock_qty`
+      `Sales Order.warehouse`   而正解是 `Sales Order Item.warehouse`
+    三条的正解**都真的回了**，带着 `level: child_table` 与正确的 `parent_doctype`，
+    但模型要**自己把两段拼起来**，它照着自己查询的那个 doctype 写了。
+    ⇒ **那不是它不知道，是工具没给出一个能照抄的东西。**
+    """
+    result = _run("meta.fields", {"doctype": "Sales Order"}, fake_client)
+
+    assert result.ok, result.reasons
+    child = next(
+        (r for r in result.data if r.get("level") == "child_table"), None
+    )
+    assert child is not None, "夹具里应有子表字段，否则这条判据没判到东西"
+    assert child["ref"] == f"{child['parent_doctype']}.{child['fieldname']}", (
+        f"子表字段的 ref 拼错了：{child.get('ref')!r} —— "
+        "它必须是调用方可以逐字照抄的那一串"
+    )
+    parent = next((r for r in result.data if r.get("level") != "child_table"), None)
+    assert parent["ref"] == f"Sales Order.{parent['fieldname']}"

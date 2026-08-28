@@ -280,6 +280,13 @@ def meta_field_rows(session: Session, doctype: str, level: str) -> tuple[list[di
         # ⚠️ 对「问哪个字段」这类问题，**在界面上不显示 ≠ 不是那个字段**。
         # 标记而不是剔除：模型仍知道它在 UI 上不露面，但点得出名字。
         row = {
+            # 🔴 **可直接照抄的引用**（2026-08-27 加）。理由是实测：
+            # 独立评测集里 3 条失败（`Customer.credit_limit` / `Quotation.stock_qty` /
+            # `Sales Order.warehouse`）都是**父表/子表拼错** —— 正解**确实回了**，
+            # 带着 `level: child_table` 与 `parent_doctype: "Customer Credit Limit"`，
+            # 但模型要**自己把两段拼起来**才是答案，它照着自己查询的那个 doctype 写了。
+            # ⇒ 那不是它不知道，是**工具没给出一个能照抄的东西**。
+            "ref": f"{doctype}.{field.get('fieldname')}",
             "fieldname": field.get("fieldname"),
             "fieldtype": fieldtype,
             "label": field.get("label"),

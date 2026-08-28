@@ -179,13 +179,43 @@ def schema_search(session: Session, params: Mapping[str, Any]) -> Outcome:
     """按关键词/结构化匹配找候选 DocType。**召回器，不是选择器**。
 
     命中口径是 DocType 名与模块名的子串匹配，大小写不敏感；无关键词时回全部候选。
+    **搜索面是全部业务 DocType**，表里没行的**标记 `has_data: false` 而不剔除** ——
+    「哪个字段存这个」与站点上有没有数据无关（2026-08-27 实测：按有数据过滤时，
+    `Request for Quotation` / `Production Plan` 搜出 0 个候选，而它们正是正解所在）。
     向量兜底不在本期（P1.0a §9，重开事件写在那里）：owner doc 的现行结论是
     「结构化导航优先，向量检索降级为兜底召回」，在没有实测召回缺口之前不建索引。
     """
     keywords = [word.lower() for word in _keywords(params)]
+
+    # 🔴 2026-08-27：搜索面从「**有数据的**业务 DocType」放宽到「**全部**业务 DocType」，
+    # 没数据的**标记 `has_data: false`，不再剔除**。理由是实测：
+    #   `schema.search("Request for Quotation")` → **0 个候选**
+    #   `schema.search("Production Plan")`       → **0 个候选**
+    # 两个单据在演示站点上没有行，于是整个单据**不在索引里** ——
+    # agent 搜的是**完全正确的词**，工具回了空，它只好去猜别的单据
+    # （实测因此错了 2 条：答成 `Purchase Order Item.schedule_date`
+    #  与 `Material Request Item.qty`）。
+    # ⚠️ 问的是 **schema 问题**「哪个字段存这个」—— 答案与站点上有没有数据**无关**。
+    # 这与 `meta.fields` 那个 hidden 缺陷是同一 species：
+    # **工具把本该是答案的东西过滤掉了**，而失败会伪装成 agent 选错。
+    # ⇒ 一律按「**标记而不是剔除**」处理，让调用方自己看得见。
+    with_data, unreadable = doctypes_with_data(session)
+    rows_of = {e["doctype"]: e.get("rows") for e in with_data}
+    universe = [
+        {
+            "doctype": row["name"],
+            "module": row.get("module"),
+            "rows": rows_of.get(row["name"], 0),
+            "has_data": row["name"] in rows_of,
+        }
+        for row in business_doctypes(session)
+        if row["name"] not in set(unreadable)
+    ]
+    # 有数据的排前面（行数降序），没数据的跟在后面 —— 顺序是提示，不是过滤。
+    universe.sort(key=lambda e: (not e["has_data"], -(e["rows"] or 0), e["doctype"]))
     matched = [
         entry
-        for entry in doctypes_with_data(session)[0]
+        for entry in universe
         if not keywords
         or any(
             word in f"{entry['doctype']} {entry.get('module') or ''}".lower() for word in keywords
