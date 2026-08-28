@@ -177,3 +177,39 @@ def test_there_is_no_path_from_the_site_back_into_git():
                                          or "dump_to" in name or "export_views" in name)
     ]
     assert not suspicious, f"出现了从站点往回写的路径：{suspicious}"
+
+
+def test_a_name_that_could_escape_the_path_is_refused_without_asking_the_site():
+    """🔴 **路径穿越面**：视图名要进 REST 路径，而站点侧的编码 `quote(path, safe="/")`
+    **不转义 `/`** ⇒ `../../x` 会拼出一条能被 HTTP 客户端规范化掉的路径。
+
+    这层保护此前由「视图名只做字典查表」天然提供；2026-08-28 改成从站点表读之后
+    那层没了，必须在这里补回来。
+
+    ⚠️ 断言两件事：**拒了**，且**一个站点请求都没发**（连问都不问）。
+    """
+    client = FakeClient()
+    client.rows["x"] = {"view_name": "x", "title": "x", "definition": "{}"}
+
+    for evil in ("../../etc", "a/b", "worker/../../x", "", "  ", "Worker-Items",
+                 "x" * 200, "名字"):
+        with pytest.raises(ViewStoreError):
+            read_view(client, evil)
+
+
+def test_the_refusal_does_not_echo_the_name_back():
+    """名字是调用方能控制的 —— 回显它就是一条反射面。"""
+    client = FakeClient()
+
+    with pytest.raises(ViewStoreError) as excinfo:
+        read_view(client, "<script>alert(1)</script>")
+
+    assert "script" not in str(excinfo.value)
+
+
+def test_the_real_view_names_all_pass_the_shape_check():
+    """守卫不能把真名字也拒掉 —— 否则它守的是「什么都不许」。"""
+    from agenerp.dsl.store import VIEW_NAME
+
+    for view in WORKER_DAILY_VIEWS:
+        assert VIEW_NAME.match(view.name), view.name

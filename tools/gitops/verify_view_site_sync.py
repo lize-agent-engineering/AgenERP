@@ -38,7 +38,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[2]))
 
 from agenerp.dsl.roles import WORKER_DAILY_VIEWS  # noqa: E402
 from agenerp.dsl.store import DECLARATION, VIEW_DOCTYPE, ensure_table, publish_views, read_view  # noqa: E402
-from agenerp.site import SiteError, client_from_env  # noqa: E402
+from agenerp.site import client_from_env  # noqa: E402
 
 HOME_SITE = "frontend"
 TARGET_SITE = "gitops.test"
@@ -137,15 +137,26 @@ def run() -> None:
 
 
 def cleanup() -> None:
-    """两个站点上的视图行都清掉。**成败两条路径都清** —— 不清会污染下一次的前置断言。
+    """收尾。**成败两条路径都做** —— 不做会污染下一次的前置断言。
+
+    🔴 **两个站点的处置不一样，这是刻意的**：
+
+    - `TARGET_SITE` 是**这条判据的草稿纸** ⇒ 清空，让下一次的「那边一个视图都没有」成立。
+    - `HOME_SITE` 是**部署中的站点** ⇒ **同步回真相源**，不是清空。
+      2026-08-28 实测踩到：原来两边一起清，把 `frontend` 的视图行也清了，
+      而服务端现在从表读 ⇒ **P2.6 的门禁 `test_no_empty_workspace` 当场红**。
+      一条判据把部署状态清掉、让另一条判据红 —— 那不是判据该干的事。
 
     ⚠️ **表本身不删**：建表是结构性改动，删表更是；回滚由人做（见 `store.ensure_table`）。
     """
-    for site in (HOME_SITE, TARGET_SITE):
-        try:
-            publish_views(client_from_env(site), ())
-        except (SiteError, Exception) as exc:  # noqa: BLE001
-            print(f"  ⚠️ 清理 {site} 的视图行失败：{type(exc).__name__}: {exc}")
+    try:
+        publish_views(client_from_env(TARGET_SITE), ())
+    except Exception as exc:  # noqa: BLE001
+        print(f"  ⚠️ 清空 {TARGET_SITE} 的视图行失败：{type(exc).__name__}: {exc}")
+    try:
+        publish_views(client_from_env(HOME_SITE), WORKER_DAILY_VIEWS)
+    except Exception as exc:  # noqa: BLE001
+        print(f"  ⚠️ 把 {HOME_SITE} 同步回真相源失败：{type(exc).__name__}: {exc}")
 
 
 def main() -> int:

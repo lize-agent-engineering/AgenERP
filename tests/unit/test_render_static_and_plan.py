@@ -123,8 +123,27 @@ def test_the_renderer_asset_is_actually_served():
 # ---------------------------------------------------------------- `/agenerp/view`
 
 
+def _table_client(name: str):
+    """假站点客户端：`AgenERP View` 表里就放 git 里那一份（老判据的口径不变）。"""
+    from agenerp.dsl.roles import WORKER_DAILY_VIEWS
+    from agenerp.dsl.wire import view_to_json
+
+    by_name = {v.name: v for v in WORKER_DAILY_VIEWS}
+
+    class _Client:
+        def get(self, path, params=None):  # noqa: ARG002
+            want = path.rsplit("/", 1)[-1]
+            if want not in by_name:
+                raise SiteError(f"GET {path} → HTTP 404（假件）")
+            view = by_name[want]
+            return {"data": {"view_name": view.name, "title": view.title,
+                             "definition": json.dumps(view_to_json(view), ensure_ascii=False)}}
+
+    return _Client()
+
+
 def test_view_plan_returns_a_renderable_plan_for_a_known_view(site_schema):
-    payload = view_plan("worker-items", site_schema)
+    payload = view_plan("worker-items", site_schema, _table_client("worker-items"))
     assert payload["view"] == "worker-items"
     assert payload["fallbacks"] == []
     assert len(payload["blocks"]) == 2
@@ -133,11 +152,11 @@ def test_view_plan_returns_a_renderable_plan_for_a_known_view(site_schema):
 
 
 def test_view_plan_carries_the_fieldtypes_the_renderer_needs(site_schema):
-    payload = view_plan("worker-items", site_schema)
+    payload = view_plan("worker-items", site_schema, _table_client("worker-items"))
     assert payload["fieldtypes"]["Item.description"] == "Text Editor"
     assert payload["fieldtypes"]["Item.image"] == "Attach Image"
     # 子表字段的类型也要带上 —— 子表里的 Attach 是真实存在的一格。
-    plan = view_plan("worker-stock-entries", site_schema)
+    plan = view_plan("worker-stock-entries", site_schema, _table_client("worker-stock-entries"))
     assert plan["fieldtypes"]["Stock Entry Detail.image"] == "Attach"
 
 
@@ -148,56 +167,46 @@ def test_view_plan_without_a_schema_refuses_instead_of_being_optimistic():
     没人核对过存在性的字段 —— 而那正是 P2 硬约束 ④ 要挡的。
     """
     with pytest.raises(ServiceError) as caught:
-        view_plan("worker-items", None)
+        view_plan("worker-items", None, _table_client("worker-items"))
     assert caught.value.status == 503
 
 
 def test_an_unknown_view_name_is_404_and_does_not_echo_the_name():
     """视图名是调用方能控制的。回显它就是一条反射面。"""
     with pytest.raises(ServiceError) as caught:
-        view_plan("<script>alert(1)</script>", None)
+        view_plan("<script>alert(1)</script>", None, _table_client("x"))
     assert caught.value.status == 404
     assert "script" not in str(caught.value)
 
 
-def test_the_view_name_only_ever_hits_a_dict_lookup():
-    """视图名不许参与路径拼接，也不许做前缀匹配。
+def test_the_view_name_is_shape_checked_before_it_can_reach_a_path():
+    """🔴 **2026-08-28 换了守法，守的东西没换。**
 
-    判法：把 `VIEWS_BY_NAME.get(name)` 那棵子树从 AST 里摘掉，
-    **剩下的地方一次都不许再读 `name`**。用 AST 而不是逐行 grep ——
-    行匹配会被函数签名、注释、字符串各绊一次，而每绊一次都要往判据里加一条豁免，
-    加着加着这条判据就只剩壳了。
+    原来这条用 AST 判「视图名只做 `VIEWS_BY_NAME.get(name)` 一次字典查表」——
+    因为那时名字压根进不了路径。改成从站点表读之后，名字**要进 REST 路径**了，
+    而站点侧的编码是 `quote(path, safe="/")`（**`/` 不转义**）⇒ 路径穿越面是真的。
+
+    ⇒ 新守法：名字必须先过 `store.VIEW_NAME` 的形状检查，
+    **不合形状时一个站点请求都不发**。逐条判据在 `tests/dsl/test_view_store.py`，
+    这里守的是「服务面确实走了那条检查」。
     """
-    import ast
-    import inspect
-    import textwrap
+    from agenerp.dsl.store import VIEW_NAME
 
-    tree = ast.parse(textwrap.dedent(inspect.getsource(view_plan)))
+    class _Counting:
+        def __init__(self) -> None:
+            self.asked = 0
 
-    lookups = [
-        node
-        for node in ast.walk(tree)
-        if isinstance(node, ast.Call)
-        and isinstance(node.func, ast.Attribute)
-        and node.func.attr == "get"
-        and isinstance(node.func.value, ast.Name)
-        and node.func.value.id == "VIEWS_BY_NAME"
-    ]
-    assert len(lookups) == 1, f"期望恰好一次 VIEWS_BY_NAME.get(...)，实际 {len(lookups)}"
-    inside_lookup = {id(node) for node in ast.walk(lookups[0])}
+        def get(self, path, params=None):  # noqa: ARG002
+            self.asked += 1
+            raise SiteError("不该走到这里")
 
-    stray = [
-        node
-        for node in ast.walk(tree)
-        if isinstance(node, ast.Name)
-        and node.id == "name"
-        and isinstance(node.ctx, ast.Load)
-        and id(node) not in inside_lookup
-    ]
-    assert not stray, (
-        f"view_plan 里 name 在查表之外被读了 {len(stray)} 次 —— "
-        "第一次出现在第 " + str(stray[0].lineno) + " 行"
-    )
+    for evil in ("../../etc/passwd", "a/b", "<script>"):
+        assert not VIEW_NAME.match(evil), evil
+        client = _Counting()
+        with pytest.raises(ServiceError) as caught:
+            view_plan(evil, None, client)
+        assert caught.value.status == 404
+        assert client.asked == 0, f"名字 {evil!r} 不合形状却仍然去问了站点"
 
 
 # ---------------------------------------------------------------- `/agenerp/home`
@@ -402,3 +411,105 @@ def test_home_picks_by_the_tables_priority_not_by_what_the_site_happened_to_retu
     assert home_for_roles([], two) is None
     # 产品路径仍走默认表。
     assert home_for_roles([name for name, _v in ROLE_HOMES]) == ROLE_HOMES[0]
+
+
+# ── 🔴 视图计划端点改成**按调用者的 sid 从站点表读**（2026-08-28）────────────
+#
+# 这是**翻掉一条明文裁定**：`_respond_view_plan` 原来的 docstring 逐字写着
+# 「为什么不认人：本端点只回视图定义，不是业务数据」。
+# 人 2026-08-28 把那条裁定的前提改了 —— 逐字：「schema 指的是**表的结构**对 agent 全局可见」。
+# ⇒ 表结构全局共享成立，**而视图定义是数据**，该按调用者的权限读。
+#
+# 落到判据上就是下面三条：不带 sid 要 401 · 交出来的必须是**表里那份** ·
+# 站点上没有就 404 且不回显名字。
+
+
+def _client_serving_view(definition: dict | None, *, fail: Exception | None = None):
+    """假站点客户端：会答身份，也会答 `AgenERP View` 那一行。"""
+
+    class _Client:
+        def read_method(self, method, params=None):  # noqa: ARG002
+            if method.endswith("get_logged_user"):
+                return FAKE_USER
+            return []
+
+        def get(self, path, params=None):  # noqa: ARG002
+            if fail is not None:
+                raise fail
+            if definition is None:
+                raise SiteError(f"GET {path} → HTTP 404 DoesNotExistError（假件）")
+            return {"data": {"view_name": definition["name"], "title": definition["title"],
+                             "definition": json.dumps(definition, ensure_ascii=False)}}
+
+    def factory(*args, **kwargs):
+        sid = kwargs.get("sid") or (args[1] if len(args) > 1 else "")
+        if not sid:
+            raise AssertionError("视图计划端点没有把 sid 传下去")
+        return _Client()
+
+    return factory
+
+
+def _serve_view(definition, *, fail=None):
+    server = build_server(
+        site="unit-test-site", port=0, client_factory=_client_serving_view(definition, fail=fail)
+    )
+    return _Live(server)
+
+
+def test_the_view_plan_endpoint_without_a_sid_is_401_not_a_view():
+    """🔴 **不认人就不给视图定义。**
+
+    翻裁定之后这是第一条：视图定义是数据，没有身份就没有答案。
+    fail-closed 的方向是「不给」，与 `/agenerp/home` 同一条。
+    """
+    live = _serve_view(None)
+    try:
+        status, payload = live.get(f"{VIEW_PLAN_PATH}?name=worker-work-orders")
+    finally:
+        live.close()
+
+    assert status == 401, payload
+    assert "blocks" not in payload
+
+
+def test_the_plan_comes_from_the_site_table_not_from_the_git_files(site_schema):
+    """🔴 **决定性的一条**：站点表里那份**故意不同于 git**，交出来的必须是表里那份。
+
+    没有这一条，「改成从表读」与「照旧从文件读」在结果上长得一模一样 ——
+    而那正是本仓最忌讳的那种绿。
+    """
+    from agenerp.dsl.roles import WORKER_DAILY_VIEWS
+    from agenerp.dsl.wire import view_to_json
+
+    git_version = WORKER_DAILY_VIEWS[0]
+    on_site = view_to_json(git_version)
+    # 表里那份**少一个块** —— git 里那份有 3 个块，这里只留 1 个。
+    on_site["blocks"] = on_site["blocks"][:1]
+
+    live = _serve_view(on_site)
+    try:
+        status, payload = live.get(
+            f"{VIEW_PLAN_PATH}?name={git_version.name}", cookie="sid=fake-sid"
+        )
+    finally:
+        live.close()
+
+    assert status == 200, payload
+    assert len(payload["blocks"]) == 1, (
+        f"交出来的是 git 里那份（{len(git_version.blocks)} 块），不是站点表里那份（1 块）"
+    )
+
+
+def test_a_view_missing_on_the_site_is_404_and_does_not_echo_the_name():
+    live = _serve_view(None)
+    try:
+        # ⚠️ 名字用 ASCII：`http.client` 的请求行不收非 ASCII，
+        # 用中文名会红在**测试自己的传输层**上，而不是判出被守的东西。
+        # 「不回显名字」那一格由 `tests/dsl/test_view_store.py` 逐条判。
+        status, payload = live.get(f"{VIEW_PLAN_PATH}?name=worker-nope", cookie="sid=fake-sid")
+    finally:
+        live.close()
+
+    assert status == 404, payload
+    assert "worker-nope" not in json.dumps(payload, ensure_ascii=False), "回显了调用方给的名字"

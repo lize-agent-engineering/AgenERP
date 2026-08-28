@@ -176,6 +176,34 @@ services:
       configurator:
         condition: service_completed_successfully
 
+  # 一次性：把 git 里的视图定义同步进站点的 `AgenERP View` 表，同步完即退出。
+  #
+  # 🔴 **为什么这一步是部署的一部分**：2026-08-28 起服务端**从站点表读视图定义**
+  # （翻掉了「视图计划端点不认人」那条裁定 —— 视图定义是数据，按调用者权限读）。
+  # ⇒ **一个没有视图定义行的站点没有首页**，P2.6 的门禁 test_no_empty_workspace
+  # 在空表上会红，**而那是对的行为**。供给不该由判据做（判据供给自己 = 自己给自己发考卷），
+  # 该由部署做 —— 就是这一格。
+  #
+  # 幂等：ensure_table 先查后建；publish_views 是**同步**（多的删、缺的补），重复 up 不重复长。
+  # ⚠️ 失败即 exit 非零 —— 一个「同步不上也当没事」的引导步骤，会让首页空着而没人报错。
+  bootstrap-views:
+    <<: *erpnext_image
+    restart: "no"
+    entrypoint: ["python3", "-m", "agenerp.dsl.store"]
+    environment:
+      AGENERP_SITE: ${AGENERP_SITE:-frontend}
+      AGENERP_SITE_URL: http://backend:8000
+      AGENERP_ADMIN_PASSWORD: ${AGENERP_ADMIN_PASSWORD:-admin}
+      # 与 agenerp-serve 那格同一份：产品包挂在 /opt/agenerp/agenerp，
+      # 不设 PYTHONPATH 时 `python3 -m agenerp.dsl.store` 直接 ModuleNotFoundError
+      # （2026-08-28 实测踩到）。
+      PYTHONPATH: /opt/agenerp
+    volumes:
+      - ./agenerp:/opt/agenerp/agenerp:ro
+    depends_on:
+      backend:
+        condition: service_healthy
+
   # 一次性：把「AI 能力未配置」写进 Website Settings.banner_html，写完即退出。
   # 幂等：横幅内容已是目标值就跳过（脚本自己判），使重复 `up -d` 不重复写、不报错。
   # 口径与残余风险见 docs/architecture/system-baseline.md §14.3。
