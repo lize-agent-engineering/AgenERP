@@ -1,0 +1,18 @@
+{"id":"in-01","q":"我想看今天要做的工单，把物料和计划数量列出来","expect_doctype":"Work Order","must_fields":["production_item","qty"],"expect_block_types":["list"],"domain":"in","why_hard":""}
+{"id":"in-02","q":"工单一共有多少张？给我一个数","expect_doctype":"Work Order","must_fields":["name"],"expect_block_types":["metric"],"domain":"in","why_hard":"要用主键 name 计数 —— 这一条在 2026-08-28 修 STANDARD_FIELDS 之前必错"}
+{"id":"in-03","q":"哪些工单还没做完？我要能看到状态","expect_doctype":"Work Order","must_fields":["status"],"expect_block_types":["list"],"domain":"in","why_hard":"「没做完」要落成 filters，而状态是 Select"}
+{"id":"in-04","q":"每张工单计划做多少、实际做出来多少，我要对着看","expect_doctype":"Work Order","must_fields":["qty","produced_qty"],"expect_block_types":["list"],"domain":"in","why_hard":"两个都叫「数量」，qty 是计划、produced_qty 是实际 —— 近义字段"}
+{"id":"in-05","q":"工单按计划开工的先后排一下","expect_doctype":"Work Order","must_fields":["planned_start_date"],"expect_block_types":["list"],"domain":"in","why_hard":"排序字段也算「用到的字段」"}
+{"id":"in-06","q":"所有工单的计划产量加起来是多少","expect_doctype":"Work Order","must_fields":["qty"],"expect_block_types":["metric"],"domain":"in","why_hard":"要 agg=sum 不是 count"}
+{"id":"in-07","q":"库存转移都是从哪个仓到哪个仓","expect_doctype":"Stock Entry","must_fields":["from_warehouse","to_warehouse"],"expect_block_types":["list"],"domain":"in","why_hard":"一问里两个方向，少一个就答了一半"}
+{"id":"in-08","q":"库存转移是哪天过账的","expect_doctype":"Stock Entry","must_fields":["posting_date"],"expect_block_types":["list"],"domain":"in","why_hard":"Stock Entry 上有好几个日期字段"}
+{"id":"in-09","q":"库存转移一共有多少笔","expect_doctype":"Stock Entry","must_fields":["name"],"expect_block_types":["metric"],"domain":"in","why_hard":"同 in-02；这一条真跑时模型一度退到 naming_series"}
+{"id":"in-10","q":"这些库存转移分别是什么类型的","expect_doctype":"Stock Entry","must_fields":["stock_entry_type"],"expect_block_types":["list"],"domain":"in","why_hard":""}
+{"id":"in-11","q":"给我一张物料清单：编码、名称、所属分组","expect_doctype":"Item","must_fields":["item_code","item_name","item_group"],"expect_block_types":["list"],"domain":"in","why_hard":"三个字段一个都不能少"}
+{"id":"in-12","q":"哪些物料是要管库存的","expect_doctype":"Item","must_fields":["is_stock_item"],"expect_block_types":["list"],"domain":"in","why_hard":"Check 字段，且 Item 上有一堆 is_* 近义字段"}
+{"id":"out-01","q":"销售订单是哪个客户下的，什么时候下的","expect_doctype":"Sales Order","must_fields":["customer","transaction_date"],"expect_block_types":["list"],"domain":"out","why_hard":"下单日期是 transaction_date 不是 posting_date"}
+{"id":"out-02","q":"销售订单一共有多少张","expect_doctype":"Sales Order","must_fields":["name"],"expect_block_types":["metric"],"domain":"out","why_hard":""}
+{"id":"out-03","q":"客户名单：名字和所属客户组","expect_doctype":"Customer","must_fields":["customer_name","customer_group"],"expect_block_types":["list"],"domain":"out","why_hard":""}
+{"id":"out-04","q":"采购订单是向哪个供应商下的","expect_doctype":"Purchase Order","must_fields":["supplier"],"expect_block_types":["list"],"domain":"out","why_hard":""}
+{"id":"out-05","q":"发给客户的报价，最晚哪天还按这个价认","expect_doctype":"Quotation","must_fields":["valid_till"],"expect_block_types":["list"],"domain":"out","why_hard":"P2.0R 独立评测集里的原题；Quotation 与 Request for Quotation 近似混淆"}
+{"id":"out-06","q":"发货单是哪天过账的","expect_doctype":"Delivery Note","must_fields":["posting_date"],"expect_block_types":["list"],"domain":"out","why_hard":""}
