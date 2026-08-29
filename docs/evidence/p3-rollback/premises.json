@@ -1,0 +1,2185 @@
+{
+ "captured_at": "2026-08-29T03:22:31Z",
+ "repo_head": "074bd5a9c43e9b27a27462fe642ac1c32178a014",
+ "fingerprint_before": {
+  "exit_code": 0,
+  "all_green": true,
+  "lines": [
+   "✅ Bin(HRD-PACK-5K, 成品仓 - HRD).actual_qty = 1010.00 / expected = 1010.00（出处：agenerp.seed.checks.EXPECTED_BACKLOG_QTY）",
+   "✅ Bin(HRD-PACK-5K, 成品仓 - HRD).stock_value = 3110200.00 / expected = 3110200.00（出处：agenerp.seed.checks.EXPECTED_BACKLOG_VALUE）",
+   "✅ GL 借贷差额（借合计 − 贷合计） = 0.00 / expected = 0.00（出处：复式记账的结构不变量（不是业务期望值，故无 checks.EXPECTED_* 出处））",
+   "✅ 负库存条目数（Bin.actual_qty < 0 + SLE.qty_after_transaction < 0） = 0 / expected = 0（出处：复式记账的结构不变量（不是业务期望值，故无 checks.EXPECTED_* 出处））",
+   "✅ GL 收入贷方合计（主营业务收入 - HRD） = 4237200.00 / expected = 4237200.00（出处：agenerp.seed.checks.EXPECTED_RECEIVABLE_OVERDUE）",
+   "✅ GL 成本借方合计（主营业务成本 - HRD） = 2989800.00 / expected = 2989800.00（出处：agenerp.seed.checks.EXPECTED_COGS）",
+   "✅ 毛利（GL 收入贷方 − GL 成本借方） = 1247400.00 / expected = 1247400.00（出处：agenerp.seed.checks.EXPECTED_GROSS_PROFIT）",
+   "✅ Sales Invoice 中 status == 'Overdue' 的 outstanding_amount 合计（命中 1 张：ACC-SINV-2026-00001；本仓预期 —— ACC-SINV-2026-00001：status=Overdue / due_date=2026-03-10（已到期，今天 2026-08-29（宿主侧）） / docstatus=1（已提交） / outstanding_amount=4237200.00） = 4237200.00 / expected = 4237200.00（出处：agenerp.seed.checks.EXPECTED_RECEIVABLE_OVERDUE）",
+   "✅ Purchase Invoice 中 status == 'Overdue' 的 outstanding_amount 合计（命中 1 张：ACC-PINV-2026-00001；本仓预期 —— ACC-PINV-2026-00001：status=Overdue / due_date=2026-03-09（已到期，今天 2026-08-29（宿主侧）） / docstatus=1（已提交） / outstanding_amount=120000.00） = 120000.00 / expected = 120000.00（出处：agenerp.seed.checks.EXPECTED_PAYABLE_OVERDUE）",
+   "✅ Delivery Note 的文档条数 = 1 / expected = 1（出处：agenerp.seed 生成的数据集（Delivery Note））",
+   "✅ Purchase Invoice 的文档条数 = 1 / expected = 1（出处：agenerp.seed 生成的数据集（Purchase Invoice））",
+   "✅ Purchase Order 的文档条数 = 1 / expected = 1（出处：agenerp.seed 生成的数据集（Purchase Order））",
+   "✅ Sales Invoice 的文档条数 = 1 / expected = 1（出处：agenerp.seed 生成的数据集（Sales Invoice））",
+   "✅ Sales Order 的文档条数 = 1 / expected = 1（出处：agenerp.seed 生成的数据集（Sales Order））",
+   "✅ Stock Entry 的文档条数 = 4 / expected = 4（出处：agenerp.seed 生成的数据集（Stock Entry））",
+   "✅ Subcontracting Order 的文档条数 = 1 / expected = 1（出处：agenerp.seed 生成的数据集（Subcontracting Order））",
+   "✅ Subcontracting Receipt 的文档条数 = 1 / expected = 1（出处：agenerp.seed 生成的数据集（Subcontracting Receipt））",
+   "✅ Work Order 的文档条数 = 1 / expected = 1（出处：agenerp.seed 生成的数据集（Work Order））",
+   "✅ Purchase Order PUR-ORD-2026-00001.set_reserve_warehouse = '原料仓 - HRD' / expected = '原料仓 - HRD'（出处：agenerp.seed 生成的数据集（Purchase Order.set_reserve_warehouse → Warehouse））",
+   "✅ Purchase Order PUR-ORD-2026-00001.supplier_warehouse = '外协仓 - HRD' / expected = '外协仓 - HRD'（出处：agenerp.seed 生成的数据集（Purchase Order.supplier_warehouse → Warehouse））",
+   "✅ Stock Entry MAT-STE-2026-00002.work_order = 'MFG-WO-2026-00001' / expected = 'MFG-WO-2026-00001'（出处：agenerp.seed 生成的数据集（Stock Entry.work_order → Work Order））",
+   "✅ Stock Entry MAT-STE-2026-00003.work_order = 'MFG-WO-2026-00001' / expected = 'MFG-WO-2026-00001'（出处：agenerp.seed 生成的数据集（Stock Entry.work_order → Work Order））",
+   "✅ Stock Entry MAT-STE-2026-00004.subcontracting_order = 'SC-ORD-2026-00001' / expected = 'SC-ORD-2026-00001'（出处：agenerp.seed 生成的数据集（Stock Entry.subcontracting_order → Subcontracting Order））",
+   "✅ Subcontracting Order SC-ORD-2026-00001.purchase_order = 'PUR-ORD-2026-00001' / expected = 'PUR-ORD-2026-00001'（出处：agenerp.seed 生成的数据集（Subcontracting Order.purchase_order → Purchase Order））",
+   "✅ Subcontracting Order SC-ORD-2026-00001.supplier_warehouse = '外协仓 - HRD' / expected = '外协仓 - HRD'（出处：agenerp.seed 生成的数据集（Subcontracting Order.supplier_warehouse → Warehouse））",
+   "✅ Work Order MFG-WO-2026-00001.bom_no = 'BOM-HRD-PACK-5K-001' / expected = 'BOM-HRD-PACK-5K-001'（出处：agenerp.seed 生成的数据集（Work Order.bom_no → BOM））",
+   "✅ Work Order MFG-WO-2026-00001.fg_warehouse = '成品仓 - HRD' / expected = '成品仓 - HRD'（出处：agenerp.seed 生成的数据集（Work Order.fg_warehouse → Warehouse））",
+   "✅ Work Order MFG-WO-2026-00001.production_item = 'HRD-PACK-5K' / expected = 'HRD-PACK-5K'（出处：agenerp.seed 生成的数据集（Work Order.production_item → Item））",
+   "✅ Work Order MFG-WO-2026-00001.sales_order = 'SAL-ORD-2026-00001' / expected = 'SAL-ORD-2026-00001'（出处：agenerp.seed 生成的数据集（Work Order.sales_order → Sales Order））",
+   "✅ Work Order MFG-WO-2026-00001.wip_warehouse = '在制品仓 - HRD' / expected = '在制品仓 - HRD'（出处：agenerp.seed 生成的数据集（Work Order.wip_warehouse → Warehouse））",
+   "✅ Sales Order SAL-ORD-2026-00001.status（陷阱前提：被人工关闭） = 'Closed' / expected = 'Closed'（出处：agenerp.seed 生成的数据集（Sales Order.status））",
+   "✅ Sales Order SAL-ORD-2026-00001 的交付缺口（订 − 发） = 10.0 / expected = 10.0（出处：agenerp.seed 生成的数据集（关闭时仍欠交的数量））",
+   "站点侧对账：32 项，通过 32，失败 0"
+  ],
+  "failed_lines": [],
+  "stderr_tail": ""
+ },
+ "measurement": {
+  "ok": true,
+  "site": "frontend",
+  "premise_0": {
+   "frappe_version": "15.118.0",
+   "source_file": "/home/frappe/frappe-bench/apps/frappe/frappe/app.py",
+   "first_line": 414,
+   "source": "def sync_database(rollback: bool) -> bool:\n\t# if HTTP method would change server state, commit if necessary\n\tif frappe.db and (frappe.local.flags.commit or frappe.local.request.method in UNSAFE_HTTP_METHODS):\n\t\tfrappe.db.commit()\n\t\trollback = False\n\telif frappe.db:\n\t\tfrappe.db.rollback()\n\t\trollback = False\n\n\t# update session\n\tif session := getattr(frappe.local, \"session_obj\", None):\n\t\tif session.update():\n\t\t\trollback = False\n\n\treturn rollback\n",
+   "unsafe_http_methods": [
+    "DELETE",
+    "PATCH",
+    "POST",
+    "PUT"
+   ],
+   "safe_http_methods": [
+    "GET",
+    "HEAD",
+    "OPTIONS"
+   ],
+   "post_is_unsafe": true,
+   "commits_on_unsafe_method": true,
+   "cross_connection_savepoint_visible": false,
+   "cross_connection_error": "OperationalError: (1305, 'SAVEPOINT p3_cross_connection_probe does not exist')"
+  },
+  "premise_3_static_row_counts": {
+   "Workflow": 0,
+   "Notification": 2,
+   "Webhook": 0,
+   "Server Script": 0,
+   "Client Script": 0
+  },
+  "notifications": [
+   {
+    "name": "Material Request Receipt Notification",
+    "document_type": "Material Request",
+    "event": "Value Change",
+    "enabled": 1,
+    "channel": "Email"
+   },
+   {
+    "name": "Notification for new fiscal year",
+    "document_type": "Fiscal Year",
+    "event": "New",
+    "enabled": 1,
+    "channel": "Email"
+   }
+  ],
+  "before_submit_chain": {
+   "Stock Entry": {
+    "controller": "erpnext.stock.doctype.stock_entry.stock_entry.StockEntry",
+    "controller_defines_before_submit": false,
+    "controller_before_submit_defined_in": null,
+    "doc_events_for_doctype": [],
+    "doc_events_for_all": []
+   },
+   "Delivery Note": {
+    "controller": "erpnext.stock.doctype.delivery_note.delivery_note.DeliveryNote",
+    "controller_defines_before_submit": false,
+    "controller_before_submit_defined_in": null,
+    "doc_events_for_doctype": [],
+    "doc_events_for_all": []
+   },
+   "Sales Invoice": {
+    "controller": "erpnext.accounts.doctype.sales_invoice.sales_invoice.SalesInvoice",
+    "controller_defines_before_submit": true,
+    "controller_before_submit_defined_in": "erpnext.accounts.doctype.sales_invoice.sales_invoice.SalesInvoice",
+    "doc_events_for_doctype": [],
+    "doc_events_for_all": []
+   },
+   "Purchase Invoice": {
+    "controller": "erpnext.accounts.doctype.purchase_invoice.purchase_invoice.PurchaseInvoice",
+    "controller_defines_before_submit": true,
+    "controller_before_submit_defined_in": "erpnext.accounts.doctype.purchase_invoice.purchase_invoice.PurchaseInvoice",
+    "doc_events_for_doctype": [],
+    "doc_events_for_all": []
+   }
+  },
+  "scenarios": [
+   {
+    "scenario": "normal",
+    "posting_date": "2026-08-29",
+    "ok": true,
+    "counters_before": {
+     "Stock Entry": 4,
+     "Stock Ledger Entry": 10,
+     "GL Entry": 18,
+     "Repost Item Valuation": 0,
+     "Email Queue": 0,
+     "File": 2,
+     "Version": 17,
+     "Comment": 111,
+     "Serial and Batch Bundle": 0,
+     "series:MAT-STE-2026-": 4
+    },
+    "inserted_name": "MAT-STE-2026-00005",
+    "docstatus": 1,
+    "sle_rows": 1,
+    "gl_rows": 2,
+    "counters_after_submit": {
+     "Stock Entry": 5,
+     "Stock Ledger Entry": 11,
+     "GL Entry": 20,
+     "Repost Item Valuation": 0,
+     "Email Queue": 0,
+     "File": 2,
+     "Version": 18,
+     "Comment": 111,
+     "Serial and Batch Bundle": 0,
+     "series:MAT-STE-2026-": 5
+    },
+    "callbacks_registered": {
+     "before_commit": {
+      "count": 0,
+      "functions": []
+     },
+     "after_commit": {
+      "count": 9,
+      "functions": [
+       {
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9e1c7920>",
+        "module": "frappe",
+        "qualname": "clear_document_cache.<locals>.clear_in_redis"
+       },
+       {
+        "repr": "<function flush_realtime_log at 0xffff9e1f7100>",
+        "module": "frappe.realtime",
+        "qualname": "flush_realtime_log"
+       },
+       {
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9e06c680>",
+        "module": "frappe",
+        "qualname": "clear_document_cache.<locals>.clear_in_redis"
+       },
+       {
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9e0b6480>",
+        "module": "frappe",
+        "qualname": "clear_document_cache.<locals>.clear_in_redis"
+       },
+       {
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9e06ccc0>",
+        "module": "frappe",
+        "qualname": "clear_document_cache.<locals>.clear_in_redis"
+       },
+       {
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9dfb0d60>",
+        "module": "frappe",
+        "qualname": "clear_document_cache.<locals>.clear_in_redis"
+       },
+       {
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9dfb1ee0>",
+        "module": "frappe",
+        "qualname": "clear_document_cache.<locals>.clear_in_redis"
+       },
+       {
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9e895e40>",
+        "module": "frappe",
+        "qualname": "clear_document_cache.<locals>.clear_in_redis"
+       },
+       {
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9e8967a0>",
+        "module": "frappe",
+        "qualname": "clear_document_cache.<locals>.clear_in_redis"
+       }
+      ]
+     },
+     "after_rollback": {
+      "count": 9,
+      "functions": [
+       {
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9e1c7920>",
+        "module": "frappe",
+        "qualname": "clear_document_cache.<locals>.clear_in_redis"
+       },
+       {
+        "repr": "<function clear_realtime_log at 0xffff9e039300>",
+        "module": "frappe.realtime",
+        "qualname": "clear_realtime_log"
+       },
+       {
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9e06c680>",
+        "module": "frappe",
+        "qualname": "clear_document_cache.<locals>.clear_in_redis"
+       },
+       {
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9e0b6480>",
+        "module": "frappe",
+        "qualname": "clear_document_cache.<locals>.clear_in_redis"
+       },
+       {
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9e06ccc0>",
+        "module": "frappe",
+        "qualname": "clear_document_cache.<locals>.clear_in_redis"
+       },
+       {
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9dfb0d60>",
+        "module": "frappe",
+        "qualname": "clear_document_cache.<locals>.clear_in_redis"
+       },
+       {
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9dfb1ee0>",
+        "module": "frappe",
+        "qualname": "clear_document_cache.<locals>.clear_in_redis"
+       },
+       {
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9e895e40>",
+        "module": "frappe",
+        "qualname": "clear_document_cache.<locals>.clear_in_redis"
+       },
+       {
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9e8967a0>",
+        "module": "frappe",
+        "qualname": "clear_document_cache.<locals>.clear_in_redis"
+       }
+      ]
+     }
+    },
+    "repost_item_valuation_rows": [],
+    "premise_1_commit_calls": 0,
+    "premise_1_commit_detail": [],
+    "premise_1_raw_txn_sql": [],
+    "premise_2_enqueue_calls": 0,
+    "premise_2_enqueue_detail": [],
+    "premise_3_sendmail_calls": 0,
+    "premise_3_sendmail_detail": [],
+    "premise_3_webhook_dispatches": [
+     {
+      "doctype": "Stock Entry",
+      "method": "before_insert"
+     },
+     {
+      "doctype": "Stock Entry",
+      "method": "before_naming"
+     },
+     {
+      "doctype": "Stock Entry",
+      "method": "autoname"
+     },
+     {
+      "doctype": "Stock Entry Detail",
+      "method": "before_naming"
+     },
+     {
+      "doctype": "Stock Entry Detail",
+      "method": "autoname"
+     },
+     {
+      "doctype": "Stock Entry",
+      "method": "before_validate"
+     },
+     {
+      "doctype": "Stock Entry",
+      "method": "validate"
+     },
+     {
+      "doctype": "Stock Entry",
+      "method": "before_save"
+     },
+     {
+      "doctype": "Stock Entry",
+      "method": "after_insert"
+     },
+     {
+      "doctype": "Stock Entry",
+      "method": "on_update"
+     },
+     {
+      "doctype": "Stock Entry",
+      "method": "on_change"
+     },
+     {
+      "doctype": "Stock Entry",
+      "method": "before_validate"
+     },
+     {
+      "doctype": "Stock Entry",
+      "method": "validate"
+     },
+     {
+      "doctype": "Stock Entry",
+      "method": "before_submit"
+     },
+     {
+      "doctype": "Stock Entry",
+      "method": "on_update"
+     },
+     {
+      "doctype": "Stock Ledger Entry",
+      "method": "before_insert"
+     },
+     {
+      "doctype": "Stock Ledger Entry",
+      "method": "before_naming"
+     },
+     {
+      "doctype": "Stock Ledger Entry",
+      "method": "autoname"
+     },
+     {
+      "doctype": "Stock Ledger Entry",
+      "method": "before_validate"
+     },
+     {
+      "doctype": "Stock Ledger Entry",
+      "method": "validate"
+     },
+     {
+      "doctype": "Stock Ledger Entry",
+      "method": "before_submit"
+     },
+     {
+      "doctype": "Stock Ledger Entry",
+      "method": "after_insert"
+     },
+     {
+      "doctype": "Stock Ledger Entry",
+      "method": "on_update"
+     },
+     {
+      "doctype": "Stock Ledger Entry",
+      "method": "on_submit"
+     },
+     {
+      "doctype": "Stock Ledger Entry",
+      "method": "on_change"
+     },
+     {
+      "doctype": "GL Entry",
+      "method": "before_insert"
+     },
+     {
+      "doctype": "GL Entry",
+      "method": "before_naming"
+     },
+     {
+      "doctype": "GL Entry",
+      "method": "autoname"
+     },
+     {
+      "doctype": "GL Entry",
+      "method": "before_validate"
+     },
+     {
+      "doctype": "GL Entry",
+      "method": "validate"
+     },
+     {
+      "doctype": "GL Entry",
+      "method": "before_submit"
+     },
+     {
+      "doctype": "GL Entry",
+      "method": "after_insert"
+     },
+     {
+      "doctype": "GL Entry",
+      "method": "on_update"
+     },
+     {
+      "doctype": "GL Entry",
+      "method": "on_submit"
+     },
+     {
+      "doctype": "GL Entry",
+      "method": "on_change"
+     },
+     {
+      "doctype": "GL Entry",
+      "method": "before_insert"
+     },
+     {
+      "doctype": "GL Entry",
+      "method": "before_naming"
+     },
+     {
+      "doctype": "GL Entry",
+      "method": "autoname"
+     },
+     {
+      "doctype": "GL Entry",
+      "method": "before_validate"
+     },
+     {
+      "doctype": "GL Entry",
+      "method": "validate"
+     },
+     {
+      "doctype": "GL Entry",
+      "method": "before_submit"
+     },
+     {
+      "doctype": "GL Entry",
+      "method": "after_insert"
+     },
+     {
+      "doctype": "GL Entry",
+      "method": "on_update"
+     },
+     {
+      "doctype": "GL Entry",
+      "method": "on_submit"
+     },
+     {
+      "doctype": "GL Entry",
+      "method": "on_change"
+     },
+     {
+      "doctype": "Stock Entry",
+      "method": "on_submit"
+     },
+     {
+      "doctype": "Version",
+      "method": "before_insert"
+     },
+     {
+      "doctype": "Version",
+      "method": "before_naming"
+     },
+     {
+      "doctype": "Version",
+      "method": "autoname"
+     },
+     {
+      "doctype": "Version",
+      "method": "before_validate"
+     },
+     {
+      "doctype": "Version",
+      "method": "validate"
+     },
+     {
+      "doctype": "Version",
+      "method": "before_save"
+     },
+     {
+      "doctype": "Version",
+      "method": "after_insert"
+     },
+     {
+      "doctype": "Version",
+      "method": "on_update"
+     },
+     {
+      "doctype": "Version",
+      "method": "on_change"
+     },
+     {
+      "doctype": "Stock Entry",
+      "method": "on_change"
+     }
+    ],
+    "premise_3_server_script_dispatches": [
+     {
+      "doctype": "Stock Entry",
+      "method": "before_insert"
+     },
+     {
+      "doctype": "Stock Entry",
+      "method": "before_naming"
+     },
+     {
+      "doctype": "Stock Entry",
+      "method": "autoname"
+     },
+     {
+      "doctype": "Stock Entry Detail",
+      "method": "before_naming"
+     },
+     {
+      "doctype": "Stock Entry Detail",
+      "method": "autoname"
+     },
+     {
+      "doctype": "Stock Entry",
+      "method": "before_validate"
+     },
+     {
+      "doctype": "Stock Entry",
+      "method": "validate"
+     },
+     {
+      "doctype": "Stock Entry",
+      "method": "before_save"
+     },
+     {
+      "doctype": "Stock Entry",
+      "method": "after_insert"
+     },
+     {
+      "doctype": "Stock Entry",
+      "method": "on_update"
+     },
+     {
+      "doctype": "Stock Entry",
+      "method": "on_change"
+     },
+     {
+      "doctype": "Stock Entry",
+      "method": "before_validate"
+     },
+     {
+      "doctype": "Stock Entry",
+      "method": "validate"
+     },
+     {
+      "doctype": "Stock Entry",
+      "method": "before_submit"
+     },
+     {
+      "doctype": "Stock Entry",
+      "method": "on_update"
+     },
+     {
+      "doctype": "Stock Ledger Entry",
+      "method": "before_insert"
+     },
+     {
+      "doctype": "Stock Ledger Entry",
+      "method": "before_naming"
+     },
+     {
+      "doctype": "Stock Ledger Entry",
+      "method": "autoname"
+     },
+     {
+      "doctype": "Stock Ledger Entry",
+      "method": "before_validate"
+     },
+     {
+      "doctype": "Stock Ledger Entry",
+      "method": "validate"
+     },
+     {
+      "doctype": "Stock Ledger Entry",
+      "method": "before_submit"
+     },
+     {
+      "doctype": "Stock Ledger Entry",
+      "method": "after_insert"
+     },
+     {
+      "doctype": "Stock Ledger Entry",
+      "method": "on_update"
+     },
+     {
+      "doctype": "Stock Ledger Entry",
+      "method": "on_submit"
+     },
+     {
+      "doctype": "Stock Ledger Entry",
+      "method": "on_change"
+     },
+     {
+      "doctype": "GL Entry",
+      "method": "before_insert"
+     },
+     {
+      "doctype": "GL Entry",
+      "method": "before_naming"
+     },
+     {
+      "doctype": "GL Entry",
+      "method": "autoname"
+     },
+     {
+      "doctype": "GL Entry",
+      "method": "before_validate"
+     },
+     {
+      "doctype": "GL Entry",
+      "method": "validate"
+     },
+     {
+      "doctype": "GL Entry",
+      "method": "before_submit"
+     },
+     {
+      "doctype": "GL Entry",
+      "method": "after_insert"
+     },
+     {
+      "doctype": "GL Entry",
+      "method": "on_update"
+     },
+     {
+      "doctype": "GL Entry",
+      "method": "on_submit"
+     },
+     {
+      "doctype": "GL Entry",
+      "method": "on_change"
+     },
+     {
+      "doctype": "GL Entry",
+      "method": "before_insert"
+     },
+     {
+      "doctype": "GL Entry",
+      "method": "before_naming"
+     },
+     {
+      "doctype": "GL Entry",
+      "method": "autoname"
+     },
+     {
+      "doctype": "GL Entry",
+      "method": "before_validate"
+     },
+     {
+      "doctype": "GL Entry",
+      "method": "validate"
+     },
+     {
+      "doctype": "GL Entry",
+      "method": "before_submit"
+     },
+     {
+      "doctype": "GL Entry",
+      "method": "after_insert"
+     },
+     {
+      "doctype": "GL Entry",
+      "method": "on_update"
+     },
+     {
+      "doctype": "GL Entry",
+      "method": "on_submit"
+     },
+     {
+      "doctype": "GL Entry",
+      "method": "on_change"
+     },
+     {
+      "doctype": "Stock Entry",
+      "method": "on_submit"
+     },
+     {
+      "doctype": "Version",
+      "method": "before_insert"
+     },
+     {
+      "doctype": "Version",
+      "method": "before_naming"
+     },
+     {
+      "doctype": "Version",
+      "method": "autoname"
+     },
+     {
+      "doctype": "Version",
+      "method": "before_validate"
+     },
+     {
+      "doctype": "Version",
+      "method": "validate"
+     },
+     {
+      "doctype": "Version",
+      "method": "before_save"
+     },
+     {
+      "doctype": "Version",
+      "method": "after_insert"
+     },
+     {
+      "doctype": "Version",
+      "method": "on_update"
+     },
+     {
+      "doctype": "Version",
+      "method": "on_change"
+     },
+     {
+      "doctype": "Stock Entry",
+      "method": "on_change"
+     }
+    ],
+    "premise_3_notification_alerts": [],
+    "run_method_trace": [
+     {
+      "doctype": "Stock Entry",
+      "name": null,
+      "method": "before_insert"
+     },
+     {
+      "doctype": "Stock Entry",
+      "name": null,
+      "method": "before_naming"
+     },
+     {
+      "doctype": "Stock Entry",
+      "name": null,
+      "method": "autoname"
+     },
+     {
+      "doctype": "Stock Entry Detail",
+      "name": null,
+      "method": "before_naming"
+     },
+     {
+      "doctype": "Stock Entry Detail",
+      "name": null,
+      "method": "autoname"
+     },
+     {
+      "doctype": "Stock Entry",
+      "name": "MAT-STE-2026-00005",
+      "method": "before_validate"
+     },
+     {
+      "doctype": "Stock Entry",
+      "name": "MAT-STE-2026-00005",
+      "method": "validate"
+     },
+     {
+      "doctype": "Stock Entry",
+      "name": "MAT-STE-2026-00005",
+      "method": "before_save"
+     },
+     {
+      "doctype": "Stock Entry",
+      "name": "MAT-STE-2026-00005",
+      "method": "after_insert"
+     },
+     {
+      "doctype": "Stock Entry",
+      "name": "MAT-STE-2026-00005",
+      "method": "on_update"
+     },
+     {
+      "doctype": "Stock Entry",
+      "name": "MAT-STE-2026-00005",
+      "method": "on_change"
+     },
+     {
+      "doctype": "Stock Entry",
+      "name": "MAT-STE-2026-00005",
+      "method": "before_validate"
+     },
+     {
+      "doctype": "Stock Entry",
+      "name": "MAT-STE-2026-00005",
+      "method": "validate"
+     },
+     {
+      "doctype": "Stock Entry",
+      "name": "MAT-STE-2026-00005",
+      "method": "before_submit"
+     },
+     {
+      "doctype": "Stock Entry",
+      "name": "MAT-STE-2026-00005",
+      "method": "on_update"
+     },
+     {
+      "doctype": "Stock Entry",
+      "name": "MAT-STE-2026-00005",
+      "method": "on_submit"
+     },
+     {
+      "doctype": "Stock Ledger Entry",
+      "name": null,
+      "method": "before_insert"
+     },
+     {
+      "doctype": "Stock Ledger Entry",
+      "name": null,
+      "method": "before_naming"
+     },
+     {
+      "doctype": "Stock Ledger Entry",
+      "name": null,
+      "method": "autoname"
+     },
+     {
+      "doctype": "Stock Ledger Entry",
+      "name": "5bd533d5bb",
+      "method": "before_validate"
+     },
+     {
+      "doctype": "Stock Ledger Entry",
+      "name": "5bd533d5bb",
+      "method": "validate"
+     },
+     {
+      "doctype": "Stock Ledger Entry",
+      "name": "5bd533d5bb",
+      "method": "before_submit"
+     },
+     {
+      "doctype": "Stock Ledger Entry",
+      "name": "5bd533d5bb",
+      "method": "after_insert"
+     },
+     {
+      "doctype": "Stock Ledger Entry",
+      "name": "5bd533d5bb",
+      "method": "on_update"
+     },
+     {
+      "doctype": "Stock Ledger Entry",
+      "name": "5bd533d5bb",
+      "method": "on_submit"
+     },
+     {
+      "doctype": "Stock Ledger Entry",
+      "name": "5bd533d5bb",
+      "method": "on_change"
+     },
+     {
+      "doctype": "GL Entry",
+      "name": null,
+      "method": "before_insert"
+     },
+     {
+      "doctype": "GL Entry",
+      "name": null,
+      "method": "before_naming"
+     },
+     {
+      "doctype": "GL Entry",
+      "name": null,
+      "method": "autoname"
+     },
+     {
+      "doctype": "GL Entry",
+      "name": "bdd307162d",
+      "method": "before_validate"
+     },
+     {
+      "doctype": "GL Entry",
+      "name": "bdd307162d",
+      "method": "validate"
+     },
+     {
+      "doctype": "GL Entry",
+      "name": "bdd307162d",
+      "method": "before_submit"
+     },
+     {
+      "doctype": "GL Entry",
+      "name": "bdd307162d",
+      "method": "after_insert"
+     },
+     {
+      "doctype": "GL Entry",
+      "name": "bdd307162d",
+      "method": "on_update"
+     },
+     {
+      "doctype": "GL Entry",
+      "name": "bdd307162d",
+      "method": "on_submit"
+     },
+     {
+      "doctype": "GL Entry",
+      "name": "bdd307162d",
+      "method": "on_change"
+     },
+     {
+      "doctype": "GL Entry",
+      "name": null,
+      "method": "before_insert"
+     },
+     {
+      "doctype": "GL Entry",
+      "name": null,
+      "method": "before_naming"
+     },
+     {
+      "doctype": "GL Entry",
+      "name": null,
+      "method": "autoname"
+     },
+     {
+      "doctype": "GL Entry",
+      "name": "3971173612",
+      "method": "before_validate"
+     },
+     {
+      "doctype": "GL Entry",
+      "name": "3971173612",
+      "method": "validate"
+     },
+     {
+      "doctype": "GL Entry",
+      "name": "3971173612",
+      "method": "before_submit"
+     },
+     {
+      "doctype": "GL Entry",
+      "name": "3971173612",
+      "method": "after_insert"
+     },
+     {
+      "doctype": "GL Entry",
+      "name": "3971173612",
+      "method": "on_update"
+     },
+     {
+      "doctype": "GL Entry",
+      "name": "3971173612",
+      "method": "on_submit"
+     },
+     {
+      "doctype": "GL Entry",
+      "name": "3971173612",
+      "method": "on_change"
+     },
+     {
+      "doctype": "Version",
+      "name": null,
+      "method": "before_insert"
+     },
+     {
+      "doctype": "Version",
+      "name": null,
+      "method": "before_naming"
+     },
+     {
+      "doctype": "Version",
+      "name": null,
+      "method": "autoname"
+     },
+     {
+      "doctype": "Version",
+      "name": "957cktbp1a",
+      "method": "before_validate"
+     },
+     {
+      "doctype": "Version",
+      "name": "957cktbp1a",
+      "method": "validate"
+     },
+     {
+      "doctype": "Version",
+      "name": "957cktbp1a",
+      "method": "before_save"
+     },
+     {
+      "doctype": "Version",
+      "name": "957cktbp1a",
+      "method": "after_insert"
+     },
+     {
+      "doctype": "Version",
+      "name": "957cktbp1a",
+      "method": "on_update"
+     },
+     {
+      "doctype": "Version",
+      "name": "957cktbp1a",
+      "method": "on_change"
+     },
+     {
+      "doctype": "Stock Entry",
+      "name": "MAT-STE-2026-00005",
+      "method": "on_change"
+     }
+    ],
+    "counters_after_rollback": {
+     "Stock Entry": 4,
+     "Stock Ledger Entry": 10,
+     "GL Entry": 18,
+     "Repost Item Valuation": 0,
+     "Email Queue": 0,
+     "File": 2,
+     "Version": 17,
+     "Comment": 111,
+     "Serial and Batch Bundle": 0,
+     "series:MAT-STE-2026-": 4
+    },
+    "rollback_restored_every_counter": true,
+    "counter_drift": {}
+   },
+   {
+    "scenario": "backdated",
+    "posting_date": "2026-01-05",
+    "ok": true,
+    "counters_before": {
+     "Stock Entry": 4,
+     "Stock Ledger Entry": 10,
+     "GL Entry": 18,
+     "Repost Item Valuation": 0,
+     "Email Queue": 0,
+     "File": 2,
+     "Version": 17,
+     "Comment": 111,
+     "Serial and Batch Bundle": 0,
+     "series:MAT-STE-2026-": 4
+    },
+    "inserted_name": "MAT-STE-2026-00005",
+    "docstatus": 1,
+    "sle_rows": 1,
+    "gl_rows": 2,
+    "counters_after_submit": {
+     "Stock Entry": 5,
+     "Stock Ledger Entry": 11,
+     "GL Entry": 20,
+     "Repost Item Valuation": 1,
+     "Email Queue": 0,
+     "File": 2,
+     "Version": 18,
+     "Comment": 111,
+     "Serial and Batch Bundle": 0,
+     "series:MAT-STE-2026-": 5
+    },
+    "callbacks_registered": {
+     "before_commit": {
+      "count": 0,
+      "functions": []
+     },
+     "after_commit": {
+      "count": 17,
+      "functions": [
+       {
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9e1c7920>",
+        "module": "frappe",
+        "qualname": "clear_document_cache.<locals>.clear_in_redis"
+       },
+       {
+        "repr": "<function flush_realtime_log at 0xffff9e1f7100>",
+        "module": "frappe.realtime",
+        "qualname": "flush_realtime_log"
+       },
+       {
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9e06c680>",
+        "module": "frappe",
+        "qualname": "clear_document_cache.<locals>.clear_in_redis"
+       },
+       {
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9e0b6480>",
+        "module": "frappe",
+        "qualname": "clear_document_cache.<locals>.clear_in_redis"
+       },
+       {
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9e06ccc0>",
+        "module": "frappe",
+        "qualname": "clear_document_cache.<locals>.clear_in_redis"
+       },
+       {
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9dfb0d60>",
+        "module": "frappe",
+        "qualname": "clear_document_cache.<locals>.clear_in_redis"
+       },
+       {
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9dfb1ee0>",
+        "module": "frappe",
+        "qualname": "clear_document_cache.<locals>.clear_in_redis"
+       },
+       {
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9e895e40>",
+        "module": "frappe",
+        "qualname": "clear_document_cache.<locals>.clear_in_redis"
+       },
+       {
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9e8967a0>",
+        "module": "frappe",
+        "qualname": "clear_document_cache.<locals>.clear_in_redis"
+       },
+       {
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9e2f0540>",
+        "module": "frappe",
+        "qualname": "clear_document_cache.<locals>.clear_in_redis"
+       },
+       {
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9dfb37e0>",
+        "module": "frappe",
+        "qualname": "clear_document_cache.<locals>.clear_in_redis"
+       },
+       {
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9dfb3a60>",
+        "module": "frappe",
+        "qualname": "clear_document_cache.<locals>.clear_in_redis"
+       },
+       {
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9dfb3920>",
+        "module": "frappe",
+        "qualname": "clear_document_cache.<locals>.clear_in_redis"
+       },
+       {
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9dfb3e20>",
+        "module": "frappe",
+        "qualname": "clear_document_cache.<locals>.clear_in_redis"
+       },
+       {
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9dfb3ec0>",
+        "module": "frappe",
+        "qualname": "clear_document_cache.<locals>.clear_in_redis"
+       },
+       {
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9dfb2a20>",
+        "module": "frappe",
+        "qualname": "clear_document_cache.<locals>.clear_in_redis"
+       },
+       {
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9dfb2e80>",
+        "module": "frappe",
+        "qualname": "clear_document_cache.<locals>.clear_in_redis"
+       }
+      ]
+     },
+     "after_rollback": {
+      "count": 17,
+      "functions": [
+       {
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9e1c7920>",
+        "module": "frappe",
+        "qualname": "clear_document_cache.<locals>.clear_in_redis"
+       },
+       {
+        "repr": "<function clear_realtime_log at 0xffff9e039300>",
+        "module": "frappe.realtime",
+        "qualname": "clear_realtime_log"
+       },
+       {
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9e06c680>",
+        "module": "frappe",
+        "qualname": "clear_document_cache.<locals>.clear_in_redis"
+       },
+       {
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9e0b6480>",
+        "module": "frappe",
+        "qualname": "clear_document_cache.<locals>.clear_in_redis"
+       },
+       {
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9e06ccc0>",
+        "module": "frappe",
+        "qualname": "clear_document_cache.<locals>.clear_in_redis"
+       },
+       {
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9dfb0d60>",
+        "module": "frappe",
+        "qualname": "clear_document_cache.<locals>.clear_in_redis"
+       },
+       {
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9dfb1ee0>",
+        "module": "frappe",
+        "qualname": "clear_document_cache.<locals>.clear_in_redis"
+       },
+       {
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9e895e40>",
+        "module": "frappe",
+        "qualname": "clear_document_cache.<locals>.clear_in_redis"
+       },
+       {
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9e8967a0>",
+        "module": "frappe",
+        "qualname": "clear_document_cache.<locals>.clear_in_redis"
+       },
+       {
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9e2f0540>",
+        "module": "frappe",
+        "qualname": "clear_document_cache.<locals>.clear_in_redis"
+       },
+       {
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9dfb37e0>",
+        "module": "frappe",
+        "qualname": "clear_document_cache.<locals>.clear_in_redis"
+       },
+       {
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9dfb3a60>",
+        "module": "frappe",
+        "qualname": "clear_document_cache.<locals>.clear_in_redis"
+       },
+       {
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9dfb3920>",
+        "module": "frappe",
+        "qualname": "clear_document_cache.<locals>.clear_in_redis"
+       },
+       {
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9dfb3e20>",
+        "module": "frappe",
+        "qualname": "clear_document_cache.<locals>.clear_in_redis"
+       },
+       {
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9dfb3ec0>",
+        "module": "frappe",
+        "qualname": "clear_document_cache.<locals>.clear_in_redis"
+       },
+       {
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9dfb2a20>",
+        "module": "frappe",
+        "qualname": "clear_document_cache.<locals>.clear_in_redis"
+       },
+       {
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9dfb2e80>",
+        "module": "frappe",
+        "qualname": "clear_document_cache.<locals>.clear_in_redis"
+       }
+      ]
+     }
+    },
+    "repost_item_valuation_rows": [
+     {
+      "name": "957et59ko1",
+      "voucher_type": null,
+      "voucher_no": null,
+      "status": "Queued",
+      "based_on": "Item and Warehouse",
+      "posting_date": "2026-01-05",
+      "item_code": "HRD-CELL-280",
+      "warehouse": "原料仓 - HRD"
+     }
+    ],
+    "premise_1_commit_calls": 0,
+    "premise_1_commit_detail": [],
+    "premise_1_raw_txn_sql": [],
+    "premise_2_enqueue_calls": 0,
+    "premise_2_enqueue_detail": [],
+    "premise_3_sendmail_calls": 0,
+    "premise_3_sendmail_detail": [],
+    "premise_3_webhook_dispatches": [
+     {
+      "doctype": "Stock Entry",
+      "method": "before_insert"
+     },
+     {
+      "doctype": "Stock Entry",
+      "method": "before_naming"
+     },
+     {
+      "doctype": "Stock Entry",
+      "method": "autoname"
+     },
+     {
+      "doctype": "Stock Entry Detail",
+      "method": "before_naming"
+     },
+     {
+      "doctype": "Stock Entry Detail",
+      "method": "autoname"
+     },
+     {
+      "doctype": "Stock Entry",
+      "method": "before_validate"
+     },
+     {
+      "doctype": "Stock Entry",
+      "method": "validate"
+     },
+     {
+      "doctype": "Stock Entry",
+      "method": "before_save"
+     },
+     {
+      "doctype": "Stock Entry",
+      "method": "after_insert"
+     },
+     {
+      "doctype": "Stock Entry",
+      "method": "on_update"
+     },
+     {
+      "doctype": "Stock Entry",
+      "method": "on_change"
+     },
+     {
+      "doctype": "Stock Entry",
+      "method": "before_validate"
+     },
+     {
+      "doctype": "Stock Entry",
+      "method": "validate"
+     },
+     {
+      "doctype": "Stock Entry",
+      "method": "before_submit"
+     },
+     {
+      "doctype": "Stock Entry",
+      "method": "on_update"
+     },
+     {
+      "doctype": "Stock Ledger Entry",
+      "method": "before_insert"
+     },
+     {
+      "doctype": "Stock Ledger Entry",
+      "method": "before_naming"
+     },
+     {
+      "doctype": "Stock Ledger Entry",
+      "method": "autoname"
+     },
+     {
+      "doctype": "Stock Ledger Entry",
+      "method": "before_validate"
+     },
+     {
+      "doctype": "Stock Ledger Entry",
+      "method": "validate"
+     },
+     {
+      "doctype": "Stock Ledger Entry",
+      "method": "before_submit"
+     },
+     {
+      "doctype": "Stock Ledger Entry",
+      "method": "after_insert"
+     },
+     {
+      "doctype": "Stock Ledger Entry",
+      "method": "on_update"
+     },
+     {
+      "doctype": "Stock Ledger Entry",
+      "method": "on_submit"
+     },
+     {
+      "doctype": "Stock Ledger Entry",
+      "method": "on_change"
+     },
+     {
+      "doctype": "GL Entry",
+      "method": "before_insert"
+     },
+     {
+      "doctype": "GL Entry",
+      "method": "before_naming"
+     },
+     {
+      "doctype": "GL Entry",
+      "method": "autoname"
+     },
+     {
+      "doctype": "GL Entry",
+      "method": "before_validate"
+     },
+     {
+      "doctype": "GL Entry",
+      "method": "validate"
+     },
+     {
+      "doctype": "GL Entry",
+      "method": "before_submit"
+     },
+     {
+      "doctype": "GL Entry",
+      "method": "after_insert"
+     },
+     {
+      "doctype": "GL Entry",
+      "method": "on_update"
+     },
+     {
+      "doctype": "GL Entry",
+      "method": "on_submit"
+     },
+     {
+      "doctype": "GL Entry",
+      "method": "on_change"
+     },
+     {
+      "doctype": "GL Entry",
+      "method": "before_insert"
+     },
+     {
+      "doctype": "GL Entry",
+      "method": "before_naming"
+     },
+     {
+      "doctype": "GL Entry",
+      "method": "autoname"
+     },
+     {
+      "doctype": "GL Entry",
+      "method": "before_validate"
+     },
+     {
+      "doctype": "GL Entry",
+      "method": "validate"
+     },
+     {
+      "doctype": "GL Entry",
+      "method": "before_submit"
+     },
+     {
+      "doctype": "GL Entry",
+      "method": "after_insert"
+     },
+     {
+      "doctype": "GL Entry",
+      "method": "on_update"
+     },
+     {
+      "doctype": "GL Entry",
+      "method": "on_submit"
+     },
+     {
+      "doctype": "GL Entry",
+      "method": "on_change"
+     },
+     {
+      "doctype": "Repost Item Valuation",
+      "method": "before_insert"
+     },
+     {
+      "doctype": "Repost Item Valuation",
+      "method": "before_naming"
+     },
+     {
+      "doctype": "Repost Item Valuation",
+      "method": "autoname"
+     },
+     {
+      "doctype": "Repost Item Valuation",
+      "method": "before_validate"
+     },
+     {
+      "doctype": "Repost Item Valuation",
+      "method": "validate"
+     },
+     {
+      "doctype": "Repost Item Valuation",
+      "method": "before_submit"
+     },
+     {
+      "doctype": "Repost Item Valuation",
+      "method": "after_insert"
+     },
+     {
+      "doctype": "Repost Item Valuation",
+      "method": "on_update"
+     },
+     {
+      "doctype": "Repost Item Valuation",
+      "method": "on_submit"
+     },
+     {
+      "doctype": "Repost Item Valuation",
+      "method": "on_change"
+     },
+     {
+      "doctype": "Stock Entry",
+      "method": "on_submit"
+     },
+     {
+      "doctype": "Version",
+      "method": "before_insert"
+     },
+     {
+      "doctype": "Version",
+      "method": "before_naming"
+     },
+     {
+      "doctype": "Version",
+      "method": "autoname"
+     },
+     {
+      "doctype": "Version",
+      "method": "before_validate"
+     },
+     {
+      "doctype": "Version",
+      "method": "validate"
+     },
+     {
+      "doctype": "Version",
+      "method": "before_save"
+     },
+     {
+      "doctype": "Version",
+      "method": "after_insert"
+     },
+     {
+      "doctype": "Version",
+      "method": "on_update"
+     },
+     {
+      "doctype": "Version",
+      "method": "on_change"
+     },
+     {
+      "doctype": "Stock Entry",
+      "method": "on_change"
+     }
+    ],
+    "premise_3_server_script_dispatches": [
+     {
+      "doctype": "Stock Entry",
+      "method": "before_insert"
+     },
+     {
+      "doctype": "Stock Entry",
+      "method": "before_naming"
+     },
+     {
+      "doctype": "Stock Entry",
+      "method": "autoname"
+     },
+     {
+      "doctype": "Stock Entry Detail",
+      "method": "before_naming"
+     },
+     {
+      "doctype": "Stock Entry Detail",
+      "method": "autoname"
+     },
+     {
+      "doctype": "Stock Entry",
+      "method": "before_validate"
+     },
+     {
+      "doctype": "Stock Entry",
+      "method": "validate"
+     },
+     {
+      "doctype": "Stock Entry",
+      "method": "before_save"
+     },
+     {
+      "doctype": "Stock Entry",
+      "method": "after_insert"
+     },
+     {
+      "doctype": "Stock Entry",
+      "method": "on_update"
+     },
+     {
+      "doctype": "Stock Entry",
+      "method": "on_change"
+     },
+     {
+      "doctype": "Stock Entry",
+      "method": "before_validate"
+     },
+     {
+      "doctype": "Stock Entry",
+      "method": "validate"
+     },
+     {
+      "doctype": "Stock Entry",
+      "method": "before_submit"
+     },
+     {
+      "doctype": "Stock Entry",
+      "method": "on_update"
+     },
+     {
+      "doctype": "Stock Ledger Entry",
+      "method": "before_insert"
+     },
+     {
+      "doctype": "Stock Ledger Entry",
+      "method": "before_naming"
+     },
+     {
+      "doctype": "Stock Ledger Entry",
+      "method": "autoname"
+     },
+     {
+      "doctype": "Stock Ledger Entry",
+      "method": "before_validate"
+     },
+     {
+      "doctype": "Stock Ledger Entry",
+      "method": "validate"
+     },
+     {
+      "doctype": "Stock Ledger Entry",
+      "method": "before_submit"
+     },
+     {
+      "doctype": "Stock Ledger Entry",
+      "method": "after_insert"
+     },
+     {
+      "doctype": "Stock Ledger Entry",
+      "method": "on_update"
+     },
+     {
+      "doctype": "Stock Ledger Entry",
+      "method": "on_submit"
+     },
+     {
+      "doctype": "Stock Ledger Entry",
+      "method": "on_change"
+     },
+     {
+      "doctype": "GL Entry",
+      "method": "before_insert"
+     },
+     {
+      "doctype": "GL Entry",
+      "method": "before_naming"
+     },
+     {
+      "doctype": "GL Entry",
+      "method": "autoname"
+     },
+     {
+      "doctype": "GL Entry",
+      "method": "before_validate"
+     },
+     {
+      "doctype": "GL Entry",
+      "method": "validate"
+     },
+     {
+      "doctype": "GL Entry",
+      "method": "before_submit"
+     },
+     {
+      "doctype": "GL Entry",
+      "method": "after_insert"
+     },
+     {
+      "doctype": "GL Entry",
+      "method": "on_update"
+     },
+     {
+      "doctype": "GL Entry",
+      "method": "on_submit"
+     },
+     {
+      "doctype": "GL Entry",
+      "method": "on_change"
+     },
+     {
+      "doctype": "GL Entry",
+      "method": "before_insert"
+     },
+     {
+      "doctype": "GL Entry",
+      "method": "before_naming"
+     },
+     {
+      "doctype": "GL Entry",
+      "method": "autoname"
+     },
+     {
+      "doctype": "GL Entry",
+      "method": "before_validate"
+     },
+     {
+      "doctype": "GL Entry",
+      "method": "validate"
+     },
+     {
+      "doctype": "GL Entry",
+      "method": "before_submit"
+     },
+     {
+      "doctype": "GL Entry",
+      "method": "after_insert"
+     },
+     {
+      "doctype": "GL Entry",
+      "method": "on_update"
+     },
+     {
+      "doctype": "GL Entry",
+      "method": "on_submit"
+     },
+     {
+      "doctype": "GL Entry",
+      "method": "on_change"
+     },
+     {
+      "doctype": "Repost Item Valuation",
+      "method": "before_insert"
+     },
+     {
+      "doctype": "Repost Item Valuation",
+      "method": "before_naming"
+     },
+     {
+      "doctype": "Repost Item Valuation",
+      "method": "autoname"
+     },
+     {
+      "doctype": "Repost Item Valuation",
+      "method": "before_validate"
+     },
+     {
+      "doctype": "Repost Item Valuation",
+      "method": "validate"
+     },
+     {
+      "doctype": "Repost Item Valuation",
+      "method": "before_submit"
+     },
+     {
+      "doctype": "Repost Item Valuation",
+      "method": "after_insert"
+     },
+     {
+      "doctype": "Repost Item Valuation",
+      "method": "on_update"
+     },
+     {
+      "doctype": "Repost Item Valuation",
+      "method": "on_submit"
+     },
+     {
+      "doctype": "Repost Item Valuation",
+      "method": "on_change"
+     },
+     {
+      "doctype": "Stock Entry",
+      "method": "on_submit"
+     },
+     {
+      "doctype": "Version",
+      "method": "before_insert"
+     },
+     {
+      "doctype": "Version",
+      "method": "before_naming"
+     },
+     {
+      "doctype": "Version",
+      "method": "autoname"
+     },
+     {
+      "doctype": "Version",
+      "method": "before_validate"
+     },
+     {
+      "doctype": "Version",
+      "method": "validate"
+     },
+     {
+      "doctype": "Version",
+      "method": "before_save"
+     },
+     {
+      "doctype": "Version",
+      "method": "after_insert"
+     },
+     {
+      "doctype": "Version",
+      "method": "on_update"
+     },
+     {
+      "doctype": "Version",
+      "method": "on_change"
+     },
+     {
+      "doctype": "Stock Entry",
+      "method": "on_change"
+     }
+    ],
+    "premise_3_notification_alerts": [],
+    "run_method_trace": [
+     {
+      "doctype": "Stock Entry",
+      "name": null,
+      "method": "before_insert"
+     },
+     {
+      "doctype": "Stock Entry",
+      "name": null,
+      "method": "before_naming"
+     },
+     {
+      "doctype": "Stock Entry",
+      "name": null,
+      "method": "autoname"
+     },
+     {
+      "doctype": "Stock Entry Detail",
+      "name": null,
+      "method": "before_naming"
+     },
+     {
+      "doctype": "Stock Entry Detail",
+      "name": null,
+      "method": "autoname"
+     },
+     {
+      "doctype": "Stock Entry",
+      "name": "MAT-STE-2026-00005",
+      "method": "before_validate"
+     },
+     {
+      "doctype": "Stock Entry",
+      "name": "MAT-STE-2026-00005",
+      "method": "validate"
+     },
+     {
+      "doctype": "Stock Entry",
+      "name": "MAT-STE-2026-00005",
+      "method": "before_save"
+     },
+     {
+      "doctype": "Stock Entry",
+      "name": "MAT-STE-2026-00005",
+      "method": "after_insert"
+     },
+     {
+      "doctype": "Stock Entry",
+      "name": "MAT-STE-2026-00005",
+      "method": "on_update"
+     },
+     {
+      "doctype": "Stock Entry",
+      "name": "MAT-STE-2026-00005",
+      "method": "on_change"
+     },
+     {
+      "doctype": "Stock Entry",
+      "name": "MAT-STE-2026-00005",
+      "method": "before_validate"
+     },
+     {
+      "doctype": "Stock Entry",
+      "name": "MAT-STE-2026-00005",
+      "method": "validate"
+     },
+     {
+      "doctype": "Stock Entry",
+      "name": "MAT-STE-2026-00005",
+      "method": "before_submit"
+     },
+     {
+      "doctype": "Stock Entry",
+      "name": "MAT-STE-2026-00005",
+      "method": "on_update"
+     },
+     {
+      "doctype": "Stock Entry",
+      "name": "MAT-STE-2026-00005",
+      "method": "on_submit"
+     },
+     {
+      "doctype": "Stock Ledger Entry",
+      "name": null,
+      "method": "before_insert"
+     },
+     {
+      "doctype": "Stock Ledger Entry",
+      "name": null,
+      "method": "before_naming"
+     },
+     {
+      "doctype": "Stock Ledger Entry",
+      "name": null,
+      "method": "autoname"
+     },
+     {
+      "doctype": "Stock Ledger Entry",
+      "name": "3b0e5e2f78",
+      "method": "before_validate"
+     },
+     {
+      "doctype": "Stock Ledger Entry",
+      "name": "3b0e5e2f78",
+      "method": "validate"
+     },
+     {
+      "doctype": "Stock Ledger Entry",
+      "name": "3b0e5e2f78",
+      "method": "before_submit"
+     },
+     {
+      "doctype": "Stock Ledger Entry",
+      "name": "3b0e5e2f78",
+      "method": "after_insert"
+     },
+     {
+      "doctype": "Stock Ledger Entry",
+      "name": "3b0e5e2f78",
+      "method": "on_update"
+     },
+     {
+      "doctype": "Stock Ledger Entry",
+      "name": "3b0e5e2f78",
+      "method": "on_submit"
+     },
+     {
+      "doctype": "Stock Ledger Entry",
+      "name": "3b0e5e2f78",
+      "method": "on_change"
+     },
+     {
+      "doctype": "GL Entry",
+      "name": null,
+      "method": "before_insert"
+     },
+     {
+      "doctype": "GL Entry",
+      "name": null,
+      "method": "before_naming"
+     },
+     {
+      "doctype": "GL Entry",
+      "name": null,
+      "method": "autoname"
+     },
+     {
+      "doctype": "GL Entry",
+      "name": "7cc5f8ee58",
+      "method": "before_validate"
+     },
+     {
+      "doctype": "GL Entry",
+      "name": "7cc5f8ee58",
+      "method": "validate"
+     },
+     {
+      "doctype": "GL Entry",
+      "name": "7cc5f8ee58",
+      "method": "before_submit"
+     },
+     {
+      "doctype": "GL Entry",
+      "name": "7cc5f8ee58",
+      "method": "after_insert"
+     },
+     {
+      "doctype": "GL Entry",
+      "name": "7cc5f8ee58",
+      "method": "on_update"
+     },
+     {
+      "doctype": "GL Entry",
+      "name": "7cc5f8ee58",
+      "method": "on_submit"
+     },
+     {
+      "doctype": "GL Entry",
+      "name": "7cc5f8ee58",
+      "method": "on_change"
+     },
+     {
+      "doctype": "GL Entry",
+      "name": null,
+      "method": "before_insert"
+     },
+     {
+      "doctype": "GL Entry",
+      "name": null,
+      "method": "before_naming"
+     },
+     {
+      "doctype": "GL Entry",
+      "name": null,
+      "method": "autoname"
+     },
+     {
+      "doctype": "GL Entry",
+      "name": "03480ce710",
+      "method": "before_validate"
+     },
+     {
+      "doctype": "GL Entry",
+      "name": "03480ce710",
+      "method": "validate"
+     },
+     {
+      "doctype": "GL Entry",
+      "name": "03480ce710",
+      "method": "before_submit"
+     },
+     {
+      "doctype": "GL Entry",
+      "name": "03480ce710",
+      "method": "after_insert"
+     },
+     {
+      "doctype": "GL Entry",
+      "name": "03480ce710",
+      "method": "on_update"
+     },
+     {
+      "doctype": "GL Entry",
+      "name": "03480ce710",
+      "method": "on_submit"
+     },
+     {
+      "doctype": "GL Entry",
+      "name": "03480ce710",
+      "method": "on_change"
+     },
+     {
+      "doctype": "Repost Item Valuation",
+      "name": null,
+      "method": "before_insert"
+     },
+     {
+      "doctype": "Repost Item Valuation",
+      "name": null,
+      "method": "before_naming"
+     },
+     {
+      "doctype": "Repost Item Valuation",
+      "name": null,
+      "method": "autoname"
+     },
+     {
+      "doctype": "Repost Item Valuation",
+      "name": "957et59ko1",
+      "method": "before_validate"
+     },
+     {
+      "doctype": "Repost Item Valuation",
+      "name": "957et59ko1",
+      "method": "validate"
+     },
+     {
+      "doctype": "Repost Item Valuation",
+      "name": "957et59ko1",
+      "method": "before_submit"
+     },
+     {
+      "doctype": "Repost Item Valuation",
+      "name": "957et59ko1",
+      "method": "after_insert"
+     },
+     {
+      "doctype": "Repost Item Valuation",
+      "name": "957et59ko1",
+      "method": "on_update"
+     },
+     {
+      "doctype": "Repost Item Valuation",
+      "name": "957et59ko1",
+      "method": "on_submit"
+     },
+     {
+      "doctype": "Repost Item Valuation",
+      "name": "957et59ko1",
+      "method": "on_change"
+     },
+     {
+      "doctype": "Version",
+      "name": null,
+      "method": "before_insert"
+     },
+     {
+      "doctype": "Version",
+      "name": null,
+      "method": "before_naming"
+     },
+     {
+      "doctype": "Version",
+      "name": null,
+      "method": "autoname"
+     },
+     {
+      "doctype": "Version",
+      "name": "958kpm8dq0",
+      "method": "before_validate"
+     },
+     {
+      "doctype": "Version",
+      "name": "958kpm8dq0",
+      "method": "validate"
+     },
+     {
+      "doctype": "Version",
+      "name": "958kpm8dq0",
+      "method": "before_save"
+     },
+     {
+      "doctype": "Version",
+      "name": "958kpm8dq0",
+      "method": "after_insert"
+     },
+     {
+      "doctype": "Version",
+      "name": "958kpm8dq0",
+      "method": "on_update"
+     },
+     {
+      "doctype": "Version",
+      "name": "958kpm8dq0",
+      "method": "on_change"
+     },
+     {
+      "doctype": "Stock Entry",
+      "name": "MAT-STE-2026-00005",
+      "method": "on_change"
+     }
+    ],
+    "counters_after_rollback": {
+     "Stock Entry": 4,
+     "Stock Ledger Entry": 10,
+     "GL Entry": 18,
+     "Repost Item Valuation": 0,
+     "Email Queue": 0,
+     "File": 2,
+     "Version": 17,
+     "Comment": 111,
+     "Serial and Batch Bundle": 0,
+     "series:MAT-STE-2026-": 4
+    },
+    "rollback_restored_every_counter": true,
+    "counter_drift": {}
+   }
+  ],
+  "_exit_code": 0,
+  "_stderr_tail": ""
+ },
+ "fingerprint_after": {
+  "exit_code": 0,
+  "all_green": true,
+  "lines": [
+   "✅ Bin(HRD-PACK-5K, 成品仓 - HRD).actual_qty = 1010.00 / expected = 1010.00（出处：agenerp.seed.checks.EXPECTED_BACKLOG_QTY）",
+   "✅ Bin(HRD-PACK-5K, 成品仓 - HRD).stock_value = 3110200.00 / expected = 3110200.00（出处：agenerp.seed.checks.EXPECTED_BACKLOG_VALUE）",
+   "✅ GL 借贷差额（借合计 − 贷合计） = 0.00 / expected = 0.00（出处：复式记账的结构不变量（不是业务期望值，故无 checks.EXPECTED_* 出处））",
+   "✅ 负库存条目数（Bin.actual_qty < 0 + SLE.qty_after_transaction < 0） = 0 / expected = 0（出处：复式记账的结构不变量（不是业务期望值，故无 checks.EXPECTED_* 出处））",
+   "✅ GL 收入贷方合计（主营业务收入 - HRD） = 4237200.00 / expected = 4237200.00（出处：agenerp.seed.checks.EXPECTED_RECEIVABLE_OVERDUE）",
+   "✅ GL 成本借方合计（主营业务成本 - HRD） = 2989800.00 / expected = 2989800.00（出处：agenerp.seed.checks.EXPECTED_COGS）",
+   "✅ 毛利（GL 收入贷方 − GL 成本借方） = 1247400.00 / expected = 1247400.00（出处：agenerp.seed.checks.EXPECTED_GROSS_PROFIT）",
+   "✅ Sales Invoice 中 status == 'Overdue' 的 outstanding_amount 合计（命中 1 张：ACC-SINV-2026-00001；本仓预期 —— ACC-SINV-2026-00001：status=Overdue / due_date=2026-03-10（已到期，今天 2026-08-29（宿主侧）） / docstatus=1（已提交） / outstanding_amount=4237200.00） = 4237200.00 / expected = 4237200.00（出处：agenerp.seed.checks.EXPECTED_RECEIVABLE_OVERDUE）",
+   "✅ Purchase Invoice 中 status == 'Overdue' 的 outstanding_amount 合计（命中 1 张：ACC-PINV-2026-00001；本仓预期 —— ACC-PINV-2026-00001：status=Overdue / due_date=2026-03-09（已到期，今天 2026-08-29（宿主侧）） / docstatus=1（已提交） / outstanding_amount=120000.00） = 120000.00 / expected = 120000.00（出处：agenerp.seed.checks.EXPECTED_PAYABLE_OVERDUE）",
+   "✅ Delivery Note 的文档条数 = 1 / expected = 1（出处：agenerp.seed 生成的数据集（Delivery Note））",
+   "✅ Purchase Invoice 的文档条数 = 1 / expected = 1（出处：agenerp.seed 生成的数据集（Purchase Invoice））",
+   "✅ Purchase Order 的文档条数 = 1 / expected = 1（出处：agenerp.seed 生成的数据集（Purchase Order））",
+   "✅ Sales Invoice 的文档条数 = 1 / expected = 1（出处：agenerp.seed 生成的数据集（Sales Invoice））",
+   "✅ Sales Order 的文档条数 = 1 / expected = 1（出处：agenerp.seed 生成的数据集（Sales Order））",
+   "✅ Stock Entry 的文档条数 = 4 / expected = 4（出处：agenerp.seed 生成的数据集（Stock Entry））",
+   "✅ Subcontracting Order 的文档条数 = 1 / expected = 1（出处：agenerp.seed 生成的数据集（Subcontracting Order））",
+   "✅ Subcontracting Receipt 的文档条数 = 1 / expected = 1（出处：agenerp.seed 生成的数据集（Subcontracting Receipt））",
+   "✅ Work Order 的文档条数 = 1 / expected = 1（出处：agenerp.seed 生成的数据集（Work Order））",
+   "✅ Purchase Order PUR-ORD-2026-00001.set_reserve_warehouse = '原料仓 - HRD' / expected = '原料仓 - HRD'（出处：agenerp.seed 生成的数据集（Purchase Order.set_reserve_warehouse → Warehouse））",
+   "✅ Purchase Order PUR-ORD-2026-00001.supplier_warehouse = '外协仓 - HRD' / expected = '外协仓 - HRD'（出处：agenerp.seed 生成的数据集（Purchase Order.supplier_warehouse → Warehouse））",
+   "✅ Stock Entry MAT-STE-2026-00002.work_order = 'MFG-WO-2026-00001' / expected = 'MFG-WO-2026-00001'（出处：agenerp.seed 生成的数据集（Stock Entry.work_order → Work Order））",
+   "✅ Stock Entry MAT-STE-2026-00003.work_order = 'MFG-WO-2026-00001' / expected = 'MFG-WO-2026-00001'（出处：agenerp.seed 生成的数据集（Stock Entry.work_order → Work Order））",
+   "✅ Stock Entry MAT-STE-2026-00004.subcontracting_order = 'SC-ORD-2026-00001' / expected = 'SC-ORD-2026-00001'（出处：agenerp.seed 生成的数据集（Stock Entry.subcontracting_order → Subcontracting Order））",
+   "✅ Subcontracting Order SC-ORD-2026-00001.purchase_order = 'PUR-ORD-2026-00001' / expected = 'PUR-ORD-2026-00001'（出处：agenerp.seed 生成的数据集（Subcontracting Order.purchase_order → Purchase Order））",
+   "✅ Subcontracting Order SC-ORD-2026-00001.supplier_warehouse = '外协仓 - HRD' / expected = '外协仓 - HRD'（出处：agenerp.seed 生成的数据集（Subcontracting Order.supplier_warehouse → Warehouse））",
+   "✅ Work Order MFG-WO-2026-00001.bom_no = 'BOM-HRD-PACK-5K-001' / expected = 'BOM-HRD-PACK-5K-001'（出处：agenerp.seed 生成的数据集（Work Order.bom_no → BOM））",
+   "✅ Work Order MFG-WO-2026-00001.fg_warehouse = '成品仓 - HRD' / expected = '成品仓 - HRD'（出处：agenerp.seed 生成的数据集（Work Order.fg_warehouse → Warehouse））",
+   "✅ Work Order MFG-WO-2026-00001.production_item = 'HRD-PACK-5K' / expected = 'HRD-PACK-5K'（出处：agenerp.seed 生成的数据集（Work Order.production_item → Item））",
+   "✅ Work Order MFG-WO-2026-00001.sales_order = 'SAL-ORD-2026-00001' / expected = 'SAL-ORD-2026-00001'（出处：agenerp.seed 生成的数据集（Work Order.sales_order → Sales Order））",
+   "✅ Work Order MFG-WO-2026-00001.wip_warehouse = '在制品仓 - HRD' / expected = '在制品仓 - HRD'（出处：agenerp.seed 生成的数据集（Work Order.wip_warehouse → Warehouse））",
+   "✅ Sales Order SAL-ORD-2026-00001.status（陷阱前提：被人工关闭） = 'Closed' / expected = 'Closed'（出处：agenerp.seed 生成的数据集（Sales Order.status））",
+   "✅ Sales Order SAL-ORD-2026-00001 的交付缺口（订 − 发） = 10.0 / expected = 10.0（出处：agenerp.seed 生成的数据集（关闭时仍欠交的数量））",
+   "站点侧对账：32 项，通过 32，失败 0"
+  ],
+  "failed_lines": [],
+  "stderr_tail": ""
+ },
+ "fingerprint_identical": true,
+ "fingerprint_diff": [],
+ "ok": true,
+ "verdict": "四个前提各有实测值，站点指纹跑前跑后逐项相等"
+}

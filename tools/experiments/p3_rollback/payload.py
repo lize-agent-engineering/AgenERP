@@ -92,6 +92,31 @@ def _counters() -> dict:
     return out
 
 
+def _callbacks() -> dict:
+    """事务边界上挂着的回调，**逐个点名**。
+
+    前提 3 问的是「回滚回不掉什么」。`frappe.db.after_commit` 上挂的东西正是那一类候选：
+    它们要么在 commit 之后跑（回滚就不跑，安全），要么挂在 `after_rollback` 上
+    （回滚时才跑）。**只有点名才分得清一个回调是缓存失效还是一封邮件。**
+    """
+    out: dict = {}
+    for name in ("before_commit", "after_commit", "after_rollback"):
+        manager = getattr(frappe.db, name, None)
+        functions = getattr(manager, "_functions", None)
+        if functions is None:
+            continue
+        named = []
+        for fn in functions:
+            target = getattr(fn, "func", fn)  # functools.partial 把真身藏在 .func 里
+            named.append({
+                "repr": repr(fn)[:200],
+                "module": getattr(target, "__module__", None),
+                "qualname": getattr(target, "__qualname__", None),
+            })
+        out[name] = {"count": len(functions), "functions": named}
+    return out
+
+
 def _stack(depth: int = 12) -> list[str]:
     """调用栈摘要。计数说明「发生了几次」，栈说明「谁干的」——只有后者能定位到 DocType。"""
     frames = traceback.extract_stack()[:-2]
@@ -338,11 +363,15 @@ def _submit_once(scenario: str, posting_date: str) -> dict:
             result["gl_rows"] = frappe.db.count("GL Entry", {"voucher_no": doc.name})
             result["counters_after_submit"] = _counters()
             # 事务边界上挂了什么回调 —— 「回滚回不掉的东西」的另一条线索。
-            result["callbacks_registered"] = {
-                name: len(getattr(frappe.db, name)._functions)
-                for name in ("before_commit", "after_commit", "after_rollback")
-                if hasattr(getattr(frappe.db, name, None), "_functions")
-            }
+            # **只记条数不够**：9 个回调是「9 个缓存失效」还是「9 封信」，
+            # 对前提 3 是两个完全不同的答案，而条数把两者说成一样。
+            result["callbacks_registered"] = _callbacks()
+            # 倒填那一格新增的 `Repost Item Valuation` 是什么 —— 它不是 enqueue，
+            # 是一行**单据**，由 scheduler 事后捡走。两者在前提 2 下的后果不同。
+            result["repost_item_valuation_rows"] = frappe.db.sql(
+                "select name, voucher_type, voucher_no, status, based_on, posting_date, "
+                "item_code, warehouse from `tabRepost Item Valuation`", as_dict=True
+            )
             result["ok"] = True
         finally:
             probe.remove()
