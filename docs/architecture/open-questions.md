@@ -90,7 +90,7 @@
 | **写权限下的注入** | Spike 04 的 Agent 是 L0 只读。操作 Agent 拿到写工具后，同样载荷的后果完全不同 | **P3 之前必须重测** |
 | **Memory 投毒**（§8.4） | 本轮无记忆层 | 随 Memory v0 |
 | **跨站点迁移** | Spike 06 未建第二站点，「可迁移」是从 upsert 幂等性**推断**的 | P2 |
-| **重估值链路的事务外副作用** | Spike 05 的倒填日期未真正触发 `Repost Item Valuation` | P3 |
+| **重估值链路的事务外副作用** | ⚠️ **2026-08-29 就地改准（P3.2 实测）**：此处原文逐字是「Spike 05 的倒填日期未真正触发 `Repost Item Valuation`」——**那条从句已被本仓实测证伪**，倒填到 2026-01-05 提交一张 Stock Entry **确实**新增了一行 `Repost Item Valuation`（`status='Queued'` / `based_on='Item and Warehouse'`），出处 `docs/evidence/p3-rollback/README.md` §3。**本风险仍然 `open`，但理由换成更窄的一条**：那一行是给 **scheduler** 的工作项，而本站点 `is_scheduler_inactive() == True`、`tabScheduled Job Log` 0 行 ⇒ **没有人去捡它，「重估值**本身**有没有事务外副作用」仍未测到**。⚠️ 顺带测准的一件事：它**不走 `enqueue`**（提交路径 enqueue 实测 **0 次**），所以它在 REST 面上的后果与「后台任务」不同 —— POST 提前 commit ⇒ 那一行**会被提交下去**，而后置断言此刻还没求值 | P3（**已收窄，未排除**） |
 | **U8 的解法** | 只做了现状测量，`meta.permission` 尚未实现 | P4 |
 | **统计显著性** | 所有 Agent 探针每题各跑 1 次，无重复实验 | P5 评测集 |
 | **门禁规则的过拟合** | 证据充分性门禁是从失败样本反推的，通用性未在新题目上验证 | P1 |
