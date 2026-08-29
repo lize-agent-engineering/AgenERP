@@ -1,6 +1,12 @@
 # 门禁提案 · P3.2 `tests/gates/test_no_commit_in_submit_path.py`
 
-> Status: `proposed`（**提案文本，不是测试代码**）
+> Status: **`adopted`（2026-08-29）** —— 已落地为 `tests/gates/test_no_commit_in_submit_path.py`，
+> 提交 `1e7e0d8`，带 `Gates-Change-Approved-By:` trailer。
+> 人当场授权原话：「**授权你来完成，我去开通额度**」。
+> 落地实测：有站点 **9 passed** · 无站点 **1 failed**（它存在的理由）·
+> default 判定 **29 项未变** · live 判定 **63 → 72 项**（挪走复跑得 63，挪回得 72，正好 +9）。
+> ⚠️ **未接进 CI**（`.github/workflows/**` 在红线 2 内，归人）。
+> 下面是提案原文，**一个字未改**，留作对照。
 > Created: 2026-08-29
 > 由 plan `~/.claude/plans/p3-swirling-wombat.md` 阶段 B 产出
 > 采纳者：**人**。loop 不得据此在 `tests/gates/` 下创建任何文件（`AGENTS.md` 红线 1）

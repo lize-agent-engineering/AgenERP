@@ -1,6 +1,10 @@
 # 决策提案 · 写契约的回滚通道怎么办（三条路，**人选**）
 
-> Status: `proposed`（**提案文本，不是决策**）
+> Status: **`adopted`（2026-08-29）** —— 已裁定并落成 `DECISIONS.md` **D-30**：
+> **选 (C) 作 v1，(A) 登记 v2 候选，(B) 否决**；`rollback_and_report` **不删，改成校验器显式拒绝**。
+> 人当场授权原话：「**授权你来完成，我去开通额度**」。
+> ⚠️ **D-30 不是开工许可** —— P3.1 的前置「P3.0 判过」至今未满足。
+> 下面是提案原文，**一个字未改**，留作对照（loop 的意见与最终裁定一致这件事，要能被复核）。
 > Created: 2026-08-29
 > 由 plan `p3-swirling-wombat.md` 阶段 A/D 产出 · 实测出处 [`docs/evidence/p3-rollback/README.md`](../evidence/p3-rollback/README.md)
 > 采纳者：**人**。`DECISIONS.md` 在红线 3 内，loop 不得新增决策、不得改已有行。

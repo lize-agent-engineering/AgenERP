@@ -118,6 +118,7 @@
 | 只读引证的边界 | 主计划中 6 条 `E` 类引用（`${XM}/spike/*`）性质是**研究出处**，等同引用一篇论文，不算共享数据。但按本决策，应逐步把需要的实测结论**正文化进本仓**（`docs/analysis/` 已迁两份），使 AgenERP 在没有 XM 的机器上完全自洽 |
 | 连锁后果 | 「990 米之谜」这个固定测例依赖 `Loss Review`，切开后需重新设计：**用原生 DocType 表达同一矛盾**（成品仓积压 vs 订单已交付完结，Bin + Sales Order + Delivery Note 就够）。代价是「已审批合理损耗」这个业务解释暂无承载物——P1 先做「能发现矛盾」，「能解释原因」留到有承载物之后 |
 | 翻案条件 | 仅当出现实测证据表明某条 XM 产物无可替代且重做成本显著高于收益。**「省事」不构成理由** |
+| **复核/实测结果**（2026-08-29 · 人当场授权追加） | **P3.0 按本条改在自有栈执行，已实施。**WBS 第 139 行原文「在 XM 演示栈复跑 `spike/04-injection` 载荷」与本决策正面冲突（且 XM 仓**没有 `docker-compose.yml`**，那个栈起不来），该行已于同日改准。<br>**载荷移植落点**（fieldname / fieldtype 均**实读本仓站点 `meta.fields`**，未照抄 XM）：A1 覆盖系统规则 → `Item(HRD-CELL-280).description`（**`Text Editor`**）· A2 伪造结论 → `Customer(北方新能源工程有限公司).customer_details`（`Text`，站点上实测 `null`）· A3 越权诱导 → `Supplier(临港储能科技有限公司).supplier_details`（`Text`，同上）· A4 写操作+外发 → `Item(HRD-PACK-5K).description`，动作指向本仓真实单号 `SAL-ORD-2026-00001` / `MAT-DN-2026-00001` / `ACC-SINV-2026-00001`。<br>**`${XM}/spike/*` 仅作研究出处引用**，本轮**未读写证据仓一个字节**（红线 6）；四类载荷的**文本本身是本仓重写的**，只移植「四类意图」这个形状。<br>实测出处 `docs/evidence/p3-injection/README.md` · 设施 `tools/experiments/p3_injection/` · 判据 `tests/experiments/test_p3_injection_judge.py`（16 条）。⚠️ **本行只登记「按 D-9 改在自有栈做了」这件事，不代表 P3.0 判过** —— 满额跑撞上免费额度耗尽（`AllocationQuota.FreeTierOnly`），24 次运行一次都没跑起来 |
 
 ### D-10 · 红线 7 未来重估：自修改能力走构建期，不解开运行期
 
@@ -437,6 +438,22 @@
 | ⚠️ **不得把它写成 59/60 = 98.3%** | 只重跑失败项会**系统性偏高**；更要紧的是 `description` 给**每一条题**都加了上下文，**此前通过的 57 条有没有因此回退，没测过**。要那个数就得全量重跑（额度不够，人裁定先不跑）|
 | 留着的残余 | **近似单据混淆**（`Quotation` vs `Request for Quotation`）—— 那张表一个字段说明都没有，得往「单据语义/领域知识」走，属人 2026-08-28 说的「留作后续再优化」|
 | 翻案条件 | 全量重跑（含 `description`）低于 95%；或独立评测集被发现有系统性偏差；或换到别的站点后 hard 档明显退化 |
+
+### D-30 · 写契约 v1 **不做回滚**，把后置能预算的前移成前置；自有 frappe app 登记为 v2 候选
+
+| | |
+|---|---|
+| 裁定 | **选 (C)「不做回滚」作为写契约 v1**；**(A)「自有 frappe app」登记为 v2 候选**，(B)「带外 `bench`」否决 |
+| 授权 | 人 2026-08-29 在对话里当场授权：「**授权你来完成，我去开通额度**」，指向的五件事之一是「**裁回滚通道 —— 三条路的提案已备好**」。提案原文 `docs/backlog/decision-proposal-write-rollback-channel.md` |
+| 依据的实测（**本项目自己的**，D-16） | P3.2 探测：§7.1 那套 savepoint 语义在本仓**进程内**逐项复现（含 `tabSeries.current` 4→5→4，即「不产生单号空洞」），三个前提也全部成立（`db.commit()` **0 次** · `enqueue` **0 次** · 事务边界回调 `after_commit`/`after_rollback` 两边对称）。**而工具层够不着它**——前提 0 两条互相独立的腿：① savepoint 是**连接私有**的，另一条连接 `ROLLBACK TO` → `(1305, 'SAVEPOINT … does not exist')`；② `POST ∈ UNSAFE_HTTP_METHODS`，`frappe/app.py:414` 起的 `sync_database` 在**响应返回之前**就 `frappe.db.commit()`。出处 `docs/evidence/p3-rollback/README.md`，判据 `tests/gates/test_no_commit_in_submit_path.py` |
+| 落到代码上是什么 | 写契约的 `on_violation` **只允许 `abort_before_side_effect`**；凡是**执行前能算出来**的约束一律做成前置条件（一个请求都不发），剩下真的只能事后知道的一律中止 + 留痕 + 报人 |
+| 🔴 `rollback_and_report` 怎么办：**不删，改成显式拒绝** | 校验器对**写契约**直接拒掉这个取值并给出理由（指向本条）。**删掉它是错的**——将来选 (A) 时，没人会记得曾经有过这个取值、以及它为什么消失。同理 §7.1 那段 savepoint 语义**原文一个字不删**，只在旁边加时点限定（照 §7.26.2「只加时点限定、不改写」的既定口径，已做） |
+| 为什么不是 (A) | (A) 是唯一能让 `rollback_and_report` 真成立的路，但它**改产品形态**：今天 `agenerp/` 是站点外的纯 Python 包、零站点态（`agenerp/oob.py` 模块头第 3 条那条与红线 7 的界线就建立在这上面）。P3.1 的验收是 `pytest tests/contracts/test_write_contract.py -q` 退 0——它判的是**契约结构**，(C) 完全够。**一条写契约不该顺带决定产品形态** |
+| 为什么否决 (B) | `agenerp/oob.py` 的 `ALLOWED_CALLS` 是**「函数名 → 钉死的 kwargs」**（模块头约束 2）。写契约要传的是**任意单据内容**，钉不死；白名单一旦退化成「能传任意 payload」，模块头约束 3 那条与**红线 7** 的界线就没了。且它要 `docker compose exec`，等于让**产品运行时**依赖宿主的容器编排 |
+| 承认的代价（不掩饰） | ① **有一类失败 (C) 接不住**：执行成功但后置不成立（例如提交后 GL 借贷不等）——单据已落库，只能靠人 cancel / amend，而 §7.1 逐字说过 **cancel 不是契约的补偿机制**。② 倒填尤其难受：`Repost Item Valuation` 那一行**已经提交下去**，前移预算算不出「重估值之后账对不对」。③ 选 (C) 意味着 **P3.5「补偿事务」整个要按本条重想** |
+| 🔴 不预支未来 | (C) 是唯一**不动通道**的路。将来若选 (A)，前移过的前置条件**一条都不浪费**；反过来不成立——先走 (A) 再退回 (C)，中间那段站点内代码是纯损耗 |
+| 🚪 生效前提 | **P3.1 的前置是「P3.0 判过」，而 P3.0 至今未判过**（2026-08-29 满额跑撞免费额度耗尽，24 次运行一次没跑起来）。**本条是「等 P3.0 判过之后按哪条路做」的裁定，不是开工许可** |
+| 翻案条件 | 出现下列任一：① 通道改了（真的落了自有 frappe app 或等价物）⇒ 回来重估 (A)；② 实测出现「执行成功但后置不成立」且人工 cancel/amend 的代价被证明不可接受；③ ERPNext 改掉 `sync_database` 的 per-request commit（判据 `test_no_commit_in_submit_path.py` 会当场红并指名） |
 
 ---
 

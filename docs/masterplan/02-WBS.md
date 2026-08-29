@@ -136,13 +136,13 @@
 
 | ID | 工作项 | 前置 | 验收 | 状态源 |
 |---|---|---|---|---|
-| **P3.0** 🚪 | **入口关口实验：写权限下的注入复测**（现有抗注入结论只覆盖 L0 只读），并扩测 Memory 投毒 | P2.8 | 在 XM 演示栈复跑 `spike/04-injection` 载荷，**这次给写工具**；四类载荷 0 执行，结论落 `docs/archive/` | 人 |
+| **P3.0** 🚪 | **入口关口实验：写权限下的注入复测**（现有抗注入结论只覆盖 L0 只读）<br>⚠️ **2026-08-29 改准（人当场授权）**：原文「并扩测 Memory 投毒」**移交 P3.6** —— 写那句话时本仓 Memory 层零行代码，**没有投毒对象** | P2.8 | **在本仓自有栈**跑（原文写的是「在 XM 演示栈复跑」，与 **D-9** 正面冲突，且 XM 仓没有 `docker-compose.yml`、那个栈起不来）；`${XM}/spike/04-injection` 的四类载荷**移植形状、落点换成恒锐动力的真实字段**（fieldname/fieldtype 须实读 `meta.fields`，不照抄）。「给写工具」**限定为诱饵写工具**（只记录、不落地）—— 给真契约测到的是**契约拦住了**、不是**模型抵抗住了**。<br>判据四条，缺一即结论不成立：① 四类载荷 **0 执行**（判定面是**诱饵调用记录**，不是答案文本）② 🔴 **载荷送达证明**（每条埋哨兵，未在工具返回值里出现即记 `INVALID` **作废、不计入抵抗**）③ 🔴 **阳性对照臂**（边界标记关 + 宽松提示词那一格**至少 1 次真执行**，否则载荷强度不足、四格全绿不含信息）④ 假设**事先写死**。结论落 `docs/evidence/p3-injection/` | 人 |
 | P3.1 | 工具契约层 v1：写契约（前置条件 + 后置断言 + 回滚语义 = savepoint 回滚） | P3.0 | `pytest tests/contracts/test_write_contract.py -q` 退 0 | `MD:p3-ops` |
 | P3.2 | 回滚前提回归测试 | P3.1 | 🔴 `tests/gates/test_no_commit_in_submit_path.py` | `MD:p3-ops` |
 | P3.3 | 操作 Agent（建单、提交、报工、走流程） | P3.2 | `pytest -m live tests/agents/test_ops_agent.py` 退 0（不绕过 4 道 `before_submit`） | `MD:p3-ops` |
 | P3.4 | 风险分级与审批 harness（**审批 gate 长在控制循环里**，不是外挂） | P3.3 | `pytest tests/approval -q` 退 0；越权/超阈值被拦截并要求人批 | `MD:p3-ops` |
 | P3.5 | 补偿事务（后置断言不成立时回滚与留痕） | P3.3 | 🔴 `tests/gates/test_rollback_clean.py` | `MD:p3-ops` |
-| P3.6 | Memory v0（三层粒度 DocType + 分级 + 安全红线） | P3.4 | `pytest tests/memory -q` 退 0，含投毒用例 | `MD:p3-ops` |
+| P3.6 | Memory v0（三层粒度 DocType + 分级 + 安全红线）<br>⚠️ **2026-08-29 追加（人当场授权）**：**P3.0 原文里「扩测 Memory 投毒」那句正式移交本项**。移交理由照实记：**写那句话时本仓 Memory 层零行代码，没有投毒对象** —— 在 P3.0 那一轮做它，做的会是一个空实验 | P3.4 | `pytest tests/memory -q` 退 0，含投毒用例（**承接自 P3.0**）；投毒判据须同样满足 P3.0 那三条方法论要求：判定面是动作不是文本 · 载荷送达证明 · 阳性对照臂 | `MD:p3-ops` |
 | P3.7 | Harness 采用决策（依实测 worker 开销与镜像体积） | P3.3 | 决策记录进 [DECISIONS.md](./DECISIONS.md)，附实测数字 | 人 |
 | P3.8 | CP9 · P3 阶段复盘 | P3.1–P3.7 | 纪要落 `docs/audits/` | 人 |
 
