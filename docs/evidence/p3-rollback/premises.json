@@ -1,6 +1,6 @@
 {
- "captured_at": "2026-08-29T03:22:31Z",
- "repo_head": "074bd5a9c43e9b27a27462fe642ac1c32178a014",
+ "captured_at": "2026-08-29T03:29:34Z",
+ "repo_head": "cef827ccb76b14277cda9a2155832be39aef3372",
  "fingerprint_before": {
   "exit_code": 0,
   "all_green": true,
@@ -45,6 +45,11 @@
  "measurement": {
   "ok": true,
   "site": "frontend",
+  "instrument_selftest": {
+   "commit_counter_registered": 1,
+   "enqueue_counter_registered": 1,
+   "sendmail_counter_registered": 1
+  },
   "premise_0": {
    "frappe_version": "15.118.0",
    "source_file": "/home/frappe/frappe-bench/apps/frappe/frappe/app.py",
@@ -161,47 +166,47 @@
       "count": 9,
       "functions": [
        {
-        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9e1c7920>",
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffffaeb5ba60>",
         "module": "frappe",
         "qualname": "clear_document_cache.<locals>.clear_in_redis"
        },
        {
-        "repr": "<function flush_realtime_log at 0xffff9e1f7100>",
+        "repr": "<function flush_realtime_log at 0xffffaeb8f240>",
         "module": "frappe.realtime",
         "qualname": "flush_realtime_log"
        },
        {
-        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9e06c680>",
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffffae9fcae0>",
         "module": "frappe",
         "qualname": "clear_document_cache.<locals>.clear_in_redis"
        },
        {
-        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9e0b6480>",
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffffae9fc5e0>",
         "module": "frappe",
         "qualname": "clear_document_cache.<locals>.clear_in_redis"
        },
        {
-        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9e06ccc0>",
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffffaec83380>",
         "module": "frappe",
         "qualname": "clear_document_cache.<locals>.clear_in_redis"
        },
        {
-        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9dfb0d60>",
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffffae948d60>",
         "module": "frappe",
         "qualname": "clear_document_cache.<locals>.clear_in_redis"
        },
        {
-        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9dfb1ee0>",
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffffae949ee0>",
         "module": "frappe",
         "qualname": "clear_document_cache.<locals>.clear_in_redis"
        },
        {
-        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9e895e40>",
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffffaf239080>",
         "module": "frappe",
         "qualname": "clear_document_cache.<locals>.clear_in_redis"
        },
        {
-        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9e8967a0>",
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffffaf2399e0>",
         "module": "frappe",
         "qualname": "clear_document_cache.<locals>.clear_in_redis"
        }
@@ -211,47 +216,47 @@
       "count": 9,
       "functions": [
        {
-        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9e1c7920>",
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffffaeb5ba60>",
         "module": "frappe",
         "qualname": "clear_document_cache.<locals>.clear_in_redis"
        },
        {
-        "repr": "<function clear_realtime_log at 0xffff9e039300>",
+        "repr": "<function clear_realtime_log at 0xffffae9d1440>",
         "module": "frappe.realtime",
         "qualname": "clear_realtime_log"
        },
        {
-        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9e06c680>",
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffffae9fcae0>",
         "module": "frappe",
         "qualname": "clear_document_cache.<locals>.clear_in_redis"
        },
        {
-        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9e0b6480>",
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffffae9fc5e0>",
         "module": "frappe",
         "qualname": "clear_document_cache.<locals>.clear_in_redis"
        },
        {
-        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9e06ccc0>",
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffffaec83380>",
         "module": "frappe",
         "qualname": "clear_document_cache.<locals>.clear_in_redis"
        },
        {
-        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9dfb0d60>",
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffffae948d60>",
         "module": "frappe",
         "qualname": "clear_document_cache.<locals>.clear_in_redis"
        },
        {
-        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9dfb1ee0>",
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffffae949ee0>",
         "module": "frappe",
         "qualname": "clear_document_cache.<locals>.clear_in_redis"
        },
        {
-        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9e895e40>",
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffffaf239080>",
         "module": "frappe",
         "qualname": "clear_document_cache.<locals>.clear_in_redis"
        },
        {
-        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9e8967a0>",
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffffaf2399e0>",
         "module": "frappe",
         "qualname": "clear_document_cache.<locals>.clear_in_redis"
        }
@@ -817,37 +822,37 @@
      },
      {
       "doctype": "Stock Ledger Entry",
-      "name": "5bd533d5bb",
+      "name": "f34f4c32b6",
       "method": "before_validate"
      },
      {
       "doctype": "Stock Ledger Entry",
-      "name": "5bd533d5bb",
+      "name": "f34f4c32b6",
       "method": "validate"
      },
      {
       "doctype": "Stock Ledger Entry",
-      "name": "5bd533d5bb",
+      "name": "f34f4c32b6",
       "method": "before_submit"
      },
      {
       "doctype": "Stock Ledger Entry",
-      "name": "5bd533d5bb",
+      "name": "f34f4c32b6",
       "method": "after_insert"
      },
      {
       "doctype": "Stock Ledger Entry",
-      "name": "5bd533d5bb",
+      "name": "f34f4c32b6",
       "method": "on_update"
      },
      {
       "doctype": "Stock Ledger Entry",
-      "name": "5bd533d5bb",
+      "name": "f34f4c32b6",
       "method": "on_submit"
      },
      {
       "doctype": "Stock Ledger Entry",
-      "name": "5bd533d5bb",
+      "name": "f34f4c32b6",
       "method": "on_change"
      },
      {
@@ -867,37 +872,37 @@
      },
      {
       "doctype": "GL Entry",
-      "name": "bdd307162d",
+      "name": "235553bc42",
       "method": "before_validate"
      },
      {
       "doctype": "GL Entry",
-      "name": "bdd307162d",
+      "name": "235553bc42",
       "method": "validate"
      },
      {
       "doctype": "GL Entry",
-      "name": "bdd307162d",
+      "name": "235553bc42",
       "method": "before_submit"
      },
      {
       "doctype": "GL Entry",
-      "name": "bdd307162d",
+      "name": "235553bc42",
       "method": "after_insert"
      },
      {
       "doctype": "GL Entry",
-      "name": "bdd307162d",
+      "name": "235553bc42",
       "method": "on_update"
      },
      {
       "doctype": "GL Entry",
-      "name": "bdd307162d",
+      "name": "235553bc42",
       "method": "on_submit"
      },
      {
       "doctype": "GL Entry",
-      "name": "bdd307162d",
+      "name": "235553bc42",
       "method": "on_change"
      },
      {
@@ -917,37 +922,37 @@
      },
      {
       "doctype": "GL Entry",
-      "name": "3971173612",
+      "name": "4740b91753",
       "method": "before_validate"
      },
      {
       "doctype": "GL Entry",
-      "name": "3971173612",
+      "name": "4740b91753",
       "method": "validate"
      },
      {
       "doctype": "GL Entry",
-      "name": "3971173612",
+      "name": "4740b91753",
       "method": "before_submit"
      },
      {
       "doctype": "GL Entry",
-      "name": "3971173612",
+      "name": "4740b91753",
       "method": "after_insert"
      },
      {
       "doctype": "GL Entry",
-      "name": "3971173612",
+      "name": "4740b91753",
       "method": "on_update"
      },
      {
       "doctype": "GL Entry",
-      "name": "3971173612",
+      "name": "4740b91753",
       "method": "on_submit"
      },
      {
       "doctype": "GL Entry",
-      "name": "3971173612",
+      "name": "4740b91753",
       "method": "on_change"
      },
      {
@@ -967,32 +972,32 @@
      },
      {
       "doctype": "Version",
-      "name": "957cktbp1a",
+      "name": "d942o52dri",
       "method": "before_validate"
      },
      {
       "doctype": "Version",
-      "name": "957cktbp1a",
+      "name": "d942o52dri",
       "method": "validate"
      },
      {
       "doctype": "Version",
-      "name": "957cktbp1a",
+      "name": "d942o52dri",
       "method": "before_save"
      },
      {
       "doctype": "Version",
-      "name": "957cktbp1a",
+      "name": "d942o52dri",
       "method": "after_insert"
      },
      {
       "doctype": "Version",
-      "name": "957cktbp1a",
+      "name": "d942o52dri",
       "method": "on_update"
      },
      {
       "doctype": "Version",
-      "name": "957cktbp1a",
+      "name": "d942o52dri",
       "method": "on_change"
      },
      {
@@ -1057,87 +1062,87 @@
       "count": 17,
       "functions": [
        {
-        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9e1c7920>",
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffffaeb5ba60>",
         "module": "frappe",
         "qualname": "clear_document_cache.<locals>.clear_in_redis"
        },
        {
-        "repr": "<function flush_realtime_log at 0xffff9e1f7100>",
+        "repr": "<function flush_realtime_log at 0xffffaeb8f240>",
         "module": "frappe.realtime",
         "qualname": "flush_realtime_log"
        },
        {
-        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9e06c680>",
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffffae9fcae0>",
         "module": "frappe",
         "qualname": "clear_document_cache.<locals>.clear_in_redis"
        },
        {
-        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9e0b6480>",
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffffae9fc5e0>",
         "module": "frappe",
         "qualname": "clear_document_cache.<locals>.clear_in_redis"
        },
        {
-        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9e06ccc0>",
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffffaec83380>",
         "module": "frappe",
         "qualname": "clear_document_cache.<locals>.clear_in_redis"
        },
        {
-        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9dfb0d60>",
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffffae948d60>",
         "module": "frappe",
         "qualname": "clear_document_cache.<locals>.clear_in_redis"
        },
        {
-        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9dfb1ee0>",
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffffae949ee0>",
         "module": "frappe",
         "qualname": "clear_document_cache.<locals>.clear_in_redis"
        },
        {
-        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9e895e40>",
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffffaf239080>",
         "module": "frappe",
         "qualname": "clear_document_cache.<locals>.clear_in_redis"
        },
        {
-        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9e8967a0>",
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffffaf2399e0>",
         "module": "frappe",
         "qualname": "clear_document_cache.<locals>.clear_in_redis"
        },
        {
-        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9e2f0540>",
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffffaec805e0>",
         "module": "frappe",
         "qualname": "clear_document_cache.<locals>.clear_in_redis"
        },
        {
-        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9dfb37e0>",
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffffae94b7e0>",
         "module": "frappe",
         "qualname": "clear_document_cache.<locals>.clear_in_redis"
        },
        {
-        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9dfb3a60>",
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffffae94ba60>",
         "module": "frappe",
         "qualname": "clear_document_cache.<locals>.clear_in_redis"
        },
        {
-        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9dfb3920>",
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffffae94b920>",
         "module": "frappe",
         "qualname": "clear_document_cache.<locals>.clear_in_redis"
        },
        {
-        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9dfb3e20>",
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffffae94be20>",
         "module": "frappe",
         "qualname": "clear_document_cache.<locals>.clear_in_redis"
        },
        {
-        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9dfb3ec0>",
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffffae94b880>",
         "module": "frappe",
         "qualname": "clear_document_cache.<locals>.clear_in_redis"
        },
        {
-        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9dfb2a20>",
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffffae94aa20>",
         "module": "frappe",
         "qualname": "clear_document_cache.<locals>.clear_in_redis"
        },
        {
-        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9dfb2e80>",
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffffae94ae80>",
         "module": "frappe",
         "qualname": "clear_document_cache.<locals>.clear_in_redis"
        }
@@ -1147,87 +1152,87 @@
       "count": 17,
       "functions": [
        {
-        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9e1c7920>",
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffffaeb5ba60>",
         "module": "frappe",
         "qualname": "clear_document_cache.<locals>.clear_in_redis"
        },
        {
-        "repr": "<function clear_realtime_log at 0xffff9e039300>",
+        "repr": "<function clear_realtime_log at 0xffffae9d1440>",
         "module": "frappe.realtime",
         "qualname": "clear_realtime_log"
        },
        {
-        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9e06c680>",
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffffae9fcae0>",
         "module": "frappe",
         "qualname": "clear_document_cache.<locals>.clear_in_redis"
        },
        {
-        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9e0b6480>",
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffffae9fc5e0>",
         "module": "frappe",
         "qualname": "clear_document_cache.<locals>.clear_in_redis"
        },
        {
-        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9e06ccc0>",
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffffaec83380>",
         "module": "frappe",
         "qualname": "clear_document_cache.<locals>.clear_in_redis"
        },
        {
-        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9dfb0d60>",
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffffae948d60>",
         "module": "frappe",
         "qualname": "clear_document_cache.<locals>.clear_in_redis"
        },
        {
-        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9dfb1ee0>",
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffffae949ee0>",
         "module": "frappe",
         "qualname": "clear_document_cache.<locals>.clear_in_redis"
        },
        {
-        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9e895e40>",
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffffaf239080>",
         "module": "frappe",
         "qualname": "clear_document_cache.<locals>.clear_in_redis"
        },
        {
-        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9e8967a0>",
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffffaf2399e0>",
         "module": "frappe",
         "qualname": "clear_document_cache.<locals>.clear_in_redis"
        },
        {
-        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9e2f0540>",
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffffaec805e0>",
         "module": "frappe",
         "qualname": "clear_document_cache.<locals>.clear_in_redis"
        },
        {
-        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9dfb37e0>",
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffffae94b7e0>",
         "module": "frappe",
         "qualname": "clear_document_cache.<locals>.clear_in_redis"
        },
        {
-        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9dfb3a60>",
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffffae94ba60>",
         "module": "frappe",
         "qualname": "clear_document_cache.<locals>.clear_in_redis"
        },
        {
-        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9dfb3920>",
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffffae94b920>",
         "module": "frappe",
         "qualname": "clear_document_cache.<locals>.clear_in_redis"
        },
        {
-        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9dfb3e20>",
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffffae94be20>",
         "module": "frappe",
         "qualname": "clear_document_cache.<locals>.clear_in_redis"
        },
        {
-        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9dfb3ec0>",
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffffae94b880>",
         "module": "frappe",
         "qualname": "clear_document_cache.<locals>.clear_in_redis"
        },
        {
-        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9dfb2a20>",
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffffae94aa20>",
         "module": "frappe",
         "qualname": "clear_document_cache.<locals>.clear_in_redis"
        },
        {
-        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffff9dfb2e80>",
+        "repr": "<function clear_document_cache.<locals>.clear_in_redis at 0xffffae94ae80>",
         "module": "frappe",
         "qualname": "clear_document_cache.<locals>.clear_in_redis"
        }
@@ -1236,7 +1241,7 @@
     },
     "repost_item_valuation_rows": [
      {
-      "name": "957et59ko1",
+      "name": "d95ntshea3",
       "voucher_type": null,
       "voucher_no": null,
       "status": "Queued",
@@ -1884,37 +1889,37 @@
      },
      {
       "doctype": "Stock Ledger Entry",
-      "name": "3b0e5e2f78",
+      "name": "01fe1114ff",
       "method": "before_validate"
      },
      {
       "doctype": "Stock Ledger Entry",
-      "name": "3b0e5e2f78",
+      "name": "01fe1114ff",
       "method": "validate"
      },
      {
       "doctype": "Stock Ledger Entry",
-      "name": "3b0e5e2f78",
+      "name": "01fe1114ff",
       "method": "before_submit"
      },
      {
       "doctype": "Stock Ledger Entry",
-      "name": "3b0e5e2f78",
+      "name": "01fe1114ff",
       "method": "after_insert"
      },
      {
       "doctype": "Stock Ledger Entry",
-      "name": "3b0e5e2f78",
+      "name": "01fe1114ff",
       "method": "on_update"
      },
      {
       "doctype": "Stock Ledger Entry",
-      "name": "3b0e5e2f78",
+      "name": "01fe1114ff",
       "method": "on_submit"
      },
      {
       "doctype": "Stock Ledger Entry",
-      "name": "3b0e5e2f78",
+      "name": "01fe1114ff",
       "method": "on_change"
      },
      {
@@ -1934,37 +1939,37 @@
      },
      {
       "doctype": "GL Entry",
-      "name": "7cc5f8ee58",
+      "name": "075d6b8a28",
       "method": "before_validate"
      },
      {
       "doctype": "GL Entry",
-      "name": "7cc5f8ee58",
+      "name": "075d6b8a28",
       "method": "validate"
      },
      {
       "doctype": "GL Entry",
-      "name": "7cc5f8ee58",
+      "name": "075d6b8a28",
       "method": "before_submit"
      },
      {
       "doctype": "GL Entry",
-      "name": "7cc5f8ee58",
+      "name": "075d6b8a28",
       "method": "after_insert"
      },
      {
       "doctype": "GL Entry",
-      "name": "7cc5f8ee58",
+      "name": "075d6b8a28",
       "method": "on_update"
      },
      {
       "doctype": "GL Entry",
-      "name": "7cc5f8ee58",
+      "name": "075d6b8a28",
       "method": "on_submit"
      },
      {
       "doctype": "GL Entry",
-      "name": "7cc5f8ee58",
+      "name": "075d6b8a28",
       "method": "on_change"
      },
      {
@@ -1984,37 +1989,37 @@
      },
      {
       "doctype": "GL Entry",
-      "name": "03480ce710",
+      "name": "7606410c7b",
       "method": "before_validate"
      },
      {
       "doctype": "GL Entry",
-      "name": "03480ce710",
+      "name": "7606410c7b",
       "method": "validate"
      },
      {
       "doctype": "GL Entry",
-      "name": "03480ce710",
+      "name": "7606410c7b",
       "method": "before_submit"
      },
      {
       "doctype": "GL Entry",
-      "name": "03480ce710",
+      "name": "7606410c7b",
       "method": "after_insert"
      },
      {
       "doctype": "GL Entry",
-      "name": "03480ce710",
+      "name": "7606410c7b",
       "method": "on_update"
      },
      {
       "doctype": "GL Entry",
-      "name": "03480ce710",
+      "name": "7606410c7b",
       "method": "on_submit"
      },
      {
       "doctype": "GL Entry",
-      "name": "03480ce710",
+      "name": "7606410c7b",
       "method": "on_change"
      },
      {
@@ -2034,37 +2039,37 @@
      },
      {
       "doctype": "Repost Item Valuation",
-      "name": "957et59ko1",
+      "name": "d95ntshea3",
       "method": "before_validate"
      },
      {
       "doctype": "Repost Item Valuation",
-      "name": "957et59ko1",
+      "name": "d95ntshea3",
       "method": "validate"
      },
      {
       "doctype": "Repost Item Valuation",
-      "name": "957et59ko1",
+      "name": "d95ntshea3",
       "method": "before_submit"
      },
      {
       "doctype": "Repost Item Valuation",
-      "name": "957et59ko1",
+      "name": "d95ntshea3",
       "method": "after_insert"
      },
      {
       "doctype": "Repost Item Valuation",
-      "name": "957et59ko1",
+      "name": "d95ntshea3",
       "method": "on_update"
      },
      {
       "doctype": "Repost Item Valuation",
-      "name": "957et59ko1",
+      "name": "d95ntshea3",
       "method": "on_submit"
      },
      {
       "doctype": "Repost Item Valuation",
-      "name": "957et59ko1",
+      "name": "d95ntshea3",
       "method": "on_change"
      },
      {
@@ -2084,32 +2089,32 @@
      },
      {
       "doctype": "Version",
-      "name": "958kpm8dq0",
+      "name": "d956a4r4e0",
       "method": "before_validate"
      },
      {
       "doctype": "Version",
-      "name": "958kpm8dq0",
+      "name": "d956a4r4e0",
       "method": "validate"
      },
      {
       "doctype": "Version",
-      "name": "958kpm8dq0",
+      "name": "d956a4r4e0",
       "method": "before_save"
      },
      {
       "doctype": "Version",
-      "name": "958kpm8dq0",
+      "name": "d956a4r4e0",
       "method": "after_insert"
      },
      {
       "doctype": "Version",
-      "name": "958kpm8dq0",
+      "name": "d956a4r4e0",
       "method": "on_update"
      },
      {
       "doctype": "Version",
-      "name": "958kpm8dq0",
+      "name": "d956a4r4e0",
       "method": "on_change"
      },
      {

@@ -391,8 +391,41 @@ def _submit_once(scenario: str, posting_date: str) -> dict:
     return result
 
 
+def _instrument_selftest() -> dict:
+    """🔴 **阳性对照**：证明打桩本身数得动。
+
+    前提 1 与前提 2 的实测值都是 **0**。这让 plan 原定的那条变异
+    （「把打桩计数改成恒 0 → 判据必须红」）**咬不动** —— 被致盲的仪器与
+    真值恰好长得一模一样，任何判据都分不开。**四格全绿不含信息**，同一个形状。
+
+    所以这里故意各触发一次，并把「桩确实记到了」当成结果的一部分交出去。
+    判据断它必须为 1；把计数改成恒 0 之后，红的是这一条。
+
+    三次触发都是**空操作**：`commit` 的桩不放行、`enqueue` 的桩不入队、
+    `sendmail` 的桩不发信。整段还额外裹在自己的 savepoint 里。
+    """
+    probe = Probe()
+    frappe.db.savepoint("p3_selftest")
+    try:
+        probe.install()
+        try:
+            frappe.db.commit()
+            frappe.enqueue("frappe.ping", queue="short")
+            frappe.sendmail(recipients=["p3-selftest@example.invalid"], subject="p3", message="p3")
+        finally:
+            probe.remove()
+    finally:
+        frappe.db.rollback(save_point="p3_selftest")
+    return {
+        "commit_counter_registered": len(probe.commits),
+        "enqueue_counter_registered": len(probe.enqueues),
+        "sendmail_counter_registered": len(probe.sendmails),
+    }
+
+
 def _mode_premises() -> dict:
     out: dict = {"ok": True, "site": SITE}
+    out["instrument_selftest"] = _instrument_selftest()
     out["premise_0"] = _premise_0()
     out["premise_3_static_row_counts"] = {
         name: frappe.db.count(name)
