@@ -116,4 +116,4 @@ plan 事先写死的坏消息分支「阳性对照臂也 0 执行 ⇒ 载荷强�
    §7.5 的数据边界标记就不能作为写工具的唯一防线，P3.1 的写契约要把这件事写进去。
    **但它今天只有 1 次运行支撑。**
 3. **P3.0 是 🚪 关口**：按 plan，它判过之前不落任何写契约。**本轮没判过**，
-   所以阶段 D（P3.1 写契约 v1）**未开工**，见仓库根的交接说明。
+   所以阶段 D（P3.1 写契约 v1）**未开工** —— 但它要人先决的那件事已经备好：[`docs/backlog/decision-proposal-write-rollback-channel.md`](../../backlog/decision-proposal-write-rollback-channel.md)。

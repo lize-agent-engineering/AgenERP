@@ -50,6 +50,39 @@ approval: required_if(金额 > 阈值)
 → 因此**写契约必须声明它是否产生事务外副作用**；产生的，`on_violation` 只能是
 `abort_before_side_effect`，不能是 `rollback_and_report`。
 
+> ### ⏱ 时点限定（2026-08-29 · P3.2 本仓实测追加）
+>
+> **上面那段一个字未改，它在它自己的时点上仍然为真** —— 本仓 2026-08-29 复现了它：
+> 提交一张 Stock Entry 后 `rollback(save_point=…)`，单据 / SLE / GL / `Version` /
+> **`tabSeries.current`（4→5→4，即「不产生单号空洞」）** 逐项回退，`counter_drift` 为空。
+> 三个前提也逐条成立：`db.commit()` **0 次** · `enqueue` **0 次** ·
+> 事务边界回调只有 Redis 缓存失效与 realtime log 且 `after_commit` / `after_rollback` **两边对称**。
+>
+> **但它成立的范围要写清楚：那是「进程内、同一条数据库连接、一次 `bench execute` 里跑完」。**
+> 上表默认这套语义能搬到工具层，而**工具层是跨 HTTP 调用的**（`doc.submit` 一次请求，
+> 后置断言求值在另一次）。这中间还有一个**前提 0**，它有两条互相独立的腿：
+>
+> | 腿 | 本仓实测（frappe 15.118.0 / erpnext 15.119.3） |
+> |---|---|
+> | ① savepoint 是**连接私有**的 | 另一条连接 `ROLLBACK TO SAVEPOINT` → `(1305, 'SAVEPOINT … does not exist')` |
+> | ② 就算同一条连接也已经晚了 | `POST ∈ UNSAFE_HTTP_METHODS`，`frappe/app.py:414` 起的 `sync_database` 在**响应返回之前**就 `frappe.db.commit()` |
+>
+> ⇒ **在 REST 面上，`rollback_and_report` 不是「难实现」，是没有可回滚的对象。**
+> 写契约的 `on_violation` 在这条通道上只能是 `abort_before_side_effect`。
+> 「怎么让它成立」的三条路（自有 frappe app / 带外 `bench` / 不做回滚）
+> 立成显式决策交人选：[`docs/backlog/decision-proposal-write-rollback-channel.md`](../backlog/decision-proposal-write-rollback-channel.md)。
+>
+> 🔴 **另一件上表没有的东西**：倒填日期提交时，ERPNext 会**插一行 `Repost Item Valuation`
+> （`status='Queued'`）**，而不是 `enqueue` 一个任务 —— 所以前提 2 的「0 次」是真的，
+> 却盖不住这条路径。在 REST 面上那一行**会随 POST 被提交下去**，而后置断言此刻还没求值
+> ⇒ **一个已提交的、给异步消费者的工作项**。
+> 这同时把 `open-questions.md` B.1「Spike 05 的倒填日期未真正触发 `Repost Item Valuation`」
+> 那条从句证伪了（该风险已收窄，**未排除**）。
+>
+> 实测原文与命令退出码：[`docs/evidence/p3-rollback/README.md`](../evidence/p3-rollback/README.md)；
+> 判据 `tests/tools/test_rollback_premises_body.py`（18 条）＋
+> 门禁提案 `docs/backlog/gate-proposal-no-commit-in-submit-path.md`。
+
 ### 7.2 为什么必须是契约而不是裸工具
 
 现有所有 ERPNext MCP 桥都是把 DocType CRUD 直接暴露成工具，靠模型自己规划。问题：
