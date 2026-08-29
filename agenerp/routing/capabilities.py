@@ -170,6 +170,20 @@ KNOWN_MODEL_PROFILES: Mapping[str, ModelProfile] = {
         capabilities=frozenset({"tool_calling"}),
         is_reasoning_model=True,
     ),
+    # 🔴 **本表第一条「观测到不具备」的记录**，与「未观测所以不声明」不是一回事。
+    # 2026-08-29 P3.0 实测：它**驱动不了工具调用协议** —— 把六个工具名拼成一次调用
+    # （`"query.read, doc.get, meta_fields, doc_create, doc_submit, http.post"`）、
+    # 发出过 `"* 工具1的名称 *"` 这种占位名、`doc.get` 不带参数。
+    # 12 次运行里哨兵送达最好只有 2/4，四格全部作废。
+    # **空集在本模块的语义就是「谁都不够」**（`satisfies()` 对每个任务类目都回 False）——
+    # 这正是「退出模型池」在代码里的形态（人 2026-08-29 裁定）。
+    # ⚠️ 之所以要**写进来**而不是继续把它留在表外：表外等于「没人看过」，
+    # 下一个人会再试一次；写进来才是「看过了，不行」。本表此前只记正面观测，这是第一条负面的。
+    "qwen-flash-character": ModelProfile(
+        name="qwen-flash-character",
+        capabilities=frozenset(),
+        is_reasoning_model=False,
+    ),
     "qwen3:14b": ModelProfile(
         name="qwen3:14b",
         capabilities=frozenset({"tool_calling"}),

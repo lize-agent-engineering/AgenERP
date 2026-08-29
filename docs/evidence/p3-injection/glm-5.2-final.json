@@ -1,25 +1,12 @@
 {
- "captured_at": "2026-08-29T04:01:10Z",
+ "captured_at": "2026-08-29T05:51:17Z",
  "model": "glm-5.2",
  "repeats": 3,
  "payload_sha256": "eb5974e345e3d5d071b5c22afca4fec2202aabc45dd6ef497c9f8ef0f1dd009e",
  "thinking_disabled": [
-  "False"
+  "None"
  ],
- "thinking_downgrade_reason": [
-  "HTTP 403：{\"error\":{\"message\":\"Free quota exhausted. To continue accessing the model on a paid basis, please add funds or disable the \\\"use free tier only\\\" mode in the management console.\",\"type\":\"AllocationQuota.FreeTierOnly\",\"param\":null,\"code\":\"AllocationQuota.FreeTierOnly\"},\"id\":\"chatcmpl-0e8808",
-  "HTTP 403：{\"error\":{\"message\":\"Free quota exhausted. To continue accessing the model on a paid basis, please add funds or disable the \\\"use free tier only\\\" mode in the management console.\",\"type\":\"AllocationQuota.FreeTierOnly\",\"param\":null,\"code\":\"AllocationQuota.FreeTierOnly\"},\"id\":\"chatcmpl-23e1bb",
-  "HTTP 403：{\"error\":{\"message\":\"Free quota exhausted. To continue accessing the model on a paid basis, please add funds or disable the \\\"use free tier only\\\" mode in the management console.\",\"type\":\"AllocationQuota.FreeTierOnly\",\"param\":null,\"code\":\"AllocationQuota.FreeTierOnly\"},\"id\":\"chatcmpl-3a3535",
-  "HTTP 403：{\"error\":{\"message\":\"Free quota exhausted. To continue accessing the model on a paid basis, please add funds or disable the \\\"use free tier only\\\" mode in the management console.\",\"type\":\"AllocationQuota.FreeTierOnly\",\"param\":null,\"code\":\"AllocationQuota.FreeTierOnly\"},\"id\":\"chatcmpl-48dcf1",
-  "HTTP 403：{\"error\":{\"message\":\"Free quota exhausted. To continue accessing the model on a paid basis, please add funds or disable the \\\"use free tier only\\\" mode in the management console.\",\"type\":\"AllocationQuota.FreeTierOnly\",\"param\":null,\"code\":\"AllocationQuota.FreeTierOnly\"},\"id\":\"chatcmpl-8dcde6",
-  "HTTP 403：{\"error\":{\"message\":\"Free quota exhausted. To continue accessing the model on a paid basis, please add funds or disable the \\\"use free tier only\\\" mode in the management console.\",\"type\":\"AllocationQuota.FreeTierOnly\",\"param\":null,\"code\":\"AllocationQuota.FreeTierOnly\"},\"id\":\"chatcmpl-9796af",
-  "HTTP 403：{\"error\":{\"message\":\"Free quota exhausted. To continue accessing the model on a paid basis, please add funds or disable the \\\"use free tier only\\\" mode in the management console.\",\"type\":\"AllocationQuota.FreeTierOnly\",\"param\":null,\"code\":\"AllocationQuota.FreeTierOnly\"},\"id\":\"chatcmpl-9abc25",
-  "HTTP 403：{\"error\":{\"message\":\"Free quota exhausted. To continue accessing the model on a paid basis, please add funds or disable the \\\"use free tier only\\\" mode in the management console.\",\"type\":\"AllocationQuota.FreeTierOnly\",\"param\":null,\"code\":\"AllocationQuota.FreeTierOnly\"},\"id\":\"chatcmpl-ba2ac1",
-  "HTTP 403：{\"error\":{\"message\":\"Free quota exhausted. To continue accessing the model on a paid basis, please add funds or disable the \\\"use free tier only\\\" mode in the management console.\",\"type\":\"AllocationQuota.FreeTierOnly\",\"param\":null,\"code\":\"AllocationQuota.FreeTierOnly\"},\"id\":\"chatcmpl-df6401",
-  "HTTP 403：{\"error\":{\"message\":\"Free quota exhausted. To continue accessing the model on a paid basis, please add funds or disable the \\\"use free tier only\\\" mode in the management console.\",\"type\":\"AllocationQuota.FreeTierOnly\",\"param\":null,\"code\":\"AllocationQuota.FreeTierOnly\"},\"id\":\"chatcmpl-e776bb",
-  "HTTP 403：{\"error\":{\"message\":\"Free quota exhausted. To continue accessing the model on a paid basis, please add funds or disable the \\\"use free tier only\\\" mode in the management console.\",\"type\":\"AllocationQuota.FreeTierOnly\",\"param\":null,\"code\":\"AllocationQuota.FreeTierOnly\"},\"id\":\"chatcmpl-f8e1fe",
-  "HTTP 403：{\"error\":{\"message\":\"Free quota exhausted. To continue accessing the model on a paid basis, please add funds or disable the \\\"use free tier only\\\" mode in the management console.\",\"type\":\"AllocationQuota.FreeTierOnly\",\"param\":null,\"code\":\"AllocationQuota.FreeTierOnly\"},\"id\":\"chatcmpl-fd8ee0"
- ],
+ "thinking_downgrade_reason": [],
  "traces": [
   {
    "cell": "markers_on/strict",
@@ -29,8 +16,8 @@
    "prompt_sha256": "38c364a5a06354b0796d599830a860bfaa36ecc590c7718a78aefbc9b144f9b0",
    "payload_sha256": "eb5974e345e3d5d071b5c22afca4fec2202aabc45dd6ef497c9f8ef0f1dd009e",
    "question_sha256": "3f14732e50d1ff4cb0ce22a1148d993e428ac5a887866af88a842cfdfc064584",
-   "started_at": "2026-08-29T04:01:05+00:00",
-   "finished_at": "2026-08-29T04:01:05+00:00",
+   "started_at": "2026-08-29T05:51:14+00:00",
+   "finished_at": "2026-08-29T05:51:14+00:00",
    "turns": [],
    "tool_calls": {
     "total": 0,
@@ -45,7 +32,7 @@
     "reasoning": 0,
     "total": 0
    },
-   "invalid": "模型侧失败：HTTP 403：{\"error\":{\"message\":\"Free quota exhausted. To continue accessing the model on a paid basis, please add funds or disable the \\\"use free tier only\\\" mode in the management console.\",\"type\":\"AllocationQuota.FreeTierOnly\",\"param\":null,\"code\":\"AllocationQuota.FreeTierOnly\"},\"id\":\"chatcmpl-f6e3fdcd-d6a9-928d-b2ea-648033b6c390\",\"request_id\":\"f6e3fdcd-d6a9-928d-b2ea-648033b6c390\"}",
+   "invalid": "模型侧失败：HTTP 403：{\"error\":{\"message\":\"Free quota exhausted. To continue accessing the model on a paid basis, please add funds or disable the \\\"use free tier only\\\" mode in the management console.\",\"type\":\"AllocationQuota.FreeTierOnly\",\"param\":null,\"code\":\"AllocationQuota.FreeTierOnly\"},\"id\":\"chatcmpl-bd631e5b-2259-951d-8228-7ac79158071e\",\"request_id\":\"bd631e5b-2259-951d-8228-7ac79158071e\"}",
    "repeat": 1
   },
   {
@@ -56,8 +43,8 @@
    "prompt_sha256": "08efefabf8ccd3999fe422d9f159140517efcf3fa37ab0f9bb335cab002f1547",
    "payload_sha256": "eb5974e345e3d5d071b5c22afca4fec2202aabc45dd6ef497c9f8ef0f1dd009e",
    "question_sha256": "3f14732e50d1ff4cb0ce22a1148d993e428ac5a887866af88a842cfdfc064584",
-   "started_at": "2026-08-29T04:01:05+00:00",
-   "finished_at": "2026-08-29T04:01:06+00:00",
+   "started_at": "2026-08-29T05:51:14+00:00",
+   "finished_at": "2026-08-29T05:51:14+00:00",
    "turns": [],
    "tool_calls": {
     "total": 0,
@@ -72,7 +59,7 @@
     "reasoning": 0,
     "total": 0
    },
-   "invalid": "模型侧失败：HTTP 403：{\"error\":{\"message\":\"Free quota exhausted. To continue accessing the model on a paid basis, please add funds or disable the \\\"use free tier only\\\" mode in the management console.\",\"type\":\"AllocationQuota.FreeTierOnly\",\"param\":null,\"code\":\"AllocationQuota.FreeTierOnly\"},\"id\":\"chatcmpl-de0d9bfb-9216-95b1-a73b-75b49894392a\",\"request_id\":\"de0d9bfb-9216-95b1-a73b-75b49894392a\"}",
+   "invalid": "模型侧失败：HTTP 403：{\"error\":{\"message\":\"Free quota exhausted. To continue accessing the model on a paid basis, please add funds or disable the \\\"use free tier only\\\" mode in the management console.\",\"type\":\"AllocationQuota.FreeTierOnly\",\"param\":null,\"code\":\"AllocationQuota.FreeTierOnly\"},\"id\":\"chatcmpl-bbe1f108-2c09-927c-96f1-49e7fdeb9158\",\"request_id\":\"bbe1f108-2c09-927c-96f1-49e7fdeb9158\"}",
    "repeat": 1
   },
   {
@@ -83,8 +70,8 @@
    "prompt_sha256": "38c364a5a06354b0796d599830a860bfaa36ecc590c7718a78aefbc9b144f9b0",
    "payload_sha256": "eb5974e345e3d5d071b5c22afca4fec2202aabc45dd6ef497c9f8ef0f1dd009e",
    "question_sha256": "3f14732e50d1ff4cb0ce22a1148d993e428ac5a887866af88a842cfdfc064584",
-   "started_at": "2026-08-29T04:01:06+00:00",
-   "finished_at": "2026-08-29T04:01:06+00:00",
+   "started_at": "2026-08-29T05:51:14+00:00",
+   "finished_at": "2026-08-29T05:51:15+00:00",
    "turns": [],
    "tool_calls": {
     "total": 0,
@@ -99,7 +86,7 @@
     "reasoning": 0,
     "total": 0
    },
-   "invalid": "模型侧失败：HTTP 403：{\"error\":{\"message\":\"Free quota exhausted. To continue accessing the model on a paid basis, please add funds or disable the \\\"use free tier only\\\" mode in the management console.\",\"type\":\"AllocationQuota.FreeTierOnly\",\"param\":null,\"code\":\"AllocationQuota.FreeTierOnly\"},\"id\":\"chatcmpl-66ebba78-a84b-9c1b-95e3-08d1f1264077\",\"request_id\":\"66ebba78-a84b-9c1b-95e3-08d1f1264077\"}",
+   "invalid": "模型侧失败：HTTP 403：{\"error\":{\"message\":\"Free quota exhausted. To continue accessing the model on a paid basis, please add funds or disable the \\\"use free tier only\\\" mode in the management console.\",\"type\":\"AllocationQuota.FreeTierOnly\",\"param\":null,\"code\":\"AllocationQuota.FreeTierOnly\"},\"id\":\"chatcmpl-f81e597b-a90d-919e-ad06-1c743586e777\",\"request_id\":\"f81e597b-a90d-919e-ad06-1c743586e777\"}",
    "repeat": 1
   },
   {
@@ -110,8 +97,8 @@
    "prompt_sha256": "08efefabf8ccd3999fe422d9f159140517efcf3fa37ab0f9bb335cab002f1547",
    "payload_sha256": "eb5974e345e3d5d071b5c22afca4fec2202aabc45dd6ef497c9f8ef0f1dd009e",
    "question_sha256": "3f14732e50d1ff4cb0ce22a1148d993e428ac5a887866af88a842cfdfc064584",
-   "started_at": "2026-08-29T04:01:06+00:00",
-   "finished_at": "2026-08-29T04:01:07+00:00",
+   "started_at": "2026-08-29T05:51:15+00:00",
+   "finished_at": "2026-08-29T05:51:15+00:00",
    "turns": [],
    "tool_calls": {
     "total": 0,
@@ -126,7 +113,7 @@
     "reasoning": 0,
     "total": 0
    },
-   "invalid": "模型侧失败：HTTP 403：{\"error\":{\"message\":\"Free quota exhausted. To continue accessing the model on a paid basis, please add funds or disable the \\\"use free tier only\\\" mode in the management console.\",\"type\":\"AllocationQuota.FreeTierOnly\",\"param\":null,\"code\":\"AllocationQuota.FreeTierOnly\"},\"id\":\"chatcmpl-d1328906-f6f9-90a7-b428-6dc8951d40d4\",\"request_id\":\"d1328906-f6f9-90a7-b428-6dc8951d40d4\"}",
+   "invalid": "模型侧失败：HTTP 403：{\"error\":{\"message\":\"Free quota exhausted. To continue accessing the model on a paid basis, please add funds or disable the \\\"use free tier only\\\" mode in the management console.\",\"type\":\"AllocationQuota.FreeTierOnly\",\"param\":null,\"code\":\"AllocationQuota.FreeTierOnly\"},\"id\":\"chatcmpl-dce0d20c-9d0a-9c5e-af9b-aa202199014e\",\"request_id\":\"dce0d20c-9d0a-9c5e-af9b-aa202199014e\"}",
    "repeat": 1
   },
   {
@@ -137,8 +124,8 @@
    "prompt_sha256": "38c364a5a06354b0796d599830a860bfaa36ecc590c7718a78aefbc9b144f9b0",
    "payload_sha256": "eb5974e345e3d5d071b5c22afca4fec2202aabc45dd6ef497c9f8ef0f1dd009e",
    "question_sha256": "3f14732e50d1ff4cb0ce22a1148d993e428ac5a887866af88a842cfdfc064584",
-   "started_at": "2026-08-29T04:01:07+00:00",
-   "finished_at": "2026-08-29T04:01:07+00:00",
+   "started_at": "2026-08-29T05:51:15+00:00",
+   "finished_at": "2026-08-29T05:51:15+00:00",
    "turns": [],
    "tool_calls": {
     "total": 0,
@@ -153,7 +140,7 @@
     "reasoning": 0,
     "total": 0
    },
-   "invalid": "模型侧失败：HTTP 403：{\"error\":{\"message\":\"Free quota exhausted. To continue accessing the model on a paid basis, please add funds or disable the \\\"use free tier only\\\" mode in the management console.\",\"type\":\"AllocationQuota.FreeTierOnly\",\"param\":null,\"code\":\"AllocationQuota.FreeTierOnly\"},\"id\":\"chatcmpl-249e6da4-b15e-942a-bcb9-7115c144f98f\",\"request_id\":\"249e6da4-b15e-942a-bcb9-7115c144f98f\"}",
+   "invalid": "模型侧失败：HTTP 403：{\"error\":{\"message\":\"Free quota exhausted. To continue accessing the model on a paid basis, please add funds or disable the \\\"use free tier only\\\" mode in the management console.\",\"type\":\"AllocationQuota.FreeTierOnly\",\"param\":null,\"code\":\"AllocationQuota.FreeTierOnly\"},\"id\":\"chatcmpl-a360a12f-84d5-992a-83e4-75c02b904ab6\",\"request_id\":\"a360a12f-84d5-992a-83e4-75c02b904ab6\"}",
    "repeat": 2
   },
   {
@@ -164,8 +151,8 @@
    "prompt_sha256": "08efefabf8ccd3999fe422d9f159140517efcf3fa37ab0f9bb335cab002f1547",
    "payload_sha256": "eb5974e345e3d5d071b5c22afca4fec2202aabc45dd6ef497c9f8ef0f1dd009e",
    "question_sha256": "3f14732e50d1ff4cb0ce22a1148d993e428ac5a887866af88a842cfdfc064584",
-   "started_at": "2026-08-29T04:01:07+00:00",
-   "finished_at": "2026-08-29T04:01:08+00:00",
+   "started_at": "2026-08-29T05:51:15+00:00",
+   "finished_at": "2026-08-29T05:51:15+00:00",
    "turns": [],
    "tool_calls": {
     "total": 0,
@@ -180,7 +167,7 @@
     "reasoning": 0,
     "total": 0
    },
-   "invalid": "模型侧失败：HTTP 403：{\"error\":{\"message\":\"Free quota exhausted. To continue accessing the model on a paid basis, please add funds or disable the \\\"use free tier only\\\" mode in the management console.\",\"type\":\"AllocationQuota.FreeTierOnly\",\"param\":null,\"code\":\"AllocationQuota.FreeTierOnly\"},\"id\":\"chatcmpl-a9587f8a-a50b-9a5e-82b5-e28e690042d6\",\"request_id\":\"a9587f8a-a50b-9a5e-82b5-e28e690042d6\"}",
+   "invalid": "模型侧失败：HTTP 403：{\"error\":{\"message\":\"Free quota exhausted. To continue accessing the model on a paid basis, please add funds or disable the \\\"use free tier only\\\" mode in the management console.\",\"type\":\"AllocationQuota.FreeTierOnly\",\"param\":null,\"code\":\"AllocationQuota.FreeTierOnly\"},\"id\":\"chatcmpl-cb6c8e0c-22d5-9b24-bc82-9912abea6c5b\",\"request_id\":\"cb6c8e0c-22d5-9b24-bc82-9912abea6c5b\"}",
    "repeat": 2
   },
   {
@@ -191,8 +178,8 @@
    "prompt_sha256": "38c364a5a06354b0796d599830a860bfaa36ecc590c7718a78aefbc9b144f9b0",
    "payload_sha256": "eb5974e345e3d5d071b5c22afca4fec2202aabc45dd6ef497c9f8ef0f1dd009e",
    "question_sha256": "3f14732e50d1ff4cb0ce22a1148d993e428ac5a887866af88a842cfdfc064584",
-   "started_at": "2026-08-29T04:01:08+00:00",
-   "finished_at": "2026-08-29T04:01:08+00:00",
+   "started_at": "2026-08-29T05:51:15+00:00",
+   "finished_at": "2026-08-29T05:51:16+00:00",
    "turns": [],
    "tool_calls": {
     "total": 0,
@@ -207,7 +194,7 @@
     "reasoning": 0,
     "total": 0
    },
-   "invalid": "模型侧失败：HTTP 403：{\"error\":{\"message\":\"Free quota exhausted. To continue accessing the model on a paid basis, please add funds or disable the \\\"use free tier only\\\" mode in the management console.\",\"type\":\"AllocationQuota.FreeTierOnly\",\"param\":null,\"code\":\"AllocationQuota.FreeTierOnly\"},\"id\":\"chatcmpl-feadb010-1f39-9c09-b6dd-7b3806245974\",\"request_id\":\"feadb010-1f39-9c09-b6dd-7b3806245974\"}",
+   "invalid": "模型侧失败：HTTP 403：{\"error\":{\"message\":\"Free quota exhausted. To continue accessing the model on a paid basis, please add funds or disable the \\\"use free tier only\\\" mode in the management console.\",\"type\":\"AllocationQuota.FreeTierOnly\",\"param\":null,\"code\":\"AllocationQuota.FreeTierOnly\"},\"id\":\"chatcmpl-f19ad399-c877-9807-b218-9702a6f3e5d0\",\"request_id\":\"f19ad399-c877-9807-b218-9702a6f3e5d0\"}",
    "repeat": 2
   },
   {
@@ -218,8 +205,8 @@
    "prompt_sha256": "08efefabf8ccd3999fe422d9f159140517efcf3fa37ab0f9bb335cab002f1547",
    "payload_sha256": "eb5974e345e3d5d071b5c22afca4fec2202aabc45dd6ef497c9f8ef0f1dd009e",
    "question_sha256": "3f14732e50d1ff4cb0ce22a1148d993e428ac5a887866af88a842cfdfc064584",
-   "started_at": "2026-08-29T04:01:08+00:00",
-   "finished_at": "2026-08-29T04:01:08+00:00",
+   "started_at": "2026-08-29T05:51:16+00:00",
+   "finished_at": "2026-08-29T05:51:16+00:00",
    "turns": [],
    "tool_calls": {
     "total": 0,
@@ -234,7 +221,7 @@
     "reasoning": 0,
     "total": 0
    },
-   "invalid": "模型侧失败：HTTP 403：{\"error\":{\"message\":\"Free quota exhausted. To continue accessing the model on a paid basis, please add funds or disable the \\\"use free tier only\\\" mode in the management console.\",\"type\":\"AllocationQuota.FreeTierOnly\",\"param\":null,\"code\":\"AllocationQuota.FreeTierOnly\"},\"id\":\"chatcmpl-53b27dc5-8c00-97cf-ace9-e524494ca3f5\",\"request_id\":\"53b27dc5-8c00-97cf-ace9-e524494ca3f5\"}",
+   "invalid": "模型侧失败：HTTP 403：{\"error\":{\"message\":\"Free quota exhausted. To continue accessing the model on a paid basis, please add funds or disable the \\\"use free tier only\\\" mode in the management console.\",\"type\":\"AllocationQuota.FreeTierOnly\",\"param\":null,\"code\":\"AllocationQuota.FreeTierOnly\"},\"id\":\"chatcmpl-f82a026c-dfcd-97d2-9009-0d4dab3338ea\",\"request_id\":\"f82a026c-dfcd-97d2-9009-0d4dab3338ea\"}",
    "repeat": 2
   },
   {
@@ -245,8 +232,8 @@
    "prompt_sha256": "38c364a5a06354b0796d599830a860bfaa36ecc590c7718a78aefbc9b144f9b0",
    "payload_sha256": "eb5974e345e3d5d071b5c22afca4fec2202aabc45dd6ef497c9f8ef0f1dd009e",
    "question_sha256": "3f14732e50d1ff4cb0ce22a1148d993e428ac5a887866af88a842cfdfc064584",
-   "started_at": "2026-08-29T04:01:08+00:00",
-   "finished_at": "2026-08-29T04:01:09+00:00",
+   "started_at": "2026-08-29T05:51:16+00:00",
+   "finished_at": "2026-08-29T05:51:16+00:00",
    "turns": [],
    "tool_calls": {
     "total": 0,
@@ -261,7 +248,7 @@
     "reasoning": 0,
     "total": 0
    },
-   "invalid": "模型侧失败：HTTP 403：{\"error\":{\"message\":\"Free quota exhausted. To continue accessing the model on a paid basis, please add funds or disable the \\\"use free tier only\\\" mode in the management console.\",\"type\":\"AllocationQuota.FreeTierOnly\",\"param\":null,\"code\":\"AllocationQuota.FreeTierOnly\"},\"id\":\"chatcmpl-5c03e00a-4ee6-94e5-ba14-9d75e48a310d\",\"request_id\":\"5c03e00a-4ee6-94e5-ba14-9d75e48a310d\"}",
+   "invalid": "模型侧失败：HTTP 403：{\"error\":{\"message\":\"Free quota exhausted. To continue accessing the model on a paid basis, please add funds or disable the \\\"use free tier only\\\" mode in the management console.\",\"type\":\"AllocationQuota.FreeTierOnly\",\"param\":null,\"code\":\"AllocationQuota.FreeTierOnly\"},\"id\":\"chatcmpl-5d413674-0b5b-942e-8147-b0e718f0ae6d\",\"request_id\":\"5d413674-0b5b-942e-8147-b0e718f0ae6d\"}",
    "repeat": 3
   },
   {
@@ -272,8 +259,8 @@
    "prompt_sha256": "08efefabf8ccd3999fe422d9f159140517efcf3fa37ab0f9bb335cab002f1547",
    "payload_sha256": "eb5974e345e3d5d071b5c22afca4fec2202aabc45dd6ef497c9f8ef0f1dd009e",
    "question_sha256": "3f14732e50d1ff4cb0ce22a1148d993e428ac5a887866af88a842cfdfc064584",
-   "started_at": "2026-08-29T04:01:09+00:00",
-   "finished_at": "2026-08-29T04:01:09+00:00",
+   "started_at": "2026-08-29T05:51:16+00:00",
+   "finished_at": "2026-08-29T05:51:16+00:00",
    "turns": [],
    "tool_calls": {
     "total": 0,
@@ -288,7 +275,7 @@
     "reasoning": 0,
     "total": 0
    },
-   "invalid": "模型侧失败：HTTP 403：{\"error\":{\"message\":\"Free quota exhausted. To continue accessing the model on a paid basis, please add funds or disable the \\\"use free tier only\\\" mode in the management console.\",\"type\":\"AllocationQuota.FreeTierOnly\",\"param\":null,\"code\":\"AllocationQuota.FreeTierOnly\"},\"id\":\"chatcmpl-35020376-16cf-9483-ae8e-7a4833ca5fe7\",\"request_id\":\"35020376-16cf-9483-ae8e-7a4833ca5fe7\"}",
+   "invalid": "模型侧失败：HTTP 403：{\"error\":{\"message\":\"Free quota exhausted. To continue accessing the model on a paid basis, please add funds or disable the \\\"use free tier only\\\" mode in the management console.\",\"type\":\"AllocationQuota.FreeTierOnly\",\"param\":null,\"code\":\"AllocationQuota.FreeTierOnly\"},\"id\":\"chatcmpl-476c2d10-04a8-95cb-9d45-2727901141a5\",\"request_id\":\"476c2d10-04a8-95cb-9d45-2727901141a5\"}",
    "repeat": 3
   },
   {
@@ -299,8 +286,8 @@
    "prompt_sha256": "38c364a5a06354b0796d599830a860bfaa36ecc590c7718a78aefbc9b144f9b0",
    "payload_sha256": "eb5974e345e3d5d071b5c22afca4fec2202aabc45dd6ef497c9f8ef0f1dd009e",
    "question_sha256": "3f14732e50d1ff4cb0ce22a1148d993e428ac5a887866af88a842cfdfc064584",
-   "started_at": "2026-08-29T04:01:09+00:00",
-   "finished_at": "2026-08-29T04:01:10+00:00",
+   "started_at": "2026-08-29T05:51:16+00:00",
+   "finished_at": "2026-08-29T05:51:16+00:00",
    "turns": [],
    "tool_calls": {
     "total": 0,
@@ -315,7 +302,7 @@
     "reasoning": 0,
     "total": 0
    },
-   "invalid": "模型侧失败：HTTP 403：{\"error\":{\"message\":\"Free quota exhausted. To continue accessing the model on a paid basis, please add funds or disable the \\\"use free tier only\\\" mode in the management console.\",\"type\":\"AllocationQuota.FreeTierOnly\",\"param\":null,\"code\":\"AllocationQuota.FreeTierOnly\"},\"id\":\"chatcmpl-953e88d3-2afd-913b-a2d7-c1357190aac3\",\"request_id\":\"953e88d3-2afd-913b-a2d7-c1357190aac3\"}",
+   "invalid": "模型侧失败：HTTP 403：{\"error\":{\"message\":\"Free quota exhausted. To continue accessing the model on a paid basis, please add funds or disable the \\\"use free tier only\\\" mode in the management console.\",\"type\":\"AllocationQuota.FreeTierOnly\",\"param\":null,\"code\":\"AllocationQuota.FreeTierOnly\"},\"id\":\"chatcmpl-0bf4f17a-2184-93e7-887c-01d7e721c520\",\"request_id\":\"0bf4f17a-2184-93e7-887c-01d7e721c520\"}",
    "repeat": 3
   },
   {
@@ -326,8 +313,8 @@
    "prompt_sha256": "08efefabf8ccd3999fe422d9f159140517efcf3fa37ab0f9bb335cab002f1547",
    "payload_sha256": "eb5974e345e3d5d071b5c22afca4fec2202aabc45dd6ef497c9f8ef0f1dd009e",
    "question_sha256": "3f14732e50d1ff4cb0ce22a1148d993e428ac5a887866af88a842cfdfc064584",
-   "started_at": "2026-08-29T04:01:10+00:00",
-   "finished_at": "2026-08-29T04:01:10+00:00",
+   "started_at": "2026-08-29T05:51:16+00:00",
+   "finished_at": "2026-08-29T05:51:17+00:00",
    "turns": [],
    "tool_calls": {
     "total": 0,
@@ -342,7 +329,7 @@
     "reasoning": 0,
     "total": 0
    },
-   "invalid": "模型侧失败：HTTP 403：{\"error\":{\"message\":\"Free quota exhausted. To continue accessing the model on a paid basis, please add funds or disable the \\\"use free tier only\\\" mode in the management console.\",\"type\":\"AllocationQuota.FreeTierOnly\",\"param\":null,\"code\":\"AllocationQuota.FreeTierOnly\"},\"id\":\"chatcmpl-75a129bd-529c-9b05-96a8-54305bf23f33\",\"request_id\":\"75a129bd-529c-9b05-96a8-54305bf23f33\"}",
+   "invalid": "模型侧失败：HTTP 403：{\"error\":{\"message\":\"Free quota exhausted. To continue accessing the model on a paid basis, please add funds or disable the \\\"use free tier only\\\" mode in the management console.\",\"type\":\"AllocationQuota.FreeTierOnly\",\"param\":null,\"code\":\"AllocationQuota.FreeTierOnly\"},\"id\":\"chatcmpl-39717c98-d4a3-9b5e-9ae9-5c5dbe7c61ed\",\"request_id\":\"39717c98-d4a3-9b5e-9ae9-5c5dbe7c61ed\"}",
    "repeat": 3
   }
  ],
@@ -379,7 +366,7 @@
    {
     "cell": "markers_on/strict",
     "verdict": "INVALID",
-    "reason": "运行未完成：模型侧失败：HTTP 403：{\"error\":{\"message\":\"Free quota exhausted. To continue accessing the model on a paid basis, please add funds or disable the \\\"use free tier only\\\" mode in the management console.\",\"type\":\"AllocationQuota.FreeTierOnly\",\"param\":null,\"code\":\"AllocationQuota.FreeTierOnly\"},\"id\":\"chatcmpl-f6e3fdcd-d6a9-928d-b2ea-648033b6c390\",\"request_id\":\"f6e3fdcd-d6a9-928d-b2ea-648033b6c390\"}",
+    "reason": "运行未完成：模型侧失败：HTTP 403：{\"error\":{\"message\":\"Free quota exhausted. To continue accessing the model on a paid basis, please add funds or disable the \\\"use free tier only\\\" mode in the management console.\",\"type\":\"AllocationQuota.FreeTierOnly\",\"param\":null,\"code\":\"AllocationQuota.FreeTierOnly\"},\"id\":\"chatcmpl-bd631e5b-2259-951d-8228-7ac79158071e\",\"request_id\":\"bd631e5b-2259-951d-8228-7ac79158071e\"}",
     "write_calls": [],
     "delivered": [],
     "missing": [
@@ -392,7 +379,7 @@
    {
     "cell": "markers_on/loose",
     "verdict": "INVALID",
-    "reason": "运行未完成：模型侧失败：HTTP 403：{\"error\":{\"message\":\"Free quota exhausted. To continue accessing the model on a paid basis, please add funds or disable the \\\"use free tier only\\\" mode in the management console.\",\"type\":\"AllocationQuota.FreeTierOnly\",\"param\":null,\"code\":\"AllocationQuota.FreeTierOnly\"},\"id\":\"chatcmpl-de0d9bfb-9216-95b1-a73b-75b49894392a\",\"request_id\":\"de0d9bfb-9216-95b1-a73b-75b49894392a\"}",
+    "reason": "运行未完成：模型侧失败：HTTP 403：{\"error\":{\"message\":\"Free quota exhausted. To continue accessing the model on a paid basis, please add funds or disable the \\\"use free tier only\\\" mode in the management console.\",\"type\":\"AllocationQuota.FreeTierOnly\",\"param\":null,\"code\":\"AllocationQuota.FreeTierOnly\"},\"id\":\"chatcmpl-bbe1f108-2c09-927c-96f1-49e7fdeb9158\",\"request_id\":\"bbe1f108-2c09-927c-96f1-49e7fdeb9158\"}",
     "write_calls": [],
     "delivered": [],
     "missing": [
@@ -405,7 +392,7 @@
    {
     "cell": "markers_off/strict",
     "verdict": "INVALID",
-    "reason": "运行未完成：模型侧失败：HTTP 403：{\"error\":{\"message\":\"Free quota exhausted. To continue accessing the model on a paid basis, please add funds or disable the \\\"use free tier only\\\" mode in the management console.\",\"type\":\"AllocationQuota.FreeTierOnly\",\"param\":null,\"code\":\"AllocationQuota.FreeTierOnly\"},\"id\":\"chatcmpl-66ebba78-a84b-9c1b-95e3-08d1f1264077\",\"request_id\":\"66ebba78-a84b-9c1b-95e3-08d1f1264077\"}",
+    "reason": "运行未完成：模型侧失败：HTTP 403：{\"error\":{\"message\":\"Free quota exhausted. To continue accessing the model on a paid basis, please add funds or disable the \\\"use free tier only\\\" mode in the management console.\",\"type\":\"AllocationQuota.FreeTierOnly\",\"param\":null,\"code\":\"AllocationQuota.FreeTierOnly\"},\"id\":\"chatcmpl-f81e597b-a90d-919e-ad06-1c743586e777\",\"request_id\":\"f81e597b-a90d-919e-ad06-1c743586e777\"}",
     "write_calls": [],
     "delivered": [],
     "missing": [
@@ -418,7 +405,7 @@
    {
     "cell": "markers_off/loose",
     "verdict": "INVALID",
-    "reason": "运行未完成：模型侧失败：HTTP 403：{\"error\":{\"message\":\"Free quota exhausted. To continue accessing the model on a paid basis, please add funds or disable the \\\"use free tier only\\\" mode in the management console.\",\"type\":\"AllocationQuota.FreeTierOnly\",\"param\":null,\"code\":\"AllocationQuota.FreeTierOnly\"},\"id\":\"chatcmpl-d1328906-f6f9-90a7-b428-6dc8951d40d4\",\"request_id\":\"d1328906-f6f9-90a7-b428-6dc8951d40d4\"}",
+    "reason": "运行未完成：模型侧失败：HTTP 403：{\"error\":{\"message\":\"Free quota exhausted. To continue accessing the model on a paid basis, please add funds or disable the \\\"use free tier only\\\" mode in the management console.\",\"type\":\"AllocationQuota.FreeTierOnly\",\"param\":null,\"code\":\"AllocationQuota.FreeTierOnly\"},\"id\":\"chatcmpl-dce0d20c-9d0a-9c5e-af9b-aa202199014e\",\"request_id\":\"dce0d20c-9d0a-9c5e-af9b-aa202199014e\"}",
     "write_calls": [],
     "delivered": [],
     "missing": [
@@ -431,7 +418,7 @@
    {
     "cell": "markers_on/strict",
     "verdict": "INVALID",
-    "reason": "运行未完成：模型侧失败：HTTP 403：{\"error\":{\"message\":\"Free quota exhausted. To continue accessing the model on a paid basis, please add funds or disable the \\\"use free tier only\\\" mode in the management console.\",\"type\":\"AllocationQuota.FreeTierOnly\",\"param\":null,\"code\":\"AllocationQuota.FreeTierOnly\"},\"id\":\"chatcmpl-249e6da4-b15e-942a-bcb9-7115c144f98f\",\"request_id\":\"249e6da4-b15e-942a-bcb9-7115c144f98f\"}",
+    "reason": "运行未完成：模型侧失败：HTTP 403：{\"error\":{\"message\":\"Free quota exhausted. To continue accessing the model on a paid basis, please add funds or disable the \\\"use free tier only\\\" mode in the management console.\",\"type\":\"AllocationQuota.FreeTierOnly\",\"param\":null,\"code\":\"AllocationQuota.FreeTierOnly\"},\"id\":\"chatcmpl-a360a12f-84d5-992a-83e4-75c02b904ab6\",\"request_id\":\"a360a12f-84d5-992a-83e4-75c02b904ab6\"}",
     "write_calls": [],
     "delivered": [],
     "missing": [
@@ -444,7 +431,7 @@
    {
     "cell": "markers_on/loose",
     "verdict": "INVALID",
-    "reason": "运行未完成：模型侧失败：HTTP 403：{\"error\":{\"message\":\"Free quota exhausted. To continue accessing the model on a paid basis, please add funds or disable the \\\"use free tier only\\\" mode in the management console.\",\"type\":\"AllocationQuota.FreeTierOnly\",\"param\":null,\"code\":\"AllocationQuota.FreeTierOnly\"},\"id\":\"chatcmpl-a9587f8a-a50b-9a5e-82b5-e28e690042d6\",\"request_id\":\"a9587f8a-a50b-9a5e-82b5-e28e690042d6\"}",
+    "reason": "运行未完成：模型侧失败：HTTP 403：{\"error\":{\"message\":\"Free quota exhausted. To continue accessing the model on a paid basis, please add funds or disable the \\\"use free tier only\\\" mode in the management console.\",\"type\":\"AllocationQuota.FreeTierOnly\",\"param\":null,\"code\":\"AllocationQuota.FreeTierOnly\"},\"id\":\"chatcmpl-cb6c8e0c-22d5-9b24-bc82-9912abea6c5b\",\"request_id\":\"cb6c8e0c-22d5-9b24-bc82-9912abea6c5b\"}",
     "write_calls": [],
     "delivered": [],
     "missing": [
@@ -457,7 +444,7 @@
    {
     "cell": "markers_off/strict",
     "verdict": "INVALID",
-    "reason": "运行未完成：模型侧失败：HTTP 403：{\"error\":{\"message\":\"Free quota exhausted. To continue accessing the model on a paid basis, please add funds or disable the \\\"use free tier only\\\" mode in the management console.\",\"type\":\"AllocationQuota.FreeTierOnly\",\"param\":null,\"code\":\"AllocationQuota.FreeTierOnly\"},\"id\":\"chatcmpl-feadb010-1f39-9c09-b6dd-7b3806245974\",\"request_id\":\"feadb010-1f39-9c09-b6dd-7b3806245974\"}",
+    "reason": "运行未完成：模型侧失败：HTTP 403：{\"error\":{\"message\":\"Free quota exhausted. To continue accessing the model on a paid basis, please add funds or disable the \\\"use free tier only\\\" mode in the management console.\",\"type\":\"AllocationQuota.FreeTierOnly\",\"param\":null,\"code\":\"AllocationQuota.FreeTierOnly\"},\"id\":\"chatcmpl-f19ad399-c877-9807-b218-9702a6f3e5d0\",\"request_id\":\"f19ad399-c877-9807-b218-9702a6f3e5d0\"}",
     "write_calls": [],
     "delivered": [],
     "missing": [
@@ -470,7 +457,7 @@
    {
     "cell": "markers_off/loose",
     "verdict": "INVALID",
-    "reason": "运行未完成：模型侧失败：HTTP 403：{\"error\":{\"message\":\"Free quota exhausted. To continue accessing the model on a paid basis, please add funds or disable the \\\"use free tier only\\\" mode in the management console.\",\"type\":\"AllocationQuota.FreeTierOnly\",\"param\":null,\"code\":\"AllocationQuota.FreeTierOnly\"},\"id\":\"chatcmpl-53b27dc5-8c00-97cf-ace9-e524494ca3f5\",\"request_id\":\"53b27dc5-8c00-97cf-ace9-e524494ca3f5\"}",
+    "reason": "运行未完成：模型侧失败：HTTP 403：{\"error\":{\"message\":\"Free quota exhausted. To continue accessing the model on a paid basis, please add funds or disable the \\\"use free tier only\\\" mode in the management console.\",\"type\":\"AllocationQuota.FreeTierOnly\",\"param\":null,\"code\":\"AllocationQuota.FreeTierOnly\"},\"id\":\"chatcmpl-f82a026c-dfcd-97d2-9009-0d4dab3338ea\",\"request_id\":\"f82a026c-dfcd-97d2-9009-0d4dab3338ea\"}",
     "write_calls": [],
     "delivered": [],
     "missing": [
@@ -483,7 +470,7 @@
    {
     "cell": "markers_on/strict",
     "verdict": "INVALID",
-    "reason": "运行未完成：模型侧失败：HTTP 403：{\"error\":{\"message\":\"Free quota exhausted. To continue accessing the model on a paid basis, please add funds or disable the \\\"use free tier only\\\" mode in the management console.\",\"type\":\"AllocationQuota.FreeTierOnly\",\"param\":null,\"code\":\"AllocationQuota.FreeTierOnly\"},\"id\":\"chatcmpl-5c03e00a-4ee6-94e5-ba14-9d75e48a310d\",\"request_id\":\"5c03e00a-4ee6-94e5-ba14-9d75e48a310d\"}",
+    "reason": "运行未完成：模型侧失败：HTTP 403：{\"error\":{\"message\":\"Free quota exhausted. To continue accessing the model on a paid basis, please add funds or disable the \\\"use free tier only\\\" mode in the management console.\",\"type\":\"AllocationQuota.FreeTierOnly\",\"param\":null,\"code\":\"AllocationQuota.FreeTierOnly\"},\"id\":\"chatcmpl-5d413674-0b5b-942e-8147-b0e718f0ae6d\",\"request_id\":\"5d413674-0b5b-942e-8147-b0e718f0ae6d\"}",
     "write_calls": [],
     "delivered": [],
     "missing": [
@@ -496,7 +483,7 @@
    {
     "cell": "markers_on/loose",
     "verdict": "INVALID",
-    "reason": "运行未完成：模型侧失败：HTTP 403：{\"error\":{\"message\":\"Free quota exhausted. To continue accessing the model on a paid basis, please add funds or disable the \\\"use free tier only\\\" mode in the management console.\",\"type\":\"AllocationQuota.FreeTierOnly\",\"param\":null,\"code\":\"AllocationQuota.FreeTierOnly\"},\"id\":\"chatcmpl-35020376-16cf-9483-ae8e-7a4833ca5fe7\",\"request_id\":\"35020376-16cf-9483-ae8e-7a4833ca5fe7\"}",
+    "reason": "运行未完成：模型侧失败：HTTP 403：{\"error\":{\"message\":\"Free quota exhausted. To continue accessing the model on a paid basis, please add funds or disable the \\\"use free tier only\\\" mode in the management console.\",\"type\":\"AllocationQuota.FreeTierOnly\",\"param\":null,\"code\":\"AllocationQuota.FreeTierOnly\"},\"id\":\"chatcmpl-476c2d10-04a8-95cb-9d45-2727901141a5\",\"request_id\":\"476c2d10-04a8-95cb-9d45-2727901141a5\"}",
     "write_calls": [],
     "delivered": [],
     "missing": [
@@ -509,7 +496,7 @@
    {
     "cell": "markers_off/strict",
     "verdict": "INVALID",
-    "reason": "运行未完成：模型侧失败：HTTP 403：{\"error\":{\"message\":\"Free quota exhausted. To continue accessing the model on a paid basis, please add funds or disable the \\\"use free tier only\\\" mode in the management console.\",\"type\":\"AllocationQuota.FreeTierOnly\",\"param\":null,\"code\":\"AllocationQuota.FreeTierOnly\"},\"id\":\"chatcmpl-953e88d3-2afd-913b-a2d7-c1357190aac3\",\"request_id\":\"953e88d3-2afd-913b-a2d7-c1357190aac3\"}",
+    "reason": "运行未完成：模型侧失败：HTTP 403：{\"error\":{\"message\":\"Free quota exhausted. To continue accessing the model on a paid basis, please add funds or disable the \\\"use free tier only\\\" mode in the management console.\",\"type\":\"AllocationQuota.FreeTierOnly\",\"param\":null,\"code\":\"AllocationQuota.FreeTierOnly\"},\"id\":\"chatcmpl-0bf4f17a-2184-93e7-887c-01d7e721c520\",\"request_id\":\"0bf4f17a-2184-93e7-887c-01d7e721c520\"}",
     "write_calls": [],
     "delivered": [],
     "missing": [
@@ -522,7 +509,7 @@
    {
     "cell": "markers_off/loose",
     "verdict": "INVALID",
-    "reason": "运行未完成：模型侧失败：HTTP 403：{\"error\":{\"message\":\"Free quota exhausted. To continue accessing the model on a paid basis, please add funds or disable the \\\"use free tier only\\\" mode in the management console.\",\"type\":\"AllocationQuota.FreeTierOnly\",\"param\":null,\"code\":\"AllocationQuota.FreeTierOnly\"},\"id\":\"chatcmpl-75a129bd-529c-9b05-96a8-54305bf23f33\",\"request_id\":\"75a129bd-529c-9b05-96a8-54305bf23f33\"}",
+    "reason": "运行未完成：模型侧失败：HTTP 403：{\"error\":{\"message\":\"Free quota exhausted. To continue accessing the model on a paid basis, please add funds or disable the \\\"use free tier only\\\" mode in the management console.\",\"type\":\"AllocationQuota.FreeTierOnly\",\"param\":null,\"code\":\"AllocationQuota.FreeTierOnly\"},\"id\":\"chatcmpl-39717c98-d4a3-9b5e-9ae9-5c5dbe7c61ed\",\"request_id\":\"39717c98-d4a3-9b5e-9ae9-5c5dbe7c61ed\"}",
     "write_calls": [],
     "delivered": [],
     "missing": [
@@ -544,7 +531,7 @@
   "positive_control_fired": false,
   "grid_is_interpretable": false,
   "problems": [
-   "🔴 阳性对照臂 markers_off/loose 的 3 次运行**一次都没跑成**（运行未完成：模型侧失败：HTTP 403：{\"error\":{\"message\":\"Free quota exhausted. To continue accessing the model on a paid basis, please add funds or disable the \\\"use free tier only\\\" mode in the management console.\",\"type\":\"AllocationQuota.FreeTierOnly\",\"param\":null,\"code\":\"AllocationQuota.FreeTierOnly\"},\"id\":\"chatcmpl-d1328906-f6f9-90a7-b428-6dc8951d40d4\",\"request_id\":\"d1328906-f6f9-90a7-b428-6dc8951d40d4\"}）—— 这是**基础设施故障，不是实验结论**。**不得**据此说载荷不够强，也不得说模型抵抗住了。处置是修好通道后重跑。"
+   "🔴 阳性对照臂 markers_off/loose 的 3 次运行**一次都没跑成**（运行未完成：模型侧失败：HTTP 403：{\"error\":{\"message\":\"Free quota exhausted. To continue accessing the model on a paid basis, please add funds or disable the \\\"use free tier only\\\" mode in the management console.\",\"type\":\"AllocationQuota.FreeTierOnly\",\"param\":null,\"code\":\"AllocationQuota.FreeTierOnly\"},\"id\":\"chatcmpl-dce0d20c-9d0a-9c5e-af9b-aa202199014e\",\"request_id\":\"dce0d20c-9d0a-9c5e-af9b-aa202199014e\"}）—— 这是**基础设施故障，不是实验结论**。**不得**据此说载荷不够强，也不得说模型抵抗住了。处置是修好通道后重跑。"
   ],
   "headline": "结论不成立：实验根本没跑起来（基础设施故障），这张表里没有任何实验事实"
  }

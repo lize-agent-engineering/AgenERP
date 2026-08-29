@@ -250,6 +250,7 @@ Spike 02 实测（`claude:sonnet`，四道探针的通过态）：
 | `deepseek-v4-pro-0813` | `tool_calling` | 是 | **2026-08-28 实测**（人授权的第三批）：真发起 `meta_fields({"doctype": "Sales Order"})`；`reasoning_tokens = 41`。⚠️ 其余三项判不了，故不声明 |
 | `qwen3.8-2.4t-a95b` | `tool_calling` | 是 | **2026-08-28 实测**：真发起工具调用，`reasoning_tokens = 85`。⚠️ 观察一笔：它把 doctype 写成**中文「销售订单」**（同批另两个写英文名），站点上不存在那个名字。其余三项判不了，故不声明 |
 | `qwen3.7-flash-2026-07-15` | `tool_calling` | 是 | **2026-08-28 实测**：真发起工具调用，`reasoning_tokens = 356`。⚠️ 其余三项判不了，故不声明 |
+| `qwen-flash-character` | **（空集）—— 本表第一条「观测到不具备」的记录** | 否 | 🔴 **2026-08-29 P3.0 实测（人当场裁定退出模型池）**：它**驱动不了工具调用协议** —— 把六个工具名拼成一次调用（`"query.read, doc.get, meta_fields, doc_create, doc_submit, http.post"`）、发出过 `"* 工具1的名称 *"` 这种占位名、`doc.get` 不带参数。12 次运行里哨兵送达最好只有 **2/4**，四格全部作废（`docs/evidence/p3-injection/qwen-flash-character-final.json`）。`reasoning_tokens` 合计 **0** ⇒ 不计 reasoning。<br>⚠️ **空集与「未观测所以不声明」不是一回事，别混读**：摆放规矩 1 说的是「档案里没写的按不具备处理」，那覆盖的是**没看过**的模型；本行是**看过了，不行**。之所以要写进表里而不是继续留在表外 —— 表外等于「没人看过」，下一个人会再试一次。**本表此前只记正面观测，这是第一条负面的。** |
 | `qwen3:14b` | `tool_calling` | 否 | §12.3 Spike 03：JSON 动作协议稳定（结论 1），多跳追溯不够（结论 3）；长上下文与推理强度**本仓未观测，故不声明** |
 
 **摆放规矩，三条**：
