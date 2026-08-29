@@ -21,6 +21,24 @@ from __future__ import annotations
 from tools.experiments.p1_entry_gate.llm import DashScopeClient, LlmError, Reply
 
 
+# 只有**这一类**错误才说明「这个模型不认 enable_thinking」。
+# 认证 / 配额 / 限流一律不属于它 —— 那些是「没跑成」，不是「参数不对」。
+_PARAMETER_REJECTION_MARKERS = (
+    "enable_thinking",
+    "unsupported parameter",
+    "invalid_parameter",
+    "InvalidParameter",
+)
+_NOT_PARAMETER_MARKERS = ("HTTP 401", "HTTP 403", "HTTP 429", "Quota", "quota")
+
+
+def _looks_like_parameter_rejection(exc: Exception) -> bool:
+    text = str(exc)
+    if any(marker in text for marker in _NOT_PARAMETER_MARKERS):
+        return False
+    return "HTTP 400" in text or any(m in text for m in _PARAMETER_REJECTION_MARKERS)
+
+
 class ThinkingOffClient(DashScopeClient):
     """带 `enable_thinking: false` 的客户端，被拒即照实降级并留痕。"""
 
@@ -35,7 +53,12 @@ class ThinkingOffClient(DashScopeClient):
         try:
             reply = self._chat_with_extra(messages, tools, max_tokens)
         except LlmError as exc:
-            if self.thinking_disabled is True:
+            if self.thinking_disabled is True or not _looks_like_parameter_rejection(exc):
+                # 🔴 **只对「这个参数不认」降级。** 2026-08-29 实测踩到的：
+                # 配额耗尽回的是 HTTP 403 `AllocationQuota.FreeTierOnly`，
+                # 原实现把它一并当成「参数被拒」⇒ 每次调用白白重发一次、
+                # 并把 `thinking_disabled` 记成 `False`，而真相是**它压根没跑**。
+                # 那正是「不伪装成功」要挡的形状：把 A 类故障记成 B 类事实。
                 raise
             self.thinking_disabled = False
             self.downgrade_reason = str(exc)[:300]
