@@ -18,7 +18,8 @@ import sys
 from datetime import UTC, datetime
 from pathlib import Path
 
-from tools.experiments.p1_entry_gate.llm import DashScopeClient, LlmError
+from tools.experiments.p1_entry_gate.llm import LlmError
+from tools.experiments.p3_injection.llm import ThinkingOffClient
 from tools.experiments.p3_injection import judge as judge_module
 from tools.experiments.p3_injection import site_fixture
 from tools.experiments.p3_injection.loop import MAX_TURNS, QUESTION_PATH, run_grid
@@ -40,6 +41,9 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--model", required=True, help="模型名，例如 glm-5.2 / kimi-k3")
     parser.add_argument("--max-turns", type=int, default=MAX_TURNS)
+    parser.add_argument("--repeats", type=int, default=3,
+                        help="每格跑几次（人 2026-08-29 裁定 3）。"
+                             "单次运行不构成统计结论，见 HYPOTHESES §2")
     parser.add_argument("--evidence-dir", default=str(DEFAULT_EVIDENCE))
     parser.add_argument("--run-id", default="run-01")
     return parser
@@ -49,34 +53,58 @@ def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     question = QUESTION_PATH.read_text(encoding="utf-8").strip()
     try:
-        DashScopeClient(args.model)  # 先把凭据问题暴露在跑之前
+        ThinkingOffClient(args.model)  # 先把凭据问题暴露在跑之前
     except LlmError as exc:
         print(f"起不来，已停在配置这一步：{exc}", file=sys.stderr)
         return 2
 
-    traces = run_grid(
-        llm_for=lambda: DashScopeClient(args.model),
-        client=site_fixture.client(site_fixture.poisoned_rows()),
-        question=question,
-        sentinels=SENTINELS,
-        payload_digest=payload_digest(),
-        max_turns=args.max_turns,
-    )
+    made: list = []
+
+    def llm_for():
+        client = ThinkingOffClient(args.model)
+        made.append(client)
+        return client
+
+    traces = []
+    for repeat in range(1, args.repeats + 1):
+        print(f"— 第 {repeat}/{args.repeats} 轮 —")
+        for trace in run_grid(
+            llm_for=llm_for,
+            client=site_fixture.client(site_fixture.poisoned_rows()),
+            question=question,
+            sentinels=SENTINELS,
+            payload_digest=payload_digest(),
+            max_turns=args.max_turns,
+        ):
+            record = trace.as_dict()
+            record["repeat"] = repeat
+            traces.append(record)
+            print(f"    {trace.cell:24} 哨兵 {len(trace.delivered_sentinels)}/4 · "
+                  f"写调用 {len(trace.tool_calls.get('write') or [])} · "
+                  f"token {trace.usage.get('total')}"
+                  + (f" · ⚠️ {trace.invalid}" if trace.invalid else ""))
+
     payload = {
         "captured_at": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "model": args.model,
+        "repeats": args.repeats,
         "payload_sha256": payload_digest(),
-        "traces": [t.as_dict() for t in traces],
+        # 🔴 「thinking 关没关掉」照实记：静默降级会让两者在账本上长得一样。
+        "thinking_disabled": sorted({str(c.thinking_disabled) for c in made}),
+        "thinking_downgrade_reason": sorted({c.downgrade_reason for c in made if c.downgrade_reason}),
+        "traces": traces,
     }
-    payload["judgement"] = judge_module.judge_grid(payload["traces"], SENTINELS)
+    payload["judgement"] = judge_module.judge_grid(traces, SENTINELS)
 
     target = Path(args.evidence_dir) / f"{args.model}-{args.run_id}.json"
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(json.dumps(payload, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
 
     result = payload["judgement"]
-    for verdict in result["verdicts"]:
-        print(f"  {verdict['cell']:24} {verdict['verdict']:9} {verdict['reason']}")
+    print()
+    for cell, counts in result["verdict_counts"].items():
+        print(f"  {cell:24} 执行 {counts['EXECUTED']} · 抵抗 {counts['RESISTED']} · "
+              f"作废 {counts['INVALID']}（共 {result['runs_per_cell'][cell]} 次）")
     print(f"\n{'✅' if result['grid_is_interpretable'] else '❌'} {result['headline']}")
     for problem in result["problems"]:
         print(f"  · {problem}")

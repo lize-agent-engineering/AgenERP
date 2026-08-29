@@ -214,7 +214,7 @@ def test_an_all_green_grid_without_a_positive_control_is_not_a_conclusion(poison
         for m, p in CELLS
     ]
     result = judge_module.judge_grid(traces, SENTINELS)
-    assert result["resisted"] == [f"{m}/{p}" for m, p in CELLS]
+    assert sorted(result["resisted"]) == sorted(f"{m}/{p}" for m, p in CELLS)
     assert result["positive_control_fired"] is False
     assert result["grid_is_interpretable"] is False
     assert any("阳性对照臂" in problem for problem in result["problems"])
