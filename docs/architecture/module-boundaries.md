@@ -4805,11 +4805,15 @@ CI 侧早有一条防漏接的元判据（`gates.yml:628` 第 ⑦ 步），**own
 
 | 目录 | `unit-and-contracts` 里的哪一步 | 步骤是否被条件/软失败削弱 | `lint`（ruff）作用域 | `missions/p1-insight.json` 的 `commands.test` | 实测日期 · 证据路径 |
 |---|---|---|---|---|---|
+| `tests/agents` | `⑨`（带 `-m "not live"`） | 否 | 在 | 不在 | `2026-08-28` · `docs/logs/2026/08-28-p2.3-view-agent.md` |
 | `tests/context` | `⑤` | 否 | 在 | 不在 | `2026-08-26` · `docs/evidence/p1-ci-coverage-registration/README.md` |
 | `tests/contracts` | `②` | 否 | 在 | 不在 | `2026-08-26` · `docs/evidence/p1-ci-coverage-registration/README.md` |
 | `tests/experiments` | `⑥` | 否 | 在 | 不在 | `2026-08-26` · `docs/evidence/p1-ci-coverage-registration/README.md` |
 | `tests/fixtures` | 本 job 里不跑 | 否 | 不在 | 不在 | `2026-08-26` · `docs/evidence/p1-ci-coverage-registration/README.md` |
 | `tests/gates` | 本 job 里不跑 | 否 | 不在 | 不在 | `2026-08-26` · `docs/evidence/p1-ci-coverage-registration/README.md` |
+| `tests/dsl` | `⑦` | 否 | 在 | 不在 | `2026-08-28` · `docs/logs/2026/08-28-p2.3-view-agent.md` |
+| `tests/i18n` | `⑧` | 否 | 在 | 不在 | `2026-08-28` · `docs/logs/2026/08-28-p2.3-view-agent.md` |
+| `tests/render` | 本 job 里不跑 | 否 | 在 | 不在 | `2026-08-28` · `docs/logs/2026/08-28-s3-chain.md` |
 | `tests/routing` | `④` | 否 | 在 | 不在 | `2026-08-26` · `docs/evidence/p1-ci-coverage-registration/README.md` |
 | `tests/tools` | `③` | 否 | 在 | 不在 | `2026-08-26` · `docs/evidence/p1-ci-coverage-registration/README.md` |
 | `tests/ui` | 本 job 里不跑 | 否 | 在 | 不在 | `2026-08-26` · `docs/evidence/p1-ci-coverage-registration/README.md` |
@@ -4820,6 +4824,10 @@ CI 侧早有一条防漏接的元判据（`gates.yml:628` 第 ⑦ 步），**own
 ⚠️ **第 2 列写的是「本 job 里不跑」，不是「不跑」** —— 三行里有两行**在别的 job 里确实跑着**，
 少了下面这一句，这张表就会让读它的人**低估**已有覆盖（那正是本节要治的病）：
 
+- **`tests/render`** —— 2026-08-28 接进 `gates-l2-live`（`- name: 🔴 渲染器活体门禁（零 skip）`）。
+  ⚠️ **在那之前它一个 job 都没有**：当天它被写进门禁⑩ 的 `COVERED` 让红消失，而**没有任何 job 跑它** ——
+  独立收口审计逐字判为「**用绿换掉了一条正在说真话的红**」。整个目录都是 `live` 标记
+  （`pytest tests/render -m "not live"` → 18 deselected），所以只能在那条线上跑。
 - **`tests/ui`** —— `gates.yml:326` `- name: ⌘K 侧边栏活体门禁（零 skip）` / `:337`
   逐字 `python3 -m pytest -m live tests/ui/test_sidebar.py -q | tee /tmp/ui-gate.log`，在 **`gates-l2-live`**（job 键 `:236`）里。
 - **`tests/gates`** —— `:208` `python3 -m pytest tests/gates/test_zero_dep_boot.py -q`（**`gates-l2`**，job 键 `:162`）·
